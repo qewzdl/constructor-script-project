@@ -1,0 +1,131 @@
+package repository
+
+import (
+	"constructor-script-backend/internal/models"
+
+	"gorm.io/gorm"
+)
+
+type PostRepository interface {
+	Create(post *models.Post) error
+	GetByID(id uint) (*models.Post, error)
+	GetAll(offset, limit int, categoryID *uint, tagName *string, authorID *uint) ([]models.Post, int64, error)
+	Update(post *models.Post) error
+	Delete(id uint) error
+	GetBySlug(slug string) (*models.Post, error)
+	GetPopular(limit int) ([]models.Post, error)
+	GetRecent(limit int) ([]models.Post, error)
+	GetRelated(postID uint, categoryID uint, limit int) ([]models.Post, error)
+	IncrementViews(id uint) error
+}
+
+type postRepository struct {
+	db *gorm.DB
+}
+
+func NewPostRepository(db *gorm.DB) PostRepository {
+	return &postRepository{db: db}
+}
+
+func (r *postRepository) Create(post *models.Post) error {
+	return r.db.Create(post).Error
+}
+
+func (r *postRepository) GetByID(id uint) (*models.Post, error) {
+	var post models.Post
+	err := r.db.Preload("Author").Preload("Category").Preload("Tags").Preload("Comments").First(&post, id).Error
+	return &post, err
+}
+
+func (r *postRepository) GetAll(offset, limit int, categoryID *uint, tagName *string, authorID *uint) ([]models.Post, int64, error) {
+	var posts []models.Post
+	var total int64
+
+	query := r.db.Model(&models.Post{})
+
+	if categoryID != nil {
+		query = query.Where("category_id = ?", *categoryID)
+	}
+
+	if authorID != nil {
+		query = query.Where("author_id = ?", *authorID)
+	}
+
+	if tagName != nil {
+		query = query.Joins("JOIN post_tags ON post_tags.post_id = posts.id").
+			Joins("JOIN tags ON tags.id = post_tags.tag_id").
+			Where("tags.slug = ?", *tagName)
+	}
+
+	query.Count(&total)
+
+	err := query.Preload("Author").Preload("Category").Preload("Tags").
+		Order("created_at DESC").
+		Offset(offset).Limit(limit).
+		Find(&posts).Error
+
+	return posts, total, err
+}
+
+func (r *postRepository) Update(post *models.Post) error {
+	return r.db.Session(&gorm.Session{FullSaveAssociations: true}).Save(post).Error
+}
+
+func (r *postRepository) Delete(id uint) error {
+	return r.db.Delete(&models.Post{}, id).Error
+}
+
+func (r *postRepository) GetBySlug(slug string) (*models.Post, error) {
+	var post models.Post
+	err := r.db.Where("slug = ?", slug).
+		Preload("Author").
+		Preload("Category").
+		Preload("Tags").
+		Preload("Comments", func(db *gorm.DB) *gorm.DB {
+			return db.Where("parent_id IS NULL").Order("created_at DESC")
+		}).
+		First(&post).Error
+	return &post, err
+}
+
+func (r *postRepository) GetPopular(limit int) ([]models.Post, error) {
+	var posts []models.Post
+	err := r.db.Where("published = ?", true).
+		Preload("Author").
+		Preload("Category").
+		Preload("Tags").
+		Order("views DESC").
+		Limit(limit).
+		Find(&posts).Error
+	return posts, err
+}
+
+func (r *postRepository) GetRecent(limit int) ([]models.Post, error) {
+	var posts []models.Post
+	err := r.db.Where("published = ?", true).
+		Preload("Author").
+		Preload("Category").
+		Preload("Tags").
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&posts).Error
+	return posts, err
+}
+
+func (r *postRepository) GetRelated(postID uint, categoryID uint, limit int) ([]models.Post, error) {
+	var posts []models.Post
+	err := r.db.Where("id != ? AND category_id = ? AND published = ?", postID, categoryID, true).
+		Preload("Author").
+		Preload("Category").
+		Preload("Tags").
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&posts).Error
+	return posts, err
+}
+
+func (r *postRepository) IncrementViews(id uint) error {
+	return r.db.Model(&models.Post{}).
+		Where("id = ?", id).
+		UpdateColumn("views", gorm.Expr("views + ?", 1)).Error
+}

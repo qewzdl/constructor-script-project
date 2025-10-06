@@ -1,0 +1,228 @@
+package handlers
+
+import (
+	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/service"
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+)
+
+type PostHandler struct {
+	postService *service.PostService
+}
+
+func NewPostHandler(postService *service.PostService) *PostHandler {
+	return &PostHandler{postService: postService}
+}
+
+func (h *PostHandler) Create(c *gin.Context) {
+	var req models.CreatePostRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID := c.GetUint("user_id")
+	post, err := h.postService.Create(req, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"post": post})
+}
+
+func (h *PostHandler) GetAll(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	var categoryID *uint
+	if catID := c.Query("category_id"); catID != "" {
+		id, _ := strconv.ParseUint(catID, 10, 32)
+		cid := uint(id)
+		categoryID = &cid
+	}
+
+	var tagName *string
+	if tag := c.Query("tag"); tag != "" {
+		tagName = &tag
+	}
+
+	var authorID *uint
+	if authID := c.Query("author_id"); authID != "" {
+		id, _ := strconv.ParseUint(authID, 10, 32)
+		aid := uint(id)
+		authorID = &aid
+	}
+
+	posts, total, err := h.postService.GetAll(page, limit, categoryID, tagName, authorID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"posts": posts,
+		"total": total,
+		"page":  page,
+		"limit": limit,
+	})
+}
+
+func (h *PostHandler) GetByID(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
+		return
+	}
+
+	post, err := h.postService.GetByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"post": post})
+}
+
+func (h *PostHandler) Update(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
+		return
+	}
+
+	var req models.UpdatePostRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID := c.GetUint("user_id")
+	isAdmin := c.GetString("role") == "admin"
+
+	post, err := h.postService.Update(uint(id), req, userID, isAdmin)
+	if err != nil {
+		if err.Error() == "unauthorized" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"post": post})
+}
+
+func (h *PostHandler) Delete(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
+		return
+	}
+
+	userID := c.GetUint("user_id")
+	isAdmin := c.GetString("role") == "admin"
+
+	if err := h.postService.Delete(uint(id), userID, isAdmin); err != nil {
+		if err.Error() == "unauthorized" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "post deleted successfully"})
+}
+
+func (h *PostHandler) GetBySlug(c *gin.Context) {
+	slug := c.Param("slug")
+
+	post, err := h.postService.GetBySlug(slug)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"post": post})
+}
+
+func (h *PostHandler) GetAllTags(c *gin.Context) {
+	tags, err := h.postService.GetAllTags()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tags": tags})
+}
+
+func (h *PostHandler) GetPostsByTag(c *gin.Context) {
+	slug := c.Param("slug")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	posts, total, err := h.postService.GetPostsByTag(slug, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"posts": posts,
+		"total": total,
+		"page":  page,
+		"limit": limit,
+	})
+}
+
+func (h *PostHandler) GetAllAdmin(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	posts, total, err := h.postService.GetAllAdmin(page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"posts": posts,
+		"total": total,
+		"page":  page,
+		"limit": limit,
+	})
+}
+
+func (h *PostHandler) PublishPost(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
+		return
+	}
+
+	if err := h.postService.PublishPost(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "post published successfully"})
+}
+
+func (h *PostHandler) UnpublishPost(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
+		return
+	}
+
+	if err := h.postService.UnpublishPost(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "post unpublished successfully"})
+}
