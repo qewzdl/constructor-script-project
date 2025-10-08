@@ -55,7 +55,7 @@ func (r *commentRepository) Update(comment *models.Comment) error {
 }
 
 func (r *commentRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Comment{}, id).Error
+	return r.db.Unscoped().Delete(&models.Comment{}, id).Error
 }
 
 func (r *commentRepository) GetPending() ([]models.Comment, error) {

@@ -11,6 +11,7 @@ type TagRepository interface {
 	GetByID(id uint) (*models.Tag, error)
 	GetBySlug(slug string) (*models.Tag, error)
 	GetAll() ([]models.Tag, error)
+	ExistsByName(name string) (bool, error)
 }
 
 type tagRepository struct {
@@ -23,6 +24,10 @@ func NewTagRepository(db *gorm.DB) TagRepository {
 
 func (r *tagRepository) Create(tag *models.Tag) error {
 	return r.db.Create(tag).Error
+}
+
+func (r *tagRepository) Delete(id uint) error {
+	return r.db.Unscoped().Delete(&models.Tag{}, id).Error
 }
 
 func (r *tagRepository) GetByID(id uint) (*models.Tag, error) {
@@ -76,4 +81,10 @@ func (r *tagRepository) GetWithPostCount() ([]models.Tag, error) {
 	}
 
 	return result, err
+}
+
+func (r *tagRepository) ExistsByName(name string) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Tag{}).Where("name = ?", name).Count(&count).Error
+	return count > 0, err
 }

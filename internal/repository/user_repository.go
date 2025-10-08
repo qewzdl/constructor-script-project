@@ -57,7 +57,7 @@ func (r *userRepository) Update(user *models.User) error {
 }
 
 func (r *userRepository) Delete(id uint) error {
-	return r.db.Delete(&models.User{}, id).Error
+	return r.db.Unscoped().Delete(&models.User{}, id).Error
 }
 
 func (r *userRepository) GetWithStats(id uint) (*models.User, error) {

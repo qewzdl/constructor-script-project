@@ -14,6 +14,7 @@ type CategoryRepository interface {
 	Delete(id uint) error
 	GetBySlug(slug string) (*models.Category, error)
 	GetWithPostCount() ([]models.Category, error)
+	ExistsBySlug(slug string) (bool, error)
 }
 
 type categoryRepository struct {
@@ -45,7 +46,7 @@ func (r *categoryRepository) Update(category *models.Category) error {
 }
 
 func (r *categoryRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Category{}, id).Error
+	return r.db.Unscoped().Delete(&models.Category{}, id).Error
 }
 
 func (r *categoryRepository) GetWithPostCount() ([]models.Category, error) {
@@ -74,4 +75,10 @@ func (r *categoryRepository) GetBySlug(slug string) (*models.Category, error) {
 	var category models.Category
 	err := r.db.Where("slug = ?", slug).First(&category).Error
 	return &category, err
+}
+
+func (r *categoryRepository) ExistsBySlug(slug string) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Category{}).Where("slug = ?", slug).Count(&count).Error
+	return count > 0, err
 }

@@ -17,6 +17,7 @@ type PostRepository interface {
 	GetRecent(limit int) ([]models.Post, error)
 	GetRelated(postID uint, categoryID uint, limit int) ([]models.Post, error)
 	IncrementViews(id uint) error
+	ExistsBySlug(slug string) (bool, error)
 }
 
 type postRepository struct {
@@ -72,7 +73,7 @@ func (r *postRepository) Update(post *models.Post) error {
 }
 
 func (r *postRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Post{}, id).Error
+	return r.db.Unscoped().Delete(&models.Post{}, id).Error
 }
 
 func (r *postRepository) GetBySlug(slug string) (*models.Post, error) {
@@ -128,4 +129,10 @@ func (r *postRepository) IncrementViews(id uint) error {
 	return r.db.Model(&models.Post{}).
 		Where("id = ?", id).
 		UpdateColumn("views", gorm.Expr("views + ?", 1)).Error
+}
+
+func (r *postRepository) ExistsBySlug(slug string) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Post{}).Where("slug = ?", slug).Count(&count).Error
+	return count > 0, err
 }

@@ -27,9 +27,27 @@ func NewPostService(postRepo repository.PostRepository, tagRepo repository.TagRe
 }
 
 func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*models.Post, error) {
+
+	if req.Title == "" {
+		return nil, errors.New("post title is required")
+	}
+	if req.Content == "" {
+		return nil, errors.New("post content is required")
+	}
+
+	slug := utils.GenerateSlug(req.Title)
+
+	exists, err := s.postRepo.ExistsBySlug(slug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check post existence: %w", err)
+	}
+	if exists {
+		return nil, errors.New("post with this title already exists")
+	}
+
 	post := &models.Post{
 		Title:       req.Title,
-		Slug:        utils.GenerateSlug(req.Title),
+		Slug:        slug,
 		Content:     req.Content,
 		Excerpt:     req.Excerpt,
 		FeaturedImg: req.FeaturedImg,
@@ -41,13 +59,13 @@ func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*mode
 	if len(req.TagNames) > 0 {
 		tags, err := s.getOrCreateTags(req.TagNames)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to process tags: %w", err)
 		}
 		post.Tags = tags
 	}
 
 	if err := s.postRepo.Create(post); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create post: %w", err)
 	}
 
 	if s.cache != nil {

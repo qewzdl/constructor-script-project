@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -24,14 +25,29 @@ func NewCategoryService(categoryRepo repository.CategoryRepository, cacheService
 }
 
 func (s *CategoryService) Create(req models.CreateCategoryRequest) (*models.Category, error) {
+
+	if req.Name == "" {
+		return nil, errors.New("category name is required")
+	}
+
+	slug := utils.GenerateSlug(req.Name)
+
+	exists, err := s.categoryRepo.ExistsBySlug(slug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check category existence: %w", err)
+	}
+	if exists {
+		return nil, errors.New("category with this name already exists")
+	}
+
 	category := &models.Category{
 		Name:        req.Name,
-		Slug:        utils.GenerateSlug(req.Name),
+		Slug:        slug,
 		Description: req.Description,
 	}
 
 	if err := s.categoryRepo.Create(category); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create category: %w", err)
 	}
 
 	if s.cache != nil {
