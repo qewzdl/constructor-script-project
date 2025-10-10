@@ -10,6 +10,8 @@ import (
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/utils"
+
+	"github.com/google/uuid"
 )
 
 type PostService struct {
@@ -27,12 +29,8 @@ func NewPostService(postRepo repository.PostRepository, tagRepo repository.TagRe
 }
 
 func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*models.Post, error) {
-
 	if req.Title == "" {
 		return nil, errors.New("post title is required")
-	}
-	if req.Content == "" {
-		return nil, errors.New("post content is required")
 	}
 
 	slug := utils.GenerateSlug(req.Title)
@@ -45,15 +43,28 @@ func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*mode
 		return nil, errors.New("post with this title already exists")
 	}
 
+	sections, err := s.prepareSections(req.Sections)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare sections: %w", err)
+	}
+
+	content := req.Content
+	if len(sections) > 0 && content == "" {
+		content = s.generateContentFromSections(sections)
+	}
+
 	post := &models.Post{
 		Title:       req.Title,
 		Slug:        slug,
-		Content:     req.Content,
+		Description: req.Description,
+		Content:     content,
 		Excerpt:     req.Excerpt,
 		FeaturedImg: req.FeaturedImg,
 		Published:   req.Published,
 		AuthorID:    authorID,
 		CategoryID:  req.CategoryID,
+		Sections:    sections,
+		Template:    s.getTemplate(req.Template),
 	}
 
 	if len(req.TagNames) > 0 {
@@ -89,6 +100,9 @@ func (s *PostService) Update(id uint, req models.UpdatePostRequest, userID uint,
 		post.Title = *req.Title
 		post.Slug = utils.GenerateSlug(*req.Title)
 	}
+	if req.Description != nil {
+		post.Description = *req.Description
+	}
 	if req.Content != nil {
 		post.Content = *req.Content
 	}
@@ -103,6 +117,21 @@ func (s *PostService) Update(id uint, req models.UpdatePostRequest, userID uint,
 	}
 	if req.CategoryID != nil {
 		post.CategoryID = *req.CategoryID
+	}
+	if req.Template != nil {
+		post.Template = s.getTemplate(*req.Template)
+	}
+
+	if req.Sections != nil {
+		sections, err := s.prepareSections(*req.Sections)
+		if err != nil {
+			return nil, fmt.Errorf("failed to prepare sections: %w", err)
+		}
+		post.Sections = sections
+
+		if post.Content == "" || len(sections) > 0 {
+			post.Content = s.generateContentFromSections(sections)
+		}
 	}
 
 	if len(req.TagNames) > 0 {
@@ -123,6 +152,132 @@ func (s *PostService) Update(id uint, req models.UpdatePostRequest, userID uint,
 	}
 
 	return s.postRepo.GetByID(post.ID)
+}
+
+func (s *PostService) prepareSections(sections []models.Section) (models.PostSections, error) {
+	if len(sections) == 0 {
+		return models.PostSections{}, nil
+	}
+
+	prepared := make(models.PostSections, 0, len(sections))
+
+	for i, section := range sections {
+
+		if section.Title == "" {
+			return nil, fmt.Errorf("section %d: title is required", i)
+		}
+
+		if section.ID == "" {
+			section.ID = uuid.New().String()
+		}
+
+		if section.Order == 0 {
+			section.Order = i + 1
+		}
+
+		if len(section.Elements) > 0 {
+			preparedElements, err := s.prepareSectionElements(section.Elements)
+			if err != nil {
+				return nil, fmt.Errorf("section %d: %w", i, err)
+			}
+			section.Elements = preparedElements
+		}
+
+		prepared = append(prepared, section)
+	}
+
+	return prepared, nil
+}
+
+func (s *PostService) prepareSectionElements(elements []models.SectionElement) ([]models.SectionElement, error) {
+	prepared := make([]models.SectionElement, 0, len(elements))
+
+	for i, elem := range elements {
+
+		if elem.ID == "" {
+			elem.ID = uuid.New().String()
+		}
+
+		if elem.Order == 0 {
+			elem.Order = i + 1
+		}
+
+		switch elem.Type {
+		case "paragraph", "image", "image_group":
+
+		default:
+			return nil, fmt.Errorf("element %d: unknown type '%s'", i, elem.Type)
+		}
+
+		if elem.Content == nil {
+			return nil, fmt.Errorf("element %d: content is required", i)
+		}
+
+		prepared = append(prepared, elem)
+	}
+
+	return prepared, nil
+}
+
+func (s *PostService) generateContentFromSections(sections models.PostSections) string {
+	var content strings.Builder
+
+	for _, section := range sections {
+		content.WriteString(section.Title)
+		content.WriteString("\n\n")
+
+		for _, elem := range section.Elements {
+			if elem.Type == "paragraph" {
+				if contentMap, ok := elem.Content.(map[string]interface{}); ok {
+					if text, ok := contentMap["text"].(string); ok {
+						content.WriteString(text)
+						content.WriteString("\n\n")
+					}
+				}
+			}
+		}
+	}
+
+	return content.String()
+}
+
+func (s *PostService) getTemplate(template string) string {
+	if template == "" {
+		return "post"
+	}
+	return template
+}
+
+func (s *PostService) getOrCreateTags(tagNames []string) ([]models.Tag, error) {
+	var tags []models.Tag
+
+	for _, name := range tagNames {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+
+		slug := utils.GenerateSlug(name)
+		tag, err := s.tagRepo.GetBySlug(slug)
+
+		if err != nil {
+			tag = &models.Tag{
+				Name: name,
+				Slug: slug,
+			}
+			if err := s.tagRepo.Create(tag); err != nil {
+				return nil, err
+			}
+
+			if s.cache != nil {
+				s.cache.Delete("tags:all")
+			}
+		}
+
+		tags = append(tags, *tag)
+	}
+
+	return tags, nil
 }
 
 func (s *PostService) Delete(id uint, userID uint, isAdmin bool) error {
@@ -413,37 +568,4 @@ func (s *PostService) UnpublishPost(postID uint) error {
 
 func (s *PostService) IncrementViews(postID uint) error {
 	return s.postRepo.IncrementViews(postID)
-}
-
-func (s *PostService) getOrCreateTags(tagNames []string) ([]models.Tag, error) {
-	var tags []models.Tag
-
-	for _, name := range tagNames {
-		name = strings.TrimSpace(name)
-		if name == "" {
-			continue
-		}
-
-		slug := utils.GenerateSlug(name)
-		tag, err := s.tagRepo.GetBySlug(slug)
-
-		if err != nil {
-
-			tag = &models.Tag{
-				Name: name,
-				Slug: slug,
-			}
-			if err := s.tagRepo.Create(tag); err != nil {
-				return nil, err
-			}
-
-			if s.cache != nil {
-				s.cache.Delete("tags:all")
-			}
-		}
-
-		tags = append(tags, *tag)
-	}
-
-	return tags, nil
 }

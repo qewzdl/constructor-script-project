@@ -1,0 +1,71 @@
+<main class="home" role="main">
+    <header class="home__header">
+        <h1 class="home__title">Hello, Constructor Script!</h1>
+        <p class="home__subtitle">
+            Welcome to your new website powered by Constructor Script.
+        </p>
+    </header>
+
+    <section class="blog" aria-labelledby="blog-title">
+        <h2 id="blog-title" class="blog__title">Latest Posts</h2>
+
+        <div class="blog__posts">
+            {{ range .Posts }}
+            <article class="blog__post post-card" aria-labelledby="post-{{ .Slug }}">
+                {{ if .FeaturedImg }}
+                <figure class="post-card__figure">
+                    <img src="{{ .FeaturedImg }}" alt="{{ .Title }}" class="post-card__image" loading="lazy">
+                </figure>
+                {{ end }}
+
+                <div class="post-card__content">
+                    <h3 id="post-{{ .Slug }}" class="post-card__title">
+                        <a href="/blog/post/{{ .Slug }}" class="post-card__link">{{ .Title }}</a>
+                    </h3>
+
+                    {{ if .Description }}
+                    <p class="post-card__description">{{ .Description }}</p>
+                    {{ else if .Excerpt }}
+                    <p class="post-card__description">{{ .Excerpt }}</p>
+                    {{ end }}
+
+                    <footer class="post-card__footer">
+                        <time class="post-card__date" datetime="{{ .CreatedAt.Format "2006-01-02" }}">
+                            {{ .CreatedAt.Format "02 Jan 2006" }}
+                        </time>
+                        <span class="post-card__views" aria-label="{{ .Views }} views">
+                            👁 {{ .Views }} views
+                        </span>
+                    </footer>
+                </div>
+            </article>
+            {{ end }}
+        </div>
+
+        {{ if gt .TotalPages 1 }}
+        <nav class="pagination" role="navigation" aria-label="Pagination">
+            <ul class="pagination__list">
+                {{ if gt .CurrentPage 1 }}
+                <li>
+                    <a href="/?page={{ sub .CurrentPage 1 }}" class="pagination__button pagination__button--prev" rel="prev">
+                        ← Previous
+                    </a>
+                </li>
+                {{ end }}
+
+                <li class="pagination__info" aria-current="page">
+                    Page {{ .CurrentPage }} of {{ .TotalPages }}
+                </li>
+
+                {{ if lt .CurrentPage .TotalPages }}
+                <li>
+                    <a href="/?page={{ add .CurrentPage 1 }}" class="pagination__button pagination__button--next" rel="next">
+                        Next →
+                    </a>
+                </li>
+                {{ end }}
+            </ul>
+        </nav>
+        {{ end }}
+    </section>
+</main>

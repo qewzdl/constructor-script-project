@@ -1,0 +1,12 @@
+<article class="page" role="article">
+    <header class="page__header">
+        <h1 class="page__title">{{ .Page.Title }}</h1>
+        {{ if .Page.Description }}
+        <p class="page__description">{{ .Page.Description }}</p>
+        {{ end }}
+    </header>
+
+    <section class="page__content">
+        {{ .Content }}
+    </section>
+</article>

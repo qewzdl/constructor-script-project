@@ -1,6 +1,9 @@
 package models
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -15,7 +18,7 @@ type User struct {
 	Username string `gorm:"uniqueIndex;not null" json:"username"`
 	Email    string `gorm:"uniqueIndex;not null" json:"email"`
 	Password string `gorm:"not null" json:"-"`
-	Role     string `gorm:"default:'user'" json:"role"` // user, admin
+	Role     string `gorm:"default:'user'" json:"role"`
 
 	Status string `gorm:"default:'active'" json:"status"`
 
@@ -46,11 +49,15 @@ type Post struct {
 
 	Title       string `gorm:"not null" json:"title"`
 	Slug        string `gorm:"uniqueIndex;not null" json:"slug"`
+	Description string `json:"description"`
 	Content     string `gorm:"type:text;not null" json:"content"`
 	Excerpt     string `json:"excerpt"`
 	FeaturedImg string `json:"featured_img"`
 	Published   bool   `gorm:"default:false" json:"published"`
 	Views       int    `gorm:"default:0" json:"views"`
+
+	Sections PostSections `gorm:"type:jsonb" json:"sections"`
+	Template string       `gorm:"default:'post'" json:"template"`
 
 	AuthorID   uint     `gorm:"not null" json:"author_id"`
 	Author     User     `gorm:"foreignKey:AuthorID" json:"author"`
@@ -92,8 +99,6 @@ type Comment struct {
 	Replies  []*Comment `gorm:"foreignKey:ParentID" json:"replies,omitempty"`
 }
 
-// DTO for requests
-
 type RegisterRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=50"`
 	Email    string `json:"email" binding:"required,email"`
@@ -103,26 +108,6 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
-}
-
-type CreatePostRequest struct {
-	Title       string   `json:"title" binding:"required"`
-	Content     string   `json:"content" binding:"required"`
-	Excerpt     string   `json:"excerpt"`
-	FeaturedImg string   `json:"featured_img"`
-	Published   bool     `json:"published"`
-	CategoryID  uint     `json:"category_id"`
-	TagNames    []string `json:"tags"`
-}
-
-type UpdatePostRequest struct {
-	Title       *string  `json:"title"`
-	Content     *string  `json:"content"`
-	Excerpt     *string  `json:"excerpt"`
-	FeaturedImg *string  `json:"featured_img"`
-	Published   *bool    `json:"published"`
-	CategoryID  *uint    `json:"category_id"`
-	TagNames    []string `json:"tags"`
 }
 
 type CreateCategoryRequest struct {
@@ -143,4 +128,120 @@ type UpdateCommentRequest struct {
 type AuthResponse struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`
+}
+
+type PostSections []Section
+
+type Section struct {
+	ID       string           `json:"id"`
+	Title    string           `json:"title"`
+	Image    string           `json:"image"`
+	Order    int              `json:"order"`
+	Elements []SectionElement `json:"elements"`
+}
+
+type SectionElement struct {
+	ID      string      `json:"id"`
+	Type    string      `json:"type"`
+	Order   int         `json:"order"`
+	Content interface{} `json:"content"`
+}
+
+type ParagraphContent struct {
+	Text string `json:"text"`
+}
+
+type ImageContent struct {
+	URL     string `json:"url"`
+	Alt     string `json:"alt"`
+	Caption string `json:"caption"`
+}
+
+type ImageGroupContent struct {
+	Images []ImageContent `json:"images"`
+	Layout string         `json:"layout"`
+}
+
+func (ps *PostSections) Scan(value interface{}) error {
+	if value == nil {
+		*ps = PostSections{}
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("failed to scan PostSections")
+	}
+
+	return json.Unmarshal(bytes, ps)
+}
+
+func (ps PostSections) Value() (driver.Value, error) {
+	if len(ps) == 0 {
+		return nil, nil
+	}
+	return json.Marshal(ps)
+}
+
+type CreatePostRequest struct {
+	Title       string    `json:"title" binding:"required"`
+	Description string    `json:"description"`
+	Content     string    `json:"content"`
+	Excerpt     string    `json:"excerpt"`
+	FeaturedImg string    `json:"featured_img"`
+	Published   bool      `json:"published"`
+	CategoryID  uint      `json:"category_id"`
+	TagNames    []string  `json:"tags"`
+	Sections    []Section `json:"sections"`
+	Template    string    `json:"template"`
+}
+
+type UpdatePostRequest struct {
+	Title       *string    `json:"title"`
+	Description *string    `json:"description"`
+	Content     *string    `json:"content"`
+	Excerpt     *string    `json:"excerpt"`
+	FeaturedImg *string    `json:"featured_img"`
+	Published   *bool      `json:"published"`
+	CategoryID  *uint      `json:"category_id"`
+	TagNames    []string   `json:"tags"`
+	Sections    *[]Section `json:"sections"`
+	Template    *string    `json:"template"`
+}
+
+type Page struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Title       string       `gorm:"not null" json:"title"`
+	Slug        string       `gorm:"uniqueIndex;not null" json:"slug"`
+	Description string       `json:"description"`
+	FeaturedImg string       `json:"featured_img"`
+	Published   bool         `gorm:"default:false" json:"published"`
+	Sections    PostSections `gorm:"type:jsonb" json:"sections"`
+	Template    string       `gorm:"default:'page'" json:"template"`
+
+	Order int `gorm:"default:0" json:"order"`
+}
+
+type CreatePageRequest struct {
+	Title       string    `json:"title" binding:"required"`
+	Description string    `json:"description"`
+	FeaturedImg string    `json:"featured_img"`
+	Published   bool      `json:"published"`
+	Sections    []Section `json:"sections"`
+	Template    string    `json:"template"`
+	Order       int       `json:"order"`
+}
+
+type UpdatePageRequest struct {
+	Title       *string    `json:"title"`
+	Description *string    `json:"description"`
+	FeaturedImg *string    `json:"featured_img"`
+	Published   *bool      `json:"published"`
+	Sections    *[]Section `json:"sections"`
+	Template    *string    `json:"template"`
+	Order       *int       `json:"order"`
 }

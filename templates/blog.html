@@ -1,0 +1,49 @@
+<section class="blog" aria-labelledby="blog-title">
+    <h1 id="blog-title" class="blog__title">Latest Posts</h1>
+    
+    <div class="blog__posts">
+        {{ range .Posts }}
+        <article class="blog__post post-card">
+            {{ if .FeaturedImg }}
+            <img src="{{ .FeaturedImg }}" alt="{{ .Title }}" class="post-card__image">
+            {{ end }}
+            <div class="post-card__content">
+                <h2 class="post-card__title">
+                    <a href="/blog/post/{{ .Slug }}" class="post-card__link">{{ .Title }}</a>
+                </h2>
+                {{ if .Description }}
+                <p class="post-card__description">{{ .Description }}</p>
+                {{ else if .Excerpt }}
+                <p class="post-card__description">{{ .Excerpt }}</p>
+                {{ end }}
+                <div class="post-card__meta">
+                    <time class="post-card__date" datetime="{{ .CreatedAt.Format "2006-01-02" }}">
+                        {{ .CreatedAt.Format "02 Jan 2006" }}
+                    </time>
+                    <span class="post-card__views">👁 {{ .Views }} views</span>
+                </div>
+            </div>
+        </article>
+        {{ end }}
+    </div>
+
+    {{ if gt .TotalPages 1 }}
+    <nav class="pagination" aria-label="Pagination">
+        {{ if gt .CurrentPage 1 }}
+        <a href="/?page={{ sub .CurrentPage 1 }}" class="pagination__button pagination__button--prev">
+            ← Previous
+        </a>
+        {{ end }}
+        
+        <span class="pagination__info">
+            Page {{ .CurrentPage }} of {{ .TotalPages }}
+        </span>
+        
+        {{ if lt .CurrentPage .TotalPages }}
+        <a href="/?page={{ add .CurrentPage 1 }}" class="pagination__button pagination__button--next">
+            Next →
+        </a>
+        {{ end }}
+    </nav>
+    {{ end }}
+</section>

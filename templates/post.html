@@ -1,0 +1,59 @@
+<article class="post" role="article">
+    <header class="post__header">
+        {{ if .Post.FeaturedImg }}
+        <figure class="post__image-wrapper">
+            <img src="{{ .Post.FeaturedImg }}" alt="{{ .Post.Title }}" class="post__image">
+        </figure>
+        {{ end }}
+        
+        <h1 class="post__title">{{ .Post.Title }}</h1>
+        
+        {{ if .Post.Description }}
+        <p class="post__description">{{ .Post.Description }}</p>
+        {{ end }}
+        
+        <div class="post__meta" aria-label="Post metadata">
+            <span class="post__meta-item post__meta-item--date">📅 {{ .Post.CreatedAt.Format "02 January 2006" }}</span>
+            <span class="post__meta-item post__meta-item--author">✍️ {{ .Post.Author.Username }}</span>
+            <span class="post__meta-item post__meta-item--views">👁 {{ .Post.Views }} views</span>
+            {{ if .Post.Category.Name }}
+            <span class="post__meta-item post__meta-item--category">📁 {{ .Post.Category.Name }}</span>
+            {{ end }}
+        </div>
+        
+        {{ if .Post.Tags }}
+        <ul class="post__tags" aria-label="Tags">
+            {{ range .Post.Tags }}
+            <li class="post__tag">
+                <a href="/tag/{{ .Slug }}" class="post__tag-link">#{{ .Name }}</a>
+            </li>
+            {{ end }}
+        </ul>
+        {{ end }}
+    </header>
+    
+    <section class="post__content">
+        {{ .Content }}
+    </section>
+    
+    {{ if .RelatedPosts }}
+    <section class="post__related" aria-label="Related posts">
+        <h2 class="post__related-title">Related Articles</h2>
+        <div class="post__related-grid">
+            {{ range .RelatedPosts }}
+            <article class="post__related-card">
+                {{ if .FeaturedImg }}
+                <img src="{{ .FeaturedImg }}" alt="{{ .Title }}" class="post__related-image">
+                {{ end }}
+                <div class="post__related-content">
+                    <h3 class="post__related-heading">
+                        <a href="/blog/post/{{ .Slug }}" class="post__related-link">{{ .Title }}</a>
+                    </h3>
+                    <time class="post__related-date" datetime="{{ .CreatedAt.Format "2006-01-02" }}">{{ .CreatedAt.Format "02.01.2006" }}</time>
+                </div>
+            </article>
+            {{ end }}
+        </div>
+    </section>
+    {{ end }}
+</article>

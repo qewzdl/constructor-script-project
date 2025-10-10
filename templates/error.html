@@ -1,0 +1,28 @@
+<section class="error" role="alert">
+    {{ if .StatusCode }}
+        <div class="error__code">{{ .StatusCode }}</div>
+    {{ else }}
+        <div class="error__icon" aria-hidden="true">⚠️</div>
+    {{ end }}
+    
+    <h1 class="error__title">
+        {{ if .Title }}
+            {{ .Title }}
+        {{ else }}
+            Oops! Something went wrong
+        {{ end }}
+    </h1>
+    
+    <p class="error__message">
+        {{ if .error }}
+            {{ .error }}
+        {{ else }}
+            It looks like the page you’re looking for doesn’t exist or has been moved.
+        {{ end }}
+    </p>
+    
+    <div class="error__actions">
+        <a href="/" class="button button--primary">Go to Homepage</a>
+        <a href="javascript:history.back()" class="button button--secondary">Go Back</a>
+    </div>
+</section>

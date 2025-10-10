@@ -175,3 +175,28 @@ func (c *Cache) GetViews(postID uint) (int64, error) {
 	}
 	return val, err
 }
+
+// CachePage - кэширование страницы
+func (c *Cache) CachePage(pageID uint, page interface{}) error {
+	return c.Set(fmt.Sprintf("page:%d", pageID), page, 1*time.Hour)
+}
+
+// GetCachedPage - получение страницы из кэша
+func (c *Cache) GetCachedPage(pageID uint, dest interface{}) error {
+	return c.Get(fmt.Sprintf("page:%d", pageID), dest)
+}
+
+// InvalidatePage - инвалидация кэша страницы
+func (c *Cache) InvalidatePage(pageID uint) error {
+	// Удаляем кэш по ID
+	if err := c.Delete(fmt.Sprintf("page:%d", pageID)); err != nil {
+		return err
+	}
+	// Удаляем кэш по slug (используем pattern)
+	return c.DeletePattern(fmt.Sprintf("page:slug:*"))
+}
+
+// InvalidatePagesCache - инвалидация всего кэша страниц
+func (c *Cache) InvalidatePagesCache() error {
+	return c.DeletePattern("page*")
+}
