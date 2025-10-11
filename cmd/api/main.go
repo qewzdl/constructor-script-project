@@ -23,6 +23,7 @@ import (
 	"constructor-script-backend/internal/middleware"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/internal/seed"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/logger"
@@ -120,6 +121,8 @@ func main() {
 	searchService := service.NewSearchService(searchRepo)
 	uploadService := service.NewUploadService(cfg.UploadDir)
 	pageService := service.NewPageService(pageRepo, cacheService)
+
+	seed.EnsureDefaultPages(pageService)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)

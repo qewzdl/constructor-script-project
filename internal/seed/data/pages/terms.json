@@ -1,0 +1,75 @@
+{
+    "title": "Terms of Use",
+    "slug": "terms",
+    "description": "Terms of Use for Constructor Script covering eligibility, acceptable use, intellectual property, disclaimers, and contact details.",
+    "published": true,
+    "template": "page",
+    "sections": [
+        {
+            "title": "1. Introduction",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "<p>Constructor Script (\"we\", \"us\", or \"our\") provides tools and educational content that help developers design, build, and ship software projects. These Terms of Use (the \"Terms\") govern your access to and use of our website, documentation, and related services (collectively, the \"Services\"). By accessing or using the Services, you agree to be bound by these Terms. If you do not agree, you must not use the Services.</p>"
+                    }
+                }
+            ]
+        },
+        {
+            "title": "2. Eligibility and Account Responsibilities",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "<p>You represent that you are at least 18 years old, or the age of majority in your jurisdiction, and have the authority to enter into these Terms. You agree to provide accurate registration information, maintain the security of your account credentials, and promptly update any information that becomes inaccurate. You are responsible for all activities that occur under your account.</p>"
+                    }
+                }
+            ]
+        },
+        {
+            "title": "3. Acceptable Use",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "<p>You agree to use the Services only for lawful purposes and in accordance with these Terms. You will not interfere with or disrupt the integrity or performance of the Services, attempt to gain unauthorized access, or reverse engineer any portion of the platform. We may suspend or terminate access if we suspect conduct that violates these Terms or harms other users.</p>"
+                    }
+                }
+            ]
+        },
+        {
+            "title": "4. Intellectual Property",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "<p>All content, templates, trademarks, logos, and other materials made available through the Services are owned or licensed by Constructor Script and are protected by applicable intellectual property laws. We grant you a limited, non-exclusive, non-transferable license to access and use the Services for your personal or internal business purposes. You may not reproduce, distribute, or create derivative works from our materials without prior written permission.</p>"
+                    }
+                }
+            ]
+        },
+        {
+            "title": "5. Disclaimers and Limitation of Liability",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "<p>The Services are provided on an \"as is\" and \"as available\" basis. To the fullest extent permitted by law, we disclaim all warranties, whether express, implied, or statutory, including implied warranties of merchantability, fitness for a particular purpose, and non-infringement. Constructor Script will not be liable for any indirect, incidental, consequential, or punitive damages arising out of or related to your use of the Services.</p>"
+                    }
+                }
+            ]
+        },
+        {
+            "title": "6. Governing Law and Contact",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "<p>These Terms are governed by the laws of the jurisdiction in which Constructor Script is established, without regard to its conflict of laws principles. If you have questions about these Terms or wish to contact us for support, please email legal@constructor-script.com.</p>"
+                    }
+                }
+            ]
+        }
+    ]
+}

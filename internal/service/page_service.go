@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"constructor-script-backend/internal/models"
@@ -26,11 +27,20 @@ func NewPageService(pageRepo repository.PageRepository, cacheService *cache.Cach
 }
 
 func (s *PageService) Create(req models.CreatePageRequest) (*models.Page, error) {
-	if req.Title == "" {
+	if strings.TrimSpace(req.Title) == "" {
 		return nil, errors.New("page title is required")
 	}
 
-	slug := utils.GenerateSlug(req.Title)
+	var slug string
+	if strings.TrimSpace(req.Slug) != "" {
+		slug = utils.GenerateSlug(req.Slug)
+	} else {
+		slug = utils.GenerateSlug(req.Title)
+	}
+
+	if slug == "" {
+		return nil, errors.New("page slug is required")
+	}
 
 	exists, err := s.pageRepo.ExistsBySlug(slug)
 	if err != nil {
@@ -46,7 +56,7 @@ func (s *PageService) Create(req models.CreatePageRequest) (*models.Page, error)
 	}
 
 	page := &models.Page{
-		Title:       req.Title,
+		Title:       strings.TrimSpace(req.Title),
 		Slug:        slug,
 		Description: req.Description,
 		FeaturedImg: req.FeaturedImg,

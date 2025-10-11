@@ -228,6 +228,7 @@ type Page struct {
 
 type CreatePageRequest struct {
 	Title       string    `json:"title" binding:"required"`
+	Slug        string    `json:"slug"`
 	Description string    `json:"description"`
 	FeaturedImg string    `json:"featured_img"`
 	Published   bool      `json:"published"`
