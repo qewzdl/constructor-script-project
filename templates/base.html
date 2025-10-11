@@ -4,65 +4,59 @@
         <!-- Define character encoding and responsive viewport -->
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
+
         <!-- Dynamic page title -->
         <title>{{ .Title }}</title>
-    
+
         <!-- Unique SEO description (displayed in search results) -->
         {{ if .Description }}
         <meta name="description" content="{{ .Description }}" />
         {{ end }}
-    
+
         <!-- Website author -->
-        <meta name="author" content="Constructor Script" />
-    
+        <meta name="author" content="{{ .Site.Name }}" />
+
         <!-- Allow search engines to index and follow links -->
         <meta name="robots" content="index, follow" />
-    
-        <!-- Canonical URL to prevent duplicate content issues -->
-        <link rel="canonical" href="{{ .Canonical }}" />
-    
+
         <!-- Core CSS stylesheets -->
         <link rel="stylesheet" href="/static/css/layout.css" />
         <link rel="stylesheet" href="/static/css/base.css" />
-    
+
         <!-- Favicon for browser tab -->
-        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
-    
+        <link rel="icon" href="{{ .Site.Favicon }}" type="image/x-icon" />
+
         <!-- Preconnect to Google Fonts for faster font loading -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    
+
         <!-- Load Outfit font family with multiple weights -->
         <link
             href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
             rel="stylesheet"
         />
-    
+
         <!-- Open Graph and Twitter Card metadata for social media sharing -->
         <meta property="og:title" content="{{ .Title }}" />
         <meta property="og:description" content="{{ .Description }}" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="{{ .Canonical }}" />
-        <meta property="og:image" content="{{ .Image }}" />
-    
+
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="{{ .Title }}" />
         <meta name="twitter:description" content="{{ .Description }}" />
-        <meta name="twitter:image" content="{{ .Image }}" />
-    
+
         <!-- Structured data (Organization) for rich results in search engines -->
         <script type="application/ld+json">
-        {
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          "name": "Constructor Script",
-          "url": "{{ .Canonical }}",
-          "logo": "/favicon.ico"
-        }
+            {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                "name": "{{ .Site.Name }}",
+                "logo": "{{ .Site.Logo }}",
+                "url": "{{ .Site.URL }}",
+            }
         </script>
     </head>
-    
+
     <body class="page">
         <header class="header" role="banner">
             <nav
@@ -73,9 +67,13 @@
                 <a
                     href="/"
                     class="header__logo"
-                    aria-label="Go to Constructor Script homepage"
+                    aria-label="Go to {{ .Site.Name }} homepage"
                 >
-                    <img src="/static/icons/logo.svg" alt="Constructor Script" class="header__logo-image" />
+                    <img
+                        src="/static/icons/logo.svg"
+                        alt="{{ .Site.Name }} Logo"
+                        class="header__logo-image"
+                    />
                 </a>
                 <ul class="header__nav-list">
                     <li class="header__nav-item">
@@ -97,7 +95,7 @@
                 <p class="footer__text">
                     &copy;
                     <time datetime="2025" class="footer__year">2025</time>
-                    <span class="footer__brand">Constructor Script</span>. All
+                    <span class="footer__brand">{{ .Site.Name }}</span>. All
                     rights reserved.
                 </p>
             </section>

@@ -151,7 +151,7 @@ func main() {
 	logger.Info("Templates loaded successfully", nil)
 
 	// Initialize template handler (now it doesn't need to load templates)
-	templateHandler, err := handlers.NewTemplateHandler(postService, pageService, templatesDir)
+	templateHandler, err := handlers.NewTemplateHandler(postService, pageService, cfg, templatesDir)
 	if err != nil {
 		logger.Error(err, "Failed to initialize template handler", nil)
 		log.Fatal(err)
@@ -187,6 +187,8 @@ func main() {
 	// Static files
 	router.Static("/static", "./static")
 	router.Static("/uploads", cfg.UploadDir)
+
+	router.StaticFile("/favicon.ico", "./favicon.ico")
 
 	// ============================================
 	// Frontend Routes (HTML rendering)

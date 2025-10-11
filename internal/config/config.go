@@ -50,6 +50,12 @@ type Config struct {
 	EnableEmail       bool
 	EnableMetrics     bool
 	EnableCompression bool
+
+	// Site Meta
+	SiteName        string
+	SiteDescription string
+	SiteURL         string
+	SiteFavicon     string
 }
 
 func New() *Config {
@@ -96,9 +102,15 @@ func New() *Config {
 		EnableEmail:       getEnvAsBool("ENABLE_EMAIL", false),
 		EnableMetrics:     getEnvAsBool("ENABLE_METRICS", true),
 		EnableCompression: getEnvAsBool("ENABLE_COMPRESSION", true),
+
+		// Site Meta
+		SiteName:        getEnv("SITE_NAME", "Constructor Script"),
+		SiteDescription: getEnv("SITE_DESCRIPTION", "Platform for building modern, high-performance websites using Go and templates."),
+		SiteURL:         getEnv("SITE_URL", "https://constructor-script.com"),
+		SiteFavicon:     getEnv("SITE_FAVICON", "/favicon.ico"),
 	}
 
-	// Build the final DSN
+	// Build DSN
 	c.DatabaseURL = fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		c.DBUser, c.DBPassword, c.DBHost, c.DBPort, c.DBName, c.DBSSLMode,
