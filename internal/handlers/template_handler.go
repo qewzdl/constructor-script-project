@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type TemplateHandler struct {
@@ -21,6 +22,7 @@ type TemplateHandler struct {
 	pageService *service.PageService
 	templates   *template.Template
 	config      *config.Config
+	sanitizer   *bluemonday.Policy
 }
 
 func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
@@ -34,15 +36,18 @@ func NewTemplateHandler(postService *service.PostService, pageService *service.P
 		"templates": templates.DefinedTemplates(),
 	})
 
+	policy := bluemonday.UGCPolicy()
+	policy.AllowAttrs("class", "id").Globally()
+	policy.AllowAttrs("style").OnElements("span", "div", "p")
+
 	return &TemplateHandler{
 		postService: postService,
 		pageService: pageService,
 		templates:   templates,
 		config:      cfg,
+		sanitizer:   policy,
 	}, nil
 }
-
-// ======== Universal Helpers ========
 
 func (h *TemplateHandler) basePageData(title, description string, extra gin.H) gin.H {
 	data := gin.H{
@@ -86,8 +91,6 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 
 	h.renderWithLayout(c, "base.html", templateName+".html", data)
 }
-
-// ======== Rendering Methods ========
 
 func (h *TemplateHandler) RenderIndex(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -200,8 +203,6 @@ func (h *TemplateHandler) RenderTag(c *gin.Context) {
 	})
 }
 
-// ======== Template Rendering ========
-
 func (h *TemplateHandler) renderWithLayout(c *gin.Context, layout, content string, data gin.H) {
 	tmpl, err := h.templates.Clone()
 	if err != nil {
@@ -237,8 +238,6 @@ func (h *TemplateHandler) executeTemplate(tmpl *template.Template, data interfac
 	return buf.Bytes(), nil
 }
 
-// ======== Section Rendering ========
-
 func (h *TemplateHandler) renderSections(sections models.PostSections) template.HTML {
 	if len(sections) == 0 {
 		return ""
@@ -247,11 +246,13 @@ func (h *TemplateHandler) renderSections(sections models.PostSections) template.
 	var sb strings.Builder
 
 	for _, section := range sections {
-		sb.WriteString(`<section class="post-section" id="section-` + section.ID + `">`)
-		sb.WriteString(`<h2 class="section-title">` + template.HTMLEscapeString(section.Title) + `</h2>`)
+		sb.WriteString(`<section class="post__section" id="section-` + template.HTMLEscapeString(section.ID) + `">`)
+		sb.WriteString(`<h2 class="post__section-title">` + template.HTMLEscapeString(section.Title) + `</h2>`)
 
 		if section.Image != "" {
-			sb.WriteString(`<div class="section-image"><img src="` + template.HTMLEscapeString(section.Image) + `" alt="` + template.HTMLEscapeString(section.Title) + `" /></div>`)
+			sb.WriteString(`<div class="post__section-image">`)
+			sb.WriteString(`<img class="post__section-img" src="` + template.HTMLEscapeString(section.Image) + `" alt="` + template.HTMLEscapeString(section.Title) + `" />`)
+			sb.WriteString(`</div>`)
 		}
 
 		for _, elem := range section.Elements {
@@ -272,24 +273,30 @@ func (h *TemplateHandler) renderSectionElement(elem models.SectionElement) strin
 	switch elem.Type {
 	case "paragraph":
 		if text, ok := contentMap["text"].(string); ok {
-			sb.WriteString(`<div class="paragraph">` + template.HTMLEscapeString(text) + `</div>`)
+
+			sanitized := h.sanitizer.Sanitize(text)
+			sb.WriteString(`<div class="post__paragraph">` + sanitized + `</div>`)
 		}
+
 	case "image":
 		url, _ := contentMap["url"].(string)
 		alt, _ := contentMap["alt"].(string)
 		caption, _ := contentMap["caption"].(string)
 
-		sb.WriteString(`<figure class="image-element"><img src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
+		sb.WriteString(`<figure class="post__image">`)
+		sb.WriteString(`<img class="post__image-img" src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
 		if caption != "" {
-			sb.WriteString(`<figcaption>` + template.HTMLEscapeString(caption) + `</figcaption>`)
+			sanitizedCaption := h.sanitizer.Sanitize(caption)
+			sb.WriteString(`<figcaption class="post__image-caption">` + sanitizedCaption + `</figcaption>`)
 		}
 		sb.WriteString(`</figure>`)
+
 	case "image_group":
 		layout, _ := contentMap["layout"].(string)
 		if layout == "" {
 			layout = "grid"
 		}
-		sb.WriteString(`<div class="image-group image-group-` + layout + `">`)
+		sb.WriteString(`<div class="post__image-group post__image-group--` + template.HTMLEscapeString(layout) + `">`)
 
 		if images, ok := contentMap["images"].([]interface{}); ok {
 			for _, img := range images {
@@ -298,9 +305,11 @@ func (h *TemplateHandler) renderSectionElement(elem models.SectionElement) strin
 					alt, _ := imgMap["alt"].(string)
 					caption, _ := imgMap["caption"].(string)
 
-					sb.WriteString(`<figure class="image-group-item"><img src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
+					sb.WriteString(`<figure class="post__image-group-item">`)
+					sb.WriteString(`<img class="post__image-group-img" src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
 					if caption != "" {
-						sb.WriteString(`<figcaption>` + template.HTMLEscapeString(caption) + `</figcaption>`)
+						sanitizedCaption := h.sanitizer.Sanitize(caption)
+						sb.WriteString(`<figcaption class="post__image-group-caption">` + sanitizedCaption + `</figcaption>`)
 					}
 					sb.WriteString(`</figure>`)
 				}
@@ -311,8 +320,6 @@ func (h *TemplateHandler) renderSectionElement(elem models.SectionElement) strin
 
 	return sb.String()
 }
-
-// ======== Error Rendering ========
 
 func (h *TemplateHandler) renderError(c *gin.Context, status int, title, msg string) {
 	data := gin.H{
