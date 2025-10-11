@@ -35,58 +35,15 @@ func (h *TemplateHandler) renderSections(sections models.PostSections) template.
 }
 
 func (h *TemplateHandler) renderSectionElement(elem models.SectionElement) string {
-	var sb strings.Builder
-
-	contentMap, _ := elem.Content.(map[string]interface{})
-
-	switch elem.Type {
-	case "paragraph":
-		if text, ok := contentMap["text"].(string); ok {
-			sanitized := h.sanitizer.Sanitize(text)
-			sb.WriteString(`<div class="post__paragraph">` + sanitized + `</div>`)
-		}
-
-	case "image":
-		url, _ := contentMap["url"].(string)
-		alt, _ := contentMap["alt"].(string)
-		caption, _ := contentMap["caption"].(string)
-
-		sb.WriteString(`<figure class="post__image">`)
-		sb.WriteString(`<img class="post__image-img" src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
-		if caption != "" {
-			sanitizedCaption := h.sanitizer.Sanitize(caption)
-			sb.WriteString(`<figcaption class="post__image-caption">` + sanitizedCaption + `</figcaption>`)
-		}
-		sb.WriteString(`</figure>`)
-
-	case "image_group":
-		layout, _ := contentMap["layout"].(string)
-		if layout == "" {
-			layout = "grid"
-		}
-		sb.WriteString(`<div class="post__image-group post__image-group--` + template.HTMLEscapeString(layout) + `">`)
-
-		if images, ok := contentMap["images"].([]interface{}); ok {
-			for _, img := range images {
-				if imgMap, ok := img.(map[string]interface{}); ok {
-					url, _ := imgMap["url"].(string)
-					alt, _ := imgMap["alt"].(string)
-					caption, _ := imgMap["caption"].(string)
-
-					sb.WriteString(`<figure class="post__image-group-item">`)
-					sb.WriteString(`<img class="post__image-group-img" src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
-					if caption != "" {
-						sanitizedCaption := h.sanitizer.Sanitize(caption)
-						sb.WriteString(`<figcaption class="post__image-group-caption">` + sanitizedCaption + `</figcaption>`)
-					}
-					sb.WriteString(`</figure>`)
-				}
-			}
-		}
-		sb.WriteString(`</div>`)
+	if h.sectionRenderers == nil {
+		return ""
 	}
 
-	return sb.String()
+	if renderer, ok := h.sectionRenderers[elem.Type]; ok {
+		return renderer(h, elem)
+	}
+
+	return ""
 }
 
 func (h *TemplateHandler) generateTOC(sections models.PostSections) template.HTML {

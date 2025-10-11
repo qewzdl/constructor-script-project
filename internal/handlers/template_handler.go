@@ -13,13 +13,14 @@ import (
 )
 
 type TemplateHandler struct {
-	postService    *service.PostService
-	pageService    *service.PageService
-	authService    *service.AuthService
-	commentService *service.CommentService
-	templates      *template.Template
-	config         *config.Config
-	sanitizer      *bluemonday.Policy
+	postService      *service.PostService
+	pageService      *service.PageService
+	authService      *service.AuthService
+	commentService   *service.CommentService
+	templates        *template.Template
+	config           *config.Config
+	sanitizer        *bluemonday.Policy
+	sectionRenderers map[string]SectionRenderer
 }
 
 func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, authService *service.AuthService, commentService *service.CommentService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
@@ -37,7 +38,7 @@ func NewTemplateHandler(postService *service.PostService, pageService *service.P
 	policy.AllowAttrs("class", "id").Globally()
 	policy.AllowAttrs("style").OnElements("span", "div", "p")
 
-	return &TemplateHandler{
+	handler := &TemplateHandler{
 		postService:    postService,
 		pageService:    pageService,
 		authService:    authService,
@@ -45,5 +46,9 @@ func NewTemplateHandler(postService *service.PostService, pageService *service.P
 		templates:      templates,
 		config:         cfg,
 		sanitizer:      policy,
-	}, nil
+	}
+
+	handler.registerDefaultSectionRenderers()
+
+	return handler, nil
 }
