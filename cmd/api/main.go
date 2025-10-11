@@ -151,7 +151,7 @@ func main() {
 	logger.Info("Templates loaded successfully", nil)
 
 	// Initialize template handler (now it doesn't need to load templates)
-	templateHandler, err := handlers.NewTemplateHandler(postService, pageService, authService, cfg, templatesDir)
+	templateHandler, err := handlers.NewTemplateHandler(postService, pageService, authService, commentService, cfg, templatesDir)
 	if err != nil {
 		logger.Error(err, "Failed to initialize template handler", nil)
 		log.Fatal(err)

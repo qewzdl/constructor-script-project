@@ -374,6 +374,13 @@
         }
     };
 
+    window.App = Object.assign(window.App || {}, {
+        auth: Auth,
+        apiRequest,
+        setAlert,
+        toggleFormDisabled,
+    });
+
     document.addEventListener("DOMContentLoaded", () => {
         Auth.syncFromCookie();
         updateNavVisibility();

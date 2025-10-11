@@ -35,11 +35,17 @@ func (r *commentRepository) GetByID(id uint) (*models.Comment, error) {
 
 func (r *commentRepository) GetByPostID(postID uint) ([]models.Comment, error) {
 	var comments []models.Comment
-	err := r.db.Where("post_id = ? AND parent_id IS NULL", postID).
+	err := r.db.Where("post_id = ? AND parent_id IS NULL AND approved = ?", postID, true).
 		Preload("Author").
+		Preload("Replies", func(db *gorm.DB) *gorm.DB {
+			return db.Where("approved = ?", true).Order("created_at ASC")
+		}).
 		Preload("Replies.Author").
+		Preload("Replies.Replies", func(db *gorm.DB) *gorm.DB {
+			return db.Where("approved = ?", true).Order("created_at ASC")
+		}).
 		Preload("Replies.Replies.Author").
-		Order("created_at DESC").
+		Order("created_at ASC").
 		Find(&comments).Error
 	return comments, err
 }

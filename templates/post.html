@@ -1,26 +1,73 @@
-<article class="post" role="article">
+{{ define "commentItem" }}
+    {{ $comment := .Comment }}
+    {{ $root := .Root }}
+    <li class="comments__item" data-comment-id="{{ $comment.ID }}">
+        <article class="comments__card">
+            <header class="comments__header">
+                <span class="comments__author">{{ $comment.AuthorName }}</span>
+                <time
+                    class="comments__time"
+                    datetime='{{ $comment.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}'
+                >
+                    {{ $comment.CreatedAt.Format "02 Jan 2006 15:04" }}
+                </time>
+            </header>
+            <div class="comments__content">
+                {{ $comment.Content }}
+            </div>
+            {{ if $root.IsAuthenticated }}
+            <div class="comments__actions">
+                <button
+                    type="button"
+                    class="comments__reply-button"
+                    data-action="reply"
+                    data-comment-id="{{ $comment.ID }}"
+                    data-author="{{ $comment.AuthorName }}"
+                >
+                    Reply
+                </button>
+            </div>
+            {{ end }}
+        </article>
+        <ol class="comments__replies" data-comments-replies>
+            {{ range $comment.Replies }}
+                {{ template "commentItem" (dict "Comment" . "Root" $root) }}
+            {{ end }}
+        </ol>
+    </li>
+{{ end }}
+
+<article class="post" role="article" data-post-id="{{ .Post.ID }}">
     <header class="post__header">
         {{ if .Post.FeaturedImg }}
         <figure class="post__image-wrapper">
-            <img src="{{ .Post.FeaturedImg }}" alt="{{ .Post.Title }}" class="post__image">
+            <img src="{{ .Post.FeaturedImg }}" alt="{{ .Post.Title }}" class="post__image" />
         </figure>
         {{ end }}
-        
+
         <h1 class="post__title">{{ .Post.Title }}</h1>
-        
+
         {{ if .Post.Description }}
         <p class="post__description">{{ .Post.Description }}</p>
         {{ end }}
-        
+
         <div class="post__meta" aria-label="Post metadata">
-            <span class="post__meta-item post__meta-item--date">📅 {{ .Post.CreatedAt.Format "02 January 2006" }}</span>
-            <span class="post__meta-item post__meta-item--author">✍️ {{ .Post.Author.Username }}</span>
-            <span class="post__meta-item post__meta-item--views">👁 {{ .Post.Views }} views</span>
+            <span class="post__meta-item post__meta-item--date"
+                >📅 {{ .Post.CreatedAt.Format "02 January 2006" }}</span
+            >
+            <span class="post__meta-item post__meta-item--author"
+                >✍️ {{ .Post.Author.Username }}</span
+            >
+            <span class="post__meta-item post__meta-item--views"
+                >👁 {{ .Post.Views }} views</span
+            >
             {{ if .Post.Category.Name }}
-            <span class="post__meta-item post__meta-item--category">📁 {{ .Post.Category.Name }}</span>
+            <span class="post__meta-item post__meta-item--category"
+                >📁 {{ .Post.Category.Name }}</span
+            >
             {{ end }}
         </div>
-        
+
         {{ if .Post.Tags }}
         <ul class="post__tags" aria-label="Tags">
             {{ range .Post.Tags }}
@@ -31,17 +78,17 @@
         </ul>
         {{ end }}
     </header>
-    
+
     {{ if .TOC }}
     <aside class="post__sidebar">
         {{ .TOC }}
     </aside>
     {{ end }}
-    
+
     <section class="post__content">
         {{ .Content }}
     </section>
-    
+
     {{ if .RelatedPosts }}
     <section class="post__related" aria-label="Related posts">
         <h2 class="post__related-title">Related Articles</h2>
@@ -49,13 +96,23 @@
             {{ range .RelatedPosts }}
             <article class="post__related-card">
                 {{ if .FeaturedImg }}
-                <img src="{{ .FeaturedImg }}" alt="{{ .Title }}" class="post__related-image">
+                <img
+                    src="{{ .FeaturedImg }}"
+                    alt="{{ .Title }}"
+                    class="post__related-image"
+                />
                 {{ end }}
                 <div class="post__related-content">
                     <h3 class="post__related-heading">
-                        <a href="/blog/post/{{ .Slug }}" class="post__related-link">{{ .Title }}</a>
+                        <a href="/blog/post/{{ .Slug }}" class="post__related-link"
+                            >{{ .Title }}</a
+                        >
                     </h3>
-                    <time class="post__related-date" datetime="{{ .CreatedAt.Format "2006-01-02" }}">{{ .CreatedAt.Format "02.01.2006" }}</time>
+                    <time
+                        class="post__related-date"
+                        datetime='{{ .CreatedAt.Format "2006-01-02" }}'
+                        >{{ .CreatedAt.Format "02.01.2006" }}</time
+                    >
                 </div>
             </article>
             {{ end }}
@@ -63,3 +120,63 @@
     </section>
     {{ end }}
 </article>
+
+{{ $root := . }}
+{{ $postPath := printf "/blog/post/%s" .Post.Slug }}
+{{ $encodedPostPath := urlquery $postPath }}
+
+<section class="comments" aria-label="Comments" data-comments>
+    <div class="comments__header-row">
+        <h2 class="comments__title">Comments</h2>
+        <span class="comments__count" data-comment-count>{{ .CommentCount }}</span>
+    </div>
+
+    <div id="comment-alert" class="comments__alert" role="status" hidden></div>
+
+    {{ if .IsAuthenticated }}
+    <form
+        id="comment-form"
+        class="comments__form"
+        method="post"
+        novalidate
+        data-action="/api/v1/posts/{{ .Post.ID }}/comments"
+    >
+        <div class="comments__reply-context" data-reply-context hidden>
+            Replying to <span class="comments__reply-target" data-reply-to></span>
+            <button type="button" class="comments__cancel-reply" data-action="cancel-reply">
+                Cancel
+            </button>
+        </div>
+        <label class="comments__label" for="comment-content">Join the discussion</label>
+        <textarea
+            id="comment-content"
+            name="content"
+            class="comments__textarea"
+            placeholder="Share your thoughts..."
+            rows="5"
+            maxlength="2000"
+            required
+        ></textarea>
+        <input type="hidden" name="parent_id" value="" />
+        <button type="submit" class="comments__submit">Post comment</button>
+    </form>
+    {{ else }}
+    <p class="comments__sign-in">
+        Want to join the conversation?
+        <a href="/login?redirect={{ $encodedPostPath }}">Sign in</a>
+        or
+        <a href="/register?redirect={{ $encodedPostPath }}">create an account</a>
+        to share your thoughts.
+    </p>
+    {{ end }}
+
+    <p class="comments__empty" data-comments-empty {{ if .Comments }}hidden{{ end }}>
+        Be the first to share your thoughts.
+    </p>
+
+    <ol class="comments__list" data-comments-list>
+        {{ range .Comments }}
+        {{ template "commentItem" (dict "Comment" . "Root" $root) }}
+        {{ end }}
+    </ol>
+</section>

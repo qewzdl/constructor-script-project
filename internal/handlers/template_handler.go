@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -20,15 +21,24 @@ import (
 )
 
 type TemplateHandler struct {
-	postService *service.PostService
-	pageService *service.PageService
-	authService *service.AuthService
-	templates   *template.Template
-	config      *config.Config
-	sanitizer   *bluemonday.Policy
+	postService    *service.PostService
+	pageService    *service.PageService
+	authService    *service.AuthService
+	commentService *service.CommentService
+	templates      *template.Template
+	config         *config.Config
+	sanitizer      *bluemonday.Policy
 }
 
-func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, authService *service.AuthService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
+type CommentView struct {
+	ID         uint
+	AuthorName string
+	CreatedAt  time.Time
+	Content    template.HTML
+	Replies    []CommentView
+}
+
+func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, authService *service.AuthService, commentService *service.CommentService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
 	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
 	templates, err := tmpl.ParseGlob(filepath.Join(templatesDir, "*.html"))
 	if err != nil {
@@ -44,12 +54,13 @@ func NewTemplateHandler(postService *service.PostService, pageService *service.P
 	policy.AllowAttrs("style").OnElements("span", "div", "p")
 
 	return &TemplateHandler{
-		postService: postService,
-		pageService: pageService,
-		authService: authService,
-		templates:   templates,
-		config:      cfg,
-		sanitizer:   policy,
+		postService:    postService,
+		pageService:    pageService,
+		authService:    authService,
+		commentService: commentService,
+		templates:      templates,
+		config:         cfg,
+		sanitizer:      policy,
 	}, nil
 }
 
@@ -146,11 +157,28 @@ func (h *TemplateHandler) renderTemplate(c *gin.Context, templateName, title, de
 
 func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 	related, _ := h.postService.GetRelatedPosts(post.ID, 3)
+
+	var (
+		comments     []CommentView
+		commentCount int
+	)
+
+	if h.commentService != nil {
+		if loaded, err := h.commentService.GetByPostID(post.ID); err != nil {
+			logger.Error(err, "Failed to load comments for post", map[string]interface{}{"post_id": post.ID})
+		} else {
+			comments = h.buildCommentViews(loaded)
+			commentCount = h.countComments(loaded)
+		}
+	}
+
 	data := h.basePageData(post.Title, post.Description, gin.H{
 		"Post":         post,
 		"RelatedPosts": related,
 		"Content":      h.renderSections(post.Sections),
 		"TOC":          h.generateTOC(post.Sections),
+		"Comments":     comments,
+		"CommentCount": commentCount,
 	})
 
 	templateName := post.Template
@@ -470,4 +498,89 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		"ProfileAction":        "/api/v1/profile",
 		"PasswordChangeAction": "/api/v1/profile/password",
 	})
+}
+
+func (h *TemplateHandler) buildCommentViews(comments []models.Comment) []CommentView {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	views := make([]CommentView, 0, len(comments))
+	for i := range comments {
+		comment := &comments[i]
+		if !comment.Approved {
+			continue
+		}
+		views = append(views, h.buildCommentView(comment))
+	}
+
+	return views
+}
+
+func (h *TemplateHandler) buildCommentView(comment *models.Comment) CommentView {
+	authorName := "Anonymous"
+	if comment.Author.Username != "" {
+		authorName = comment.Author.Username
+	}
+
+	view := CommentView{
+		ID:         comment.ID,
+		AuthorName: authorName,
+		CreatedAt:  comment.CreatedAt,
+		Content:    h.sanitizeCommentContent(comment.Content),
+	}
+
+	if len(comment.Replies) > 0 {
+		replies := make([]CommentView, 0, len(comment.Replies))
+		for _, reply := range comment.Replies {
+			if reply == nil || !reply.Approved {
+				continue
+			}
+			replies = append(replies, h.buildCommentView(reply))
+		}
+		view.Replies = replies
+	}
+
+	return view
+}
+
+func (h *TemplateHandler) countComments(comments []models.Comment) int {
+	total := 0
+	for i := range comments {
+		comment := &comments[i]
+		if !comment.Approved {
+			continue
+		}
+		total++
+		total += h.countCommentReplies(comment.Replies)
+	}
+	return total
+}
+
+func (h *TemplateHandler) countCommentReplies(replies []*models.Comment) int {
+	total := 0
+	for _, reply := range replies {
+		if reply == nil || !reply.Approved {
+			continue
+		}
+		total++
+		total += h.countCommentReplies(reply.Replies)
+	}
+	return total
+}
+
+func (h *TemplateHandler) sanitizeCommentContent(content string) template.HTML {
+	if content == "" {
+		return ""
+	}
+
+	if h.sanitizer == nil {
+		escaped := template.HTMLEscapeString(content)
+		escaped = strings.ReplaceAll(escaped, "\n", "<br />")
+		return template.HTML(escaped)
+	}
+
+	sanitized := h.sanitizer.Sanitize(content)
+	sanitized = strings.ReplaceAll(sanitized, "\n", "<br />")
+	return template.HTML(sanitized)
 }
