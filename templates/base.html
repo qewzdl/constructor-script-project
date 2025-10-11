@@ -52,7 +52,7 @@
                 "@type": "Organization",
                 "name": "{{ .Site.Name }}",
                 "logo": "{{ .Site.Logo }}",
-                "url": "{{ .Site.URL }}",
+                "url": "{{ .Site.URL }}"
             }
         </script>
     </head>
@@ -84,6 +84,67 @@
                     <li class="header__nav-item">
                         <a href="/blog" class="header__nav-link">Blog</a>
                     </li>
+                    {{ if .IsAuthenticated }}
+                    <li
+                        class="header__nav-item"
+                        data-auth="auth"
+                        {{
+                        if
+                        not
+                        .IsAuthenticated
+                        }}hidden{{
+                        end
+                        }}
+                    >
+                        <a href="/profile" class="header__nav-link">Profile</a>
+                    </li>
+                    <li
+                        class="header__nav-item"
+                        data-auth="auth"
+                        {{
+                        if
+                        not
+                        .IsAuthenticated
+                        }}hidden{{
+                        end
+                        }}
+                    >
+                        <button
+                            id="logout-button"
+                            class="header__nav-link header__nav-link--button"
+                            type="button"
+                        >
+                            Log out
+                        </button>
+                    </li>
+                    {{ else }}
+                    <li
+                        class="header__nav-item"
+                        data-auth="guest"
+                        {{
+                        if
+                        .IsAuthenticated
+                        }}hidden{{
+                        end
+                        }}
+                    >
+                        <a href="/login" class="header__nav-link">Sign in</a>
+                    </li>
+                    <li
+                        class="header__nav-item"
+                        data-auth="guest"
+                        {{
+                        if
+                        .IsAuthenticated
+                        }}hidden{{
+                        end
+                        }}
+                    >
+                        <a href="/register" class="header__nav-link"
+                            >Create account</a
+                        >
+                    </li>
+                    {{ end }}
                 </ul>
             </nav>
         </header>
@@ -100,5 +161,7 @@
                 </p>
             </section>
         </footer>
+
+        <script src="/static/js/auth.js" defer></script>
     </body>
 </html>

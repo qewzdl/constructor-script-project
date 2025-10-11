@@ -1,0 +1,95 @@
+
+<section class="auth" role="region" aria-labelledby="register-title" data-page="register">
+    <section class="auth__container" aria-labelledby="register-title">
+        <header class="auth__header">
+            <h1 id="register-title" class="auth__title">Create your account</h1>
+            <p class="auth__subtitle">
+                Complete the form to unlock private articles, team workspaces, and analytics.
+            </p>
+        </header>
+
+        <div class="auth__alert" id="register-alert" role="alert" hidden></div>
+
+        <form
+            id="register-form"
+            class="auth__form"
+            action="{{ .RegisterAction }}"
+            method="post"
+            novalidate
+            data-action="{{ .RegisterAction }}"
+        >
+            <div class="form-grid">
+                <div class="form-field">
+                    <label class="form-field__label" for="register-username">Username</label>
+                    <input
+                        id="register-username"
+                        name="username"
+                        type="text"
+                        class="form-field__input"
+                        placeholder="How should we address you?"
+                        autocomplete="username"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="register-email">Email</label>
+                    <input
+                        id="register-email"
+                        name="email"
+                        type="email"
+                        class="form-field__input"
+                        placeholder="name@example.com"
+                        autocomplete="email"
+                        required
+                    />
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-field">
+                    <label class="form-field__label" for="register-password">Password</label>
+                    <input
+                        id="register-password"
+                        name="password"
+                        type="password"
+                        class="form-field__input"
+                        placeholder="Minimum 6 characters"
+                        autocomplete="new-password"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="register-password-confirm">Confirm password</label>
+                    <input
+                        id="register-password-confirm"
+                        name="password_confirm"
+                        type="password"
+                        class="form-field__input"
+                        placeholder="Repeat your password"
+                        autocomplete="new-password"
+                        required
+                    />
+                </div>
+            </div>
+
+            <div class="form-field form-field--checkbox">
+                <label class="checkbox">
+                    <input type="checkbox" name="agree" class="checkbox__input" required />
+                    <span class="checkbox__label">
+                        I agree to the <a class="form-actions__link" href="/page/terms">terms of use</a>
+                        and <a class="form-actions__link" href="/page/privacy">privacy policy</a>.
+                    </span>
+                </label>
+            </div>
+
+            <button type="submit" class="button button--primary">Create account</button>
+
+            <p class="auth__hint">
+                Already have an account?
+                <a class="form-actions__link" href="/login">Sign in</a>
+            </p>
+        </form>
+    </section>
+</section>

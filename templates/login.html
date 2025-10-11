@@ -1,0 +1,59 @@
+<section class="auth" role="region" aria-labelledby="login-title" data-page="login">
+    <section class="auth__container" aria-labelledby="login-title">
+        <header class="auth__header">
+            <h1 id="login-title" class="auth__title">Sign in to your account</h1>
+            <p class="auth__subtitle">
+                Use your work email address to access the dashboard and personalized settings.
+            </p>
+        </header>
+
+        <div class="auth__alert" id="login-alert" role="alert" hidden></div>
+
+        <form
+            id="login-form"
+            class="auth__form"
+            action="{{ .AuthAction }}"
+            method="post"
+            novalidate
+            data-action="{{ .AuthAction }}"
+            data-redirect="{{ .RedirectTo }}"
+        >
+            <div class="form-field">
+                <label class="form-field__label" for="login-email">Email</label>
+                <input
+                    id="login-email"
+                    name="email"
+                    type="email"
+                    class="form-field__input"
+                    placeholder="name@example.com"
+                    autocomplete="email"
+                    required
+                />
+            </div>
+
+            <div class="form-field">
+                <label class="form-field__label" for="login-password">Password</label>
+                <input
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    class="form-field__input"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                />
+            </div>
+
+            <div class="form-actions">
+                <label class="checkbox">
+                    <input type="checkbox" name="remember" class="checkbox__input" />
+                    <span class="checkbox__label">Remember me</span>
+                </label>
+
+                <a class="form-actions__link" href="/register">Create a new account</a>
+            </div>
+
+            <button type="submit" class="button button--primary">Sign in</button>
+        </form>
+    </section>
+</section>

@@ -151,7 +151,7 @@ func main() {
 	logger.Info("Templates loaded successfully", nil)
 
 	// Initialize template handler (now it doesn't need to load templates)
-	templateHandler, err := handlers.NewTemplateHandler(postService, pageService, cfg, templatesDir)
+	templateHandler, err := handlers.NewTemplateHandler(postService, pageService, authService, cfg, templatesDir)
 	if err != nil {
 		logger.Error(err, "Failed to initialize template handler", nil)
 		log.Fatal(err)
@@ -206,6 +206,11 @@ func main() {
 	// Main page
 	router.GET("/", templateHandler.RenderIndex)
 
+	// Auth pages
+	router.GET("/login", templateHandler.RenderLogin)
+	router.GET("/register", templateHandler.RenderRegister)
+	router.GET("/profile", templateHandler.RenderProfile)
+
 	// Post by slug or ID (one route for both cases)
 	router.GET("/blog/post/:slug", templateHandler.RenderPost)
 
@@ -234,6 +239,7 @@ func main() {
 			// Auth
 			public.POST("/register", authHandler.Register)
 			public.POST("/login", authHandler.Login)
+			public.POST("/logout", authHandler.Logout)
 			public.POST("/refresh", authHandler.RefreshToken)
 
 			// Posts API
@@ -335,8 +341,8 @@ func main() {
 			})
 		} else {
 			c.HTML(http.StatusNotFound, "error.html", gin.H{
-				"Title":      "404 - Страница не найдена",
-				"error":      "Страница не найдена",
+				"Title":      "404 - Page not found",
+				"error":      "The requested page could not be found",
 				"StatusCode": 404,
 			})
 		}

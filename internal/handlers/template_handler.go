@@ -9,23 +9,26 @@ import (
 	"constructor-script-backend/pkg/utils"
 	"html/template"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/microcosm-cc/bluemonday"
 )
 
 type TemplateHandler struct {
 	postService *service.PostService
 	pageService *service.PageService
+	authService *service.AuthService
 	templates   *template.Template
 	config      *config.Config
 	sanitizer   *bluemonday.Policy
 }
 
-func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
+func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, authService *service.AuthService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
 	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
 	templates, err := tmpl.ParseGlob(filepath.Join(templatesDir, "*.html"))
 	if err != nil {
@@ -43,13 +46,76 @@ func NewTemplateHandler(postService *service.PostService, pageService *service.P
 	return &TemplateHandler{
 		postService: postService,
 		pageService: pageService,
+		authService: authService,
 		templates:   templates,
 		config:      cfg,
 		sanitizer:   policy,
 	}, nil
 }
 
-// ======== Universal Helpers ========
+func (h *TemplateHandler) currentUser(c *gin.Context) (*models.User, bool) {
+	if h.authService == nil {
+		return nil, false
+	}
+
+	clearCookie := func() {
+		secure := c.Request.TLS != nil
+		c.SetCookie(authTokenCookieName, "", -1, "/", "", secure, false)
+	}
+
+	tokenString, err := c.Cookie(authTokenCookieName)
+	if err != nil || tokenString == "" {
+		return nil, false
+	}
+
+	parsed, err := h.authService.ValidateToken(tokenString)
+	if err != nil || parsed == nil || !parsed.Valid {
+		clearCookie()
+		return nil, false
+	}
+
+	claims, ok := parsed.Claims.(jwt.MapClaims)
+	if !ok {
+		clearCookie()
+		return nil, false
+	}
+
+	userIDValue, ok := claims["user_id"]
+	if !ok {
+		clearCookie()
+		return nil, false
+	}
+
+	var userID uint
+	switch value := userIDValue.(type) {
+	case float64:
+		userID = uint(value)
+	case int:
+		userID = uint(value)
+	default:
+		clearCookie()
+		return nil, false
+	}
+
+	user, err := h.authService.GetUserByID(userID)
+	if err != nil {
+		clearCookie()
+		return nil, false
+	}
+
+	return user, true
+}
+
+func (h *TemplateHandler) addUserContext(c *gin.Context, data gin.H) {
+	user, ok := h.currentUser(c)
+	if !ok {
+		data["IsAuthenticated"] = false
+		return
+	}
+
+	data["IsAuthenticated"] = true
+	data["CurrentUser"] = user
+}
 
 func (h *TemplateHandler) basePageData(title, description string, extra gin.H) gin.H {
 	data := gin.H{
@@ -94,8 +160,6 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 
 	h.renderWithLayout(c, "base.html", templateName+".html", data)
 }
-
-// ======== Rendering Methods ========
 
 func (h *TemplateHandler) RenderIndex(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -208,9 +272,9 @@ func (h *TemplateHandler) RenderTag(c *gin.Context) {
 	})
 }
 
-// ======== Template Rendering ========
-
 func (h *TemplateHandler) renderWithLayout(c *gin.Context, layout, content string, data gin.H) {
+	h.addUserContext(c, data)
+
 	tmpl, err := h.templates.Clone()
 	if err != nil {
 		logger.Error(err, "Failed to clone templates", nil)
@@ -244,8 +308,6 @@ func (h *TemplateHandler) executeTemplate(tmpl *template.Template, data interfac
 	}
 	return buf.Bytes(), nil
 }
-
-// ======== Section Rendering ========
 
 func (h *TemplateHandler) renderSections(sections models.PostSections) template.HTML {
 	if len(sections) == 0 {
@@ -329,8 +391,6 @@ func (h *TemplateHandler) renderSectionElement(elem models.SectionElement) strin
 	return sb.String()
 }
 
-// ======== TOC Generation ========
-
 func (h *TemplateHandler) generateTOC(sections models.PostSections) template.HTML {
 	if len(sections) == 0 {
 		return ""
@@ -355,8 +415,6 @@ func (h *TemplateHandler) generateTOC(sections models.PostSections) template.HTM
 	return template.HTML(sb.String())
 }
 
-// ======== Error Rendering ========
-
 func (h *TemplateHandler) renderError(c *gin.Context, status int, title, msg string) {
 	data := gin.H{
 		"Title":      title,
@@ -370,4 +428,46 @@ func (h *TemplateHandler) renderError(c *gin.Context, status int, title, msg str
 		},
 	}
 	c.HTML(status, "error.html", data)
+}
+
+func (h *TemplateHandler) RenderLogin(c *gin.Context) {
+	if _, ok := h.currentUser(c); ok {
+		c.Redirect(http.StatusFound, "/profile")
+		return
+	}
+
+	redirectTo := c.Query("redirect")
+	if redirectTo == "" {
+		redirectTo = "/profile"
+	}
+
+	h.renderTemplate(c, "login", "Sign in", "Access your dashboard and manage your content.", gin.H{
+		"AuthAction": "/api/v1/login",
+		"RedirectTo": redirectTo,
+	})
+}
+
+func (h *TemplateHandler) RenderRegister(c *gin.Context) {
+	if _, ok := h.currentUser(c); ok {
+		c.Redirect(http.StatusFound, "/profile")
+		return
+	}
+
+	h.renderTemplate(c, "register", "Create an account", "Join the community to publish articles and leave comments.", gin.H{
+		"RegisterAction": "/api/v1/register",
+	})
+}
+
+func (h *TemplateHandler) RenderProfile(c *gin.Context) {
+	_, ok := h.currentUser(c)
+	if !ok {
+		redirectTo := url.QueryEscape(c.Request.URL.RequestURI())
+		c.Redirect(http.StatusFound, "/login?redirect="+redirectTo)
+		return
+	}
+
+	h.renderTemplate(c, "profile", "Profile", "Manage personal details, account security, and connected devices.", gin.H{
+		"ProfileAction":        "/api/v1/profile",
+		"PasswordChangeAction": "/api/v1/profile/password",
+	})
 }

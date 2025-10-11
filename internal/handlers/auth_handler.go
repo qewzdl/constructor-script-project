@@ -17,11 +17,30 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
+const (
+	authTokenCookieName = "auth_token"
+	authTokenTTLSeconds = 72 * 60 * 60
+)
+
+func (h *AuthHandler) setAuthCookie(c *gin.Context, token string, maxAge int) {
+	secure := c.Request.TLS != nil
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(authTokenCookieName, token, maxAge, "/", "", secure, false)
+}
+
+func (h *AuthHandler) clearAuthCookie(c *gin.Context) {
+	secure := c.Request.TLS != nil
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(authTokenCookieName, "", -1, "/", "", secure, false)
+}
+
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		if err := c.ShouldBind(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	user, err := h.authService.Register(req)
@@ -36,8 +55,10 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		if err := c.ShouldBind(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	token, user, err := h.authService.Login(req)
@@ -46,10 +67,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	h.setAuthCookie(c, token, authTokenTTLSeconds)
+
 	c.JSON(http.StatusOK, models.AuthResponse{
 		Token: token,
 		User:  *user,
 	})
+}
+
+func (h *AuthHandler) Logout(c *gin.Context) {
+	h.clearAuthCookie(c)
+	c.JSON(http.StatusOK, gin.H{"message": "logged out"})
 }
 
 func (h *AuthHandler) GetAllUsers(c *gin.Context) {
