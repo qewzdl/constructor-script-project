@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/pkg/logger"
@@ -163,7 +164,15 @@ func (h *TemplateHandler) RenderLogin(c *gin.Context) {
 	}
 
 	redirectTo := c.Query("redirect")
-	if redirectTo == "" {
+	if redirectTo != "" {
+		if decoded, err := url.QueryUnescape(redirectTo); err == nil {
+			redirectTo = decoded
+		}
+
+		if !strings.HasPrefix(redirectTo, "/") {
+			redirectTo = "/profile"
+		}
+	} else {
 		redirectTo = "/profile"
 	}
 
