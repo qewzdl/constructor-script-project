@@ -32,6 +32,12 @@
         {{ end }}
     </header>
     
+    {{ if .TOC }}
+    <aside class="post__sidebar">
+        {{ .TOC }}
+    </aside>
+    {{ end }}
+    
     <section class="post__content">
         {{ .Content }}
     </section>

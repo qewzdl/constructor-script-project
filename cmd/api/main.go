@@ -194,17 +194,6 @@ func main() {
 	// Frontend Routes (HTML rendering)
 	// ============================================
 
-	router.GET("/test-template", func(c *gin.Context) {
-		logger.Info("Test template route called", nil)
-
-		logger.Info("HTMLRender is OK", nil)
-
-		c.HTML(200, "base.html", gin.H{
-			"Title":   "Test",
-			"Content": template.HTML("<h1>Test Content</h1>"),
-		})
-	})
-
 	router.GET("/debug-templates", func(c *gin.Context) {
 		tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
 		tmpl, _ = tmpl.ParseGlob("./templates/*.html")

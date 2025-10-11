@@ -7,3 +7,11 @@
     list-style: none;
     font-family: "Outfit", sans-serif;
 }
+
+html {
+    scroll-behavior: smooth;
+    scroll-snap-type: y proximity;
+    scroll-snap-stop: always;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}

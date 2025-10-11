@@ -49,6 +49,8 @@ func NewTemplateHandler(postService *service.PostService, pageService *service.P
 	}, nil
 }
 
+// ======== Universal Helpers ========
+
 func (h *TemplateHandler) basePageData(title, description string, extra gin.H) gin.H {
 	data := gin.H{
 		"Title":       title + " - " + h.config.SiteName,
@@ -82,6 +84,7 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 		"Post":         post,
 		"RelatedPosts": related,
 		"Content":      h.renderSections(post.Sections),
+		"TOC":          h.generateTOC(post.Sections),
 	})
 
 	templateName := post.Template
@@ -91,6 +94,8 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 
 	h.renderWithLayout(c, "base.html", templateName+".html", data)
 }
+
+// ======== Rendering Methods ========
 
 func (h *TemplateHandler) RenderIndex(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -203,6 +208,8 @@ func (h *TemplateHandler) RenderTag(c *gin.Context) {
 	})
 }
 
+// ======== Template Rendering ========
+
 func (h *TemplateHandler) renderWithLayout(c *gin.Context, layout, content string, data gin.H) {
 	tmpl, err := h.templates.Clone()
 	if err != nil {
@@ -237,6 +244,8 @@ func (h *TemplateHandler) executeTemplate(tmpl *template.Template, data interfac
 	}
 	return buf.Bytes(), nil
 }
+
+// ======== Section Rendering ========
 
 func (h *TemplateHandler) renderSections(sections models.PostSections) template.HTML {
 	if len(sections) == 0 {
@@ -273,7 +282,6 @@ func (h *TemplateHandler) renderSectionElement(elem models.SectionElement) strin
 	switch elem.Type {
 	case "paragraph":
 		if text, ok := contentMap["text"].(string); ok {
-
 			sanitized := h.sanitizer.Sanitize(text)
 			sb.WriteString(`<div class="post__paragraph">` + sanitized + `</div>`)
 		}
@@ -320,6 +328,34 @@ func (h *TemplateHandler) renderSectionElement(elem models.SectionElement) strin
 
 	return sb.String()
 }
+
+// ======== TOC Generation ========
+
+func (h *TemplateHandler) generateTOC(sections models.PostSections) template.HTML {
+	if len(sections) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	sb.WriteString(`<nav class="post__toc" aria-label="Table of contents">`)
+	sb.WriteString(`<h2 class="post__toc-title">Table of Contents</h2>`)
+	sb.WriteString(`<ol class="post__toc-list">`)
+
+	for _, section := range sections {
+		sb.WriteString(`<li class="post__toc-item">`)
+		sb.WriteString(`<a href="#section-` + template.HTMLEscapeString(section.ID) + `" class="post__toc-link">`)
+		sb.WriteString(template.HTMLEscapeString(section.Title))
+		sb.WriteString(`</a>`)
+		sb.WriteString(`</li>`)
+	}
+
+	sb.WriteString(`</ol>`)
+	sb.WriteString(`</nav>`)
+
+	return template.HTML(sb.String())
+}
+
+// ======== Error Rendering ========
 
 func (h *TemplateHandler) renderError(c *gin.Context, status int, title, msg string) {
 	data := gin.H{
