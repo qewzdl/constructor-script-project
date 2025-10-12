@@ -1,4 +1,43 @@
 (() => {
+    let currentUserId = null;
+    let isAdmin = false;
+    let commentEndpoint = "/api/v1/comments";
+
+    const getAuthorIdFromComment = (comment) => {
+        if (!comment) {
+            return null;
+        }
+
+        const value = comment.author_id ?? comment.authorId ?? comment.authorID ?? null;
+        if (value === null || value === undefined) {
+            return null;
+        }
+
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return null;
+        }
+
+        return parsed;
+    };
+
+    const canModifyComment = (comment) => {
+        if (isAdmin) {
+            return true;
+        }
+
+        if (currentUserId === null) {
+            return false;
+        }
+
+        const authorId = getAuthorIdFromComment(comment);
+        if (authorId === null) {
+            return false;
+        }
+
+        return authorId === currentUserId;
+    };
+
     const formatTimestamp = (value) => {
         if (!value) {
             return {
@@ -46,13 +85,23 @@
         return repliesList;
     };
 
-    const createCommentElement = (comment, { isReply = false, canReply = false } = {}) => {
+    const createCommentElement = (
+        comment,
+        { isReply = false, canReply = false, canEdit = false, canDelete = false } = {}
+    ) => {
         const item = document.createElement("li");
         item.className = "comments__item";
         if (isReply) {
             item.classList.add("comments__item--reply");
         }
         item.dataset.commentId = String(comment.id);
+
+        const authorId = getAuthorIdFromComment(comment);
+        if (authorId !== null) {
+            item.dataset.authorId = String(authorId);
+        }
+
+        item.dataset.commentRaw = typeof comment.content === "string" ? comment.content : "";
 
         const card = document.createElement("article");
         card.className = "comments__card";
@@ -83,10 +132,11 @@
         content.innerHTML = renderContentHTML(comment.content);
         card.appendChild(content);
 
-        if (canReply) {
-            const actions = document.createElement("div");
-            actions.className = "comments__actions";
+        const actions = document.createElement("div");
+        actions.className = "comments__actions";
+        let hasActions = false;
 
+        if (canReply) {
             const replyButton = document.createElement("button");
             replyButton.type = "button";
             replyButton.className = "comments__reply-button";
@@ -96,6 +146,34 @@
             replyButton.textContent = "Reply";
 
             actions.appendChild(replyButton);
+            hasActions = true;
+        }
+
+        if (canEdit) {
+            const editButton = document.createElement("button");
+            editButton.type = "button";
+            editButton.className = "comments__edit-button";
+            editButton.dataset.action = "edit";
+            editButton.dataset.commentId = String(comment.id);
+            editButton.textContent = "Edit";
+
+            actions.appendChild(editButton);
+            hasActions = true;
+        }
+
+        if (canDelete) {
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.className = "comments__delete-button";
+            deleteButton.dataset.action = "delete";
+            deleteButton.dataset.commentId = String(comment.id);
+            deleteButton.textContent = "Delete";
+
+            actions.appendChild(deleteButton);
+            hasActions = true;
+        }
+
+        if (hasActions) {
             card.appendChild(actions);
         }
 
@@ -108,6 +186,8 @@
                     createCommentElement(reply, {
                         isReply: true,
                         canReply,
+                        canEdit: canModifyComment(reply),
+                        canDelete: canModifyComment(reply),
                     })
                 );
             });
@@ -168,6 +248,20 @@
         if (!commentsSection) {
             return;
         }
+
+        if (commentsSection.dataset.commentEndpoint) {
+            commentEndpoint = commentsSection.dataset.commentEndpoint;
+        }
+
+        const userIdValue = commentsSection.dataset.currentUserId || "";
+        if (userIdValue) {
+            const parsedUserId = Number(userIdValue);
+            currentUserId = Number.isFinite(parsedUserId) && parsedUserId > 0 ? parsedUserId : null;
+        } else {
+            currentUserId = null;
+        }
+
+        isAdmin = commentsSection.dataset.isAdmin === "true";
 
         const app = window.App || {};
         const auth = app.auth;
@@ -252,6 +346,242 @@
             }
         };
 
+        const finishEditComment = (commentElement) => {
+            if (!commentElement) {
+                return;
+            }
+
+            const editForm = commentElement.querySelector(".comments__edit-form");
+            if (editForm) {
+                editForm.remove();
+            }
+
+            const contentElement = commentElement.querySelector(".comments__content");
+            if (contentElement) {
+                contentElement.hidden = false;
+            }
+
+            delete commentElement.dataset.editing;
+        };
+
+        const updateCommentElement = (commentElement, comment) => {
+            if (!commentElement || !comment) {
+                return;
+            }
+
+            const rawContent = typeof comment.content === "string" ? comment.content : "";
+            commentElement.dataset.commentRaw = rawContent;
+
+            const contentElement = commentElement.querySelector(".comments__content");
+            if (contentElement) {
+                contentElement.innerHTML = renderContentHTML(rawContent);
+            }
+
+            const authorElement = commentElement.querySelector(".comments__author");
+            if (authorElement && comment.author && comment.author.username) {
+                authorElement.textContent = comment.author.username;
+            }
+
+            const authorId = getAuthorIdFromComment(comment);
+            if (authorId !== null) {
+                commentElement.dataset.authorId = String(authorId);
+            }
+
+            const timeElement = commentElement.querySelector(".comments__time");
+            if (timeElement) {
+                const timestamp =
+                    comment.updated_at ||
+                    comment.updatedAt ||
+                    comment.created_at ||
+                    comment.createdAt ||
+                    null;
+                const timeInfo = formatTimestamp(timestamp);
+                if (timeInfo.iso) {
+                    timeElement.dateTime = timeInfo.iso;
+                }
+                if (timeInfo.label) {
+                    timeElement.textContent = timeInfo.label;
+                }
+            }
+        };
+
+        const handleEditSubmit = async (event, commentElement) => {
+            event.preventDefault();
+
+            const formElement = event.currentTarget;
+            if (!(formElement instanceof HTMLFormElement) || !commentElement) {
+                return;
+            }
+
+            const textareaElement = formElement.querySelector("textarea[name=\"content\"]");
+            const contentValue = textareaElement ? textareaElement.value.trim() : "";
+
+            if (!contentValue) {
+                setAlert(alertElement, "Please write a comment before saving.", "error");
+                return;
+            }
+
+            const commentId = Number(commentElement.dataset.commentId || 0);
+            if (!commentId) {
+                setAlert(alertElement, "Unable to update this comment.", "error");
+                return;
+            }
+
+            toggleFormDisabled(formElement, true);
+
+            try {
+                const payload = await apiRequest(`${commentEndpoint}/${commentId}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ content: contentValue }),
+                });
+
+                if (!payload || !payload.comment) {
+                    throw new Error("Unexpected server response. Please try again.");
+                }
+
+                updateCommentElement(commentElement, payload.comment);
+                finishEditComment(commentElement);
+                setAlert(alertElement, "Your comment has been updated.", "success");
+            } catch (error) {
+                if (error && error.status === 401) {
+                    setAlert(alertElement, "Your session expired. Please sign in again.", "error");
+                } else if (error && error.status === 403) {
+                    setAlert(alertElement, "You can only edit your own comments.", "error");
+                } else if (error && error.message) {
+                    setAlert(alertElement, error.message, "error");
+                } else {
+                    setAlert(alertElement, "Failed to update comment.", "error");
+                }
+            } finally {
+                toggleFormDisabled(formElement, false);
+            }
+        };
+
+        const startEditComment = (button) => {
+            const commentElement = button.closest("[data-comment-id]");
+            if (!commentElement || commentElement.dataset.editing === "true") {
+                return;
+            }
+
+            const contentElement = commentElement.querySelector(".comments__content");
+            if (!contentElement) {
+                return;
+            }
+
+            commentElement.dataset.editing = "true";
+
+            const formElement = document.createElement("form");
+            formElement.className = "comments__edit-form";
+
+            const textareaElement = document.createElement("textarea");
+            textareaElement.name = "content";
+            textareaElement.required = true;
+            textareaElement.rows = 4;
+            textareaElement.className = "comments__edit-textarea";
+            textareaElement.value = commentElement.dataset.commentRaw || "";
+
+            const actionsElement = document.createElement("div");
+            actionsElement.className = "comments__edit-actions";
+
+            const saveButton = document.createElement("button");
+            saveButton.type = "submit";
+            saveButton.className = "comments__edit-save";
+            saveButton.textContent = "Save";
+
+            const cancelButton = document.createElement("button");
+            cancelButton.type = "button";
+            cancelButton.className = "comments__edit-cancel";
+            cancelButton.dataset.action = "cancel-edit";
+            cancelButton.textContent = "Cancel";
+
+            actionsElement.appendChild(saveButton);
+            actionsElement.appendChild(cancelButton);
+
+            formElement.appendChild(textareaElement);
+            formElement.appendChild(actionsElement);
+
+            formElement.addEventListener("submit", (event) => handleEditSubmit(event, commentElement));
+
+            contentElement.hidden = true;
+            contentElement.insertAdjacentElement("afterend", formElement);
+
+            textareaElement.focus();
+        };
+
+        const cancelEditComment = (button) => {
+            const commentElement = button.closest("[data-comment-id]");
+            if (!commentElement) {
+                return;
+            }
+
+            finishEditComment(commentElement);
+        };
+
+        const countNestedComments = (commentElement) => {
+            if (!commentElement) {
+                return 0;
+            }
+
+            const descendantItems = commentElement.querySelectorAll("[data-comment-id]");
+            return 1 + descendantItems.length;
+        };
+
+        const handleDeleteComment = async (button) => {
+            const commentElement = button.closest("[data-comment-id]");
+            if (!commentElement) {
+                return;
+            }
+
+            const commentId = Number(commentElement.dataset.commentId || 0);
+            if (!commentId) {
+                setAlert(alertElement, "Unable to delete this comment.", "error");
+                return;
+            }
+
+            const confirmed = window.confirm(
+                "Delete this comment? All of its replies will be removed as well."
+            );
+            if (!confirmed) {
+                return;
+            }
+
+            button.disabled = true;
+
+            try {
+                await apiRequest(`${commentEndpoint}/${commentId}`, {
+                    method: "DELETE",
+                });
+
+                const removedCount = countNestedComments(commentElement);
+                commentElement.remove();
+                updateCount(-removedCount);
+
+                if (parentInput && parentInput.value && Number(parentInput.value) === commentId) {
+                    clearReplyState();
+                }
+
+                if (commentsList && !commentsList.querySelector("[data-comment-id]")) {
+                    if (emptyState) {
+                        emptyState.hidden = false;
+                    }
+                }
+
+                setAlert(alertElement, "Comment deleted.", "success");
+            } catch (error) {
+                if (error && error.status === 401) {
+                    setAlert(alertElement, "Please sign in to manage your comments.", "error");
+                } else if (error && error.status === 403) {
+                    setAlert(alertElement, "You can only delete your own comments.", "error");
+                } else if (error && error.message) {
+                    setAlert(alertElement, error.message, "error");
+                } else {
+                    setAlert(alertElement, "Failed to delete comment.", "error");
+                }
+            } finally {
+                button.disabled = false;
+            }
+        };
+
         const startReply = (button) => {
             if (!form || !parentInput) {
                 return;
@@ -282,9 +612,12 @@
 
             const canReply = Boolean(form);
             const parentId = comment.parent_id || comment.parentId;
+            const canManage = canModifyComment(comment);
             const commentElement = createCommentElement(comment, {
                 isReply: Boolean(parentId),
                 canReply,
+                canEdit: canManage,
+                canDelete: canManage,
             });
 
             if (parentId) {
@@ -377,6 +710,24 @@
             if (target.dataset.action === "reply") {
                 event.preventDefault();
                 startReply(target);
+                return;
+            }
+
+            if (target.dataset.action === "edit") {
+                event.preventDefault();
+                startEditComment(target);
+                return;
+            }
+
+            if (target.dataset.action === "delete") {
+                event.preventDefault();
+                handleDeleteComment(target);
+                return;
+            }
+
+            if (target.dataset.action === "cancel-edit") {
+                event.preventDefault();
+                cancelEditComment(target);
                 return;
             }
 

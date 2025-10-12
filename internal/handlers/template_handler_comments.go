@@ -10,9 +10,11 @@ import (
 
 type CommentView struct {
 	ID         uint
+	AuthorID   uint
 	AuthorName string
 	CreatedAt  time.Time
 	Content    template.HTML
+	RawContent string
 	Replies    []CommentView
 }
 
@@ -41,9 +43,11 @@ func (h *TemplateHandler) buildCommentView(comment *models.Comment) CommentView 
 
 	view := CommentView{
 		ID:         comment.ID,
+		AuthorID:   comment.AuthorID,
 		AuthorName: authorName,
 		CreatedAt:  comment.CreatedAt,
 		Content:    h.sanitizeCommentContent(comment.Content),
+		RawContent: comment.Content,
 	}
 
 	if len(comment.Replies) > 0 {

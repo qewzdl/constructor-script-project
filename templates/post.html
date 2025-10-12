@@ -1,7 +1,12 @@
 {{ define "commentItem" }}
     {{ $comment := .Comment }}
     {{ $root := .Root }}
-    <li class="comments__item" data-comment-id="{{ $comment.ID }}">
+    <li
+        class="comments__item"
+        data-comment-id="{{ $comment.ID }}"
+        data-author-id="{{ $comment.AuthorID }}"
+        data-comment-raw="{{ $comment.RawContent }}"
+    >
         <article class="comments__card">
             <header class="comments__header">
                 <span class="comments__author">{{ $comment.AuthorName }}</span>
@@ -15,8 +20,12 @@
             <div class="comments__content">
                 {{ $comment.Content }}
             </div>
-            {{ if $root.IsAuthenticated }}
+            {{ $currentUser := $root.CurrentUser }}
+            {{ $canReply := $root.IsAuthenticated }}
+            {{ $canManage := and $root.IsAuthenticated (or $root.IsAdmin (and $currentUser (eq $comment.AuthorID $currentUser.ID))) }}
+            {{ if or $canReply $canManage }}
             <div class="comments__actions">
+                {{ if $canReply }}
                 <button
                     type="button"
                     class="comments__reply-button"
@@ -26,6 +35,25 @@
                 >
                     Reply
                 </button>
+                {{ end }}
+                {{ if $canManage }}
+                <button
+                    type="button"
+                    class="comments__edit-button"
+                    data-action="edit"
+                    data-comment-id="{{ $comment.ID }}"
+                >
+                    Edit
+                </button>
+                <button
+                    type="button"
+                    class="comments__delete-button"
+                    data-action="delete"
+                    data-comment-id="{{ $comment.ID }}"
+                >
+                    Delete
+                </button>
+                {{ end }}
             </div>
             {{ end }}
         </article>
@@ -125,7 +153,14 @@
 {{ $postPath := printf "/blog/post/%s" .Post.Slug }}
 {{ $encodedPostPath := urlquery $postPath }}
 
-<section class="comments" aria-label="Comments" data-comments>
+<section
+    class="comments"
+    aria-label="Comments"
+    data-comments
+    data-comment-endpoint="/api/v1/comments"
+    data-current-user-id="{{ with .CurrentUser }}{{ .ID }}{{ end }}"
+    data-is-admin="{{ if .IsAdmin }}true{{ else }}false{{ end }}"
+>
     <div class="comments__header-row">
         <h2 class="comments__title">Comments</h2>
         <span class="comments__count" data-comment-count>{{ .CommentCount }}</span>

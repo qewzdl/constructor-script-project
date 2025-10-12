@@ -61,7 +61,32 @@ func (r *commentRepository) Update(comment *models.Comment) error {
 }
 
 func (r *commentRepository) Delete(id uint) error {
-	return r.db.Unscoped().Delete(&models.Comment{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := r.deleteReplies(tx, id); err != nil {
+			return err
+		}
+
+		return tx.Unscoped().Delete(&models.Comment{}, id).Error
+	})
+}
+
+func (r *commentRepository) deleteReplies(tx *gorm.DB, parentID uint) error {
+	var replyIDs []uint
+	if err := tx.Model(&models.Comment{}).Where("parent_id = ?", parentID).Pluck("id", &replyIDs).Error; err != nil {
+		return err
+	}
+
+	for _, replyID := range replyIDs {
+		if err := r.deleteReplies(tx, replyID); err != nil {
+			return err
+		}
+
+		if err := tx.Unscoped().Delete(&models.Comment{}, replyID).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *commentRepository) GetPending() ([]models.Comment, error) {
