@@ -284,6 +284,7 @@ func (a *Application) initHandlers() error {
 		a.services.Page,
 		a.services.Auth,
 		a.services.Comment,
+		a.services.Search,
 		a.cfg,
 		a.options.TemplatesDir,
 	)
@@ -353,6 +354,7 @@ func (a *Application) initRouter() error {
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
 	router.GET("/page/:slug", a.templateHandler.RenderPage)
 	router.GET("/blog", a.templateHandler.RenderBlog)
+	router.GET("/search", a.templateHandler.RenderSearch)
 	router.GET("/category/:slug", a.templateHandler.RenderCategory)
 	router.GET("/tag/:slug", a.templateHandler.RenderTag)
 

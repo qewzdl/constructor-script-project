@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -130,6 +132,57 @@ func (h *TemplateHandler) RenderBlog(c *gin.Context) {
 	}
 
 	h.renderTemplate(c, "blog", "Blog", h.config.SiteName+" Blog — insights about Go programming, web technologies, performance, and best practices in backend design.", data)
+}
+
+func (h *TemplateHandler) RenderSearch(c *gin.Context) {
+	query := strings.TrimSpace(c.Query("q"))
+	searchType := c.DefaultQuery("type", "all")
+	limitValue := c.DefaultQuery("limit", "20")
+
+	limit, err := strconv.Atoi(limitValue)
+	if err != nil || limit <= 0 {
+		limit = 20
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	var result *service.SearchResult
+	if query != "" {
+		searchResult, searchErr := h.searchService.Search(query, searchType, limit)
+		if searchErr != nil {
+			logger.Error(searchErr, "Failed to execute search", map[string]interface{}{"query": query, "type": searchType})
+			h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to perform search")
+			return
+		}
+		result = searchResult
+	} else {
+		result = &service.SearchResult{Posts: []models.Post{}, Total: 0, Query: query}
+	}
+
+	hasQuery := query != ""
+	title := "Search"
+	description := fmt.Sprintf("Search articles on %s to discover tutorials, guides, and engineering stories.", h.config.SiteName)
+	if hasQuery {
+		title = fmt.Sprintf("Search results for \"%s\"", query)
+		description = fmt.Sprintf("Search results for \"%s\" on %s.", query, h.config.SiteName)
+	}
+
+	data := gin.H{
+		"Query":       query,
+		"SearchType":  searchType,
+		"Limit":       limit,
+		"HasQuery":    hasQuery,
+		"Result":      result,
+		"SearchQuery": query,
+		"Styles":      []string{"/static/css/search.css"},
+	}
+
+	if result != nil {
+		data["Total"] = result.Total
+	}
+
+	h.renderTemplate(c, "search", title, description, data)
 }
 
 func (h *TemplateHandler) RenderCategory(c *gin.Context) {

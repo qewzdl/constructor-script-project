@@ -90,6 +90,9 @@
                     <li class="header__nav-item">
                         <a href="/blog" class="header__nav-link">Blog</a>
                     </li>
+                    <li class="header__nav-item">
+                        <a href="/search" class="header__nav-link">Search</a>
+                    </li>
                     {{ with .CurrentUser }}
                     {{ if and $.IsAuthenticated (eq .Role "admin") }}
                     <li class="header__nav-item" data-auth="auth">

@@ -20,6 +20,8 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 			"URL":         h.config.SiteURL,
 			"Favicon":     h.config.SiteFavicon,
 		},
+		"SearchQuery": "",
+		"SearchType":  "all",
 	}
 
 	for k, v := range extra {

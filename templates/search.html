@@ -1,0 +1,92 @@
+<section class="search" aria-labelledby="search-title">
+    <header class="search__header">
+        <h1 id="search-title" class="search__title">Search</h1>
+        <p class="search__description">
+            Find posts, tutorials, and updates published on {{ .Site.Name }}.
+        </p>
+    </header>
+
+    <form class="search__form" action="/search" method="get" role="search" aria-label="Site search">
+        <div class="search__fields">
+            <div class="search__input-group">
+                <label class="search__label" for="search-query">Search query</label>
+                <input
+                    id="search-query"
+                    class="search__input"
+                    type="search"
+                    name="q"
+                    value="{{ .Query }}"
+                    placeholder="Start typing to search posts"
+                    required
+                />
+            </div>
+
+            <div class="search__input-group">
+                <label class="search__label" for="search-type">Filter by</label>
+                <select id="search-type" class="search__select" name="type">
+                    <option value="all" {{ if eq .SearchType "all" }}selected{{ end }}>Title & content</option>
+                    <option value="title" {{ if eq .SearchType "title" }}selected{{ end }}>Title</option>
+                    <option value="content" {{ if eq .SearchType "content" }}selected{{ end }}>Content</option>
+                    <option value="tag" {{ if eq .SearchType "tag" }}selected{{ end }}>Tag</option>
+                    <option value="author" {{ if eq .SearchType "author" }}selected{{ end }}>Author</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="search__submit">Search</button>
+    </form>
+
+    {{ if .HasQuery }}
+    <section class="search__results" aria-live="polite" aria-busy="false">
+        {{ if gt .Result.Total 0 }}
+        <p class="search__meta">
+            Found {{ .Result.Total }} {{ if eq .Result.Total 1 }}result{{ else }}results{{ end }} for
+            <strong>&ldquo;{{ .Result.Query }}&rdquo;</strong>
+        </p>
+        <div class="search__posts">
+            {{ range .Result.Posts }}
+            <article class="post-card search__post">
+                {{ if .FeaturedImg }}
+                <img src="{{ .FeaturedImg }}" alt="{{ .Title }}" class="post-card__image" />
+                {{ end }}
+                <div class="post-card__content">
+                    <h2 class="post-card__title">
+                        <a href="/blog/post/{{ .Slug }}" class="post-card__link">{{ .Title }}</a>
+                    </h2>
+                    {{ if .Description }}
+                    <p class="post-card__description">{{ .Description }}</p>
+                    {{ else if .Excerpt }}
+                    <p class="post-card__description">{{ .Excerpt }}</p>
+                    {{ end }}
+                    <div class="post-card__meta">
+                        <time class="post-card__date" datetime="{{ .CreatedAt.Format "2006-01-02" }}">
+                            {{ .CreatedAt.Format "02 Jan 2006" }}
+                        </time>
+                        {{ with .Author }}
+                        <span class="post-card__author">by {{ .Username }}</span>
+                        {{ end }}
+                    </div>
+                    {{ if .Tags }}
+                    <ul class="post-card__tags" aria-label="Tags">
+                        {{ range .Tags }}
+                        <li class="post-card__tag">
+                            <a href="/tag/{{ .Slug }}" class="post-card__tag-link">#{{ .Name }}</a>
+                        </li>
+                        {{ end }}
+                    </ul>
+                    {{ end }}
+                </div>
+            </article>
+            {{ end }}
+        </div>
+        {{ else }}
+        <p class="search__empty">
+            We couldn&rsquo;t find anything for <strong>&ldquo;{{ .Result.Query }}&rdquo;</strong>. Try another keyword or
+            change the filter.
+        </p>
+        {{ end }}
+    </section>
+    {{ else }}
+    <p class="search__hint">Use the search form above to explore the knowledge base.</p>
+    {{ end }}
+</section>
