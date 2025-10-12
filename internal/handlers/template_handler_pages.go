@@ -174,9 +174,11 @@ func (h *TemplateHandler) RenderTag(c *gin.Context) {
 		tags = loadedTags
 	}
 
+	totalCount := int(total)
+
 	data := gin.H{
 		"Posts":       posts,
-		"Total":       total,
+		"Total":       totalCount,
 		"CurrentPage": page,
 		"TotalPages":  int((total + int64(limit) - 1) / int64(limit)),
 		"Tag":         tag,
