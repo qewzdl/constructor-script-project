@@ -78,7 +78,17 @@ func (r *postRepository) Update(post *models.Post) error {
 }
 
 func (r *postRepository) Delete(id uint) error {
-	return r.db.Unscoped().Delete(&models.Post{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("DELETE FROM post_tags WHERE post_id = ?", id).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Unscoped().Where("post_id = ?", id).Delete(&models.Comment{}).Error; err != nil {
+			return err
+		}
+
+		return tx.Unscoped().Delete(&models.Post{}, id).Error
+	})
 }
 
 func (r *postRepository) GetBySlug(slug string) (*models.Post, error) {
