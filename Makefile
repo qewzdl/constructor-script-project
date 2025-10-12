@@ -1,7 +1,7 @@
-.PHONY: help build run test clean docker-up docker-down migrate
+.PHONY: help build run test clean deps docker-up docker-down docker-logs migrate-up lint format dev db-reset
 
 help: ## Показать справку
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m%s\n", $$1, $$2}'
 
 build: ## Собрать приложение
 	@echo "Building application..."
@@ -51,5 +51,10 @@ format: ## Форматировать код
 dev: docker-up ## Запустить dev окружение
 	@sleep 2
 	@make run
+
+db-reset: ## Полностью перезапустить PostgreSQL с чистой базой данных
+	@echo "Resetting PostgreSQL database..."
+	@docker compose down -v --remove-orphans
+	@docker compose up -d postgres
 
 .DEFAULT_GOAL := help

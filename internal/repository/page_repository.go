@@ -35,7 +35,7 @@ func (r *pageRepository) Update(page *models.Page) error {
 }
 
 func (r *pageRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Page{}, id).Error
+	return r.db.Unscoped().Delete(&models.Page{}, id).Error
 }
 
 func (r *pageRepository) GetByID(id uint) (*models.Page, error) {

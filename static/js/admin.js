@@ -143,6 +143,7 @@
         const categoryDeleteButton = categoryForm?.querySelector('[data-role="category-delete"]');
         const categorySubmitButton = categoryForm?.querySelector('[data-role="category-submit"]');
         const postCategorySelect = postForm?.querySelector("#admin-post-category");
+        const DEFAULT_CATEGORY_SLUG = "uncategorized";
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
 
         const state = {
@@ -151,6 +152,91 @@
             pages: [],
             categories: [],
             comments: [],
+            defaultCategoryId: "",
+        };
+
+        const normaliseSlug = (value) => (typeof value === "string" ? value.toLowerCase() : "");
+
+        const extractCategorySlug = (category) => {
+            if (!category) {
+                return "";
+            }
+            const candidates = [category.slug, category.Slug];
+            for (const candidate of candidates) {
+                const normalised = normaliseSlug(candidate);
+                if (normalised) {
+                    return normalised;
+                }
+                if (candidate && typeof candidate.value === "string") {
+                    const nested = normaliseSlug(candidate.value);
+                    if (nested) {
+                        return nested;
+                    }
+                }
+            }
+            return normaliseSlug(category.name || category.Name || "");
+        };
+
+        const extractCategoryId = (category) => {
+            if (!category) {
+                return "";
+            }
+            const candidates = [category.id, category.ID];
+            for (const candidate of candidates) {
+                if (candidate === undefined || candidate === null) {
+                    continue;
+                }
+                if (typeof candidate === "object" && candidate !== null) {
+                    const value = candidate.value ?? candidate.Value;
+                    if (value !== undefined && value !== null) {
+                        const normalised = String(value).trim();
+                        if (normalised) {
+                            return normalised;
+                        }
+                    }
+                    continue;
+                }
+                const normalised = String(candidate).trim();
+                if (normalised) {
+                    return normalised;
+                }
+            }
+            return "";
+        };
+
+        const refreshDefaultCategoryId = () => {
+            const defaultSlug = normaliseSlug(DEFAULT_CATEGORY_SLUG);
+            const matchBySlug = state.categories.find((category) => extractCategorySlug(category) === defaultSlug);
+            if (matchBySlug) {
+                state.defaultCategoryId = extractCategoryId(matchBySlug);
+                return;
+            }
+            const fallback = state.categories.find((category) => extractCategoryId(category));
+            state.defaultCategoryId = fallback ? extractCategoryId(fallback) : "";
+        };
+
+        const ensureDefaultCategorySelection = () => {
+            if (!postCategorySelect) {
+                return;
+            }
+            if (!state.defaultCategoryId) {
+                refreshDefaultCategoryId();
+            }
+            if (state.defaultCategoryId) {
+                postCategorySelect.value = state.defaultCategoryId;
+            }
+            if (!postCategorySelect.value && postCategorySelect.options.length) {
+                const firstUsable = Array.from(postCategorySelect.options).find((option) => option.value);
+                if (firstUsable) {
+                    postCategorySelect.value = firstUsable.value;
+                }
+            }
+            if (!postCategorySelect.value && postCategorySelect.options.length) {
+                postCategorySelect.selectedIndex = 0;
+            }
+            if (postCategorySelect.value) {
+                state.defaultCategoryId = postCategorySelect.value;
+            }
         };
 
         const highlightRow = (table, id) => {
@@ -245,13 +331,17 @@
                 return;
             }
             state.categories.forEach((category) => {
+                const id = extractCategoryId(category);
+                if (!id) {
+                    return;
+                }
                 const row = createElement("tr");
-                row.dataset.id = category.id;
+                row.dataset.id = id;
                 row.appendChild(createElement("td", { textContent: category.name || "Untitled" }));
                 row.appendChild(createElement("td", { textContent: category.slug || "—" }));
                 const updated = category.updated_at || category.updatedAt || category.UpdatedAt;
                 row.appendChild(createElement("td", { textContent: formatDate(updated) }));
-                row.addEventListener("click", () => selectCategory(category.id));
+                row.addEventListener("click", () => selectCategory(id));
                 table.appendChild(row);
             });
             highlightRow(table, categoryForm?.dataset.id);
@@ -263,13 +353,13 @@
             }
             const currentValue = postCategorySelect.value;
             postCategorySelect.innerHTML = "";
-            const defaultOption = createElement("option", { textContent: "No category" });
-            defaultOption.value = "";
-            postCategorySelect.appendChild(defaultOption);
 
             const seen = new Set();
             state.categories.forEach((category) => {
-                const id = String(category.id);
+                const id = extractCategoryId(category);
+                if (!id) {
+                    return;
+                }
                 if (seen.has(id)) {
                     return;
                 }
@@ -279,8 +369,10 @@
                 postCategorySelect.appendChild(option);
             });
 
-            if (currentValue && state.categories.some((category) => String(category.id) === currentValue)) {
+            if (currentValue && state.categories.some((category) => extractCategoryId(category) === currentValue)) {
                 postCategorySelect.value = currentValue;
+            } else {
+                ensureDefaultCategorySelection();
             }
         };
 
@@ -359,9 +451,17 @@
             postForm.title.value = post.title || "";
             postForm.description.value = post.description || "";
             postForm.content.value = post.content || "";
-            const categoryId = post.category?.id || post.category_id;
+            const categoryId =
+                post.category?.id ||
+                post.category?.ID ||
+                post.category_id ||
+                post.CategoryID;
             if (postCategorySelect) {
-                postCategorySelect.value = categoryId ? String(categoryId) : "";
+                if (categoryId) {
+                    postCategorySelect.value = String(categoryId);
+                } else {
+                    ensureDefaultCategorySelection();
+                }
             }
             const publishedField = postForm.querySelector('input[name="published"]');
             if (publishedField) {
@@ -382,6 +482,7 @@
             }
             postForm.reset();
             delete postForm.dataset.id;
+            ensureDefaultCategorySelection();
             if (postSubmitButton) {
                 postSubmitButton.textContent = "Create post";
             }
@@ -451,11 +552,16 @@
             if (!categoryForm) {
                 return;
             }
-            const category = state.categories.find((entry) => String(entry.id) === String(id));
+            const category = state.categories.find((entry) => extractCategoryId(entry) === String(id));
             if (!category) {
                 return;
             }
-            categoryForm.dataset.id = category.id;
+            const categoryId = extractCategoryId(category);
+            if (categoryId) {
+                categoryForm.dataset.id = categoryId;
+            } else {
+                delete categoryForm.dataset.id;
+            }
             categoryForm.name.value = category.name || "";
             categoryForm.description.value = category.description || "";
             if (categorySubmitButton) {
@@ -464,7 +570,7 @@
             if (categoryDeleteButton) {
                 categoryDeleteButton.hidden = false;
             }
-            highlightRow(tables.categories, category.id);
+            highlightRow(tables.categories, categoryId);
         };
 
         const resetCategoryForm = () => {
@@ -529,6 +635,7 @@
             try {
                 const payload = await apiRequest(endpoints.categoriesIndex);
                 state.categories = payload?.categories || [];
+                refreshDefaultCategoryId();
                 renderCategories();
                 renderCategoryOptions();
             } catch (error) {
