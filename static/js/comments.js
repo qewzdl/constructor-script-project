@@ -458,7 +458,7 @@
         };
 
         const startEditComment = (button) => {
-            const commentElement = button.closest("[data-comment-id]");
+            const commentElement = button.closest("li[data-comment-id]");
             if (!commentElement || commentElement.dataset.editing === "true") {
                 return;
             }
