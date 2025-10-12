@@ -207,6 +207,33 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 	})
 }
 
+func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
+	user, ok := h.currentUser(c)
+	if !ok {
+		redirectTo := url.QueryEscape(c.Request.URL.RequestURI())
+		c.Redirect(http.StatusFound, "/login?redirect="+redirectTo)
+		return
+	}
+
+	if user.Role != "admin" {
+		h.renderError(c, http.StatusForbidden, "403 - Forbidden", "Administrator access required")
+		return
+	}
+
+	h.renderTemplate(c, "admin", "Admin dashboard", "Monitor site activity, review content performance, and manage published resources in one place.", gin.H{
+		"Styles":  []string{"/static/css/admin.css"},
+		"Scripts": []string{"/static/js/admin.js"},
+		"AdminEndpoints": gin.H{
+			"Stats":           "/api/v1/admin/stats",
+			"Posts":           "/api/v1/admin/posts",
+			"Pages":           "/api/v1/admin/pages",
+			"Categories":      "/api/v1/admin/categories",
+			"CategoriesIndex": "/api/v1/categories",
+			"Comments":        "/api/v1/admin/comments",
+		},
+	})
+}
+
 func (h *TemplateHandler) renderError(c *gin.Context, status int, title, msg string) {
 	data := gin.H{
 		"Title":      title,

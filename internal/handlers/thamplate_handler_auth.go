@@ -61,12 +61,15 @@ func (h *TemplateHandler) currentUser(c *gin.Context) (*models.User, bool) {
 }
 
 func (h *TemplateHandler) addUserContext(c *gin.Context, data gin.H) {
+	data["IsAuthenticated"] = false
+	data["IsAdmin"] = false
+
 	user, ok := h.currentUser(c)
 	if !ok {
-		data["IsAuthenticated"] = false
 		return
 	}
 
 	data["IsAuthenticated"] = true
+	data["IsAdmin"] = user.Role == "admin"
 	data["CurrentUser"] = user
 }

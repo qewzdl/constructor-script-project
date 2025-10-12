@@ -18,6 +18,7 @@ type PostRepository interface {
 	GetRelated(postID uint, categoryID uint, limit int) ([]models.Post, error)
 	IncrementViews(id uint) error
 	ExistsBySlug(slug string) (bool, error)
+	ReassignCategory(fromCategoryID, toCategoryID uint) error
 }
 
 type postRepository struct {
@@ -135,4 +136,10 @@ func (r *postRepository) ExistsBySlug(slug string) (bool, error) {
 	var count int64
 	err := r.db.Model(&models.Post{}).Where("slug = ?", slug).Count(&count).Error
 	return count > 0, err
+}
+
+func (r *postRepository) ReassignCategory(fromCategoryID, toCategoryID uint) error {
+	return r.db.Model(&models.Post{}).
+		Where("category_id = ?", fromCategoryID).
+		Update("category_id", toCategoryID).Error
 }

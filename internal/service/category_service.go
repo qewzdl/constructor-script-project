@@ -10,18 +10,54 @@ import (
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/utils"
+
+	"gorm.io/gorm"
 )
 
 type CategoryService struct {
 	categoryRepo repository.CategoryRepository
+	postRepo     repository.PostRepository
 	cache        *cache.Cache
 }
 
-func NewCategoryService(categoryRepo repository.CategoryRepository, cacheService *cache.Cache) *CategoryService {
+const (
+	defaultCategoryName = "Uncategorized"
+	defaultCategorySlug = "uncategorized"
+)
+
+func NewCategoryService(categoryRepo repository.CategoryRepository, postRepo repository.PostRepository, cacheService *cache.Cache) *CategoryService {
 	return &CategoryService{
 		categoryRepo: categoryRepo,
+		postRepo:     postRepo,
 		cache:        cacheService,
 	}
+}
+
+func (s *CategoryService) EnsureDefaultCategory() (*models.Category, bool, error) {
+	slug := defaultCategorySlug
+
+	category, err := s.categoryRepo.GetBySlug(slug)
+	if err == nil {
+		return category, false, nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, false, fmt.Errorf("failed to verify default category: %w", err)
+	}
+
+	created, createErr := s.Create(models.CreateCategoryRequest{
+		Name:        defaultCategoryName,
+		Description: "Default category for uncategorized posts",
+	})
+	if createErr != nil {
+		category, fetchErr := s.categoryRepo.GetBySlug(slug)
+		if fetchErr == nil {
+			return category, false, nil
+		}
+		return nil, false, fmt.Errorf("failed to create default category: %w", createErr)
+	}
+
+	return created, true, nil
 }
 
 func (s *CategoryService) Create(req models.CreateCategoryRequest) (*models.Category, error) {
@@ -168,6 +204,21 @@ func (s *CategoryService) Update(id uint, req models.CreateCategoryRequest) (*mo
 }
 
 func (s *CategoryService) Delete(id uint) error {
+	defaultCategory, _, err := s.EnsureDefaultCategory()
+	if err != nil {
+		return err
+	}
+
+	if defaultCategory != nil && id == defaultCategory.ID {
+		return errors.New("default category cannot be deleted")
+	}
+
+	if s.postRepo != nil && defaultCategory != nil {
+		if err := s.postRepo.ReassignCategory(id, defaultCategory.ID); err != nil {
+			return fmt.Errorf("failed to reassign posts to default category: %w", err)
+		}
+	}
+
 	if err := s.categoryRepo.Delete(id); err != nil {
 		return err
 	}

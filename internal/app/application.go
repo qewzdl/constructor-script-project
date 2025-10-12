@@ -106,6 +106,7 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 	app.initRepositories()
 	app.initServices()
 
+	seed.EnsureDefaultCategory(app.services.Category)
 	seed.EnsureDefaultPages(app.services.Page)
 
 	if err := app.initHandlers(); err != nil {
@@ -258,7 +259,7 @@ func (a *Application) initRepositories() {
 func (a *Application) initServices() {
 	a.services = serviceContainer{
 		Auth:     service.NewAuthService(a.repositories.User, a.cfg.JWTSecret),
-		Category: service.NewCategoryService(a.repositories.Category, a.cache),
+		Category: service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache),
 		Post:     service.NewPostService(a.repositories.Post, a.repositories.Tag, a.cache),
 		Comment:  service.NewCommentService(a.repositories.Comment),
 		Search:   service.NewSearchService(a.repositories.Search),
@@ -348,6 +349,7 @@ func (a *Application) initRouter() error {
 	router.GET("/login", a.templateHandler.RenderLogin)
 	router.GET("/register", a.templateHandler.RenderRegister)
 	router.GET("/profile", a.templateHandler.RenderProfile)
+	router.GET("/admin", a.templateHandler.RenderAdmin)
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
 	router.GET("/page/:slug", a.templateHandler.RenderPage)
 	router.GET("/blog", a.templateHandler.RenderBlog)

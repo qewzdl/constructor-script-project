@@ -15,6 +15,7 @@ type PageRepository interface {
 	GetAll() ([]models.Page, error)
 	GetAllAdmin() ([]models.Page, error)
 	ExistsBySlug(slug string) (bool, error)
+	ExistsBySlugExceptID(slug string, excludeID uint) (bool, error)
 }
 
 type pageRepository struct {
@@ -39,7 +40,7 @@ func (r *pageRepository) Delete(id uint) error {
 
 func (r *pageRepository) GetByID(id uint) (*models.Page, error) {
 	var page models.Page
-	if err := r.db.Where("published = ?", true).First(&page, id).Error; err != nil {
+	if err := r.db.First(&page, id).Error; err != nil {
 		return nil, err
 	}
 	return &page, nil
@@ -74,5 +75,16 @@ func (r *pageRepository) ExistsBySlug(slug string) (bool, error) {
 	if err := r.db.Model(&models.Page{}).Where("slug = ?", slug).Count(&count).Error; err != nil {
 		return false, err
 	}
+	return count > 0, nil
+}
+
+func (r *pageRepository) ExistsBySlugExceptID(slug string, excludeID uint) (bool, error) {
+	var count int64
+	if err := r.db.Model(&models.Page{}).
+		Where("slug = ? AND id <> ?", slug, excludeID).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+
 	return count > 0, nil
 }

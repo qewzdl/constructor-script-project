@@ -1,0 +1,283 @@
+<section
+    class="admin"
+    role="region"
+    aria-labelledby="admin-title"
+    data-page="admin"
+    data-endpoint-stats="{{ index .AdminEndpoints "Stats" }}"
+    data-endpoint-posts="{{ index .AdminEndpoints "Posts" }}"
+    data-endpoint-pages="{{ index .AdminEndpoints "Pages" }}"
+    data-endpoint-categories="{{ index .AdminEndpoints "Categories" }}"
+    data-endpoint-categories-index="{{ index .AdminEndpoints "CategoriesIndex" }}"
+    data-endpoint-comments="{{ index .AdminEndpoints "Comments" }}"
+>
+    <header class="admin__header">
+        <div class="admin__intro">
+            <h1 id="admin-title" class="admin__title">Site administration</h1>
+            <p class="admin__subtitle">
+                Manage the content library, curate static pages, organise categories and moderate
+                community feedback from a single dashboard.
+            </p>
+        </div>
+        {{ if .CurrentUser }}
+        <aside class="admin__profile" aria-label="Signed in administrator">
+            <span class="admin__profile-label">Signed in as</span>
+            <span class="admin__profile-name">{{ .CurrentUser.Username }}</span>
+        </aside>
+        {{ end }}
+    </header>
+
+    <div class="admin__alert" id="admin-alert" role="status" aria-live="assertive" hidden></div>
+
+    <section class="admin__section" aria-labelledby="admin-metrics-title">
+        <div class="admin__section-header">
+            <h2 id="admin-metrics-title" class="admin__section-title">At a glance</h2>
+            <p class="admin__section-description">
+                Key numbers refresh automatically whenever you create, update or remove resources.
+            </p>
+        </div>
+        <div class="admin__metrics" id="admin-metrics">
+            <article class="admin__metric" data-metric="total_posts">
+                <p class="admin__metric-label">Posts</p>
+                <p class="admin__metric-value">—</p>
+            </article>
+            <article class="admin__metric" data-metric="published_posts">
+                <p class="admin__metric-label">Published posts</p>
+                <p class="admin__metric-value">—</p>
+            </article>
+            <article class="admin__metric" data-metric="total_users">
+                <p class="admin__metric-label">Users</p>
+                <p class="admin__metric-value">—</p>
+            </article>
+            <article class="admin__metric" data-metric="total_categories">
+                <p class="admin__metric-label">Categories</p>
+                <p class="admin__metric-value">—</p>
+            </article>
+            <article class="admin__metric" data-metric="total_comments">
+                <p class="admin__metric-label">Comments</p>
+                <p class="admin__metric-value">—</p>
+            </article>
+            <article class="admin__metric" data-metric="total_tags">
+                <p class="admin__metric-label">Tags</p>
+                <p class="admin__metric-value">—</p>
+            </article>
+            <article class="admin__metric" data-metric="total_views">
+                <p class="admin__metric-label">Total views</p>
+                <p class="admin__metric-value">—</p>
+            </article>
+        </div>
+    </section>
+
+    <div class="admin__tabs" role="tablist" aria-label="Admin sections">
+        <button type="button" class="admin__tab is-active" role="tab" aria-selected="true" data-tab="posts">
+            Posts
+        </button>
+        <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="pages">
+            Pages
+        </button>
+        <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="categories">
+            Categories
+        </button>
+        <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="comments">
+            Comments
+        </button>
+    </div>
+
+    <div class="admin__panels">
+        <section class="admin-panel is-active" data-panel="posts" role="tabpanel" aria-labelledby="posts">
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Blog posts</h2>
+                    <p class="admin-panel__description">
+                        Draft, publish and revise long-form content. Selecting an item loads it for editing.
+                    </p>
+                </div>
+                <button type="button" class="admin-panel__reset" data-action="post-reset">New post</button>
+            </header>
+            <div class="admin-panel__body">
+                <div class="admin-panel__list" aria-live="polite">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Title</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Published</th>
+                                <th scope="col">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-posts-table">
+                            <tr class="admin-table__placeholder">
+                                <td colspan="4">Loading posts…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <form id="admin-post-form" class="admin-form" novalidate>
+                    <fieldset class="admin-form__fieldset">
+                        <legend class="admin-form__legend">Post details</legend>
+                        <label class="admin-form__label">
+                            Title
+                            <input type="text" name="title" required class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__label">
+                            Description
+                            <textarea name="description" rows="2" class="admin-form__input"></textarea>
+                        </label>
+                        <label class="admin-form__label">
+                            Main content
+                            <textarea name="content" rows="6" class="admin-form__input"></textarea>
+                        </label>
+                        <label class="admin-form__label">
+                            Category
+                            <select name="category_id" class="admin-form__input" id="admin-post-category">
+                                <option value="">No category</option>
+                            </select>
+                        </label>
+                        <label class="admin-form__checkbox">
+                            <input type="checkbox" name="published" />
+                            <span>Mark as published</span>
+                        </label>
+                    </fieldset>
+                    <div class="admin-form__actions">
+                        <button type="submit" class="admin-form__submit" data-role="post-submit">
+                            Create post
+                        </button>
+                        <button type="button" class="admin-form__delete" data-role="post-delete" hidden>
+                            Delete post
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="admin-panel" data-panel="pages" role="tabpanel" aria-labelledby="pages" hidden>
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Static pages</h2>
+                    <p class="admin-panel__description">
+                        Create landing pages and important evergreen resources for your visitors.
+                    </p>
+                </div>
+                <button type="button" class="admin-panel__reset" data-action="page-reset">New page</button>
+            </header>
+            <div class="admin-panel__body">
+                <div class="admin-panel__list" aria-live="polite">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Title</th>
+                                <th scope="col">Slug</th>
+                                <th scope="col">Published</th>
+                                <th scope="col">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-pages-table">
+                            <tr class="admin-table__placeholder">
+                                <td colspan="4">Loading pages…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <form id="admin-page-form" class="admin-form" novalidate>
+                    <fieldset class="admin-form__fieldset">
+                        <legend class="admin-form__legend">Page details</legend>
+                        <label class="admin-form__label">
+                            Title
+                            <input type="text" name="title" required class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__label">
+                            Custom slug
+                            <input type="text" name="slug" class="admin-form__input" placeholder="optional" />
+                        </label>
+                        <label class="admin-form__label">
+                            Description
+                            <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                        </label>
+                        <label class="admin-form__label">
+                            Display order
+                            <input type="number" name="order" value="0" class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__checkbox">
+                            <input type="checkbox" name="published" />
+                            <span>Visible to visitors</span>
+                        </label>
+                    </fieldset>
+                    <div class="admin-form__actions">
+                        <button type="submit" class="admin-form__submit" data-role="page-submit">
+                            Create page
+                        </button>
+                        <button type="button" class="admin-form__delete" data-role="page-delete" hidden>
+                            Delete page
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="admin-panel" data-panel="categories" role="tabpanel" aria-labelledby="categories" hidden>
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Categories</h2>
+                    <p class="admin-panel__description">
+                        Organise posts into themes. Changes are reflected immediately across the site.
+                    </p>
+                </div>
+                <button type="button" class="admin-panel__reset" data-action="category-reset">New category</button>
+            </header>
+            <div class="admin-panel__body">
+                <div class="admin-panel__list" aria-live="polite">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Slug</th>
+                                <th scope="col">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-categories-table">
+                            <tr class="admin-table__placeholder">
+                                <td colspan="3">Loading categories…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <form id="admin-category-form" class="admin-form" novalidate>
+                    <fieldset class="admin-form__fieldset">
+                        <legend class="admin-form__legend">Category details</legend>
+                        <label class="admin-form__label">
+                            Name
+                            <input type="text" name="name" required class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__label">
+                            Description
+                            <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                        </label>
+                    </fieldset>
+                    <div class="admin-form__actions">
+                        <button type="submit" class="admin-form__submit" data-role="category-submit">
+                            Create category
+                        </button>
+                        <button type="button" class="admin-form__delete" data-role="category-delete" hidden>
+                            Delete category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="admin-panel" data-panel="comments" role="tabpanel" aria-labelledby="comments" hidden>
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Recent comments</h2>
+                    <p class="admin-panel__description">
+                        Approve new feedback or remove unwanted submissions. Older comments remain accessible via the API.
+                    </p>
+                </div>
+            </header>
+            <div class="admin-panel__body admin-panel__body--single">
+                <ul id="admin-comments-list" class="admin-comment-list" aria-live="polite">
+                    <li class="admin-comment-list__item admin-comment-list__item--empty">Loading comments…</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+</section>

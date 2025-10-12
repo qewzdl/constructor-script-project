@@ -12,6 +12,7 @@ import (
 	"constructor-script-backend/pkg/utils"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type PageService struct {
@@ -83,9 +84,25 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 		return nil, err
 	}
 
+	originalSlug := page.Slug
+	slugChanged := false
+
 	if req.Title != nil {
-		page.Title = *req.Title
-		page.Slug = utils.GenerateSlug(*req.Title)
+		title := strings.TrimSpace(*req.Title)
+		if title == "" {
+			return nil, errors.New("page title is required")
+		}
+
+		slug := utils.GenerateSlug(title)
+		if slug == "" {
+			return nil, errors.New("page slug is required")
+		}
+
+		page.Title = title
+		if slug != originalSlug {
+			slugChanged = true
+		}
+		page.Slug = slug
 	}
 	if req.Description != nil {
 		page.Description = *req.Description
@@ -109,6 +126,17 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 			return nil, fmt.Errorf("failed to prepare sections: %w", err)
 		}
 		page.Sections = sections
+	}
+
+	if slugChanged {
+		exists, err := s.pageRepo.ExistsBySlugExceptID(page.Slug, page.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check page existence: %w", err)
+		}
+
+		if exists {
+			return nil, errors.New("page with this title already exists")
+		}
 	}
 
 	if err := s.pageRepo.Update(page); err != nil {
@@ -141,6 +169,9 @@ func (s *PageService) GetByID(id uint) (*models.Page, error) {
 		var page models.Page
 		cacheKey := fmt.Sprintf("page:%d", id)
 		if err := s.cache.Get(cacheKey, &page); err == nil {
+			if !page.Published {
+				return nil, gorm.ErrRecordNotFound
+			}
 			return &page, nil
 		}
 	}
@@ -148,6 +179,10 @@ func (s *PageService) GetByID(id uint) (*models.Page, error) {
 	page, err := s.pageRepo.GetByID(id)
 	if err != nil {
 		return nil, err
+	}
+
+	if !page.Published {
+		return nil, gorm.ErrRecordNotFound
 	}
 
 	if s.cache != nil {

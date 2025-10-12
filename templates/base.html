@@ -23,6 +23,12 @@
         <link rel="stylesheet" href="/static/css/layout.css" />
         <link rel="stylesheet" href="/static/css/base.css" />
 
+        {{ if .Styles }}
+        {{ range .Styles }}
+        <link rel="stylesheet" href="{{ . }}" />
+        {{ end }}
+        {{ end }}
+
         <!-- Favicon for browser tab -->
         <link rel="icon" href="{{ .Site.Favicon }}" type="image/x-icon" />
 
@@ -84,6 +90,13 @@
                     <li class="header__nav-item">
                         <a href="/blog" class="header__nav-link">Blog</a>
                     </li>
+                    {{ with .CurrentUser }}
+                    {{ if and $.IsAuthenticated (eq .Role "admin") }}
+                    <li class="header__nav-item" data-auth="auth">
+                        <a href="/admin" class="header__nav-link">Admin</a>
+                    </li>
+                    {{ end }}
+                    {{ end }}
                     {{ if .IsAuthenticated }}
                     <li
                         class="header__nav-item"
@@ -164,5 +177,10 @@
 
         <script src="/static/js/auth.js" defer></script>
         <script src="/static/js/comments.js" defer></script>
+        {{ if .Scripts }}
+        {{ range .Scripts }}
+        <script src="{{ . }}" defer></script>
+        {{ end }}
+        {{ end }}
     </body>
 </html>
