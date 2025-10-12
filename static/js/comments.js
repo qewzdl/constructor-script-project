@@ -527,60 +527,50 @@
         };
 
         const handleDeleteComment = async (button) => {
-            const commentElement = button.closest("[data-comment-id]");
+            const commentElement = button.closest("li[data-comment-id]");
             if (!commentElement) {
+                console.warn("Comment element not found for delete");
                 return;
             }
-
+        
             const commentId = Number(commentElement.dataset.commentId || 0);
             if (!commentId) {
                 setAlert(alertElement, "Unable to delete this comment.", "error");
                 return;
             }
-
+        
             const confirmed = window.confirm(
                 "Delete this comment? All of its replies will be removed as well."
             );
             if (!confirmed) {
                 return;
             }
-
+        
             button.disabled = true;
-
+        
             try {
-                await apiRequest(`${commentEndpoint}/${commentId}`, {
-                    method: "DELETE",
-                });
-
+                await apiRequest(`${commentEndpoint}/${commentId}`, { method: "DELETE" });
+        
                 const removedCount = countNestedComments(commentElement);
-                commentElement.remove();
+                commentElement.remove(); 
                 updateCount(-removedCount);
-
-                if (parentInput && parentInput.value && Number(parentInput.value) === commentId) {
+        
+                if (parentInput && Number(parentInput.value) === commentId) {
                     clearReplyState();
                 }
-
+        
                 if (commentsList && !commentsList.querySelector("[data-comment-id]")) {
-                    if (emptyState) {
-                        emptyState.hidden = false;
-                    }
+                    if (emptyState) emptyState.hidden = false;
                 }
-
+        
                 setAlert(alertElement, "Comment deleted.", "success");
             } catch (error) {
-                if (error && error.status === 401) {
-                    setAlert(alertElement, "Please sign in to manage your comments.", "error");
-                } else if (error && error.status === 403) {
-                    setAlert(alertElement, "You can only delete your own comments.", "error");
-                } else if (error && error.message) {
-                    setAlert(alertElement, error.message, "error");
-                } else {
-                    setAlert(alertElement, "Failed to delete comment.", "error");
-                }
+                setAlert(alertElement, error.message || "Failed to delete comment.", "error");
             } finally {
                 button.disabled = false;
             }
         };
+        
 
         const startReply = (button) => {
             if (!form || !parentInput) {
