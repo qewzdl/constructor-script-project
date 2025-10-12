@@ -260,7 +260,7 @@ func (a *Application) initServices() {
 	a.services = serviceContainer{
 		Auth:     service.NewAuthService(a.repositories.User, a.cfg.JWTSecret),
 		Category: service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache),
-		Post:     service.NewPostService(a.repositories.Post, a.repositories.Tag, a.cache),
+		Post:     service.NewPostService(a.repositories.Post, a.repositories.Tag, a.repositories.Category, a.cache),
 		Comment:  service.NewCommentService(a.repositories.Comment),
 		Search:   service.NewSearchService(a.repositories.Search),
 		Upload:   service.NewUploadService(a.cfg.UploadDir),

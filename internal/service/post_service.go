@@ -15,16 +15,23 @@ import (
 )
 
 type PostService struct {
-	postRepo repository.PostRepository
-	tagRepo  repository.TagRepository
-	cache    *cache.Cache
+	postRepo     repository.PostRepository
+	tagRepo      repository.TagRepository
+	categoryRepo repository.CategoryRepository
+	cache        *cache.Cache
 }
 
-func NewPostService(postRepo repository.PostRepository, tagRepo repository.TagRepository, cacheService *cache.Cache) *PostService {
+func NewPostService(
+	postRepo repository.PostRepository,
+	tagRepo repository.TagRepository,
+	categoryRepo repository.CategoryRepository,
+	cacheService *cache.Cache,
+) *PostService {
 	return &PostService{
-		postRepo: postRepo,
-		tagRepo:  tagRepo,
-		cache:    cacheService,
+		postRepo:     postRepo,
+		tagRepo:      tagRepo,
+		categoryRepo: categoryRepo,
+		cache:        cacheService,
 	}
 }
 
@@ -53,6 +60,15 @@ func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*mode
 		content = s.generateContentFromSections(sections)
 	}
 
+	categoryID := req.CategoryID
+	if categoryID == 0 && s.categoryRepo != nil {
+		defaultCategory, err := s.categoryRepo.GetBySlug(defaultCategorySlug)
+		if err != nil {
+			return nil, fmt.Errorf("failed to assign default category: %w", err)
+		}
+		categoryID = defaultCategory.ID
+	}
+
 	post := &models.Post{
 		Title:       req.Title,
 		Slug:        slug,
@@ -62,7 +78,7 @@ func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*mode
 		FeaturedImg: req.FeaturedImg,
 		Published:   req.Published,
 		AuthorID:    authorID,
-		CategoryID:  req.CategoryID,
+		CategoryID:  categoryID,
 		Sections:    sections,
 		Template:    s.getTemplate(req.Template),
 	}
