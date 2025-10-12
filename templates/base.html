@@ -64,6 +64,8 @@
     </head>
 
     <body class="page">
+        {{ if .HideChrome }}
+        {{ else }}
         <header class="header" role="banner">
             <nav
                 class="header__nav"
@@ -164,9 +166,12 @@
                 </ul>
             </nav>
         </header>
+        {{ end }}
 
         <main id="main-content" class="main" role="main">{{ .Content }}</main>
 
+        {{ if .HideChrome }}
+        {{ else }}
         <footer class="footer" role="contentinfo">
             <section class="footer__info">
                 <p class="footer__text">
@@ -177,6 +182,7 @@
                 </p>
             </section>
         </footer>
+        {{ end }}
 
         <script src="/static/js/auth.js" defer></script>
         <script src="/static/js/comments.js" defer></script>

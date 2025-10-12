@@ -321,6 +321,7 @@ func (h *TemplateHandler) RenderSetup(c *gin.Context) {
 		"Scripts":     []string{"/static/js/setup.js"},
 		"SetupAction": "/api/v1/setup",
 		"SetupStatus": "/api/v1/setup/status",
+		"HideChrome":  true,
 	})
 }
 
