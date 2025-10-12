@@ -16,8 +16,12 @@
         <!-- Website author -->
         <meta name="author" content="{{ .Site.Name }}" />
 
-        <!-- Allow search engines to index and follow links -->
+        <!-- Control search engine indexing -->
+        {{ if .NoIndex }}
+        <meta name="robots" content="noindex, nofollow" />
+        {{ else }}
         <meta name="robots" content="index, follow" />
+        {{ end }}
 
         <!-- Core CSS stylesheets -->
         <link rel="stylesheet" href="/static/css/layout.css" />

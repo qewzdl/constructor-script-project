@@ -69,6 +69,10 @@ func (h *TemplateHandler) renderTemplate(c *gin.Context, templateName, title, de
 func (h *TemplateHandler) renderWithLayout(c *gin.Context, layout, content string, data gin.H) {
 	h.addUserContext(c, data)
 
+	if noIndex, ok := data["NoIndex"].(bool); ok && noIndex {
+		c.Header("X-Robots-Tag", "noindex, nofollow")
+	}
+
 	tmpl, err := h.templates.Clone()
 	if err != nil {
 		logger.Error(err, "Failed to clone templates", nil)

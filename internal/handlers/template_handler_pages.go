@@ -322,6 +322,7 @@ func (h *TemplateHandler) RenderSetup(c *gin.Context) {
 		"SetupAction": "/api/v1/setup",
 		"SetupStatus": "/api/v1/setup/status",
 		"HideChrome":  true,
+		"NoIndex":     true,
 	})
 }
 
@@ -364,6 +365,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"Comments":        "/api/v1/admin/comments",
 			"Tags":            "/api/v1/tags",
 		},
+		"NoIndex": true,
 	})
 }
 
