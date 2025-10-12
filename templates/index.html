@@ -10,35 +10,12 @@
         <h2 id="blog-title" class="blog__title">Latest Posts</h2>
 
         <div class="blog__posts">
+            {{ if .Posts }}
             {{ range .Posts }}
-            <article class="blog__post post-card" aria-labelledby="post-{{ .Slug }}">
-                {{ if .FeaturedImg }}
-                <figure class="post-card__figure">
-                    <img src="{{ .FeaturedImg }}" alt="{{ .Title }}" class="post-card__image" loading="lazy">
-                </figure>
-                {{ end }}
-
-                <div class="post-card__content">
-                    <h3 id="post-{{ .Slug }}" class="post-card__title">
-                        <a href="/blog/post/{{ .Slug }}" class="post-card__link">{{ .Title }}</a>
-                    </h3>
-
-                    {{ if .Description }}
-                    <p class="post-card__description">{{ .Description }}</p>
-                    {{ else if .Excerpt }}
-                    <p class="post-card__description">{{ .Excerpt }}</p>
-                    {{ end }}
-
-                    <footer class="post-card__footer">
-                        <time class="post-card__date" datetime="{{ .CreatedAt.Format "2006-01-02" }}">
-                            {{ .CreatedAt.Format "02 Jan 2006" }}
-                        </time>
-                        <span class="post-card__views" aria-label="{{ .Views }} views">
-                            👁 {{ .Views }} views
-                        </span>
-                    </footer>
-                </div>
-            </article>
+            {{ template "components/post-card" (dict "Post" . "WrapperClass" "blog__post post-card") }}
+            {{ end }}
+            {{ else }}
+            <p class="blog__empty">No posts available yet. Check back soon!</p>
             {{ end }}
         </div>
 

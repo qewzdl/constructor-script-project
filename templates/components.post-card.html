@@ -1,0 +1,118 @@
+{{ define "components/post-card" }}
+    {{ with .Post }}
+    {{ $post := . }}
+    {{ $classes := default "post-card" $.WrapperClass }}
+    <article class="{{ $classes }}"{{ if $.AriaLabelledby }} aria-labelledby="{{ $.AriaLabelledby }}"{{ end }}>
+        {{ if and $post.FeaturedImg (not $.HideImage) }}
+            {{ if $.UseFigure }}
+            <figure class="post-card__figure">
+                <img
+                    src="{{ $post.FeaturedImg }}"
+                    alt="{{ $post.Title }}"
+                    class="post-card__image"
+                    {{ if $.LazyLoad }}loading="lazy"{{ end }}
+                />
+            </figure>
+            {{ else }}
+            <img
+                src="{{ $post.FeaturedImg }}"
+                alt="{{ $post.Title }}"
+                class="post-card__image"
+                {{ if $.LazyLoad }}loading="lazy"{{ end }}
+            />
+            {{ end }}
+        {{ end }}
+
+        <div class="post-card__content">
+            {{ $heading := default "h2" $.Heading }}
+            {{ $titleID := $.TitleID }}
+            {{ if eq $heading "h1" }}
+            <h1 class="post-card__title"{{ if $titleID }} id="{{ $titleID }}"{{ end }}>
+                <a href="/blog/post/{{ $post.Slug }}" class="post-card__link">{{ $post.Title }}</a>
+            </h1>
+            {{ else if eq $heading "h2" }}
+            <h2 class="post-card__title"{{ if $titleID }} id="{{ $titleID }}"{{ end }}>
+                <a href="/blog/post/{{ $post.Slug }}" class="post-card__link">{{ $post.Title }}</a>
+            </h2>
+            {{ else if eq $heading "h3" }}
+            <h3 class="post-card__title"{{ if $titleID }} id="{{ $titleID }}"{{ end }}>
+                <a href="/blog/post/{{ $post.Slug }}" class="post-card__link">{{ $post.Title }}</a>
+            </h3>
+            {{ else if eq $heading "h4" }}
+            <h4 class="post-card__title"{{ if $titleID }} id="{{ $titleID }}"{{ end }}>
+                <a href="/blog/post/{{ $post.Slug }}" class="post-card__link">{{ $post.Title }}</a>
+            </h4>
+            {{ else if eq $heading "h5" }}
+            <h5 class="post-card__title"{{ if $titleID }} id="{{ $titleID }}"{{ end }}>
+                <a href="/blog/post/{{ $post.Slug }}" class="post-card__link">{{ $post.Title }}</a>
+            </h5>
+            {{ else if eq $heading "h6" }}
+            <h6 class="post-card__title"{{ if $titleID }} id="{{ $titleID }}"{{ end }}>
+                <a href="/blog/post/{{ $post.Slug }}" class="post-card__link">{{ $post.Title }}</a>
+            </h6>
+            {{ else }}
+            <h2 class="post-card__title"{{ if $titleID }} id="{{ $titleID }}"{{ end }}>
+                <a href="/blog/post/{{ $post.Slug }}" class="post-card__link">{{ $post.Title }}</a>
+            </h2>
+            {{ end }}
+
+            {{ if $post.Description }}
+            <p class="post-card__description">{{ $post.Description }}</p>
+            {{ else if $post.Excerpt }}
+            <p class="post-card__description">{{ $post.Excerpt }}</p>
+            {{ end }}
+
+            {{ $metaElement := default "div" $.MetaElement }}
+            {{ $metaClass := default "post-card__meta" $.MetaClass }}
+            {{ $showViews := not $.HideViews }}
+            {{ $showTags := not $.HideTags }}
+            {{ $showAuthor := and $.ShowAuthor (or $.AuthorName (or (and $post.Author $post.Author.Username) $post.Username)) }}
+            {{ $isoDate := "" }}
+            {{ $readableDate := "" }}
+            {{ if $post.CreatedAt }}
+                {{ $isoDate = $post.CreatedAt.Format "2006-01-02" }}
+                {{ $readableDate = $post.CreatedAt.Format "02 Jan 2006" }}
+            {{ end }}
+            {{ if or $post.CreatedAt (and $showViews $post.Views) $showAuthor }}
+                {{ if eq $metaElement "footer" }}
+                <footer class="{{ $metaClass }}">
+                {{ else }}
+                <div class="{{ $metaClass }}">
+                {{ end }}
+                    {{ if $post.CreatedAt }}
+                    <time class="post-card__date" datetime="{{ $isoDate }}">
+                        {{ $readableDate }}
+                    </time>
+                    {{ end }}
+                    {{ if and $showViews $post.Views }}
+                    <span class="post-card__views"{{ if $.ViewsAriaLabel }} aria-label="{{ $.ViewsAriaLabel }}"{{ end }}>👁 {{ $post.Views }} views</span>
+                    {{ end }}
+                    {{ if $showAuthor }}
+                        {{ if $.AuthorName }}
+                    <span class="post-card__author">by {{ $.AuthorName }}</span>
+                        {{ else if and $post.Author $post.Author.Username }}
+                    <span class="post-card__author">by {{ $post.Author.Username }}</span>
+                        {{ else if $post.Username }}
+                    <span class="post-card__author">by {{ $post.Username }}</span>
+                        {{ end }}
+                    {{ end }}
+                {{ if eq $metaElement "footer" }}
+                </footer>
+                {{ else }}
+                </div>
+                {{ end }}
+            {{ end }}
+
+            {{ if and $showTags $post.Tags }}
+            <ul class="post-card__tags" aria-label="Tags">
+                {{ range $post.Tags }}
+                <li class="post-card__tag">
+                    <a href="/tag/{{ .Slug }}" class="post-card__tag-link">#{{ .Name }}</a>
+                </li>
+                {{ end }}
+            </ul>
+            {{ end }}
+        </div>
+    </article>
+    {{ end }}
+{{ end }}

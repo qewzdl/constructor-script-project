@@ -45,38 +45,14 @@
         </p>
         <div class="search__posts">
             {{ range .Result.Posts }}
-            <article class="post-card search__post">
-                {{ if .FeaturedImg }}
-                <img src="{{ .FeaturedImg }}" alt="{{ .Title }}" class="post-card__image" />
-                {{ end }}
-                <div class="post-card__content">
-                    <h2 class="post-card__title">
-                        <a href="/blog/post/{{ .Slug }}" class="post-card__link">{{ .Title }}</a>
-                    </h2>
-                    {{ if .Description }}
-                    <p class="post-card__description">{{ .Description }}</p>
-                    {{ else if .Excerpt }}
-                    <p class="post-card__description">{{ .Excerpt }}</p>
-                    {{ end }}
-                    <div class="post-card__meta">
-                        <time class="post-card__date" datetime="{{ .CreatedAt.Format "2006-01-02" }}">
-                            {{ .CreatedAt.Format "02 Jan 2006" }}
-                        </time>
-                        {{ with .Author }}
-                        <span class="post-card__author">by {{ .Username }}</span>
-                        {{ end }}
-                    </div>
-                    {{ if .Tags }}
-                    <ul class="post-card__tags" aria-label="Tags">
-                        {{ range .Tags }}
-                        <li class="post-card__tag">
-                            <a href="/tag/{{ .Slug }}" class="post-card__tag-link">#{{ .Name }}</a>
-                        </li>
-                        {{ end }}
-                    </ul>
-                    {{ end }}
-                </div>
-            </article>
+            {{ $authorName := or (and .Author .Author.Username) "" }}
+            {{ template "components/post-card" (dict
+                "Post" .
+                "WrapperClass" "post-card search__post"
+                "HideViews" true
+                "ShowAuthor" (ne $authorName "")
+                "AuthorName" $authorName
+            ) }}
             {{ end }}
         </div>
         {{ else }}
