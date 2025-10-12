@@ -85,6 +85,7 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 	}
 
 	originalSlug := page.Slug
+	originalPublished := page.Published
 	slugChanged := false
 
 	if req.Title != nil {
@@ -128,7 +129,9 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 		page.Sections = sections
 	}
 
-	if slugChanged {
+	shouldValidateSlug := slugChanged || (!originalPublished && page.Published)
+
+	if shouldValidateSlug {
 		exists, err := s.pageRepo.ExistsBySlugExceptID(page.Slug, page.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to check page existence: %w", err)
