@@ -52,23 +52,7 @@
         {{ end }}
     </div>
 
-    {{ if gt .TotalPages 1 }}
-    <nav class="pagination" aria-label="Pagination">
-        {{ if gt .CurrentPage 1 }}
-        <a href="/?page={{ sub .CurrentPage 1 }}" class="pagination__button pagination__button--prev">
-            ← Previous
-        </a>
-        {{ end }}
-        
-        <span class="pagination__info">
-            Page {{ .CurrentPage }} of {{ .TotalPages }}
-        </span>
-        
-        {{ if lt .CurrentPage .TotalPages }}
-        <a href="/?page={{ add .CurrentPage 1 }}" class="pagination__button pagination__button--next">
-            Next →
-        </a>
-        {{ end }}
-    </nav>
+    {{ with .Pagination }}
+        {{ template "components/pagination" . }}
     {{ end }}
 </section>

@@ -60,11 +60,17 @@ func (h *TemplateHandler) RenderIndex(c *gin.Context) {
 		return
 	}
 
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+	pagination := h.buildPagination(page, totalPages, func(p int) string {
+		return fmt.Sprintf("/?page=%d", p)
+	})
+
 	h.renderTemplate(c, "index", "Home", h.config.SiteDescription, gin.H{
 		"Posts":       posts,
 		"Total":       total,
 		"CurrentPage": page,
-		"TotalPages":  int((total + int64(limit) - 1) / int64(limit)),
+		"TotalPages":  totalPages,
+		"Pagination":  pagination,
 	})
 }
 
@@ -120,11 +126,17 @@ func (h *TemplateHandler) RenderBlog(c *gin.Context) {
 		tags = loadedTags
 	}
 
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+	pagination := h.buildPagination(page, totalPages, func(p int) string {
+		return fmt.Sprintf("/blog?page=%d", p)
+	})
+
 	data := gin.H{
 		"Posts":       posts,
 		"Total":       total,
 		"CurrentPage": page,
-		"TotalPages":  int((total + int64(limit) - 1) / int64(limit)),
+		"TotalPages":  totalPages,
+		"Pagination":  pagination,
 	}
 
 	if len(tags) > 0 {
@@ -229,11 +241,17 @@ func (h *TemplateHandler) RenderTag(c *gin.Context) {
 
 	totalCount := int(total)
 
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+	pagination := h.buildPagination(page, totalPages, func(p int) string {
+		return fmt.Sprintf("/tag/%s?page=%d", slug, p)
+	})
+
 	data := gin.H{
 		"Posts":       posts,
 		"Total":       totalCount,
 		"CurrentPage": page,
-		"TotalPages":  int((total + int64(limit) - 1) / int64(limit)),
+		"TotalPages":  totalPages,
+		"Pagination":  pagination,
 		"Tag":         tag,
 	}
 
@@ -321,6 +339,27 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"Tags":            "/api/v1/tags",
 		},
 	})
+}
+
+func (h *TemplateHandler) buildPagination(current, total int, buildURL func(page int) string) gin.H {
+	if total <= 1 || buildURL == nil {
+		return nil
+	}
+
+	data := gin.H{
+		"CurrentPage": current,
+		"TotalPages":  total,
+	}
+
+	if current > 1 {
+		data["PrevURL"] = buildURL(current - 1)
+	}
+
+	if current < total {
+		data["NextURL"] = buildURL(current + 1)
+	}
+
+	return data
 }
 
 func (h *TemplateHandler) renderError(c *gin.Context, status int, title, msg string) {

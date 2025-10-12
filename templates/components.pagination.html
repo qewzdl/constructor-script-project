@@ -1,0 +1,26 @@
+{{ define "components/pagination" }}
+    {{ $total := .TotalPages }}
+    {{ if gt $total 1 }}
+    <nav class="pagination" role="navigation" aria-label="Pagination">
+        <ul class="pagination__list">
+            {{ if .PrevURL }}
+            <li>
+                <a href="{{ .PrevURL }}" class="pagination__button pagination__button--prev" rel="prev">
+                    {{ default "← Previous" .PrevLabel }}
+                </a>
+            </li>
+            {{ end }}
+            <li class="pagination__info" aria-current="page">
+                {{ default (printf "Page %d of %d" .CurrentPage $total) .InfoLabel }}
+            </li>
+            {{ if .NextURL }}
+            <li>
+                <a href="{{ .NextURL }}" class="pagination__button pagination__button--next" rel="next">
+                    {{ default "Next →" .NextLabel }}
+                </a>
+            </li>
+            {{ end }}
+        </ul>
+    </nav>
+    {{ end }}
+{{ end }}
