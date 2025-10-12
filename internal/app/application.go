@@ -54,6 +54,7 @@ type repositoryContainer struct {
 	Comment  repository.CommentRepository
 	Search   repository.SearchRepository
 	Page     repository.PageRepository
+	Setting  repository.SettingRepository
 }
 
 type serviceContainer struct {
@@ -64,6 +65,7 @@ type serviceContainer struct {
 	Search   *service.SearchService
 	Upload   *service.UploadService
 	Page     *service.PageService
+	Setup    *service.SetupService
 }
 
 type handlerContainer struct {
@@ -74,6 +76,7 @@ type handlerContainer struct {
 	Search   *handlers.SearchHandler
 	Upload   *handlers.UploadHandler
 	Page     *handlers.PageHandler
+	Setup    *handlers.SetupHandler
 }
 
 func New(cfg *config.Config, opts Options) (*Application, error) {
@@ -200,6 +203,7 @@ func (a *Application) runMigrations() error {
 		&models.Page{},
 		&models.Tag{},
 		&models.Comment{},
+		&models.Setting{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
@@ -253,6 +257,7 @@ func (a *Application) initRepositories() {
 		Comment:  repository.NewCommentRepository(a.db),
 		Search:   repository.NewSearchRepository(a.db),
 		Page:     repository.NewPageRepository(a.db),
+		Setting:  repository.NewSettingRepository(a.db),
 	}
 }
 
@@ -265,6 +270,7 @@ func (a *Application) initServices() {
 		Search:   service.NewSearchService(a.repositories.Search),
 		Upload:   service.NewUploadService(a.cfg.UploadDir),
 		Page:     service.NewPageService(a.repositories.Page, a.cache),
+		Setup:    service.NewSetupService(a.repositories.User, a.repositories.Setting),
 	}
 }
 
@@ -277,6 +283,7 @@ func (a *Application) initHandlers() error {
 		Search:   handlers.NewSearchHandler(a.services.Search),
 		Upload:   handlers.NewUploadHandler(a.services.Upload),
 		Page:     handlers.NewPageHandler(a.services.Page),
+		Setup:    handlers.NewSetupHandler(a.services.Setup, a.cfg),
 	}
 
 	templateHandler, err := handlers.NewTemplateHandler(
@@ -285,6 +292,7 @@ func (a *Application) initHandlers() error {
 		a.services.Auth,
 		a.services.Comment,
 		a.services.Search,
+		a.services.Setup,
 		a.cfg,
 		a.options.TemplatesDir,
 	)
@@ -315,6 +323,8 @@ func (a *Application) initRouter() error {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	router.Use(middleware.SetupMiddleware(a.services.Setup))
 
 	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
 	templates, err := tmpl.ParseGlob(filepath.Join(a.options.TemplatesDir, "*.html"))
@@ -349,6 +359,7 @@ func (a *Application) initRouter() error {
 	router.GET("/", a.templateHandler.RenderIndex)
 	router.GET("/login", a.templateHandler.RenderLogin)
 	router.GET("/register", a.templateHandler.RenderRegister)
+	router.GET("/setup", a.templateHandler.RenderSetup)
 	router.GET("/profile", a.templateHandler.RenderProfile)
 	router.GET("/admin", a.templateHandler.RenderAdmin)
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
@@ -362,6 +373,8 @@ func (a *Application) initRouter() error {
 	{
 		public := v1.Group("")
 		{
+			public.GET("/setup/status", a.handlers.Setup.Status)
+			public.POST("/setup", a.handlers.Setup.Complete)
 			public.POST("/register", a.handlers.Auth.Register)
 			public.POST("/login", a.handlers.Auth.Login)
 			public.POST("/logout", a.handlers.Auth.Logout)
@@ -429,6 +442,7 @@ func (a *Application) initRouter() error {
 			admin.PUT("/users/:id/status", a.handlers.Auth.UpdateUserStatus)
 
 			admin.GET("/comments", a.handlers.Comment.GetAll)
+			admin.DELETE("/comments/:id", a.handlers.Comment.Delete)
 			admin.PUT("/comments/:id/approve", a.handlers.Comment.ApproveComment)
 			admin.PUT("/comments/:id/reject", a.handlers.Comment.RejectComment)
 

@@ -2,23 +2,28 @@ package handlers
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"net/http"
 
+	"constructor-script-backend/internal/models"
 	"constructor-script-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
 
 func (h *TemplateHandler) basePageData(title, description string, extra gin.H) gin.H {
+	site := h.siteSettings()
+
 	data := gin.H{
-		"Title":       title + " - " + h.config.SiteName,
+		"Title":       fmt.Sprintf("%s - %s", title, site.Name),
 		"Description": description,
 		"Site": gin.H{
-			"Name":        h.config.SiteName,
-			"Description": h.config.SiteDescription,
-			"URL":         h.config.SiteURL,
-			"Favicon":     h.config.SiteFavicon,
+			"Name":        site.Name,
+			"Description": site.Description,
+			"URL":         site.URL,
+			"Favicon":     site.Favicon,
+			"Logo":        site.Logo,
 		},
 		"SearchQuery": "",
 		"SearchType":  "all",
@@ -29,6 +34,28 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 	}
 
 	return data
+}
+
+func (h *TemplateHandler) siteSettings() models.SiteSettings {
+	defaults := models.SiteSettings{
+		Name:        h.config.SiteName,
+		Description: h.config.SiteDescription,
+		URL:         h.config.SiteURL,
+		Favicon:     h.config.SiteFavicon,
+		Logo:        "/static/icons/logo.svg",
+	}
+
+	if h.setupService == nil {
+		return defaults
+	}
+
+	settings, err := h.setupService.GetSiteSettings(defaults)
+	if err != nil {
+		logger.Error(err, "Failed to load site settings", nil)
+		return defaults
+	}
+
+	return settings
 }
 
 func (h *TemplateHandler) renderTemplate(c *gin.Context, templateName, title, description string, extra gin.H) {

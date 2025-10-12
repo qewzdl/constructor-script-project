@@ -246,3 +246,30 @@ type UpdatePageRequest struct {
 	Template    *string    `json:"template"`
 	Order       *int       `json:"order"`
 }
+
+type Setting struct {
+	Key       string    `gorm:"primaryKey;size:191" json:"key"`
+	Value     string    `gorm:"type:text" json:"value"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type SiteSettings struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
+	Favicon     string `json:"favicon"`
+	Logo        string `json:"logo"`
+}
+
+type SetupRequest struct {
+	AdminUsername string `json:"admin_username" binding:"required,min=3,max=50"`
+	AdminEmail    string `json:"admin_email" binding:"required,email"`
+	AdminPassword string `json:"admin_password" binding:"required,min=8"`
+
+	SiteName        string `json:"site_name" binding:"required"`
+	SiteDescription string `json:"site_description"`
+	SiteURL         string `json:"site_url" binding:"required"`
+	SiteFavicon     string `json:"site_favicon"`
+	SiteLogo        string `json:"site_logo"`
+}

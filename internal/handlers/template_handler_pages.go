@@ -299,6 +299,31 @@ func (h *TemplateHandler) RenderRegister(c *gin.Context) {
 	})
 }
 
+func (h *TemplateHandler) RenderSetup(c *gin.Context) {
+	if h.setupService == nil {
+		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Setup is not available")
+		return
+	}
+
+	complete, err := h.setupService.IsSetupComplete()
+	if err != nil {
+		logger.Error(err, "Failed to determine setup status", nil)
+		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to verify setup status")
+		return
+	}
+
+	if complete {
+		c.Redirect(http.StatusSeeOther, "/")
+		return
+	}
+
+	h.renderTemplate(c, "setup", "Initial setup", "Create the first administrator account and configure the site.", gin.H{
+		"Scripts":     []string{"/static/js/setup.js"},
+		"SetupAction": "/api/v1/setup",
+		"SetupStatus": "/api/v1/setup/status",
+	})
+}
+
 func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 	_, ok := h.currentUser(c)
 	if !ok {

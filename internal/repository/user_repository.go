@@ -14,6 +14,7 @@ type UserRepository interface {
 	GetAll() ([]models.User, error)
 	Update(user *models.User) error
 	Delete(id uint) error
+	Count() (int64, error)
 }
 
 type userRepository struct {
@@ -58,6 +59,12 @@ func (r *userRepository) Update(user *models.User) error {
 
 func (r *userRepository) Delete(id uint) error {
 	return r.db.Unscoped().Delete(&models.User{}, id).Error
+}
+
+func (r *userRepository) Count() (int64, error) {
+	var count int64
+	err := r.db.Model(&models.User{}).Count(&count).Error
+	return count, err
 }
 
 func (r *userRepository) GetWithStats(id uint) (*models.User, error) {

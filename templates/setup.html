@@ -1,0 +1,132 @@
+
+<section class="auth" role="region" aria-labelledby="setup-title" data-page="setup">
+    <section class="auth__container" aria-labelledby="setup-title">
+        <header class="auth__header">
+            <h1 id="setup-title" class="auth__title">Initial site setup</h1>
+            <p class="auth__subtitle">
+                Create the first administrator account and customize how your site appears to visitors.
+            </p>
+        </header>
+
+        <div class="auth__alert" id="setup-alert" role="alert" hidden></div>
+
+        <form
+            id="setup-form"
+            class="auth__form"
+            novalidate
+            data-action="{{ .SetupAction }}"
+            data-status="{{ .SetupStatus }}"
+        >
+            <fieldset class="form-fieldset">
+                <legend class="form-legend">Administrator account</legend>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="setup-admin-username">Username</label>
+                    <input
+                        id="setup-admin-username"
+                        name="admin_username"
+                        type="text"
+                        class="form-field__input"
+                        placeholder="Admin username"
+                        autocomplete="username"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="setup-admin-email">Email</label>
+                    <input
+                        id="setup-admin-email"
+                        name="admin_email"
+                        type="email"
+                        class="form-field__input"
+                        placeholder="admin@example.com"
+                        autocomplete="email"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="setup-admin-password">Password</label>
+                    <input
+                        id="setup-admin-password"
+                        name="admin_password"
+                        type="password"
+                        class="form-field__input"
+                        placeholder="Create a strong password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        required
+                    />
+                </div>
+            </fieldset>
+
+            <fieldset class="form-fieldset">
+                <legend class="form-legend">Site appearance</legend>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="setup-site-name">Site name</label>
+                    <input
+                        id="setup-site-name"
+                        name="site_name"
+                        type="text"
+                        class="form-field__input"
+                        placeholder="My awesome blog"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="setup-site-description">Tagline</label>
+                    <textarea
+                        id="setup-site-description"
+                        name="site_description"
+                        class="form-field__input"
+                        rows="2"
+                        placeholder="A modern blog built with Go"
+                    ></textarea>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="setup-site-url">Site URL</label>
+                    <input
+                        id="setup-site-url"
+                        name="site_url"
+                        type="url"
+                        class="form-field__input"
+                        placeholder="https://example.com"
+                        required
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="setup-site-favicon">Favicon URL</label>
+                    <input
+                        id="setup-site-favicon"
+                        name="site_favicon"
+                        type="url"
+                        class="form-field__input"
+                        placeholder="/favicon.ico"
+                    />
+                </div>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="setup-site-logo">Logo URL</label>
+                    <input
+                        id="setup-site-logo"
+                        name="site_logo"
+                        type="url"
+                        class="form-field__input"
+                        placeholder="/static/icons/logo.svg"
+                    />
+                </div>
+            </fieldset>
+
+            <p class="form-helper" id="setup-helper">
+                After completing setup you'll be redirected to the sign-in page to access the admin dashboard.
+            </p>
+
+            <button type="submit" class="button button--primary">Complete setup</button>
+        </form>
+    </section>
+</section>

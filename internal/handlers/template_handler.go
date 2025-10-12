@@ -18,13 +18,14 @@ type TemplateHandler struct {
 	authService      *service.AuthService
 	commentService   *service.CommentService
 	searchService    *service.SearchService
+	setupService     *service.SetupService
 	templates        *template.Template
 	config           *config.Config
 	sanitizer        *bluemonday.Policy
 	sectionRenderers map[string]SectionRenderer
 }
 
-func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, authService *service.AuthService, commentService *service.CommentService, searchService *service.SearchService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
+func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, authService *service.AuthService, commentService *service.CommentService, searchService *service.SearchService, setupService *service.SetupService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
 	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
 	templates, err := tmpl.ParseGlob(filepath.Join(templatesDir, "*.html"))
 	if err != nil {
@@ -45,6 +46,7 @@ func NewTemplateHandler(postService *service.PostService, pageService *service.P
 		authService:    authService,
 		commentService: commentService,
 		searchService:  searchService,
+		setupService:   setupService,
 		templates:      templates,
 		config:         cfg,
 		sanitizer:      policy,
