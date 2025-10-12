@@ -9,6 +9,7 @@
     data-endpoint-categories="{{ index .AdminEndpoints "Categories" }}"
     data-endpoint-categories-index="{{ index .AdminEndpoints "CategoriesIndex" }}"
     data-endpoint-comments="{{ index .AdminEndpoints "Comments" }}"
+    data-endpoint-tags="{{ index .AdminEndpoints "Tags" }}"
 >
     <header class="admin__header">
         <div class="admin__intro">
@@ -100,13 +101,14 @@
                             <tr>
                                 <th scope="col">Title</th>
                                 <th scope="col">Category</th>
+                                <th scope="col">Tags</th>
                                 <th scope="col">Published</th>
                                 <th scope="col">Updated</th>
                             </tr>
                         </thead>
                         <tbody id="admin-posts-table">
                             <tr class="admin-table__placeholder">
-                                <td colspan="4">Loading posts…</td>
+                                <td colspan="5">Loading posts…</td>
                             </tr>
                         </tbody>
                     </table>
@@ -129,6 +131,20 @@
                         <label class="admin-form__label">
                             Category
                             <select name="category_id" class="admin-form__input" id="admin-post-category"></select>
+                        </label>
+                        <label class="admin-form__label">
+                            Tags
+                            <input
+                                type="text"
+                                name="tags"
+                                class="admin-form__input"
+                                id="admin-post-tags"
+                                placeholder="e.g. go, backend, database"
+                                list="admin-post-tags-list"
+                                autocomplete="off"
+                            />
+                            <small class="admin-form__hint">Separate tags with commas. Existing tags appear as suggestions.</small>
+                            <datalist id="admin-post-tags-list"></datalist>
                         </label>
                         <label class="admin-form__checkbox">
                             <input type="checkbox" name="published" />

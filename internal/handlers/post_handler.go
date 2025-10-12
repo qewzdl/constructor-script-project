@@ -3,10 +3,12 @@ package handlers
 import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type PostHandler struct {
@@ -167,7 +169,11 @@ func (h *PostHandler) GetPostsByTag(c *gin.Context) {
 
 	posts, total, err := h.postService.GetPostsByTag(slug, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "tag not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 

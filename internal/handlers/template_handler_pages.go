@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"constructor-script-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
@@ -109,12 +111,25 @@ func (h *TemplateHandler) RenderBlog(c *gin.Context) {
 		return
 	}
 
-	h.renderTemplate(c, "blog", "Blog", h.config.SiteName+" Blog — insights about Go programming, web technologies, performance, and best practices in backend design.", gin.H{
+	var tags []models.Tag
+	if loadedTags, tagErr := h.postService.GetAllTags(); tagErr != nil {
+		logger.Error(tagErr, "Failed to load tags", nil)
+	} else {
+		tags = loadedTags
+	}
+
+	data := gin.H{
 		"Posts":       posts,
 		"Total":       total,
 		"CurrentPage": page,
 		"TotalPages":  int((total + int64(limit) - 1) / int64(limit)),
-	})
+	}
+
+	if len(tags) > 0 {
+		data["Tags"] = tags
+	}
+
+	h.renderTemplate(c, "blog", "Blog", h.config.SiteName+" Blog — insights about Go programming, web technologies, performance, and best practices in backend design.", data)
 }
 
 func (h *TemplateHandler) RenderCategory(c *gin.Context) {
@@ -142,19 +157,37 @@ func (h *TemplateHandler) RenderTag(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
 
-	posts, total, err := h.postService.GetPostsByTag(slug, page, limit)
+	tag, posts, total, err := h.postService.GetTagWithPosts(slug, page, limit)
 	if err != nil {
-		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.renderError(c, http.StatusNotFound, "404 - Page Not Found", "Requested tag not found")
+		} else {
+			h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
+		}
 		return
 	}
 
-	h.renderTemplate(c, "tag", "Tag: "+slug, "Articles tagged with \""+slug+"\" — development topics, code patterns, and Go programming insights on "+h.config.SiteName+".", gin.H{
+	var tags []models.Tag
+	if loadedTags, tagErr := h.postService.GetAllTags(); tagErr != nil {
+		logger.Error(tagErr, "Failed to load tags", nil)
+	} else {
+		tags = loadedTags
+	}
+
+	data := gin.H{
 		"Posts":       posts,
 		"Total":       total,
 		"CurrentPage": page,
 		"TotalPages":  int((total + int64(limit) - 1) / int64(limit)),
-		"Tag":         slug,
-	})
+		"Tag":         tag,
+	}
+
+	if len(tags) > 0 {
+		data["Tags"] = tags
+	}
+
+	description := "Articles tagged with \"" + tag.Name + "\" — development topics, code patterns, and Go programming insights on " + h.config.SiteName + "."
+	h.renderTemplate(c, "tag", "Tag: "+tag.Name, description, data)
 }
 
 func (h *TemplateHandler) RenderLogin(c *gin.Context) {
@@ -230,6 +263,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"Categories":      "/api/v1/admin/categories",
 			"CategoriesIndex": "/api/v1/categories",
 			"Comments":        "/api/v1/admin/comments",
+			"Tags":            "/api/v1/tags",
 		},
 	})
 }

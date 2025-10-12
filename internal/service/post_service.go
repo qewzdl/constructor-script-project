@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"constructor-script-backend/pkg/utils"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type PostService struct {
@@ -83,12 +85,16 @@ func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*mode
 		Template:    s.getTemplate(req.Template),
 	}
 
-	if len(req.TagNames) > 0 {
-		tags, err := s.getOrCreateTags(req.TagNames)
-		if err != nil {
-			return nil, fmt.Errorf("failed to process tags: %w", err)
+	if req.TagNames != nil {
+		if len(req.TagNames) == 0 {
+			post.Tags = []models.Tag{}
+		} else {
+			tags, err := s.getOrCreateTags(req.TagNames)
+			if err != nil {
+				return nil, err
+			}
+			post.Tags = tags
 		}
-		post.Tags = tags
 	}
 
 	if err := s.postRepo.Create(post); err != nil {
@@ -266,6 +272,7 @@ func (s *PostService) getTemplate(template string) string {
 
 func (s *PostService) getOrCreateTags(tagNames []string) ([]models.Tag, error) {
 	var tags []models.Tag
+	seen := make(map[string]struct{})
 
 	for _, name := range tagNames {
 		name = strings.TrimSpace(name)
@@ -274,19 +281,28 @@ func (s *PostService) getOrCreateTags(tagNames []string) ([]models.Tag, error) {
 		}
 
 		slug := utils.GenerateSlug(name)
+		if _, exists := seen[slug]; exists {
+			continue
+		}
+		seen[slug] = struct{}{}
+
 		tag, err := s.tagRepo.GetBySlug(slug)
 
 		if err != nil {
-			tag = &models.Tag{
-				Name: name,
-				Slug: slug,
-			}
-			if err := s.tagRepo.Create(tag); err != nil {
-				return nil, err
-			}
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				tag = &models.Tag{
+					Name: name,
+					Slug: slug,
+				}
+				if err := s.tagRepo.Create(tag); err != nil {
+					return nil, err
+				}
 
-			if s.cache != nil {
-				s.cache.Delete("tags:all")
+				if s.cache != nil {
+					s.cache.Delete("tags:all")
+				}
+			} else {
+				return nil, err
 			}
 		}
 
@@ -399,7 +415,9 @@ func (s *PostService) GetAll(page, limit int, categoryID *uint, tagName *string,
 		}
 	}
 
-	posts, total, err := s.postRepo.GetAll(offset, limit, categoryID, tagName, authorID)
+	published := true
+
+	posts, total, err := s.postRepo.GetAll(offset, limit, categoryID, tagName, authorID, &published)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -417,10 +435,10 @@ func (s *PostService) GetAll(page, limit int, categoryID *uint, tagName *string,
 
 func (s *PostService) GetAllAdmin(page, limit int) ([]models.Post, int64, error) {
 	offset := (page - 1) * limit
-	return s.postRepo.GetAll(offset, limit, nil, nil, nil)
+	return s.postRepo.GetAll(offset, limit, nil, nil, nil, nil)
 }
 
-func (s *PostService) GetPostsByTag(tagSlug string, page, limit int) ([]models.Post, int64, error) {
+func (s *PostService) fetchPostsByTag(tagSlug string, page, limit int) ([]models.Post, int64, error) {
 	offset := (page - 1) * limit
 
 	cacheKey := fmt.Sprintf("posts:tag:%s:page:%d:limit:%d", tagSlug, page, limit)
@@ -435,7 +453,9 @@ func (s *PostService) GetPostsByTag(tagSlug string, page, limit int) ([]models.P
 		}
 	}
 
-	posts, total, err := s.postRepo.GetAll(offset, limit, nil, &tagSlug, nil)
+	published := true
+
+	posts, total, err := s.postRepo.GetAll(offset, limit, nil, &tagSlug, nil, &published)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -451,6 +471,29 @@ func (s *PostService) GetPostsByTag(tagSlug string, page, limit int) ([]models.P
 	return posts, total, nil
 }
 
+func (s *PostService) GetPostsByTag(tagSlug string, page, limit int) ([]models.Post, int64, error) {
+	_, posts, total, err := s.GetTagWithPosts(tagSlug, page, limit)
+	return posts, total, err
+}
+
+func (s *PostService) GetTagWithPosts(tagSlug string, page, limit int) (*models.Tag, []models.Post, int64, error) {
+	tag, err := s.tagRepo.GetBySlug(tagSlug)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	posts, total, err := s.fetchPostsByTag(tag.Slug, page, limit)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	return tag, posts, total, nil
+}
+
+func (s *PostService) GetTagBySlug(tagSlug string) (*models.Tag, error) {
+	return s.tagRepo.GetBySlug(tagSlug)
+}
+
 func (s *PostService) GetAllTags() ([]models.Tag, error) {
 
 	if s.cache != nil {
@@ -464,6 +507,10 @@ func (s *PostService) GetAllTags() ([]models.Tag, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	sort.Slice(tags, func(i, j int) bool {
+		return strings.ToLower(tags[i].Name) < strings.ToLower(tags[j].Name)
+	})
 
 	if s.cache != nil {
 		s.cache.Set("tags:all", tags, 2*time.Hour)

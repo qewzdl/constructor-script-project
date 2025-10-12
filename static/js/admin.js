@@ -68,6 +68,7 @@
             categories: root.dataset.endpointCategories,
             categoriesIndex: root.dataset.endpointCategoriesIndex,
             comments: root.dataset.endpointComments,
+            tags: root.dataset.endpointTags,
         };
 
         const alertElement = document.getElementById("admin-alert");
@@ -143,6 +144,8 @@
         const categoryDeleteButton = categoryForm?.querySelector('[data-role="category-delete"]');
         const categorySubmitButton = categoryForm?.querySelector('[data-role="category-submit"]');
         const postCategorySelect = postForm?.querySelector("#admin-post-category");
+        const postTagsInput = postForm?.querySelector("#admin-post-tags");
+        const postTagsList = document.getElementById("admin-post-tags-list");
         const DEFAULT_CATEGORY_SLUG = "uncategorized";
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
 
@@ -152,6 +155,7 @@
             pages: [],
             categories: [],
             comments: [],
+            tags: [],
             defaultCategoryId: "",
         };
 
@@ -239,6 +243,81 @@
             }
         };
 
+        const normaliseTagName = (value) => (typeof value === "string" ? value.trim() : "");
+
+        const parseTags = (value) => {
+            if (typeof value !== "string" || !value.trim()) {
+                return [];
+            }
+            const unique = new Map();
+            value
+                .split(",")
+                .map((entry) => normaliseTagName(entry))
+                .filter(Boolean)
+                .forEach((name) => {
+                    const key = name.toLowerCase();
+                    if (!unique.has(key)) {
+                        unique.set(key, name);
+                    }
+                });
+            return Array.from(unique.values());
+        };
+
+        const extractTagNames = (entry) => {
+            const tags = entry?.tags || entry?.Tags;
+            if (!Array.isArray(tags)) {
+                return [];
+            }
+            const unique = new Map();
+            tags.forEach((tag) => {
+                const name = normaliseTagName(tag?.name || tag?.Name);
+                if (!name) {
+                    return;
+                }
+                const key = name.toLowerCase();
+                if (!unique.has(key)) {
+                    unique.set(key, name);
+                }
+            });
+            return Array.from(unique.values());
+        };
+
+        const renderTagSuggestions = () => {
+            if (!postTagsList) {
+                return;
+            }
+            const suggestions = new Map();
+            const addSuggestion = (name) => {
+                const cleaned = normaliseTagName(name);
+                if (!cleaned) {
+                    return;
+                }
+                const key = cleaned.toLowerCase();
+                if (!suggestions.has(key)) {
+                    suggestions.set(key, cleaned);
+                }
+            };
+
+            state.tags.forEach((tag) => addSuggestion(tag?.name || tag?.Name));
+            state.posts.forEach((post) => {
+                extractTagNames(post).forEach(addSuggestion);
+            });
+            if (postTagsInput && postTagsInput.value) {
+                parseTags(postTagsInput.value).forEach(addSuggestion);
+            }
+
+            const ordered = Array.from(suggestions.values()).sort((a, b) =>
+                a.localeCompare(b, undefined, { sensitivity: "base" })
+            );
+
+            postTagsList.innerHTML = "";
+            ordered.forEach((name) => {
+                const option = document.createElement("option");
+                option.value = name;
+                postTagsList.appendChild(option);
+            });
+        };
+
         const highlightRow = (table, id) => {
             if (!table) {
                 return;
@@ -268,7 +347,7 @@
             if (!state.posts.length) {
                 const row = createElement("tr", { className: "admin-table__placeholder" });
                 const cell = createElement("td", { textContent: "No posts found" });
-                cell.colSpan = 4;
+                cell.colSpan = 5;
                 row.appendChild(cell);
                 table.appendChild(row);
                 return;
@@ -279,6 +358,8 @@
                 row.appendChild(createElement("td", { textContent: post.title || "Untitled" }));
                 const categoryName = post.category?.name || post.category_name || "—";
                 row.appendChild(createElement("td", { textContent: categoryName || "—" }));
+                const tagNames = extractTagNames(post).join(", ");
+                row.appendChild(createElement("td", { textContent: tagNames || "—" }));
                 row.appendChild(createElement("td", { textContent: booleanLabel(post.published) }));
                 const updated = post.updated_at || post.updatedAt || post.UpdatedAt;
                 row.appendChild(createElement("td", { textContent: formatDate(updated) }));
@@ -463,6 +544,9 @@
                     ensureDefaultCategorySelection();
                 }
             }
+            if (postTagsInput) {
+                postTagsInput.value = extractTagNames(post).join(", ");
+            }
             const publishedField = postForm.querySelector('input[name="published"]');
             if (publishedField) {
                 publishedField.checked = Boolean(post.published);
@@ -473,6 +557,7 @@
             if (postDeleteButton) {
                 postDeleteButton.hidden = false;
             }
+            renderTagSuggestions();
             highlightRow(tables.posts, post.id);
         };
 
@@ -483,12 +568,16 @@
             postForm.reset();
             delete postForm.dataset.id;
             ensureDefaultCategorySelection();
+            if (postTagsInput) {
+                postTagsInput.value = "";
+            }
             if (postSubmitButton) {
                 postSubmitButton.textContent = "Create post";
             }
             if (postDeleteButton) {
                 postDeleteButton.hidden = true;
             }
+            renderTagSuggestions();
             highlightRow(tables.posts);
         };
 
@@ -610,6 +699,7 @@
                 const payload = await apiRequest(`${endpoints.posts}?limit=50`);
                 state.posts = payload?.posts || [];
                 renderPosts();
+                renderTagSuggestions();
             } catch (error) {
                 handleRequestError(error);
             }
@@ -657,6 +747,19 @@
                 });
                 state.comments = comments.slice(0, 15);
                 renderComments();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const loadTags = async () => {
+            if (!endpoints.tags) {
+                return;
+            }
+            try {
+                const payload = await apiRequest(endpoints.tags);
+                state.tags = payload?.tags || [];
+                renderTagSuggestions();
             } catch (error) {
                 handleRequestError(error);
             }
@@ -738,6 +841,9 @@
             if (categoryValue) {
                 payload.category_id = Number(categoryValue);
             }
+            if (postTagsInput) {
+                payload.tags = parseTags(postTagsInput.value);
+            }
             disableForm(postForm, true);
             clearAlert();
             try {
@@ -755,6 +861,7 @@
                     showAlert("Post created successfully.", "success");
                 }
                 await loadPosts();
+                await loadTags();
                 await loadStats();
                 resetPostForm();
             } catch (error) {
@@ -778,6 +885,7 @@
                 await apiRequest(`${endpoints.posts}/${id}`, { method: "DELETE" });
                 showAlert("Post deleted successfully.", "success");
                 await loadPosts();
+                await loadTags();
                 await loadStats();
                 resetPostForm();
             } catch (error) {
@@ -954,9 +1062,11 @@
         pageDeleteButton?.addEventListener("click", handlePageDelete);
         categoryForm?.addEventListener("submit", handleCategorySubmit);
         categoryDeleteButton?.addEventListener("click", handleCategoryDelete);
+        postTagsInput?.addEventListener("input", renderTagSuggestions);
 
         clearAlert();
         loadStats();
+        loadTags();
         loadCategories().then(() => {
             renderCategoryOptions();
             loadPosts();

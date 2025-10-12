@@ -9,7 +9,7 @@ import (
 type PostRepository interface {
 	Create(post *models.Post) error
 	GetByID(id uint) (*models.Post, error)
-	GetAll(offset, limit int, categoryID *uint, tagName *string, authorID *uint) ([]models.Post, int64, error)
+	GetAll(offset, limit int, categoryID *uint, tagName *string, authorID *uint, published *bool) ([]models.Post, int64, error)
 	Update(post *models.Post) error
 	Delete(id uint) error
 	GetBySlug(slug string) (*models.Post, error)
@@ -39,11 +39,15 @@ func (r *postRepository) GetByID(id uint) (*models.Post, error) {
 	return &post, err
 }
 
-func (r *postRepository) GetAll(offset, limit int, categoryID *uint, tagName *string, authorID *uint) ([]models.Post, int64, error) {
+func (r *postRepository) GetAll(offset, limit int, categoryID *uint, tagName *string, authorID *uint, published *bool) ([]models.Post, int64, error) {
 	var posts []models.Post
 	var total int64
 
 	query := r.db.Model(&models.Post{})
+
+	if published != nil {
+		query = query.Where("published = ?", *published)
+	}
 
 	if categoryID != nil {
 		query = query.Where("category_id = ?", *categoryID)
