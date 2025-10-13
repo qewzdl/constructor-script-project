@@ -10,7 +10,6 @@
 
 html {
     scroll-behavior: smooth;
-    scroll-snap-type: y proximity;
     scroll-snap-stop: always;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
