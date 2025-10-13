@@ -106,7 +106,7 @@ func New() *Config {
 		// Site Meta
 		SiteName:        getEnv("SITE_NAME", "Constructor Script"),
 		SiteDescription: getEnv("SITE_DESCRIPTION", "Platform for building modern, high-performance websites using Go and templates."),
-		SiteURL:         getEnv("SITE_URL", "https://constructor-script.com"),
+		SiteURL:         getEnv("SITE_URL", "http://localhost:8081"),
 		SiteFavicon:     getEnv("SITE_FAVICON", "/favicon.ico"),
 	}
 
