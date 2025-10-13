@@ -1,58 +1,65 @@
-.PHONY: help build run test clean deps docker-up docker-down docker-logs migrate-up lint format dev db-reset
+.PHONY: help build run test clean deps docker-up docker-down docker-logs migrate-up lint format dev watch db-reset
 
-help: ## Показать справку
+help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m%s\n", $$1, $$2}'
 
-build: ## Собрать приложение
+build: ## Build the application
 	@echo "Building application..."
 	@go build -o bin/blog-api cmd/api/main.go
 
-run: ## Запустить приложение
+run: ## Run the application
 	@echo "Starting application..."
 	@go run cmd/api/main.go
 
-test: ## Запустить тесты
+test: ## Run tests
 	@echo "Running tests..."
 	@go test -v ./...
 
-clean: ## Очистить собранные файлы
+clean: ## Clean build artifacts
 	@echo "Cleaning..."
 	@rm -rf bin/
 
-deps: ## Установить зависимости
+deps: ## Install dependencies
 	@echo "Installing dependencies..."
 	@go mod download
 	@go mod tidy
 
-docker-up: ## Запустить PostgreSQL в Docker
+docker-up: ## Start PostgreSQL in Docker
 	@echo "Starting PostgreSQL container..."
 	@docker run --name blog-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_USER=bloguser -e POSTGRES_DB=blogdb -p 5432:5432 -d postgres:15-alpine
 
-docker-down: ## Остановить PostgreSQL контейнер
+docker-down: ## Stop PostgreSQL container
 	@echo "Stopping PostgreSQL container..."
-	@docker stop blog-postgres
-	@docker rm blog-postgres
+	@docker stop blog-postgres || true
+	@docker rm blog-postgres || true
 
-docker-logs: ## Показать логи PostgreSQL
+docker-logs: ## Show PostgreSQL logs
 	@docker logs -f blog-postgres
 
-migrate-up: ## Применить миграции
+migrate-up: ## Run migrations
 	@echo "Running migrations..."
 	@go run cmd/api/main.go
 
-lint: ## Запустить линтер
+lint: ## Run linter
 	@echo "Running linter..."
 	@golangci-lint run
 
-format: ## Форматировать код
+format: ## Format Go code
 	@echo "Formatting code..."
 	@go fmt ./...
 
-dev: docker-up ## Запустить dev окружение
+dev: docker-up ## Start development environment
 	@sleep 2
 	@make run
 
-db-reset: ## Полностью перезапустить PostgreSQL с чистой базой данных
+watch: ## Run app with auto-reload (requires Air)
+	@if ! command -v air >/dev/null 2>&1; then \
+		echo "\033[31mAir is not installed. Install it with:\033[0m go install github.com/air-verse/air@latest"; \
+		exit 1; \
+	fi
+	@air
+
+db-reset: ## Fully reset PostgreSQL with a clean database
 	@echo "Resetting PostgreSQL database..."
 	@docker compose down -v --remove-orphans
 	@docker compose up -d postgres

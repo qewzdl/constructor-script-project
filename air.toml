@@ -1,0 +1,13 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/main.exe ./cmd/api"
+  bin = "./tmp/main.exe"
+  full_bin = "./tmp/main.exe"
+  log = "air-build.log"
+  include_ext = ["go", "tmpl", "tpl", "html"]
+  exclude_dir = ["tmp", "vendor", "bin"]
+
+[env]
+  ENVIRONMENT = "development"
