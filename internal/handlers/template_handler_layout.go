@@ -25,6 +25,7 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 			"Description": site.Description,
 			"URL":         site.URL,
 			"Favicon":     site.Favicon,
+			"FaviconType": site.FaviconType,
 			"Logo":        site.Logo,
 		},
 		"SearchQuery": "",
@@ -44,6 +45,7 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 		Description: h.config.SiteDescription,
 		URL:         h.config.SiteURL,
 		Favicon:     h.config.SiteFavicon,
+		FaviconType: models.DetectFaviconType(h.config.SiteFavicon),
 		Logo:        "/static/icons/logo.svg",
 	}
 
@@ -55,6 +57,10 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 	if err != nil {
 		logger.Error(err, "Failed to load site settings", nil)
 		return defaults
+	}
+
+	if settings.FaviconType == "" {
+		settings.FaviconType = models.DetectFaviconType(settings.Favicon)
 	}
 
 	return settings

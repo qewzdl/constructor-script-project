@@ -42,7 +42,12 @@
         {{ end }}
 
         <!-- Favicon for browser tab -->
-        <link rel="icon" href="{{ .Site.Favicon }}" type="image/x-icon" />
+        {{ if .Site.FaviconType }}
+        <link rel="icon" href="{{ .Site.Favicon }}" type="{{ .Site.FaviconType }}" />
+        {{ else }}
+        <link rel="icon" href="{{ .Site.Favicon }}" />
+        {{ end }}
+
 
         <!-- Preconnect to Google Fonts for faster font loading -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />

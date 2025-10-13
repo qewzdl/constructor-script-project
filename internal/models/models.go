@@ -4,6 +4,9 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"net/url"
+	"path"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -259,7 +262,42 @@ type SiteSettings struct {
 	Description string `json:"description"`
 	URL         string `json:"url"`
 	Favicon     string `json:"favicon"`
+	FaviconType string `json:"favicon_type"`
 	Logo        string `json:"logo"`
+}
+
+func DetectFaviconType(favicon string) string {
+	const defaultType = "image/x-icon"
+
+	trimmed := strings.TrimSpace(favicon)
+	if trimmed == "" {
+		return defaultType
+	}
+
+	value := trimmed
+	if parsed, err := url.Parse(trimmed); err == nil {
+		if parsed.Path != "" {
+			value = parsed.Path
+		}
+	}
+
+	ext := strings.TrimPrefix(strings.ToLower(path.Ext(value)), ".")
+	switch ext {
+	case "png":
+		return "image/png"
+	case "svg":
+		return "image/svg+xml"
+	case "jpg", "jpeg":
+		return "image/jpeg"
+	case "gif":
+		return "image/gif"
+	case "webp":
+		return "image/webp"
+	case "ico":
+		return "image/x-icon"
+	default:
+		return defaultType
+	}
 }
 
 type SetupRequest struct {

@@ -161,6 +161,8 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 		result.Favicon = value
 	}
 
+	result.FaviconType = models.DetectFaviconType(result.Favicon)
+
 	if value, getErr := s.getSettingValue(settingKeySiteLogo); getErr != nil {
 		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
 			err = getErr

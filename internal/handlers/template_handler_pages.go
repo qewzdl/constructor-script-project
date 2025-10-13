@@ -518,6 +518,7 @@ func (h *TemplateHandler) renderError(c *gin.Context, status int, title, msg str
 			"Description": h.config.SiteDescription,
 			"URL":         h.config.SiteURL,
 			"Favicon":     h.config.SiteFavicon,
+			"FaviconType": models.DetectFaviconType(h.config.SiteFavicon),
 		},
 	}
 	c.HTML(status, "error.html", data)

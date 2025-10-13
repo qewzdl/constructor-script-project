@@ -91,6 +91,7 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 		Description: h.config.SiteDescription,
 		URL:         h.config.SiteURL,
 		Favicon:     h.config.SiteFavicon,
+		FaviconType: models.DetectFaviconType(h.config.SiteFavicon),
 		Logo:        logo,
 	}
 }
