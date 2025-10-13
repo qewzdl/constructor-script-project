@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
@@ -33,14 +36,45 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 		}
 	}
 
+	site := h.siteSettings()
+	canonicalPath := fmt.Sprintf("/blog/post/%s", post.Slug)
+	if post.Slug == "" {
+		canonicalPath = fmt.Sprintf("/blog/post/%d", post.ID)
+	}
+	canonicalURL := h.ensureAbsoluteURL(site.URL, canonicalPath)
+	if canonicalURL == "" {
+		canonicalURL = h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath)
+	}
+
+	var keywords []string
+	if post.Category.Name != "" {
+		keywords = append(keywords, post.Category.Name)
+	}
+	for _, tag := range post.Tags {
+		if tag.Name != "" {
+			keywords = append(keywords, tag.Name)
+		}
+	}
+
+	structuredData := h.buildPostStructuredData(post, site, canonicalURL)
+
 	data := h.basePageData(post.Title, post.Description, gin.H{
-		"Post":         post,
-		"RelatedPosts": related,
-		"Content":      h.renderSections(post.Sections),
-		"TOC":          h.generateTOC(post.Sections),
-		"Comments":     comments,
-		"CommentCount": commentCount,
+		"Post":           post,
+		"RelatedPosts":   related,
+		"Content":        h.renderSections(post.Sections),
+		"TOC":            h.generateTOC(post.Sections),
+		"Comments":       comments,
+		"CommentCount":   commentCount,
+		"Canonical":      canonicalURL,
+		"OGType":         "article",
+		"OGImage":        post.FeaturedImg,
+		"TwitterImage":   post.FeaturedImg,
+		"StructuredData": structuredData,
 	})
+
+	if len(keywords) > 0 {
+		data["Keywords"] = strings.Join(keywords, ", ")
+	}
 
 	templateName := post.Template
 	if templateName == "" {
@@ -48,6 +82,90 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 	}
 
 	h.renderWithLayout(c, "base.html", templateName+".html", data)
+}
+
+func (h *TemplateHandler) buildPostStructuredData(post *models.Post, site models.SiteSettings, canonicalURL string) template.JS {
+	if post == nil {
+		return ""
+	}
+
+	baseURL := site.URL
+	if baseURL == "" {
+		baseURL = h.config.SiteURL
+	}
+
+	article := map[string]interface{}{
+		"@context":      "https://schema.org",
+		"@type":         "BlogPosting",
+		"headline":      post.Title,
+		"datePublished": post.CreatedAt.Format(time.RFC3339),
+		"dateModified":  post.UpdatedAt.Format(time.RFC3339),
+		"mainEntityOfPage": map[string]interface{}{
+			"@type": "WebPage",
+			"@id":   canonicalURL,
+		},
+	}
+
+	if canonicalURL != "" {
+		article["url"] = canonicalURL
+	}
+
+	if post.Description != "" {
+		article["description"] = post.Description
+	}
+
+	if post.Author.Username != "" {
+		article["author"] = map[string]interface{}{
+			"@type": "Person",
+			"name":  post.Author.Username,
+		}
+	}
+
+	publisher := map[string]interface{}{
+		"@type": "Organization",
+		"name":  site.Name,
+	}
+
+	if logo := h.ensureAbsoluteURL(baseURL, site.Logo); logo != "" {
+		publisher["logo"] = map[string]interface{}{
+			"@type": "ImageObject",
+			"url":   logo,
+		}
+	}
+
+	article["publisher"] = publisher
+
+	if post.Category.Name != "" {
+		article["articleSection"] = post.Category.Name
+	}
+
+	if len(post.Tags) > 0 {
+		var tags []string
+		for _, tag := range post.Tags {
+			if tag.Name != "" {
+				tags = append(tags, tag.Name)
+			}
+		}
+		if len(tags) > 0 {
+			article["keywords"] = strings.Join(tags, ", ")
+		}
+	}
+
+	if image := h.ensureAbsoluteURL(baseURL, post.FeaturedImg); image != "" {
+		article["image"] = []string{image}
+	}
+
+	if wordCount := len(strings.Fields(post.Content)); wordCount > 0 {
+		article["wordCount"] = wordCount
+	}
+
+	data, err := json.Marshal(article)
+	if err != nil {
+		logger.Error(err, "Failed to build post structured data", map[string]interface{}{"post_id": post.ID})
+		return ""
+	}
+
+	return template.JS(data)
 }
 
 func (h *TemplateHandler) RenderIndex(c *gin.Context) {

@@ -12,6 +12,14 @@
         {{ if .Description }}
         <meta name="description" content="{{ .Description }}" />
         {{ end }}
+        {{ if .Keywords }}
+        <meta name="keywords" content="{{ .Keywords }}" />
+        {{ end }}
+
+        {{ if .Canonical }}
+        <link rel="canonical" href="{{ .Canonical }}" />
+        {{ end }}
+
 
         <!-- Website author -->
         <meta name="author" content="{{ .Site.Name }}" />
@@ -47,13 +55,44 @@
         />
 
         <!-- Open Graph and Twitter Card metadata for social media sharing -->
+        <meta property="og:site_name" content="{{ .Site.Name }}" />
+        {{ if .Title }}
         <meta property="og:title" content="{{ .Title }}" />
+        {{ end }}
+        {{ if .Description }}
         <meta property="og:description" content="{{ .Description }}" />
-        <meta property="og:type" content="website" />
+        {{ end }}
+        {{ if .OGType }}
+        <meta property="og:type" content="{{ .OGType }}" />
+        {{ end }}
+        {{ if .OGURL }}
+        <meta property="og:url" content="{{ .OGURL }}" />
+        {{ end }}
+        {{ if .OGImage }}
+        <meta property="og:image" content="{{ .OGImage }}" />
+        {{ if .OGImageAlt }}
+        <meta property="og:image:alt" content="{{ .OGImageAlt }}" />
+        {{ end }}
+        {{ end }}
 
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="{{ .Title }}" />
-        <meta name="twitter:description" content="{{ .Description }}" />
+        {{ if .TwitterCard }}
+        <meta name="twitter:card" content="{{ .TwitterCard }}" />
+        {{ end }}
+        {{ if .TwitterTitle }}
+        <meta name="twitter:title" content="{{ .TwitterTitle }}" />
+        {{ end }}
+        {{ if .TwitterDescription }}
+        <meta name="twitter:description" content="{{ .TwitterDescription }}" />
+        {{ end }}
+        {{ if .TwitterImage }}
+        <meta name="twitter:image" content="{{ .TwitterImage }}" />
+        {{ if .TwitterImageAlt }}
+        <meta name="twitter:image:alt" content="{{ .TwitterImageAlt }}" />
+        {{ end }}
+        {{ end }}
+        {{ if .Canonical }}
+        <meta name="twitter:url" content="{{ .Canonical }}" />
+        {{ end }}
 
         <!-- Structured data (Organization) for rich results in search engines -->
         <script type="application/ld+json">
@@ -65,6 +104,9 @@
                 "url": "{{ .Site.URL }}"
             }
         </script>
+        {{ if .StructuredData }}
+        <script type="application/ld+json">{{ .StructuredData }}</script>
+        {{ end }}
     </head>
 
     <body class="page">
