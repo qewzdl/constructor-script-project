@@ -1,24 +1,19 @@
 package utils
 
 import (
+	"fmt"
 	"html/template"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
-// GetTemplateFuncs возвращает набор функций для использования в шаблонах
 func GetTemplateFuncs() template.FuncMap {
 	return template.FuncMap{
-		// Математические операции
-		"add": func(a, b int) int {
-			return a + b
-		},
-		"sub": func(a, b int) int {
-			return a - b
-		},
-		"mul": func(a, b int) int {
-			return a * b
-		},
+		"add": func(a, b int) int { return a + b },
+		"sub": func(a, b int) int { return a - b },
+		"mul": func(a, b int) int { return a * b },
 		"div": func(a, b int) int {
 			if b == 0 {
 				return 0
@@ -26,27 +21,13 @@ func GetTemplateFuncs() template.FuncMap {
 			return a / b
 		},
 
-		// Сравнения
-		"eq": func(a, b interface{}) bool {
-			return a == b
-		},
-		"ne": func(a, b interface{}) bool {
-			return a != b
-		},
-		"lt": func(a, b int) bool {
-			return a < b
-		},
-		"le": func(a, b int) bool {
-			return a <= b
-		},
-		"gt": func(a, b int) bool {
-			return a > b
-		},
-		"ge": func(a, b int) bool {
-			return a >= b
-		},
+		"eq": func(a, b interface{}) bool { return a == b },
+		"ne": func(a, b interface{}) bool { return a != b },
+		"lt": func(a, b int) bool { return a < b },
+		"le": func(a, b int) bool { return a <= b },
+		"gt": func(a, b int) bool { return a > b },
+		"ge": func(a, b int) bool { return a >= b },
 
-		// Работа со строками
 		"upper": strings.ToUpper,
 		"lower": strings.ToLower,
 		"title": strings.Title,
@@ -58,21 +39,18 @@ func GetTemplateFuncs() template.FuncMap {
 			return s[:length] + "..."
 		},
 		"stripHTML": func(s string) string {
-			// Простое удаление HTML тегов (для production лучше использовать библиотеку)
 			return strings.ReplaceAll(strings.ReplaceAll(s, "<", ""), ">", "")
 		},
 
-		// Работа с датами
 		"formatDate": func(t time.Time, format string) string {
 			layouts := map[string]string{
-				"short":    "02.01.2006",
-				"medium":   "02 January 2006",
-				"long":     "Monday, 02 January 2006",
+				"short":    "01/02/2006",
+				"medium":   "January 02, 2006",
+				"long":     "Monday, January 02, 2006",
 				"time":     "15:04",
-				"datetime": "02.01.2006 15:04",
+				"datetime": "01/02/2006 15:04",
 				"iso":      time.RFC3339,
 			}
-
 			if layout, ok := layouts[format]; ok {
 				return t.Format(layout)
 			}
@@ -80,47 +58,33 @@ func GetTemplateFuncs() template.FuncMap {
 		},
 		"timeAgo": func(t time.Time) string {
 			duration := time.Since(t)
-
 			if duration.Hours() < 1 {
 				minutes := int(duration.Minutes())
 				if minutes < 1 {
-					return "только что"
+					return "just now"
 				}
-				return formatPlural(minutes, "минуту", "минуты", "минут") + " назад"
+				return formatPlural(minutes, "minute", "minutes", "minutes") + " ago"
 			}
-
 			if duration.Hours() < 24 {
 				hours := int(duration.Hours())
-				return formatPlural(hours, "час", "часа", "часов") + " назад"
+				return formatPlural(hours, "hour", "hours", "hours") + " ago"
 			}
-
 			days := int(duration.Hours() / 24)
 			if days < 30 {
-				return formatPlural(days, "день", "дня", "дней") + " назад"
+				return formatPlural(days, "day", "days", "days") + " ago"
 			}
-
 			months := days / 30
 			if months < 12 {
-				return formatPlural(months, "месяц", "месяца", "месяцев") + " назад"
+				return formatPlural(months, "month", "months", "months") + " ago"
 			}
-
 			years := months / 12
-			return formatPlural(years, "год", "года", "лет") + " назад"
+			return formatPlural(years, "year", "years", "years") + " ago"
 		},
 
-		// Работа со срезами
-		"slice": func(items interface{}, start, end int) interface{} {
-			// Упрощенная реализация
-			return items
-		},
-		"first": func(items interface{}, count int) interface{} {
-			return items
-		},
-		"last": func(items interface{}, count int) interface{} {
-			return items
-		},
+		"slice": func(items interface{}, start, end int) interface{} { return items },
+		"first": func(items interface{}, count int) interface{} { return items },
+		"last":  func(items interface{}, count int) interface{} { return items },
 
-		// Условия
 		"default": func(value, defaultValue interface{}) interface{} {
 			if value == nil || value == "" {
 				return defaultValue
@@ -128,18 +92,10 @@ func GetTemplateFuncs() template.FuncMap {
 			return value
 		},
 
-		// HTML и безопасность
-		"safe": func(s string) template.HTML {
-			return template.HTML(s)
-		},
-		"safeURL": func(s string) template.URL {
-			return template.URL(s)
-		},
-		"safeJS": func(s string) template.JS {
-			return template.JS(s)
-		},
+		"safe":    func(s string) template.HTML { return template.HTML(s) },
+		"safeURL": func(s string) template.URL { return template.URL(s) },
+		"safeJS":  func(s string) template.JS { return template.JS(s) },
 
-		// Утилиты
 		"dict": func(values ...interface{}) map[string]interface{} {
 			dict := make(map[string]interface{})
 			for i := 0; i < len(values); i += 2 {
@@ -155,19 +111,33 @@ func GetTemplateFuncs() template.FuncMap {
 			}
 			return result
 		},
+		"asset": func(path string) string {
+			if path == "" {
+				return ""
+			}
+			lowerPath := strings.ToLower(path)
+			if strings.HasPrefix(lowerPath, "http://") || strings.HasPrefix(lowerPath, "https://") || strings.HasPrefix(path, "//") {
+				return path
+			}
+			trimmed := strings.TrimPrefix(path, "/")
+			fsPath := filepath.FromSlash(trimmed)
+			info, err := os.Stat(fsPath)
+			if err != nil {
+				return path
+			}
+			version := info.ModTime().Unix()
+			separator := "?"
+			if strings.Contains(path, "?") {
+				separator = "&"
+			}
+			return fmt.Sprintf("%s%sv=%d", path, separator, version)
+		},
 	}
 }
 
-// formatPlural - вспомогательная функция для правильных окончаний
 func formatPlural(n int, one, few, many string) string {
-	mod10 := n % 10
-	mod100 := n % 100
-
-	if mod10 == 1 && mod100 != 11 {
+	if n == 1 {
 		return formatNumber(n, one)
-	}
-	if mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20) {
-		return formatNumber(n, few)
 	}
 	return formatNumber(n, many)
 }
@@ -177,5 +147,5 @@ func formatNumber(n int, word string) string {
 }
 
 func intToString(n int) string {
-	return string(rune('0' + n))
+	return fmt.Sprintf("%d", n)
 }
