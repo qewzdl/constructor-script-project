@@ -6,7 +6,7 @@ tmp_dir = "tmp"
   bin = "./tmp/main.exe"
   full_bin = "./tmp/main.exe"
   log = "air-build.log"
-  include_ext = ["go", "tmpl", "tpl", "html"]
+  include_ext = ["go", "tmpl", "tpl", "html", "css"]
   exclude_dir = ["tmp", "vendor", "bin"]
 
 [env]
