@@ -10,10 +10,10 @@ import (
 )
 
 type PageHandler struct {
-	pageService *service.PageService
+	pageService service.PageUseCase
 }
 
-func NewPageHandler(pageService *service.PageService) *PageHandler {
+func NewPageHandler(pageService service.PageUseCase) *PageHandler {
 	return &PageHandler{pageService: pageService}
 }
 

@@ -21,7 +21,7 @@ import (
 var defaultPagesFS embed.FS
 
 // EnsureDefaultPages loads embedded page definitions and makes sure they exist in the database.
-func EnsureDefaultPages(pageService *service.PageService) {
+func EnsureDefaultPages(pageService service.PageUseCase) {
 	entries, err := fs.ReadDir(defaultPagesFS, "data/pages")
 	if err != nil {
 		logger.Error(err, "Failed to read embedded page definitions", nil)
@@ -56,7 +56,7 @@ func EnsureDefaultPages(pageService *service.PageService) {
 	}
 }
 
-func ensurePage(pageService *service.PageService, definition models.CreatePageRequest, source string) {
+func ensurePage(pageService service.PageUseCase, definition models.CreatePageRequest, source string) {
 	slug := definition.Slug
 	if slug == "" {
 		slug = utils.GenerateSlug(definition.Title)

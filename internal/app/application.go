@@ -40,14 +40,12 @@ type Application struct {
 	db    *gorm.DB
 	cache *cache.Cache
 
-	templates *template.Template
-	modules   *modules.Manager
-
 	repositories repositoryContainer
 	services     serviceContainer
 	handlers     handlerContainer
 
 	templateHandler *handlers.TemplateHandler
+	templates       *template.Template
 	router          *gin.Engine
 	server          *http.Server
 }
@@ -64,14 +62,14 @@ type repositoryContainer struct {
 }
 
 type serviceContainer struct {
-	Auth     *service.AuthService
-	Category *service.CategoryService
-	Post     *service.PostService
-	Comment  *service.CommentService
-	Search   *service.SearchService
-	Upload   *service.UploadService
-	Page     *service.PageService
-	Setup    *service.SetupService
+	Auth     service.AuthUseCase
+	Category service.CategoryUseCase
+	Post     service.PostUseCase
+	Comment  service.CommentUseCase
+	Search   service.SearchUseCase
+	Upload   service.UploadUseCase
+	Page     service.PageUseCase
+	Setup    service.SetupUseCase
 }
 
 type handlerContainer struct {
@@ -288,7 +286,30 @@ func (a *Application) initServices() {
 	}
 }
 
+func (a *Application) loadTemplates() error {
+	if a.templates != nil {
+		return nil
+	}
+
+	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
+	parsed, err := tmpl.ParseGlob(filepath.Join(a.options.TemplatesDir, "*.html"))
+	if err != nil {
+		return fmt.Errorf("failed to load templates: %w", err)
+	}
+
+	logger.Info("Loaded templates", map[string]interface{}{
+		"templates": parsed.DefinedTemplates(),
+	})
+
+	a.templates = parsed
+	return nil
+}
+
 func (a *Application) initHandlers() error {
+	if err := a.loadTemplates(); err != nil {
+		return err
+	}
+
 	a.handlers = handlerContainer{
 		Auth:     handlers.NewAuthHandler(a.services.Auth),
 		Category: handlers.NewCategoryHandler(a.services.Category),
@@ -381,8 +402,8 @@ func (a *Application) initRouter() error {
 
 	router.Use(middleware.SetupMiddleware(a.services.Setup))
 
-	if a.templates == nil {
-		return fmt.Errorf("templates are not initialized")
+	if err := a.loadTemplates(); err != nil {
+		return err
 	}
 	router.SetHTMLTemplate(a.templates)
 	logger.Info("Templates loaded successfully", nil)

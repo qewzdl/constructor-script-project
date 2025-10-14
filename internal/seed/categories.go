@@ -5,7 +5,7 @@ import (
 	"constructor-script-backend/pkg/logger"
 )
 
-func EnsureDefaultCategory(categoryService *service.CategoryService) {
+func EnsureDefaultCategory(categoryService service.CategoryUseCase) {
 	if categoryService == nil {
 		return
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupMiddleware(setupService *service.SetupService) gin.HandlerFunc {
+func SetupMiddleware(setupService service.SetupUseCase) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if setupService == nil {
 			c.Next()

@@ -13,11 +13,11 @@ import (
 )
 
 type SetupHandler struct {
-	setupService *service.SetupService
+	setupService service.SetupUseCase
 	config       *config.Config
 }
 
-func NewSetupHandler(setupService *service.SetupService, cfg *config.Config) *SetupHandler {
+func NewSetupHandler(setupService service.SetupUseCase, cfg *config.Config) *SetupHandler {
 	return &SetupHandler{
 		setupService: setupService,
 		config:       cfg,

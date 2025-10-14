@@ -12,13 +12,12 @@ import (
 )
 
 type PostHandler struct {
-	postService *service.PostService
+	postService service.PostUseCase
 }
 
-func NewPostHandler(postService *service.PostService) *PostHandler {
+func NewPostHandler(postService service.PostUseCase) *PostHandler {
 	return &PostHandler{postService: postService}
 }
-
 func (h *PostHandler) Create(c *gin.Context) {
 	var req models.CreatePostRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

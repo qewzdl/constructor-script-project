@@ -12,21 +12,19 @@ import (
 )
 
 type TemplateHandler struct {
-	postService      *service.PostService
-	pageService      *service.PageService
-	authService      *service.AuthService
-	commentService   *service.CommentService
-	searchService    *service.SearchService
-	setupService     *service.SetupService
+	postService      service.PostUseCase
+	pageService      service.PageUseCase
+	authService      service.AuthUseCase
+	commentService   service.CommentUseCase
+	searchService    service.SearchUseCase
+	setupService     service.SetupUseCase
 	templates        *template.Template
 	config           *config.Config
 	sanitizer        *bluemonday.Policy
 	sectionRenderers map[string]SectionRenderer
-	navigation       []navigation.Item
-	blogEnabled      bool
 }
 
-func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, authService *service.AuthService, commentService *service.CommentService, searchService *service.SearchService, setupService *service.SetupService, cfg *config.Config, templates *template.Template) (*TemplateHandler, error) {
+func NewTemplateHandler(postService service.PostUseCase, pageService service.PageUseCase, authService service.AuthUseCase, commentService service.CommentUseCase, searchService service.SearchUseCase, setupService service.SetupUseCase, cfg *config.Config, templates *template.Template) (*TemplateHandler, error) {
 	if templates == nil {
 		return nil, fmt.Errorf("templates are required")
 	}

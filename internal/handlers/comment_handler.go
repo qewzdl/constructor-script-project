@@ -10,10 +10,10 @@ import (
 )
 
 type CommentHandler struct {
-	commentService *service.CommentService
+	commentService service.CommentUseCase
 }
 
-func NewCommentHandler(commentService *service.CommentService) *CommentHandler {
+func NewCommentHandler(commentService service.CommentUseCase) *CommentHandler {
 	return &CommentHandler{commentService: commentService}
 }
 
