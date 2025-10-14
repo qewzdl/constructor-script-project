@@ -6,21 +6,5 @@
         </p>
     </header>
 
-    <section class="blog" aria-labelledby="blog-title">
-        <h2 id="blog-title" class="blog__title">Latest Posts</h2>
-
-        <div class="blog__posts">
-            {{ if .Posts }}
-            {{ range .Posts }}
-            {{ template "components/post-card" (dict "Post" . "WrapperClass" "blog__post post-card") }}
-            {{ end }}
-            {{ else }}
-            <p class="blog__empty">No posts available yet. Check back soon!</p>
-            {{ end }}
-        </div>
-
-        {{ with .Pagination }}
-            {{ template "components/pagination" . }}
-        {{ end }}
-    </section>
+    {{ template "home:blog-section" . }}
 </main>

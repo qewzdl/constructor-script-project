@@ -1,0 +1,22 @@
+{{ define "home:blog-section" }}
+{{ $blog := .Blog }}
+{{ if and $blog $blog.Enabled }}
+<section class="blog" aria-labelledby="blog-title">
+    <h2 id="blog-title" class="blog__title">Latest Posts</h2>
+
+    <div class="blog__posts">
+        {{ with $blog.Posts }}
+        {{ range . }}
+        {{ template "components/post-card" (dict "Post" . "WrapperClass" "blog__post post-card" "LazyLoad" true) }}
+        {{ end }}
+        {{ else }}
+        <p class="blog__empty">No posts available yet. Check back soon!</p>
+        {{ end }}
+    </div>
+
+    {{ with $blog.Pagination }}
+        {{ template "components/pagination" . }}
+    {{ end }}
+</section>
+{{ end }}
+{{ end }}

@@ -121,17 +121,11 @@
                     />
                 </a>
                 <ul class="header__nav-list">
+                    {{ range .Navigation }}
                     <li class="header__nav-item">
-                        <a href="/" class="header__nav-link" aria-current="page"
-                            >Home</a
-                        >
+                        <a href="{{ .Path }}" class="header__nav-link">{{ .Label }}</a>
                     </li>
-                    <li class="header__nav-item">
-                        <a href="/blog" class="header__nav-link">Blog</a>
-                    </li>
-                    <li class="header__nav-item">
-                        <a href="/search" class="header__nav-link">Search</a>
-                    </li>
+                    {{ end }}
                     {{ with .CurrentUser }} {{ if and $.IsAuthenticated (eq
                     .Role "admin") }}
                     <li class="header__nav-item" data-auth="auth">

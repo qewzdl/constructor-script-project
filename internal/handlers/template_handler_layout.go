@@ -32,6 +32,10 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 		"SearchType":  "all",
 	}
 
+	if len(h.navigation) > 0 {
+		data["Navigation"] = h.navigation
+	}
+
 	for k, v := range extra {
 		data[k] = v
 	}

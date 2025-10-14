@@ -172,24 +172,39 @@ func (h *TemplateHandler) RenderIndex(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
-	posts, total, err := h.postService.GetAll(page, limit, nil, nil, nil)
-	if err != nil {
-		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
-		return
+	data := gin.H{}
+	blogData := gin.H{
+		"Enabled": h.blogEnabled,
 	}
 
-	totalPages := int((total + int64(limit) - 1) / int64(limit))
-	pagination := h.buildPagination(page, totalPages, func(p int) string {
-		return fmt.Sprintf("/?page=%d", p)
-	})
+	if h.blogEnabled && h.postService != nil {
+		posts, total, err := h.postService.GetAll(page, limit, nil, nil, nil)
+		if err != nil {
+			h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
+			return
+		}
 
-	h.renderTemplate(c, "index", "Home", h.config.SiteDescription, gin.H{
-		"Posts":       posts,
-		"Total":       total,
-		"CurrentPage": page,
-		"TotalPages":  totalPages,
-		"Pagination":  pagination,
-	})
+		totalPages := int((total + int64(limit) - 1) / int64(limit))
+		pagination := h.buildPagination(page, totalPages, func(p int) string {
+			return fmt.Sprintf("/?page=%d", p)
+		})
+
+		blogData["Posts"] = posts
+		blogData["Total"] = total
+		blogData["CurrentPage"] = page
+		blogData["TotalPages"] = totalPages
+		blogData["Pagination"] = pagination
+
+		data["Posts"] = posts
+		data["Total"] = total
+		data["CurrentPage"] = page
+		data["TotalPages"] = totalPages
+		data["Pagination"] = pagination
+	}
+
+	data["Blog"] = blogData
+
+	h.renderTemplate(c, "index", "Home", h.config.SiteDescription, data)
 }
 
 func (h *TemplateHandler) RenderPost(c *gin.Context) {

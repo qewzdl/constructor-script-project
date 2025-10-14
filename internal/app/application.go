@@ -18,11 +18,14 @@ import (
 	"constructor-script-backend/internal/handlers"
 	"constructor-script-backend/internal/middleware"
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/modules"
+	"constructor-script-backend/internal/modules/blog"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/internal/seed"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/logger"
+	"constructor-script-backend/pkg/navigation"
 	"constructor-script-backend/pkg/utils"
 )
 
@@ -36,6 +39,9 @@ type Application struct {
 
 	db    *gorm.DB
 	cache *cache.Cache
+
+	templates *template.Template
+	modules   *modules.Manager
 
 	repositories repositoryContainer
 	services     serviceContainer
@@ -109,10 +115,18 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 	app.initRepositories()
 	app.initServices()
 
+	if err := app.initTemplates(); err != nil {
+		return nil, err
+	}
+
 	seed.EnsureDefaultCategory(app.services.Category)
 	seed.EnsureDefaultPages(app.services.Page)
 
 	if err := app.initHandlers(); err != nil {
+		return nil, err
+	}
+
+	if err := app.initModules(); err != nil {
 		return nil, err
 	}
 
@@ -294,13 +308,54 @@ func (a *Application) initHandlers() error {
 		a.services.Search,
 		a.services.Setup,
 		a.cfg,
-		a.options.TemplatesDir,
+		a.templates,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize template handler: %w", err)
 	}
 
 	a.templateHandler = templateHandler
+	return nil
+}
+
+func (a *Application) initTemplates() error {
+	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
+	templates, err := tmpl.ParseGlob(filepath.Join(a.options.TemplatesDir, "*.html"))
+	if err != nil {
+		return fmt.Errorf("failed to load templates: %w", err)
+	}
+
+	logger.Info("Templates loaded", map[string]interface{}{
+		"templates": templates.DefinedTemplates(),
+	})
+
+	a.templates = templates
+	return nil
+}
+
+func (a *Application) initModules() error {
+	manager := modules.NewManager()
+
+	blogModule, err := blog.New(blog.Options{
+		Handler: a.templateHandler,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize blog module: %w", err)
+	}
+	manager.Register(blogModule)
+
+	if err := manager.LoadTemplates(a.templates); err != nil {
+		return err
+	}
+
+	navItems := []navigation.Item{
+		{Label: "Home", Path: "/"},
+		{Label: "Search", Path: "/search"},
+	}
+	navItems = append(navItems, manager.NavigationItems()...)
+
+	a.templateHandler.SetNavigation(navItems)
+	a.modules = manager
 	return nil
 }
 
@@ -326,12 +381,10 @@ func (a *Application) initRouter() error {
 
 	router.Use(middleware.SetupMiddleware(a.services.Setup))
 
-	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
-	templates, err := tmpl.ParseGlob(filepath.Join(a.options.TemplatesDir, "*.html"))
-	if err != nil {
-		return fmt.Errorf("failed to load templates: %w", err)
+	if a.templates == nil {
+		return fmt.Errorf("templates are not initialized")
 	}
-	router.SetHTMLTemplate(templates)
+	router.SetHTMLTemplate(a.templates)
 	logger.Info("Templates loaded successfully", nil)
 
 	router.GET("/health", func(c *gin.Context) {
@@ -352,7 +405,7 @@ func (a *Application) initRouter() error {
 		tmpl, _ = tmpl.ParseGlob(filepath.Join(a.options.TemplatesDir, "*.html"))
 
 		c.JSON(http.StatusOK, gin.H{
-			"templates": tmpl.DefinedTemplates(),
+			"templates": a.templates.DefinedTemplates(),
 		})
 	})
 
@@ -362,12 +415,8 @@ func (a *Application) initRouter() error {
 	router.GET("/setup", a.templateHandler.RenderSetup)
 	router.GET("/profile", a.templateHandler.RenderProfile)
 	router.GET("/admin", a.templateHandler.RenderAdmin)
-	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
 	router.GET("/page/:slug", a.templateHandler.RenderPage)
-	router.GET("/blog", a.templateHandler.RenderBlog)
 	router.GET("/search", a.templateHandler.RenderSearch)
-	router.GET("/category/:slug", a.templateHandler.RenderCategory)
-	router.GET("/tag/:slug", a.templateHandler.RenderTag)
 
 	v1 := router.Group("/api/v1")
 	{
@@ -471,6 +520,10 @@ func (a *Application) initRouter() error {
 			})
 		}
 	})
+
+	if a.modules != nil {
+		a.modules.Mount(router)
+	}
 
 	a.router = router
 	return nil
