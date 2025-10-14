@@ -22,6 +22,8 @@ type TemplateHandler struct {
 	config           *config.Config
 	sanitizer        *bluemonday.Policy
 	sectionRenderers map[string]SectionRenderer
+	navigation       []navigation.Item
+	blogEnabled      bool
 }
 
 func NewTemplateHandler(postService service.PostUseCase, pageService service.PageUseCase, authService service.AuthUseCase, commentService service.CommentUseCase, searchService service.SearchUseCase, setupService service.SetupUseCase, cfg *config.Config, templates *template.Template) (*TemplateHandler, error) {

@@ -44,6 +44,8 @@ type Application struct {
 	services     serviceContainer
 	handlers     handlerContainer
 
+	modules *modules.Manager
+
 	templateHandler *handlers.TemplateHandler
 	templates       *template.Template
 	router          *gin.Engine
