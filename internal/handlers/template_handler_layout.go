@@ -86,14 +86,7 @@ func (h *TemplateHandler) renderWithLayout(c *gin.Context, layout, content strin
 		c.Header("X-Robots-Tag", "noindex, nofollow")
 	}
 
-	tmpl, err := h.templates.Clone()
-	if err != nil {
-		logger.Error(err, "Failed to clone templates", nil)
-		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Template error")
-		return
-	}
-
-	contentTmpl := tmpl.Lookup(content)
+	contentTmpl := h.templates.Lookup(content)
 	if contentTmpl == nil {
 		logger.Error(nil, "Content template not found", map[string]interface{}{"template": content})
 		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Template not found")
