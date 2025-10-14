@@ -11,15 +11,11 @@
         <!-- Unique SEO description (displayed in search results) -->
         {{ if .Description }}
         <meta name="description" content="{{ .Description }}" />
-        {{ end }}
-        {{ if .Keywords }}
+        {{ end }} {{ if .Keywords }}
         <meta name="keywords" content="{{ .Keywords }}" />
-        {{ end }}
-
-        {{ if .Canonical }}
+        {{ end }} {{ if .Canonical }}
         <link rel="canonical" href="{{ .Canonical }}" />
         {{ end }}
-
 
         <!-- Website author -->
         <meta name="author" content="{{ .Site.Name }}" />
@@ -35,19 +31,20 @@
         <link rel="stylesheet" href="/static/css/layout.css" />
         <link rel="stylesheet" href="/static/css/base.css" />
 
-        {{ if .Styles }}
-        {{ range .Styles }}
+        {{ if .Styles }} {{ range .Styles }}
         <link rel="stylesheet" href="{{ . }}" />
-        {{ end }}
-        {{ end }}
+        {{ end }} {{ end }}
 
         <!-- Favicon for browser tab -->
         {{ if .Site.FaviconType }}
-        <link rel="icon" href="{{ .Site.Favicon }}" type="{{ .Site.FaviconType }}" />
+        <link
+            rel="icon"
+            href="{{ .Site.Favicon }}"
+            type="{{ .Site.FaviconType }}"
+        />
         {{ else }}
         <link rel="icon" href="{{ .Site.Favicon }}" />
         {{ end }}
-
 
         <!-- Preconnect to Google Fonts for faster font loading -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -63,39 +60,27 @@
         <meta property="og:site_name" content="{{ .Site.Name }}" />
         {{ if .Title }}
         <meta property="og:title" content="{{ .Title }}" />
-        {{ end }}
-        {{ if .Description }}
+        {{ end }} {{ if .Description }}
         <meta property="og:description" content="{{ .Description }}" />
-        {{ end }}
-        {{ if .OGType }}
+        {{ end }} {{ if .OGType }}
         <meta property="og:type" content="{{ .OGType }}" />
-        {{ end }}
-        {{ if .OGURL }}
+        {{ end }} {{ if .OGURL }}
         <meta property="og:url" content="{{ .OGURL }}" />
-        {{ end }}
-        {{ if .OGImage }}
+        {{ end }} {{ if .OGImage }}
         <meta property="og:image" content="{{ .OGImage }}" />
         {{ if .OGImageAlt }}
         <meta property="og:image:alt" content="{{ .OGImageAlt }}" />
-        {{ end }}
-        {{ end }}
-
-        {{ if .TwitterCard }}
+        {{ end }} {{ end }} {{ if .TwitterCard }}
         <meta name="twitter:card" content="{{ .TwitterCard }}" />
-        {{ end }}
-        {{ if .TwitterTitle }}
+        {{ end }} {{ if .TwitterTitle }}
         <meta name="twitter:title" content="{{ .TwitterTitle }}" />
-        {{ end }}
-        {{ if .TwitterDescription }}
+        {{ end }} {{ if .TwitterDescription }}
         <meta name="twitter:description" content="{{ .TwitterDescription }}" />
-        {{ end }}
-        {{ if .TwitterImage }}
+        {{ end }} {{ if .TwitterImage }}
         <meta name="twitter:image" content="{{ .TwitterImage }}" />
         {{ if .TwitterImageAlt }}
         <meta name="twitter:image:alt" content="{{ .TwitterImageAlt }}" />
-        {{ end }}
-        {{ end }}
-        {{ if .Canonical }}
+        {{ end }} {{ end }} {{ if .Canonical }}
         <meta name="twitter:url" content="{{ .Canonical }}" />
         {{ end }}
 
@@ -110,13 +95,14 @@
             }
         </script>
         {{ if .StructuredData }}
-        <script type="application/ld+json">{{ .StructuredData }}</script>
+        <script type="application/ld+json">
+            {{ .StructuredData }}
+        </script>
         {{ end }}
     </head>
 
     <body class="page">
-        {{ if .HideChrome }}
-        {{ else }}
+        {{ if .HideChrome }} {{ else }}
         <header class="header" role="banner">
             <nav
                 class="header__nav"
@@ -129,7 +115,7 @@
                     aria-label="Go to {{ .Site.Name }} homepage"
                 >
                     <img
-                        src="/static/icons/logo.svg"
+                        src="{{ .Site.Logo }}"
                         alt="{{ .Site.Name }} Logo"
                         class="header__logo-image"
                     />
@@ -146,14 +132,12 @@
                     <li class="header__nav-item">
                         <a href="/search" class="header__nav-link">Search</a>
                     </li>
-                    {{ with .CurrentUser }}
-                    {{ if and $.IsAuthenticated (eq .Role "admin") }}
+                    {{ with .CurrentUser }} {{ if and $.IsAuthenticated (eq
+                    .Role "admin") }}
                     <li class="header__nav-item" data-auth="auth">
                         <a href="/admin" class="header__nav-link">Admin</a>
                     </li>
-                    {{ end }}
-                    {{ end }}
-                    {{ if .IsAuthenticated }}
+                    {{ end }} {{ end }} {{ if .IsAuthenticated }}
                     <li
                         class="header__nav-item"
                         data-auth="auth"
@@ -221,8 +205,7 @@
 
         <main id="main-content" class="main" role="main">{{ .Content }}</main>
 
-        {{ if .HideChrome }}
-        {{ else }}
+        {{ if .HideChrome }} {{ else }}
         <footer class="footer" role="contentinfo">
             <section class="footer__info">
                 <p class="footer__text">
@@ -237,10 +220,8 @@
 
         <script src="/static/js/auth.js" defer></script>
         <script src="/static/js/comments.js" defer></script>
-        {{ if .Scripts }}
-        {{ range .Scripts }}
+        {{ if .Scripts }} {{ range .Scripts }}
         <script src="{{ . }}" defer></script>
-        {{ end }}
-        {{ end }}
+        {{ end }} {{ end }}
     </body>
 </html>
