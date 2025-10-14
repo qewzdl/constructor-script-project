@@ -14,7 +14,7 @@ func (h *TemplateHandler) currentUser(c *gin.Context) (*models.User, bool) {
 
 	clearCookie := func() {
 		secure := c.Request.TLS != nil
-		c.SetCookie(authTokenCookieName, "", -1, "/", "", secure, false)
+		c.SetCookie(authTokenCookieName, "", -1, "/", "", secure, true)
 	}
 
 	tokenString, err := c.Cookie(authTokenCookieName)

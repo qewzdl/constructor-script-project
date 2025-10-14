@@ -25,13 +25,13 @@ const (
 func (h *AuthHandler) setAuthCookie(c *gin.Context, token string, maxAge int) {
 	secure := c.Request.TLS != nil
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(authTokenCookieName, token, maxAge, "/", "", secure, false)
+	c.SetCookie(authTokenCookieName, token, maxAge, "/", "", secure, true)
 }
 
 func (h *AuthHandler) clearAuthCookie(c *gin.Context) {
 	secure := c.Request.TLS != nil
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(authTokenCookieName, "", -1, "/", "", secure, false)
+	c.SetCookie(authTokenCookieName, "", -1, "/", "", secure, true)
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
