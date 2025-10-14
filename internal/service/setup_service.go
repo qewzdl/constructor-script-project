@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -172,6 +173,35 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 	}
 
 	return result, err
+}
+
+func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest) error {
+	if s.settingRepo == nil {
+		return errors.New("setting repository not configured")
+	}
+
+	updates := map[string]string{
+		settingKeySiteName:        strings.TrimSpace(req.Name),
+		settingKeySiteDescription: strings.TrimSpace(req.Description),
+		settingKeySiteURL:         strings.TrimSpace(req.URL),
+		settingKeySiteFavicon:     strings.TrimSpace(req.Favicon),
+		settingKeySiteLogo:        strings.TrimSpace(req.Logo),
+	}
+
+	for key, value := range updates {
+		if value == "" {
+			if err := s.settingRepo.Delete(key); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+			continue
+		}
+
+		if err := s.settingRepo.Set(key, value); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *SetupService) getSettingValue(key string) (string, error) {

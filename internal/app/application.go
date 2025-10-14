@@ -446,6 +446,9 @@ func (a *Application) initRouter() error {
 			admin.PUT("/comments/:id/approve", a.handlers.Comment.ApproveComment)
 			admin.PUT("/comments/:id/reject", a.handlers.Comment.RejectComment)
 
+			admin.GET("/settings/site", a.handlers.Setup.GetSiteSettings)
+			admin.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
+
 			admin.GET("/stats", handlers.GetStatistics(a.db))
 
 			if a.cache != nil {

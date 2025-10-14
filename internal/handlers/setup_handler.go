@@ -95,3 +95,49 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 		Logo:        logo,
 	}
 }
+
+func (h *SetupHandler) GetSiteSettings(c *gin.Context) {
+	defaults := h.defaultSiteSettings()
+
+	if h.setupService == nil {
+		c.JSON(http.StatusOK, gin.H{"site": defaults})
+		return
+	}
+
+	settings, err := h.setupService.GetSiteSettings(defaults)
+	if err != nil {
+		logger.Error(err, "Failed to load site settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load site settings"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"site": settings})
+}
+
+func (h *SetupHandler) UpdateSiteSettings(c *gin.Context) {
+	if h.setupService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Setup service not available"})
+		return
+	}
+
+	var req models.UpdateSiteSettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.setupService.UpdateSiteSettings(req); err != nil {
+		logger.Error(err, "Failed to update site settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update site settings"})
+		return
+	}
+
+	settings, err := h.setupService.GetSiteSettings(h.defaultSiteSettings())
+	if err != nil {
+		logger.Error(err, "Failed to load site settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load site settings"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Site settings updated", "site": settings})
+}

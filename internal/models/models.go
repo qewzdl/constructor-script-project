@@ -266,6 +266,14 @@ type SiteSettings struct {
 	Logo        string `json:"logo"`
 }
 
+type UpdateSiteSettingsRequest struct {
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+	URL         string `json:"url" binding:"required"`
+	Favicon     string `json:"favicon"`
+	Logo        string `json:"logo"`
+}
+
 func DetectFaviconType(favicon string) string {
 	const defaultType = "image/x-icon"
 

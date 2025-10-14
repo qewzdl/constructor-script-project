@@ -482,6 +482,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"CategoriesIndex": "/api/v1/categories",
 			"Comments":        "/api/v1/admin/comments",
 			"Tags":            "/api/v1/tags",
+			"SiteSettings":    "/api/v1/admin/settings/site",
 		},
 		"NoIndex": true,
 	})

@@ -10,6 +10,7 @@
     data-endpoint-categories-index="{{ index .AdminEndpoints "CategoriesIndex" }}"
     data-endpoint-comments="{{ index .AdminEndpoints "Comments" }}"
     data-endpoint-tags="{{ index .AdminEndpoints "Tags" }}"
+    data-endpoint-site-settings="{{ index .AdminEndpoints "SiteSettings" }}"
 >
     <header class="admin__header">
         <div class="admin__intro">
@@ -80,6 +81,9 @@
         </button>
         <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="comments">
             Comments
+        </button>
+        <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="settings">
+            Site settings
         </button>
     </div>
 
@@ -291,6 +295,54 @@
                 <ul id="admin-comments-list" class="admin-comment-list" aria-live="polite">
                     <li class="admin-comment-list__item admin-comment-list__item--empty">Loading comments…</li>
                 </ul>
+            </div>
+        </section>
+
+        <section class="admin-panel" data-panel="settings" role="tabpanel" aria-labelledby="settings" hidden>
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Site identity</h2>
+                    <p class="admin-panel__description">
+                        Update how your brand appears across templates, including the name, tagline, URL, and imagery.
+                    </p>
+                </div>
+            </header>
+            <div class="admin-panel__body">
+                <form id="admin-settings-form" class="admin-form" novalidate>
+                    <fieldset class="admin-form__fieldset">
+                        <legend class="admin-form__legend">Site details</legend>
+                        <label class="admin-form__label">
+                            Site name
+                            <input type="text" name="name" required class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__label">
+                            Tagline
+                            <textarea name="description" rows="2" class="admin-form__input"></textarea>
+                        </label>
+                        <label class="admin-form__label">
+                            Site URL
+                            <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
+                            <small class="admin-form__hint">Used to generate canonical links and social sharing metadata.</small>
+                        </label>
+                    </fieldset>
+                    <fieldset class="admin-form__fieldset">
+                        <legend class="admin-form__legend">Brand assets</legend>
+                        <label class="admin-form__label">
+                            Favicon URL
+                            <input type="url" name="favicon" class="admin-form__input" placeholder="/favicon.ico" />
+                            <small class="admin-form__hint">Accepts relative or absolute URLs. Leave blank to use the default icon.</small>
+                        </label>
+                        <label class="admin-form__label">
+                            Logo URL
+                            <input type="url" name="logo" class="admin-form__input" placeholder="/static/icons/logo.svg" />
+                        </label>
+                    </fieldset>
+                    <div class="admin-form__actions">
+                        <button type="submit" class="admin-form__submit" data-role="settings-submit">
+                            Save changes
+                        </button>
+                    </div>
+                </form>
             </div>
         </section>
     </div>

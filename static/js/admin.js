@@ -69,6 +69,7 @@
             categoriesIndex: root.dataset.endpointCategoriesIndex,
             comments: root.dataset.endpointComments,
             tags: root.dataset.endpointTags,
+            siteSettings: root.dataset.endpointSiteSettings,
         };
 
         const alertElement = document.getElementById("admin-alert");
@@ -137,6 +138,7 @@
         const postForm = root.querySelector("#admin-post-form");
         const pageForm = root.querySelector("#admin-page-form");
         const categoryForm = root.querySelector("#admin-category-form");
+        const settingsForm = root.querySelector("#admin-settings-form");
         const postDeleteButton = postForm?.querySelector('[data-role="post-delete"]');
         const postSubmitButton = postForm?.querySelector('[data-role="post-submit"]');
         const pageDeleteButton = pageForm?.querySelector('[data-role="page-delete"]');
@@ -157,6 +159,7 @@
             comments: [],
             tags: [],
             defaultCategoryId: "",
+            site: null,
         };
 
         const normaliseSlug = (value) => (typeof value === "string" ? value.toLowerCase() : "");
@@ -765,6 +768,41 @@
             }
         };
 
+        const populateSiteSettingsForm = (site) => {
+            if (!settingsForm) {
+                return;
+            }
+
+            const entries = [
+                ["name", site?.name],
+                ["description", site?.description],
+                ["url", site?.url],
+                ["favicon", site?.favicon],
+                ["logo", site?.logo],
+            ];
+
+            entries.forEach(([key, value]) => {
+                const field = settingsForm.querySelector(`[name="${key}"]`);
+                if (!field) {
+                    return;
+                }
+                field.value = value || "";
+            });
+        };
+
+        const loadSiteSettings = async () => {
+            if (!endpoints.siteSettings) {
+                return;
+            }
+            try {
+                const payload = await apiRequest(endpoints.siteSettings);
+                state.site = payload?.site || null;
+                populateSiteSettingsForm(state.site);
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
         const approveComment = async (id, button) => {
             if (!endpoints.comments) {
                 return;
@@ -814,6 +852,53 @@
                 handleRequestError(error);
             } finally {
                 button.disabled = false;
+            }
+        };
+
+        const handleSiteSettingsSubmit = async (event) => {
+            event.preventDefault();
+            if (!settingsForm || !endpoints.siteSettings) {
+                return;
+            }
+
+            const getValue = (name) => {
+                const field = settingsForm.querySelector(`[name="${name}"]`);
+                return field ? field.value.trim() : "";
+            };
+
+            const payload = {
+                name: getValue("name"),
+                description: getValue("description"),
+                url: getValue("url"),
+                favicon: getValue("favicon"),
+                logo: getValue("logo"),
+            };
+
+            if (!payload.name) {
+                showAlert("Please provide a site name.", "error");
+                return;
+            }
+
+            if (!payload.url) {
+                showAlert("Please provide the primary site URL.", "error");
+                return;
+            }
+
+            disableForm(settingsForm, true);
+            clearAlert();
+
+            try {
+                const response = await apiRequest(endpoints.siteSettings, {
+                    method: "PUT",
+                    body: JSON.stringify(payload),
+                });
+                state.site = response?.site || payload;
+                populateSiteSettingsForm(state.site);
+                showAlert("Site settings updated successfully.", "success");
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(settingsForm, false);
             }
         };
 
@@ -1062,8 +1147,9 @@
         pageDeleteButton?.addEventListener("click", handlePageDelete);
         categoryForm?.addEventListener("submit", handleCategorySubmit);
         categoryDeleteButton?.addEventListener("click", handleCategoryDelete);
+        settingsForm?.addEventListener("submit", handleSiteSettingsSubmit);
         postTagsInput?.addEventListener("input", renderTagSuggestions);
-
+        
         clearAlert();
         loadStats();
         loadTags();
@@ -1073,5 +1159,6 @@
         });
         loadPages();
         loadComments();
+        loadSiteSettings();
     });
 })();
