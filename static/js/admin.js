@@ -903,11 +903,58 @@
         }
 
         const app = window.App || {};
-        const { apiRequest, auth, setAlert, toggleFormDisabled } = app;
-        if (typeof apiRequest !== "function") {
-            console.warn("Admin dashboard requires App.apiRequest to be available.");
-            return;
+        const auth = app.auth;
+        const fallbackApiRequest = async (url, options = {}) => {
+            const headers = Object.assign({}, options.headers || {});
+            const token =
+                auth && typeof auth.getToken === "function" ? auth.getToken() : undefined;
+
+            if (options.body && !(options.body instanceof FormData)) {
+                headers["Content-Type"] = headers["Content-Type"] || "application/json";
+            }
+
+            if (token) {
+                headers.Authorization = headers.Authorization || `Bearer ${token}`;
+            }
+
+            const response = await fetch(url, {
+                credentials: "include",
+                ...options,
+                headers,
+            });
+
+            const contentType = response.headers.get("content-type") || "";
+            const isJson = contentType.includes("application/json");
+            const payload = isJson
+                ? await response.json().catch(() => null)
+                : await response.text();
+
+            if (!response.ok) {
+                const message =
+                    payload && typeof payload === "object" && payload.error
+                        ? payload.error
+                        : typeof payload === "string"
+                        ? payload
+                        : "Request failed";
+                const error = new Error(message);
+                error.status = response.status;
+                error.payload = payload;
+                throw error;
+            }
+
+            return payload;
+        };
+
+        const apiRequest =
+            typeof app.apiRequest === "function" ? app.apiRequest : fallbackApiRequest;
+        if (typeof app.apiRequest !== "function") {
+            console.warn(
+                "Admin dashboard is using fallback API client because App.apiRequest is unavailable."
+            );
         }
+        const setAlert = typeof app.setAlert === "function" ? app.setAlert : null;
+        const toggleFormDisabled =
+            typeof app.toggleFormDisabled === "function" ? app.toggleFormDisabled : null;
 
         const requireAuth = () => {
             if (!auth || typeof auth.getToken !== "function") {
