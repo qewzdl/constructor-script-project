@@ -1,0 +1,28 @@
+:root {
+    --primary-color: #00bff6;
+    --primary-color-hover: #00ACDB;
+    --primary-color-active: #0098C2;
+
+    --primary-color-opposite: #ffffff;
+    --primary-color-opposite-hover: #f2f2f2;
+    --primary-color-opposite-active: #e0e0e0;
+
+    --secondary-color: #ff9800;
+
+    --heading-font: "Outfit", sans-serif;
+    --text-font: 'Outfit', serif;
+    --background-color: #f5f5f5;
+    --text-color: #333;
+
+    --border-color: #dddddd;
+
+    --size-min: 2px;
+    --size-xsmall: 8px;
+    --size-small: 16px;
+    --size-medium: 24px;
+    --size-mid: 32px;
+    --size-mid-large: 40px;
+    --size-large: 48px;
+    --size-xlarge: 56px;
+    --size-max: 64px;
+}

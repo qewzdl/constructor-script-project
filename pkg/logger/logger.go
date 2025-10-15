@@ -6,67 +6,41 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm/logger"
 )
 
-var Logger zerolog.Logger
+var Logger = logrus.New()
 
 func Init() {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
-	if os.Getenv("ENVIRONMENT") == "development" {
-		Logger = zerolog.New(zerolog.ConsoleWriter{
-			Out:        os.Stdout,
-			TimeFormat: time.RFC3339,
-		}).With().Timestamp().Caller().Logger()
-	} else {
-
-		Logger = zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
-	}
-
-	log.Logger = Logger
+	Logger.SetOutput(os.Stdout)
+	Logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: "15:04:05",
+		ForceColors:     true,
+		PadLevelText:    true,
+	})
+	Logger.SetLevel(logrus.DebugLevel)
 }
 
 func Info(msg string, fields map[string]interface{}) {
-	event := Logger.Info()
-	if fields != nil {
-		event = event.Fields(fields)
-	}
-	event.Msg(msg)
+	Logger.WithFields(fields).Info(msg)
 }
 
 func Error(err error, msg string, fields map[string]interface{}) {
-	event := Logger.Error().Err(err)
-	if fields != nil {
-		event = event.Fields(fields)
-	}
-	event.Msg(msg)
+	Logger.WithError(err).WithFields(fields).Error(msg)
 }
 
 func Warn(msg string, fields map[string]interface{}) {
-	event := Logger.Warn()
-	if fields != nil {
-		event = event.Fields(fields)
-	}
-	event.Msg(msg)
+	Logger.WithFields(fields).Warn(msg)
 }
 
 func Debug(msg string, fields map[string]interface{}) {
-	event := Logger.Debug()
-	if fields != nil {
-		event = event.Fields(fields)
-	}
-	event.Msg(msg)
+	Logger.WithFields(fields).Debug(msg)
 }
 
 func Fatal(msg string, fields map[string]interface{}) {
-	event := Logger.Fatal()
-	if fields != nil {
-		event = event.Fields(fields)
-	}
-	event.Msg(msg)
+	Logger.WithFields(fields).Fatal(msg)
 }
 
 func GinLogger() gin.HandlerFunc {
@@ -77,35 +51,27 @@ func GinLogger() gin.HandlerFunc {
 
 		c.Next()
 
-		latency := time.Since(start)
-		clientIP := c.ClientIP()
-		method := c.Request.Method
-		statusCode := c.Writer.Status()
-		errorMessage := c.Errors.ByType(gin.ErrorTypePrivate).String()
-
+		duration := time.Since(start)
+		status := c.Writer.Status()
 		if raw != "" {
-			path = path + "?" + raw
+			path += "?" + raw
 		}
 
-		fields := map[string]interface{}{
-			"client_ip":  clientIP,
-			"method":     method,
-			"path":       path,
-			"status":     statusCode,
-			"latency_ms": latency.Milliseconds(),
-			"user_agent": c.Request.UserAgent(),
+		fields := logrus.Fields{
+			"ip":     c.ClientIP(),
+			"method": c.Request.Method,
+			"path":   path,
+			"status": status,
+			"took":   duration,
 		}
 
-		if errorMessage != "" {
-			fields["error"] = errorMessage
-		}
-
-		if statusCode >= 500 {
-			Logger.Error().Fields(fields).Msg("Server error")
-		} else if statusCode >= 400 {
-			Logger.Warn().Fields(fields).Msg("Client error")
-		} else {
-			Logger.Info().Fields(fields).Msg("Request completed")
+		switch {
+		case status >= 500:
+			Logger.WithFields(fields).Error("Server error")
+		case status >= 400:
+			Logger.WithFields(fields).Warn("Client error")
+		default:
+			Logger.WithFields(fields).Info("Request completed")
 		}
 	}
 }
@@ -125,32 +91,38 @@ func (l *GormLogger) LogMode(level logger.LogLevel) logger.Interface {
 }
 
 func (l *GormLogger) Info(ctx context.Context, msg string, data ...interface{}) {
-	Logger.Info().Msgf(msg, data...)
+	Logger.Infof(msg, data...)
 }
 
 func (l *GormLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
-	Logger.Warn().Msgf(msg, data...)
+	Logger.Warnf(msg, data...)
 }
 
 func (l *GormLogger) Error(ctx context.Context, msg string, data ...interface{}) {
-	Logger.Error().Msgf(msg, data...)
+	Logger.Errorf(msg, data...)
 }
 
 func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
 	elapsed := time.Since(begin)
 	sql, rows := fc()
 
-	fields := map[string]interface{}{
-		"duration_ms": elapsed.Milliseconds(),
-		"rows":        rows,
-		"sql":         sql,
-	}
-
 	if err != nil {
-		Logger.Error().Err(err).Fields(fields).Msg("Database query error")
+		Logger.WithError(err).WithFields(logrus.Fields{
+			"sql":  sql,
+			"rows": rows,
+			"time": elapsed,
+		}).Error("Database query error")
 	} else if elapsed > l.SlowThreshold {
-		Logger.Warn().Fields(fields).Msg("Slow SQL query")
+		Logger.WithFields(logrus.Fields{
+			"sql":  sql,
+			"rows": rows,
+			"time": elapsed,
+		}).Warn("Slow query")
 	} else {
-		Logger.Debug().Fields(fields).Msg("Database query")
+		Logger.WithFields(logrus.Fields{
+			"sql":  sql,
+			"rows": rows,
+			"time": elapsed,
+		}).Debug("Query executed")
 	}
 }
