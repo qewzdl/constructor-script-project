@@ -1060,6 +1060,12 @@
         const postTagsList = document.getElementById("admin-post-tags-list");
         const DEFAULT_CATEGORY_SLUG = "uncategorized";
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
+        const postSectionBuilder = postForm
+            ? window.SectionBuilder?.init(postForm.querySelector('[data-section-builder="post"]'))
+            : null;
+        const pageSectionBuilder = pageForm
+            ? window.SectionBuilder?.init(pageForm.querySelector('[data-section-builder="page"]'))
+            : null;
 
         const postContentField = postForm?.querySelector('textarea[name="content"]');
         let postContentManuallyEdited = false;
@@ -1179,6 +1185,20 @@
                 }
             }
             return "";
+        };
+
+        const extractSectionsFromEntry = (entry) => {
+            const sections = entry?.sections || entry?.Sections;
+            if (!Array.isArray(sections)) {
+                return [];
+            }
+            return sections
+                .slice()
+                .sort((a, b) => {
+                    const orderA = Number(a?.order ?? a?.Order ?? 0);
+                    const orderB = Number(b?.order ?? b?.Order ?? 0);
+                    return orderA - orderB;
+                });
         };
 
         const refreshDefaultCategoryId = () => {
@@ -1539,6 +1559,7 @@
             if (postDeleteButton) {
                 postDeleteButton.hidden = false;
             }
+            postSectionBuilder?.setSections(extractSectionsFromEntry(post));
             renderTagSuggestions();
             highlightRow(tables.posts, post.id);
         };
@@ -1563,6 +1584,7 @@
             if (postDeleteButton) {
                 postDeleteButton.hidden = true;
             }
+            postSectionBuilder?.reset();
             renderTagSuggestions();
             highlightRow(tables.posts);
         };
@@ -1597,6 +1619,7 @@
             if (pageDeleteButton) {
                 pageDeleteButton.hidden = false;
             }
+            pageSectionBuilder?.setSections(extractSectionsFromEntry(page));
             highlightRow(tables.pages, page.id);
         };
 
@@ -1620,6 +1643,7 @@
             if (orderInput) {
                 orderInput.value = 0;
             }
+            pageSectionBuilder?.reset();
             highlightRow(tables.pages);
         };
 
@@ -1921,6 +1945,14 @@
             if (postTagsInput) {
                 payload.tags = parseTags(postTagsInput.value);
             }
+            if (postSectionBuilder) {
+                const sectionError = postSectionBuilder.validate?.();
+                if (sectionError) {
+                    showAlert(sectionError, "error");
+                    return;
+                }
+                payload.sections = postSectionBuilder.serialize?.() || [];
+            }
             disableForm(postForm, true);
             clearAlert();
             try {
@@ -1998,6 +2030,14 @@
                 if (slugValue) {
                     payload.slug = slugValue;
                 }
+            }
+            if (pageSectionBuilder) {
+                const sectionError = pageSectionBuilder.validate?.();
+                if (sectionError) {
+                    showAlert(sectionError, "error");
+                    return;
+                }
+                payload.sections = pageSectionBuilder.serialize?.() || [];
             }
             disableForm(pageForm, true);
             clearAlert();

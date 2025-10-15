@@ -132,20 +132,18 @@
                             Main content
                             <textarea name="content" rows="6" class="admin-form__input"></textarea>
                         </label>
-                        <fieldset class="admin-form__fieldset admin-form__fieldset--builder">
-                            <legend class="admin-form__legend">Visual builder</legend>
+                        <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
+                            <legend class="admin-form__legend">Structured sections</legend>
                             <p class="admin-form__hint">
-                                Assemble sections, paragraphs and media without touching HTML. The main content field will
-                                stay in sync unless you edit it manually.
+                                Build rich layouts by combining reusable sections. Use the controls to reorder sections and
+                                adjust their content before publishing.
                             </p>
-                            <div class="admin-builder" data-section-builder>
-                                <p class="admin-builder__empty" data-section-empty>
-                                    No sections yet. Add your first section to begin crafting the post visually.
-                                </p>
-                                <ol class="admin-builder__list" data-section-list></ol>
-                                <div class="admin-builder__actions">
-                                    <button type="button" class="admin-builder__button" data-action="section-add">
-                                        ➕ Add section
+                            <div class="section-builder" data-section-builder="post">
+                                <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
+                                <ol class="section-builder__list" data-role="section-list"></ol>
+                                <div class="section-builder__actions">
+                                    <button type="button" class="section-builder__add" data-role="section-add">
+                                        Add section
                                     </button>
                                 </div>
                             </div>
@@ -287,6 +285,22 @@
                             Description
                             <textarea name="description" rows="3" class="admin-form__input"></textarea>
                         </label>
+                        <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
+                            <legend class="admin-form__legend">Structured sections</legend>
+                            <p class="admin-form__hint">
+                                Combine modular sections to create engaging page layouts. Reorder sections to change the
+                                reading flow.
+                            </p>
+                            <div class="section-builder" data-section-builder="page">
+                                <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
+                                <ol class="section-builder__list" data-role="section-list"></ol>
+                                <div class="section-builder__actions">
+                                    <button type="button" class="section-builder__add" data-role="section-add">
+                                        Add section
+                                    </button>
+                                </div>
+                            </div>
+                        </fieldset>
                     </fieldset>
                     <div class="admin-form__actions">
                         <button type="submit" class="admin-form__submit" data-role="category-submit">
