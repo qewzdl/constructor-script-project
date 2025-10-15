@@ -244,6 +244,24 @@ func (h *TemplateHandler) RenderBlog(c *gin.Context) {
 		tags = loadedTags
 	}
 
+	var categories []models.Category
+	if h.categoryService != nil {
+		if loadedCategories, catErr := h.categoryService.GetAll(); catErr != nil {
+			logger.Error(catErr, "Failed to load categories", nil)
+		} else {
+			if len(loadedCategories) > 0 {
+				filteredCategories := make([]models.Category, 0, len(loadedCategories))
+				for _, category := range loadedCategories {
+					if strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized") {
+						continue
+					}
+					filteredCategories = append(filteredCategories, category)
+				}
+				categories = filteredCategories
+			}
+		}
+	}
+
 	totalPages := int((total + int64(limit) - 1) / int64(limit))
 	pagination := h.buildPagination(page, totalPages, func(p int) string {
 		return fmt.Sprintf("/blog?page=%d", p)
@@ -259,6 +277,10 @@ func (h *TemplateHandler) RenderBlog(c *gin.Context) {
 
 	if len(tags) > 0 {
 		data["Tags"] = tags
+	}
+
+	if len(categories) > 0 {
+		data["Categories"] = categories
 	}
 
 	h.renderTemplate(c, "blog", "Blog", h.config.SiteName+" Blog — insights about Go programming, web technologies, performance, and best practices in backend design.", data)
@@ -346,7 +368,16 @@ func (h *TemplateHandler) RenderCategory(c *gin.Context) {
 		if loadedCategories, catErr := h.categoryService.GetAll(); catErr != nil {
 			logger.Error(catErr, "Failed to load categories", nil)
 		} else {
-			categories = loadedCategories
+			if len(loadedCategories) > 0 {
+				filteredCategories := make([]models.Category, 0, len(loadedCategories))
+				for _, category := range loadedCategories {
+					if strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized") {
+						continue
+					}
+					filteredCategories = append(filteredCategories, category)
+				}
+				categories = filteredCategories
+			}
 		}
 	}
 
