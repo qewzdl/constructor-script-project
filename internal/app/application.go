@@ -293,6 +293,7 @@ func (a *Application) initHandlers() error {
 		a.services.Comment,
 		a.services.Search,
 		a.services.Setup,
+		a.services.Category,
 		a.cfg,
 		a.options.TemplatesDir,
 	)

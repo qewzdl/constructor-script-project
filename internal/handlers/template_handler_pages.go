@@ -317,22 +317,119 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 
 func (h *TemplateHandler) RenderCategory(c *gin.Context) {
 	slug := c.Param("slug")
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
 
-	posts, total, err := h.postService.GetAll(page, limit, nil, nil, nil)
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "12"))
+	if err != nil || limit <= 0 {
+		limit = 12
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	category, posts, total, err := h.postService.GetCategoryWithPosts(slug, page, limit)
 	if err != nil {
-		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			h.renderError(c, http.StatusNotFound, "404 - Page Not Found", "Requested category not found")
+		} else {
+			logger.Error(err, "Failed to load category posts", map[string]interface{}{"slug": slug})
+			h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
+		}
 		return
 	}
 
-	h.renderTemplate(c, "category", "Category: "+slug, "", gin.H{
-		"Posts":       posts,
-		"Total":       total,
-		"CurrentPage": page,
-		"TotalPages":  int((total + int64(limit) - 1) / int64(limit)),
-		"Category":    slug,
+	var categories []models.Category
+	if h.categoryService != nil {
+		if loadedCategories, catErr := h.categoryService.GetAll(); catErr != nil {
+			logger.Error(catErr, "Failed to load categories", nil)
+		} else {
+			categories = loadedCategories
+		}
+	}
+
+	totalCount := int(total)
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+	pagination := h.buildPagination(page, totalPages, func(p int) string {
+		return fmt.Sprintf("/category/%s?page=%d", category.Slug, p)
 	})
+
+	categoryName := category.Name
+	if categoryName == "" {
+		categoryName = category.Slug
+	}
+
+	description := strings.TrimSpace(category.Description)
+	if description == "" {
+		description = fmt.Sprintf("Articles in the \"%s\" category on %s.", categoryName, h.config.SiteName)
+	}
+
+	data := gin.H{
+		"Posts":       posts,
+		"Total":       totalCount,
+		"CurrentPage": page,
+		"TotalPages":  totalPages,
+		"Pagination":  pagination,
+		"Category":    category,
+		"Canonical":   fmt.Sprintf("/category/%s", category.Slug),
+	}
+
+	if len(categories) > 0 {
+		data["Categories"] = categories
+	}
+
+	if category.Name != "" {
+		data["Keywords"] = category.Name
+	} else if category.Slug != "" {
+		data["Keywords"] = category.Slug
+	}
+
+	site := h.siteSettings()
+	baseURL := site.URL
+	if baseURL == "" {
+		baseURL = h.config.SiteURL
+	}
+
+	itemList := make([]map[string]interface{}, 0, len(posts))
+	for idx, post := range posts {
+		position := (page-1)*limit + idx + 1
+		postURL := fmt.Sprintf("/blog/post/%s", post.Slug)
+		if post.Slug == "" {
+			postURL = fmt.Sprintf("/blog/post/%d", post.ID)
+		}
+		absoluteURL := h.ensureAbsoluteURL(baseURL, postURL)
+
+		item := map[string]interface{}{
+			"@type":    "ListItem",
+			"position": position,
+			"name":     post.Title,
+		}
+		if absoluteURL != "" {
+			item["url"] = absoluteURL
+		}
+		itemList = append(itemList, item)
+	}
+
+	structuredData := map[string]interface{}{
+		"@context":    "https://schema.org",
+		"@type":       "CollectionPage",
+		"name":        fmt.Sprintf("%s category", categoryName),
+		"description": description,
+		"mainEntity": map[string]interface{}{
+			"@type":           "ItemList",
+			"itemListElement": itemList,
+		},
+	}
+
+	if dataBytes, marshalErr := json.Marshal(structuredData); marshalErr == nil {
+		data["StructuredData"] = template.JS(dataBytes)
+	} else {
+		logger.Error(marshalErr, "Failed to marshal category structured data", map[string]interface{}{"category": category.Slug})
+	}
+
+	h.renderTemplate(c, "category", "Category: "+categoryName, description, data)
 }
 
 func (h *TemplateHandler) RenderTag(c *gin.Context) {

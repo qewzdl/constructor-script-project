@@ -14,6 +14,7 @@ import (
 
 type TemplateHandler struct {
 	postService      *service.PostService
+	categoryService  *service.CategoryService
 	pageService      *service.PageService
 	authService      *service.AuthService
 	commentService   *service.CommentService
@@ -25,7 +26,17 @@ type TemplateHandler struct {
 	sectionRenderers map[string]SectionRenderer
 }
 
-func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, authService *service.AuthService, commentService *service.CommentService, searchService *service.SearchService, setupService *service.SetupService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
+func NewTemplateHandler(
+	postService *service.PostService,
+	pageService *service.PageService,
+	authService *service.AuthService,
+	commentService *service.CommentService,
+	searchService *service.SearchService,
+	setupService *service.SetupService,
+	categoryService *service.CategoryService,
+	cfg *config.Config,
+	templatesDir string,
+) (*TemplateHandler, error) {
 	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
 	templates, err := tmpl.ParseGlob(filepath.Join(templatesDir, "*.html"))
 	if err != nil {
@@ -41,15 +52,16 @@ func NewTemplateHandler(postService *service.PostService, pageService *service.P
 	policy.AllowAttrs("style").OnElements("span", "div", "p")
 
 	handler := &TemplateHandler{
-		postService:    postService,
-		pageService:    pageService,
-		authService:    authService,
-		commentService: commentService,
-		searchService:  searchService,
-		setupService:   setupService,
-		templates:      templates,
-		config:         cfg,
-		sanitizer:      policy,
+		postService:     postService,
+		categoryService: categoryService,
+		pageService:     pageService,
+		authService:     authService,
+		commentService:  commentService,
+		searchService:   searchService,
+		setupService:    setupService,
+		templates:       templates,
+		config:          cfg,
+		sanitizer:       policy,
 	}
 
 	handler.registerDefaultSectionRenderers()

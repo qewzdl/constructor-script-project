@@ -632,3 +632,59 @@ func (s *PostService) UnpublishPost(postID uint) error {
 func (s *PostService) IncrementViews(postID uint) error {
 	return s.postRepo.IncrementViews(postID)
 }
+
+func (s *PostService) fetchPostsByCategory(categorySlug string, categoryID uint, page, limit int) ([]models.Post, int64, error) {
+	offset := (page - 1) * limit
+
+	cacheKey := fmt.Sprintf("posts:category:%s:page:%d:limit:%d", categorySlug, page, limit)
+
+	if s.cache != nil {
+		var result struct {
+			Posts []models.Post
+			Total int64
+		}
+		if err := s.cache.Get(cacheKey, &result); err == nil {
+			return result.Posts, result.Total, nil
+		}
+	}
+
+	published := true
+
+	posts, total, err := s.postRepo.GetAll(offset, limit, &categoryID, nil, nil, &published)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if s.cache != nil {
+		result := struct {
+			Posts []models.Post
+			Total int64
+		}{posts, total}
+		s.cache.Set(cacheKey, result, 5*time.Minute)
+	}
+
+	return posts, total, nil
+}
+
+func (s *PostService) GetPostsByCategory(categorySlug string, page, limit int) ([]models.Post, int64, error) {
+	_, posts, total, err := s.GetCategoryWithPosts(categorySlug, page, limit)
+	return posts, total, err
+}
+
+func (s *PostService) GetCategoryWithPosts(categorySlug string, page, limit int) (*models.Category, []models.Post, int64, error) {
+	if s.categoryRepo == nil {
+		return nil, nil, 0, fmt.Errorf("category repository is not configured")
+	}
+
+	category, err := s.categoryRepo.GetBySlug(categorySlug)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	posts, total, err := s.fetchPostsByCategory(category.Slug, category.ID, page, limit)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	return category, posts, total, nil
+}

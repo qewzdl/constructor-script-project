@@ -1,0 +1,71 @@
+<section class="category-page" aria-labelledby="category-title">
+    <header class="category-page__header">
+        <h1 id="category-title" class="category-page__title">
+            {{ if .Category.Name }}
+                {{ .Category.Name }}
+            {{ else }}
+                {{ .Category.Slug }}
+            {{ end }}
+        </h1>
+        <p class="category-page__description">
+            {{ if .Category.Description }}
+                {{ .Category.Description }}
+            {{ else }}
+                Explore articles published in the
+                <strong>
+                    {{ if .Category.Name }}
+                        {{ .Category.Name }}
+                    {{ else }}
+                        {{ .Category.Slug }}
+                    {{ end }}
+                </strong>
+                category.
+            {{ end }}
+            {{ if eq .Total 1 }}
+                We found one post.
+            {{ else if gt .Total 1 }}
+                We found {{ .Total }} posts.
+            {{ else }}
+                No posts have been published in this category yet.
+            {{ end }}
+        </p>
+    </header>
+
+    {{ with .Categories }}
+    {{ $active := $.Category.Slug }}
+    <nav class="blog__tags category-page__tags" aria-label="Browse categories">
+        <ul class="tag-list">
+            {{ range . }}
+            {{ $isActive := eq .Slug $active }}
+            <li class="tag-list__item">
+                <a
+                    href="/category/{{ .Slug }}"
+                    class="tag-list__link{{ if $isActive }} tag-list__link--active{{ end }}"
+                    {{ if $isActive }}aria-current="page"{{ end }}
+                >
+                    {{ if .Name }}
+                        {{ .Name }}
+                    {{ else }}
+                        {{ .Slug }}
+                    {{ end }}
+                </a>
+            </li>
+            {{ end }}
+        </ul>
+    </nav>
+    {{ end }}
+
+    <div class="blog__posts">
+        {{ if .Posts }}
+        {{ range .Posts }}
+        {{ template "components/post-card" (dict "Post" . "WrapperClass" "blog__post post-card") }}
+        {{ end }}
+        {{ else }}
+        <p class="blog__empty">No articles match this category yet. Try another category or check back later.</p>
+        {{ end }}
+    </div>
+
+    {{ with .Pagination }}
+        {{ template "components/pagination" . }}
+    {{ end }}
+</section>
