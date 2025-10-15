@@ -1,13 +1,11 @@
 :root {
-    --primary-color: #00bff6;
-    --primary-color-hover: #00ACDB;
-    --primary-color-active: #0098C2;
+    --primary-color: #009ef9;
+    --primary-color-hover: #0095ebff;
+    --primary-color-active: #008ee0ff;
 
     --primary-color-opposite: #ffffff;
     --primary-color-opposite-hover: #f2f2f2;
     --primary-color-opposite-active: #e0e0e0;
-
-    --secondary-color: #ff9800;
 
     --heading-font: "Outfit", sans-serif;
     --text-font: 'Outfit', serif;
