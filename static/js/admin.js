@@ -33,6 +33,869 @@
         return element;
     };
 
+    const randomId = () => {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+            return window.crypto.randomUUID();
+        }
+        return `id-${Math.random().toString(36).slice(2, 11)}`;
+    };
+
+    const normaliseString = (value) => {
+        if (typeof value === "string") {
+            return value;
+        }
+        if (value === null || value === undefined) {
+            return "";
+        }
+        if (typeof value === "number" || typeof value === "boolean") {
+            return String(value);
+        }
+        return "";
+    };
+
+    const createSectionBuilder = (form) => {
+        if (!form) {
+            return null;
+        }
+
+        const builderRoot = form.querySelector("[data-section-builder]");
+        if (!builderRoot) {
+            return null;
+        }
+
+        const sectionList = builderRoot.querySelector("[data-section-list]");
+        const emptyState = builderRoot.querySelector("[data-section-empty]");
+        const addSectionButton = builderRoot.querySelector('[data-action="section-add"]');
+
+        if (!sectionList || !addSectionButton) {
+            return null;
+        }
+
+        const listeners = new Set();
+        let sections = [];
+
+        const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
+        const createImageState = (image = {}) => ({
+            clientId: randomId(),
+            url: normaliseString(image.url ?? image.URL ?? ""),
+            alt: normaliseString(image.alt ?? image.Alt ?? ""),
+            caption: normaliseString(image.caption ?? image.Caption ?? ""),
+        });
+
+        const createElementState = (element = {}) => {
+            const type = normaliseString(element.type ?? element.Type ?? "").toLowerCase() || "paragraph";
+            const id = normaliseString(element.id ?? element.ID ?? "");
+            const rawContent = element.content ?? element.Content ?? {};
+
+            if (type === "paragraph") {
+                return {
+                    clientId: randomId(),
+                    id,
+                    type,
+                    content: {
+                        text: normaliseString(rawContent.text ?? rawContent.Text ?? ""),
+                    },
+                };
+            }
+
+            if (type === "image") {
+                return {
+                    clientId: randomId(),
+                    id,
+                    type,
+                    content: {
+                        url: normaliseString(rawContent.url ?? rawContent.URL ?? ""),
+                        alt: normaliseString(rawContent.alt ?? rawContent.Alt ?? ""),
+                        caption: normaliseString(rawContent.caption ?? rawContent.Caption ?? ""),
+                    },
+                };
+            }
+
+            if (type === "image_group") {
+                const images = ensureArray(rawContent.images ?? rawContent.Images).map(createImageState);
+                return {
+                    clientId: randomId(),
+                    id,
+                    type,
+                    content: {
+                        layout: normaliseString(rawContent.layout ?? rawContent.Layout ?? "grid"),
+                        images,
+                    },
+                };
+            }
+
+            return {
+                clientId: randomId(),
+                id,
+                type,
+                content: rawContent || {},
+                unsupported: true,
+            };
+        };
+
+        const createSectionState = (section = {}) => {
+            const elementsSource = ensureArray(section.elements ?? section.Elements);
+            return {
+                clientId: randomId(),
+                id: normaliseString(section.id ?? section.ID ?? ""),
+                title: normaliseString(section.title ?? section.Title ?? ""),
+                image: normaliseString(section.image ?? section.Image ?? ""),
+                elements: elementsSource.map(createElementState),
+            };
+        };
+
+        const elementLabel = (type) => {
+            switch (type) {
+                case "paragraph":
+                    return "Paragraph";
+                case "image":
+                    return "Image";
+                case "image_group":
+                    return "Image group";
+                default:
+                    return type || "Block";
+            }
+        };
+
+        const emitChange = () => {
+            const snapshot = getSections();
+            listeners.forEach((listener) => {
+                try {
+                    listener(snapshot);
+                } catch (error) {
+                    console.error("Section builder listener failed", error);
+                }
+            });
+        };
+
+        const focusField = (selector) => {
+            if (!selector) {
+                return;
+            }
+            requestAnimationFrame(() => {
+                const field = sectionList.querySelector(selector);
+                if (field && typeof field.focus === "function") {
+                    field.focus();
+                }
+            });
+        };
+
+        const render = () => {
+            sectionList.innerHTML = "";
+
+            if (!sections.length) {
+                if (emptyState) {
+                    emptyState.hidden = false;
+                }
+                return;
+            }
+
+            if (emptyState) {
+                emptyState.hidden = true;
+            }
+
+            sections.forEach((section, index) => {
+                const sectionItem = createElement("li", { className: "admin-builder__section" });
+                sectionItem.dataset.sectionClient = section.clientId;
+                sectionItem.dataset.sectionIndex = String(index);
+
+                const sectionHeader = createElement("div", { className: "admin-builder__section-header" });
+                const sectionTitle = createElement("h3", {
+                    className: "admin-builder__section-title",
+                    textContent: `Section ${index + 1}`,
+                });
+                const removeButton = createElement("button", {
+                    className: "admin-builder__remove",
+                    textContent: "Remove section",
+                });
+                removeButton.type = "button";
+                removeButton.dataset.action = "section-remove";
+                sectionHeader.append(sectionTitle, removeButton);
+                sectionItem.append(sectionHeader);
+
+                const titleField = createElement("label", { className: "admin-builder__field" });
+                titleField.append(
+                    createElement("span", {
+                        className: "admin-builder__label",
+                        textContent: "Section title",
+                    })
+                );
+                const titleInput = createElement("input", { className: "admin-builder__input" });
+                titleInput.type = "text";
+                titleInput.placeholder = "e.g. Getting started";
+                titleInput.value = section.title;
+                titleInput.dataset.field = "section-title";
+                titleField.append(titleInput);
+                sectionItem.append(titleField);
+
+                const imageField = createElement("label", { className: "admin-builder__field" });
+                imageField.append(
+                    createElement("span", {
+                        className: "admin-builder__label",
+                        textContent: "Optional header image URL",
+                    })
+                );
+                const imageInput = createElement("input", { className: "admin-builder__input" });
+                imageInput.type = "url";
+                imageInput.placeholder = "https://example.com/cover.jpg";
+                imageInput.value = section.image;
+                imageInput.dataset.field = "section-image";
+                imageField.append(imageInput);
+                sectionItem.append(imageField);
+
+                const elementsContainer = createElement("div", { className: "admin-builder__section-elements" });
+
+                if (!section.elements.length) {
+                    elementsContainer.append(
+                        createElement("p", {
+                            className: "admin-builder__element-empty",
+                            textContent: "No content blocks yet. Add one below.",
+                        })
+                    );
+                } else {
+                    section.elements.forEach((element, elementIndex) => {
+                        const elementNode = createElement("div", { className: "admin-builder__element" });
+                        elementNode.dataset.elementClient = element.clientId;
+                        elementNode.dataset.elementType = element.type;
+                        elementNode.dataset.elementIndex = String(elementIndex);
+
+                        const elementHeader = createElement("div", { className: "admin-builder__element-header" });
+                        const elementTitle = createElement("span", {
+                            className: "admin-builder__element-title",
+                            textContent: `${elementLabel(element.type)} ${elementIndex + 1}`,
+                        });
+                        const elementActions = createElement("div", { className: "admin-builder__element-actions" });
+                        const removeElementButton = createElement("button", {
+                            className: "admin-builder__element-remove",
+                            textContent: "Remove",
+                        });
+                        removeElementButton.type = "button";
+                        removeElementButton.dataset.action = "element-remove";
+                        elementActions.append(removeElementButton);
+                        elementHeader.append(elementTitle, elementActions);
+                        elementNode.append(elementHeader);
+
+                        if (element.type === "paragraph") {
+                            const paragraphField = createElement("label", { className: "admin-builder__field" });
+                            paragraphField.append(
+                                createElement("span", {
+                                    className: "admin-builder__label",
+                                    textContent: "Paragraph text",
+                                })
+                            );
+                            const paragraphTextarea = createElement("textarea", { className: "admin-builder__textarea" });
+                            paragraphTextarea.placeholder = "Write the narrative for this part of the section…";
+                            paragraphTextarea.value = element.content?.text || "";
+                            paragraphTextarea.dataset.field = "paragraph-text";
+                            paragraphField.append(paragraphTextarea);
+                            elementNode.append(paragraphField);
+                        } else if (element.type === "image") {
+                            const urlField = createElement("label", { className: "admin-builder__field" });
+                            urlField.append(
+                                createElement("span", {
+                                    className: "admin-builder__label",
+                                    textContent: "Image URL",
+                                })
+                            );
+                            const urlInput = createElement("input", { className: "admin-builder__input" });
+                            urlInput.type = "url";
+                            urlInput.placeholder = "https://example.com/visual.png";
+                            urlInput.value = element.content?.url || "";
+                            urlInput.dataset.field = "image-url";
+                            urlField.append(urlInput);
+                            elementNode.append(urlField);
+
+                            const altField = createElement("label", { className: "admin-builder__field" });
+                            altField.append(
+                                createElement("span", {
+                                    className: "admin-builder__label",
+                                    textContent: "Accessible alt text",
+                                })
+                            );
+                            const altInput = createElement("input", { className: "admin-builder__input" });
+                            altInput.type = "text";
+                            altInput.placeholder = "Describe the visual for screen readers";
+                            altInput.value = element.content?.alt || "";
+                            altInput.dataset.field = "image-alt";
+                            altField.append(altInput);
+                            elementNode.append(altField);
+
+                            const captionField = createElement("label", { className: "admin-builder__field" });
+                            captionField.append(
+                                createElement("span", {
+                                    className: "admin-builder__label",
+                                    textContent: "Optional caption",
+                                })
+                            );
+                            const captionInput = createElement("input", { className: "admin-builder__input" });
+                            captionInput.type = "text";
+                            captionInput.placeholder = "Add context that appears under the image";
+                            captionInput.value = element.content?.caption || "";
+                            captionInput.dataset.field = "image-caption";
+                            captionField.append(captionInput);
+                            elementNode.append(captionField);
+                        } else if (element.type === "image_group") {
+                            const groupContainer = createElement("div", { className: "admin-builder__group" });
+
+                            const layoutField = createElement("label", { className: "admin-builder__field" });
+                            layoutField.append(
+                                createElement("span", {
+                                    className: "admin-builder__label",
+                                    textContent: "Layout preset",
+                                })
+                            );
+                            const layoutInput = createElement("input", { className: "admin-builder__input" });
+                            layoutInput.type = "text";
+                            layoutInput.placeholder = "e.g. grid, carousel, mosaic";
+                            layoutInput.value = element.content?.layout || "";
+                            layoutInput.dataset.field = "image-group-layout";
+                            layoutField.append(layoutInput);
+                            groupContainer.append(layoutField);
+
+                            const groupList = createElement("div", { className: "admin-builder__group-list" });
+
+                            if (!element.content?.images?.length) {
+                                groupList.append(
+                                    createElement("p", {
+                                        className: "admin-builder__element-empty",
+                                        textContent: "No images in this group yet.",
+                                    })
+                                );
+                            } else {
+                                element.content.images.forEach((image) => {
+                                    const groupItem = createElement("div", { className: "admin-builder__group-item" });
+                                    groupItem.dataset.groupImageClient = image.clientId;
+
+                                    const groupUrlField = createElement("label", { className: "admin-builder__field" });
+                                    groupUrlField.append(
+                                        createElement("span", {
+                                            className: "admin-builder__label",
+                                            textContent: "Image URL",
+                                        })
+                                    );
+                                    const groupUrlInput = createElement("input", { className: "admin-builder__input" });
+                                    groupUrlInput.type = "url";
+                                    groupUrlInput.placeholder = "https://example.com/gallery-image.jpg";
+                                    groupUrlInput.value = image.url || "";
+                                    groupUrlInput.dataset.field = "group-image-url";
+                                    groupUrlField.append(groupUrlInput);
+                                    groupItem.append(groupUrlField);
+
+                                    const groupAltField = createElement("label", { className: "admin-builder__field" });
+                                    groupAltField.append(
+                                        createElement("span", {
+                                            className: "admin-builder__label",
+                                            textContent: "Alt text",
+                                        })
+                                    );
+                                    const groupAltInput = createElement("input", { className: "admin-builder__input" });
+                                    groupAltInput.type = "text";
+                                    groupAltInput.placeholder = "Describe this image";
+                                    groupAltInput.value = image.alt || "";
+                                    groupAltInput.dataset.field = "group-image-alt";
+                                    groupAltField.append(groupAltInput);
+                                    groupItem.append(groupAltField);
+
+                                    const groupCaptionField = createElement("label", { className: "admin-builder__field" });
+                                    groupCaptionField.append(
+                                        createElement("span", {
+                                            className: "admin-builder__label",
+                                            textContent: "Caption",
+                                        })
+                                    );
+                                    const groupCaptionInput = createElement("input", { className: "admin-builder__input" });
+                                    groupCaptionInput.type = "text";
+                                    groupCaptionInput.placeholder = "Optional caption";
+                                    groupCaptionInput.value = image.caption || "";
+                                    groupCaptionInput.dataset.field = "group-image-caption";
+                                    groupCaptionField.append(groupCaptionInput);
+                                    groupItem.append(groupCaptionField);
+
+                                    const groupActions = createElement("div", { className: "admin-builder__group-actions" });
+                                    const removeImageButton = createElement("button", {
+                                        className: "admin-builder__element-remove",
+                                        textContent: "Remove image",
+                                    });
+                                    removeImageButton.type = "button";
+                                    removeImageButton.dataset.action = "group-image-remove";
+                                    groupActions.append(removeImageButton);
+                                    groupItem.append(groupActions);
+
+                                    groupList.append(groupItem);
+                                });
+                            }
+
+                            groupContainer.append(groupList);
+
+                            const addGroupImageButton = createElement("button", {
+                                className: "admin-builder__button admin-builder__button--ghost",
+                                textContent: "Add image to group",
+                            });
+                            addGroupImageButton.type = "button";
+                            addGroupImageButton.dataset.action = "group-image-add";
+                            groupContainer.append(addGroupImageButton);
+
+                            elementNode.append(groupContainer);
+                        } else if (element.unsupported) {
+                            elementNode.append(
+                                createElement("p", {
+                                    className: "admin-builder__note",
+                                    textContent:
+                                        "This block type isn't supported in the visual builder yet, but it will be kept intact when you save.",
+                                })
+                            );
+                        }
+
+                        elementsContainer.append(elementNode);
+                    });
+                }
+
+                sectionItem.append(elementsContainer);
+
+                const sectionActions = createElement("div", { className: "admin-builder__section-actions" });
+
+                const addParagraphButton = createElement("button", {
+                    className: "admin-builder__button admin-builder__button--ghost",
+                    textContent: "Add paragraph",
+                });
+                addParagraphButton.type = "button";
+                addParagraphButton.dataset.action = "element-add";
+                addParagraphButton.dataset.elementType = "paragraph";
+                sectionActions.append(addParagraphButton);
+
+                const addImageButton = createElement("button", {
+                    className: "admin-builder__button admin-builder__button--ghost",
+                    textContent: "Add image",
+                });
+                addImageButton.type = "button";
+                addImageButton.dataset.action = "element-add";
+                addImageButton.dataset.elementType = "image";
+                sectionActions.append(addImageButton);
+
+                const addImageGroupButton = createElement("button", {
+                    className: "admin-builder__button admin-builder__button--ghost",
+                    textContent: "Add image group",
+                });
+                addImageGroupButton.type = "button";
+                addImageGroupButton.dataset.action = "element-add";
+                addImageGroupButton.dataset.elementType = "image_group";
+                sectionActions.append(addImageGroupButton);
+
+                sectionItem.append(sectionActions);
+
+                sectionList.append(sectionItem);
+            });
+        };
+
+        const findSection = (clientId) => sections.find((section) => section.clientId === clientId);
+        const findElement = (section, clientId) =>
+            section?.elements?.find((element) => element.clientId === clientId);
+
+        const addSection = () => {
+            const section = createSectionState({});
+            sections.push(section);
+            render();
+            emitChange();
+            focusField(`[data-section-client="${section.clientId}"] [data-field="section-title"]`);
+        };
+
+        const removeSection = (clientId) => {
+            sections = sections.filter((section) => section.clientId !== clientId);
+            render();
+            emitChange();
+        };
+
+        const addElementToSection = (sectionClientId, type) => {
+            const section = findSection(sectionClientId);
+            if (!section) {
+                return;
+            }
+            const element = createElementState({ type });
+            if (type === "image_group" && (!element.content || !element.content.images.length)) {
+                element.content.images = [createImageState({})];
+            }
+            section.elements.push(element);
+            render();
+            emitChange();
+            focusField(
+                type === "paragraph"
+                    ? `[data-section-client="${sectionClientId}"] [data-element-client="${element.clientId}"] textarea`
+                    : `[data-section-client="${sectionClientId}"] [data-element-client="${element.clientId}"] [data-field]`
+            );
+        };
+
+        const removeElementFromSection = (sectionClientId, elementClientId) => {
+            const section = findSection(sectionClientId);
+            if (!section) {
+                return;
+            }
+            section.elements = section.elements.filter((element) => element.clientId !== elementClientId);
+            render();
+            emitChange();
+        };
+
+        const addGroupImage = (sectionClientId, elementClientId) => {
+            const section = findSection(sectionClientId);
+            if (!section) {
+                return;
+            }
+            const element = findElement(section, elementClientId);
+            if (!element || element.type !== "image_group") {
+                return;
+            }
+            const image = createImageState({});
+            element.content.images.push(image);
+            render();
+            emitChange();
+            focusField(
+                `[data-section-client="${sectionClientId}"] [data-element-client="${elementClientId}"] [data-group-image-client="${image.clientId}"] [data-field="group-image-url"]`
+            );
+        };
+
+        const removeGroupImage = (sectionClientId, elementClientId, imageClientId) => {
+            const section = findSection(sectionClientId);
+            if (!section) {
+                return;
+            }
+            const element = findElement(section, elementClientId);
+            if (!element || element.type !== "image_group") {
+                return;
+            }
+            element.content.images = element.content.images.filter((image) => image.clientId !== imageClientId);
+            render();
+            emitChange();
+        };
+
+        const updateSectionField = (sectionClientId, field, value) => {
+            const section = findSection(sectionClientId);
+            if (!section) {
+                return;
+            }
+            if (field === "section-title") {
+                section.title = value;
+            } else if (field === "section-image") {
+                section.image = value;
+            }
+        };
+
+        const updateElementField = (sectionClientId, elementClientId, field, value, imageClientId) => {
+            const section = findSection(sectionClientId);
+            if (!section) {
+                return;
+            }
+            const element = findElement(section, elementClientId);
+            if (!element) {
+                return;
+            }
+            switch (field) {
+                case "paragraph-text":
+                    element.content.text = value;
+                    break;
+                case "image-url":
+                    element.content.url = value;
+                    break;
+                case "image-alt":
+                    element.content.alt = value;
+                    break;
+                case "image-caption":
+                    element.content.caption = value;
+                    break;
+                case "image-group-layout":
+                    element.content.layout = value;
+                    break;
+                case "group-image-url":
+                case "group-image-alt":
+                case "group-image-caption":
+                    if (!element.content.images) {
+                        element.content.images = [];
+                    }
+                    {
+                        const image = element.content.images.find((img) => img.clientId === imageClientId);
+                        if (!image) {
+                            return;
+                        }
+                        if (field === "group-image-url") {
+                            image.url = value;
+                        }
+                        if (field === "group-image-alt") {
+                            image.alt = value;
+                        }
+                        if (field === "group-image-caption") {
+                            image.caption = value;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        const elementHasContent = (element) => {
+            if (!element) {
+                return false;
+            }
+            if (element.type === "paragraph") {
+                return Boolean(element.content?.text?.trim());
+            }
+            if (element.type === "image") {
+                return Boolean(element.content?.url?.trim());
+            }
+            if (element.type === "image_group") {
+                return (
+                    Array.isArray(element.content?.images) &&
+                    element.content.images.some((image) => image.url && image.url.trim())
+                );
+            }
+            return true;
+        };
+
+        const sanitiseElement = (element, index) => {
+            if (!elementHasContent(element)) {
+                return null;
+            }
+            if (element.type === "paragraph") {
+                return {
+                    id: element.id || "",
+                    type: "paragraph",
+                    order: index + 1,
+                    content: {
+                        text: element.content.text.trim(),
+                    },
+                };
+            }
+            if (element.type === "image") {
+                const payload = {
+                    url: element.content.url.trim(),
+                };
+                if (element.content.alt && element.content.alt.trim()) {
+                    payload.alt = element.content.alt.trim();
+                }
+                if (element.content.caption && element.content.caption.trim()) {
+                    payload.caption = element.content.caption.trim();
+                }
+                return {
+                    id: element.id || "",
+                    type: "image",
+                    order: index + 1,
+                    content: payload,
+                };
+            }
+            if (element.type === "image_group") {
+                const images = (element.content.images || [])
+                    .map((image) => {
+                        const url = (image.url || "").trim();
+                        if (!url) {
+                            return null;
+                        }
+                        const payload = { url };
+                        if (image.alt && image.alt.trim()) {
+                            payload.alt = image.alt.trim();
+                        }
+                        if (image.caption && image.caption.trim()) {
+                            payload.caption = image.caption.trim();
+                        }
+                        return payload;
+                    })
+                    .filter(Boolean);
+
+                if (!images.length) {
+                    return null;
+                }
+
+                const payload = { images };
+                if (element.content.layout && element.content.layout.trim()) {
+                    payload.layout = element.content.layout.trim();
+                }
+
+                return {
+                    id: element.id || "",
+                    type: "image_group",
+                    order: index + 1,
+                    content: payload,
+                };
+            }
+            return {
+                id: element.id || "",
+                type: element.type,
+                order: index + 1,
+                content: element.content,
+            };
+        };
+
+        const getSections = () =>
+            sections
+                .map((section, index) => {
+                    const elements = section.elements
+                        .map((element, elementIndex) => sanitiseElement(element, elementIndex))
+                        .filter(Boolean);
+
+                    const image = section.image.trim();
+                    const title = section.title.trim();
+                    const hasContent = Boolean(title || image || elements.length > 0);
+
+                    if (!hasContent) {
+                        return null;
+                    }
+
+                    const payload = {
+                        id: section.id || "",
+                        title,
+                        order: index + 1,
+                        elements,
+                    };
+
+                    if (image) {
+                        payload.image = image;
+                    }
+
+                    return payload;
+                })
+                .filter(Boolean);
+
+        addSectionButton.addEventListener("click", () => {
+            addSection();
+        });
+
+        sectionList.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) {
+                return;
+            }
+            const sectionNode = target.closest("[data-section-client]");
+            if (!sectionNode) {
+                return;
+            }
+            const sectionClientId = sectionNode.dataset.sectionClient;
+            if (!sectionClientId) {
+                return;
+            }
+
+            if (target.matches('[data-action="section-remove"]')) {
+                event.preventDefault();
+                removeSection(sectionClientId);
+                return;
+            }
+
+            if (target.matches('[data-action="element-remove"]')) {
+                event.preventDefault();
+                const elementNode = target.closest("[data-element-client]");
+                if (!elementNode) {
+                    return;
+                }
+                removeElementFromSection(sectionClientId, elementNode.dataset.elementClient);
+                return;
+            }
+
+            if (target.matches('[data-action="element-add"]')) {
+                event.preventDefault();
+                const type = target.dataset.elementType || "paragraph";
+                addElementToSection(sectionClientId, type);
+                return;
+            }
+
+            if (target.matches('[data-action="group-image-add"]')) {
+                event.preventDefault();
+                const elementNode = target.closest("[data-element-client]");
+                if (!elementNode) {
+                    return;
+                }
+                addGroupImage(sectionClientId, elementNode.dataset.elementClient);
+                return;
+            }
+
+            if (target.matches('[data-action="group-image-remove"]')) {
+                event.preventDefault();
+                const elementNode = target.closest("[data-element-client]");
+                const imageNode = target.closest("[data-group-image-client]");
+                if (!elementNode || !imageNode) {
+                    return;
+                }
+                removeGroupImage(sectionClientId, elementNode.dataset.elementClient, imageNode.dataset.groupImageClient);
+            }
+        });
+
+        sectionList.addEventListener("input", (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) {
+                return;
+            }
+            const sectionNode = target.closest("[data-section-client]");
+            if (!sectionNode) {
+                return;
+            }
+            const sectionClientId = sectionNode.dataset.sectionClient;
+            if (!sectionClientId) {
+                return;
+            }
+
+            const field = target.dataset.field;
+            if (!field) {
+                return;
+            }
+
+            const elementNode = target.closest("[data-element-client]");
+            if (elementNode) {
+                const elementClientId = elementNode.dataset.elementClient;
+                const imageNode = target.closest("[data-group-image-client]");
+                const imageClientId = imageNode ? imageNode.dataset.groupImageClient : undefined;
+                updateElementField(sectionClientId, elementClientId, field, target.value, imageClientId);
+            } else {
+                updateSectionField(sectionClientId, field, target.value);
+            }
+            emitChange();
+        });
+
+        const setSections = (nextSections) => {
+            sections = ensureArray(nextSections).map(createSectionState);
+            render();
+            emitChange();
+        };
+
+        const reset = () => {
+            sections = [];
+            render();
+            emitChange();
+        };
+
+        const onChange = (listener) => {
+            if (typeof listener !== "function") {
+                return () => {};
+            }
+            listeners.add(listener);
+            return () => listeners.delete(listener);
+        };
+
+        render();
+
+        return {
+            setSections,
+            reset,
+            getSections,
+            onChange,
+        };
+    };
+
+    const generateContentPreview = (sections) => {
+        if (!Array.isArray(sections) || sections.length === 0) {
+            return "";
+        }
+        const parts = [];
+        sections.forEach((section) => {
+            if (section.title) {
+                parts.push(section.title);
+            }
+            if (Array.isArray(section.elements)) {
+                section.elements.forEach((element) => {
+                    if (element.type === "paragraph" && element.content?.text) {
+                        parts.push(element.content.text);
+                    }
+                });
+            }
+        });
+        return parts.join("\n\n");
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
         const root = document.querySelector('[data-page="admin"]');
         if (!root) {
@@ -151,6 +1014,25 @@
         const DEFAULT_CATEGORY_SLUG = "uncategorized";
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
 
+        const postContentField = postForm?.querySelector('textarea[name="content"]');
+        let postContentManuallyEdited = false;
+        postContentField?.addEventListener("input", () => {
+            if (!postContentField) {
+                return;
+            }
+            postContentManuallyEdited = postContentField.value.trim().length > 0;
+        });
+
+        const sectionBuilder = createSectionBuilder(postForm);
+        if (sectionBuilder) {
+            sectionBuilder.onChange((sections) => {
+                if (!postContentField || postContentManuallyEdited) {
+                    return;
+                }
+                postContentField.value = generateContentPreview(sections);
+            });
+        }
+
         const state = {
             metrics: {},
             posts: [],
@@ -160,6 +1042,47 @@
             tags: [],
             defaultCategoryId: "",
             site: null,
+        };
+
+        const validateSections = (sections) => {
+            if (!Array.isArray(sections)) {
+                return "";
+            }
+            for (let index = 0; index < sections.length; index += 1) {
+                const section = sections[index];
+                if (!section) {
+                    continue;
+                }
+                if (!section.title) {
+                    return `Section ${index + 1} needs a title.`;
+                }
+                if (!Array.isArray(section.elements)) {
+                    continue;
+                }
+                for (let elementIndex = 0; elementIndex < section.elements.length; elementIndex += 1) {
+                    const element = section.elements[elementIndex];
+                    if (!element) {
+                        continue;
+                    }
+                    if (element.type === "paragraph" && !element.content?.text) {
+                        return `Paragraph ${elementIndex + 1} in section "${section.title}" is empty.`;
+                    }
+                    if (element.type === "image" && !element.content?.url) {
+                        return `Image ${elementIndex + 1} in section "${section.title}" is missing a URL.`;
+                    }
+                    if (element.type === "image_group") {
+                        const images = Array.isArray(element.content?.images) ? element.content.images : [];
+                        if (!images.length) {
+                            return `The image group in section "${section.title}" needs at least one image.`;
+                        }
+                        const missing = images.findIndex((img) => !img?.url);
+                        if (missing !== -1) {
+                            return `Image ${missing + 1} in the group for section "${section.title}" is missing a URL.`;
+                        }
+                    }
+                }
+            }
+            return "";
         };
 
         const normaliseSlug = (value) => (typeof value === "string" ? value.toLowerCase() : "");
@@ -535,6 +1458,15 @@
             postForm.title.value = post.title || "";
             postForm.description.value = post.description || "";
             postForm.content.value = post.content || "";
+            if (postContentField) {
+                const existingContent = post.content || "";
+                postContentField.value = existingContent;
+                postContentManuallyEdited = Boolean(existingContent.trim());
+            }
+            if (sectionBuilder) {
+                const postSections = post.sections || post.Sections || [];
+                sectionBuilder.setSections(postSections);
+            }
             const categoryId =
                 post.category?.id ||
                 post.category?.ID ||
@@ -570,6 +1502,10 @@
             }
             postForm.reset();
             delete postForm.dataset.id;
+            postContentManuallyEdited = false;
+            if (sectionBuilder) {
+                sectionBuilder.reset();
+            }
             ensureDefaultCategorySelection();
             if (postTagsInput) {
                 postTagsInput.value = "";
@@ -914,7 +1850,7 @@
                 return;
             }
             const description = postForm.description.value.trim();
-            const content = postForm.content.value.trim();
+            const content = postContentField ? postContentField.value.trim() : "";
             const publishedField = postForm.querySelector('input[name="published"]');
             const payload = {
                 title,
@@ -922,6 +1858,15 @@
                 content,
                 published: Boolean(publishedField?.checked),
             };
+            if (sectionBuilder) {
+                const sections = sectionBuilder.getSections();
+                const sectionError = validateSections(sections);
+                if (sectionError) {
+                    showAlert(sectionError, "error");
+                    return;
+                }
+                payload.sections = sections;
+            }
             const categoryValue = postCategorySelect?.value;
             if (categoryValue) {
                 payload.category_id = Number(categoryValue);
