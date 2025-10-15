@@ -896,7 +896,7 @@
         return parts.join("\n\n");
     };
 
-    document.addEventListener("DOMContentLoaded", () => {
+    const initialiseAdminDashboard = () => {
         const root = document.querySelector('[data-page="admin"]');
         if (!root) {
             return;
@@ -2152,5 +2152,13 @@
         loadPages();
         loadComments();
         loadSiteSettings();
-    });
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initialiseAdminDashboard, {
+            once: true,
+        });
+    } else {
+        initialiseAdminDashboard();
+    }
 })();
