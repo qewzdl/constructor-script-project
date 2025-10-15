@@ -324,8 +324,11 @@ func (a *Application) initRouter() error {
 
 	router.Use(middleware.SetupMiddleware(a.services.Setup))
 
-	router.SetHTMLTemplate(a.templateHandler.templates)
-
+	templates, err := utils.LoadTemplates(a.options.TemplatesDir)
+	if err != nil {
+		return fmt.Errorf("failed to load templates: %w", err)
+	}
+	router.SetHTMLTemplate(templates)
 	logger.Info("Templates loaded successfully", nil)
 
 	router.GET("/health", func(c *gin.Context) {
