@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"html/template"
-	"path/filepath"
 
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/service"
@@ -26,8 +25,7 @@ type TemplateHandler struct {
 }
 
 func NewTemplateHandler(postService *service.PostService, pageService *service.PageService, authService *service.AuthService, commentService *service.CommentService, searchService *service.SearchService, setupService *service.SetupService, cfg *config.Config, templatesDir string) (*TemplateHandler, error) {
-	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
-	templates, err := tmpl.ParseGlob(filepath.Join(templatesDir, "*.html"))
+	templates, err := utils.LoadTemplates(templatesDir)
 	if err != nil {
 		return nil, err
 	}

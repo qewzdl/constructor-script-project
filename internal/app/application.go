@@ -3,9 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"html/template"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -326,12 +324,8 @@ func (a *Application) initRouter() error {
 
 	router.Use(middleware.SetupMiddleware(a.services.Setup))
 
-	tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
-	templates, err := tmpl.ParseGlob(filepath.Join(a.options.TemplatesDir, "*.html"))
-	if err != nil {
-		return fmt.Errorf("failed to load templates: %w", err)
-	}
-	router.SetHTMLTemplate(templates)
+	router.SetHTMLTemplate(a.templateHandler.templates)
+
 	logger.Info("Templates loaded successfully", nil)
 
 	router.GET("/health", func(c *gin.Context) {
@@ -348,8 +342,11 @@ func (a *Application) initRouter() error {
 	router.StaticFile("/favicon.ico", "./favicon.ico")
 
 	router.GET("/debug-templates", func(c *gin.Context) {
-		tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
-		tmpl, _ = tmpl.ParseGlob(filepath.Join(a.options.TemplatesDir, "*.html"))
+		tmpl, err := utils.LoadTemplates(a.options.TemplatesDir)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"templates": tmpl.DefinedTemplates(),

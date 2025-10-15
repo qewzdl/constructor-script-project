@@ -136,9 +136,25 @@ func GetTemplateFuncs() template.FuncMap {
 }
 
 func formatPlural(n int, one, few, many string) string {
-	if n == 1 {
-		return formatNumber(n, one)
+	abs := n
+	if abs < 0 {
+		abs = -abs
 	}
+
+	mod100 := abs % 100
+	if mod100 >= 11 && mod100 <= 14 {
+		return formatNumber(n, many)
+	}
+
+	switch abs % 10 {
+	case 1:
+		return formatNumber(n, one)
+	case 2, 3, 4:
+		if few != "" {
+			return formatNumber(n, few)
+		}
+	}
+
 	return formatNumber(n, many)
 }
 
