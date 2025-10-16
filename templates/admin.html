@@ -69,6 +69,37 @@
         </div>
     </section>
 
+    <section class="admin__section admin__section--analytics" aria-labelledby="admin-analytics-title">
+        <div class="admin__section-header">
+            <h2 id="admin-analytics-title" class="admin__section-title">Publishing trend</h2>
+            <p class="admin__section-description">
+                Review monthly posts and comments over the last year to understand how activity is evolving.
+            </p>
+        </div>
+        <div
+            class="admin__chart"
+            data-role="metrics-chart"
+            role="img"
+            aria-labelledby="admin-analytics-title admin-analytics-caption"
+        >
+            <div class="admin-chart__viewport">
+                <svg class="admin-chart__svg" viewBox="0 0 600 260" preserveAspectRatio="none" focusable="false"></svg>
+            </div>
+            <div class="admin-chart__footer">
+                <ul class="admin-chart__legend" data-role="chart-legend"></ul>
+                <ol
+                    class="admin-chart__summary"
+                    id="admin-analytics-caption"
+                    data-role="chart-summary"
+                    aria-live="polite"
+                ></ol>
+            </div>
+            <p class="admin-chart__empty" data-role="chart-empty" hidden>
+                Not enough recent activity to display a trend yet.
+            </p>
+        </div>
+    </section>
+
     <div class="admin__tabs" role="tablist" aria-label="Admin sections">
         <button type="button" class="admin__tab is-active" role="tab" aria-selected="true" data-tab="posts">
             Posts

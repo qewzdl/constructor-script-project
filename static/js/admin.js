@@ -53,6 +53,57 @@
         return "";
     };
 
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const createSvgElement = (tag, attributes = {}) => {
+        const element = document.createElementNS(SVG_NS, tag);
+        Object.entries(attributes).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                element.setAttribute(key, value);
+            }
+        });
+        return element;
+    };
+
+    const formatNumber = (value) => {
+        const numeric = Number(value);
+        if (Number.isNaN(numeric)) {
+            return "0";
+        }
+        try {
+            return numeric.toLocaleString();
+        } catch (error) {
+            return String(numeric);
+        }
+    };
+
+    const monthFormatter = (() => {
+        try {
+            return new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
+        } catch (error) {
+            return null;
+        }
+    })();
+
+    const formatMonthLabel = (value) => {
+        if (!value) {
+            return "";
+        }
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return typeof value === "string" ? value : "";
+        }
+        if (monthFormatter) {
+            try {
+                return monthFormatter.format(date);
+            } catch (error) {
+                // Ignore and fall back to ISO-like formatting.
+            }
+        }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        return `${year}-${month}`;
+    };
+
     const createSectionBuilder = (form) => {
         if (!form) {
             return null;
@@ -1039,6 +1090,16 @@
             }
         });
 
+        const chartContainer = root.querySelector('[data-role="metrics-chart"]');
+        const chartSvg = chartContainer?.querySelector("svg");
+        const chartLegend = chartContainer?.querySelector('[data-role="chart-legend"]');
+        const chartSummary = chartContainer?.querySelector('[data-role="chart-summary"]');
+        const chartEmpty = chartContainer?.querySelector('[data-role="chart-empty"]');
+        const chartSeries = [
+            { key: "posts", label: "Posts", color: "var(--admin-chart-posts)" },
+            { key: "comments", label: "Comments", color: "var(--admin-chart-comments)" },
+        ];
+
         const tables = {
             posts: root.querySelector("#admin-posts-table"),
             pages: root.querySelector("#admin-pages-table"),
@@ -1080,6 +1141,7 @@
 
         const state = {
             metrics: {},
+            activityTrend: [],
             posts: [],
             pages: [],
             categories: [],
@@ -1320,6 +1382,147 @@
                         ? Number(value).toLocaleString()
                         : String(value ?? "—");
                 }
+            });
+        };
+
+        const renderMetricsChart = (trend = []) => {
+            if (!chartContainer || !chartSvg || !chartLegend || !chartSummary || !chartEmpty) {
+                return;
+            }
+
+            const normalised = Array.isArray(trend)
+                ? trend
+                      .map((entry) => {
+                          const period = entry?.period || entry?.Period || entry?.date || entry?.Date || "";
+                          const postsValue = Number(entry?.posts ?? entry?.Posts ?? 0);
+                          const commentsValue = Number(entry?.comments ?? entry?.Comments ?? 0);
+                          return {
+                              period,
+                              posts: Number.isFinite(postsValue) ? Math.max(0, postsValue) : 0,
+                              comments: Number.isFinite(commentsValue) ? Math.max(0, commentsValue) : 0,
+                          };
+                      })
+                      .filter((entry) => entry.period)
+                : [];
+
+            const values = normalised.flatMap((point) =>
+                chartSeries.map((series) => {
+                    const numeric = Number(point[series.key]);
+                    return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
+                })
+            );
+            const maxValue = values.length ? Math.max(...values, 0) : 0;
+
+            chartLegend.innerHTML = "";
+            chartSummary.innerHTML = "";
+
+            if (!normalised.length || maxValue <= 0) {
+                chartSvg.innerHTML = "";
+                chartEmpty.hidden = false;
+                chartLegend.hidden = true;
+                chartSummary.hidden = true;
+                chartContainer.dataset.state = "empty";
+                return;
+            }
+
+            chartEmpty.hidden = true;
+            chartLegend.hidden = false;
+            chartSummary.hidden = false;
+            chartContainer.dataset.state = "ready";
+
+            const width = 600;
+            const height = 260;
+            const topPadding = 16;
+            const bottomPadding = 32;
+            const chartHeight = height - topPadding - bottomPadding;
+            const stepX = normalised.length > 1 ? width / (normalised.length - 1) : 0;
+
+            chartSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+            chartSvg.innerHTML = "";
+
+            const gridLines = 4;
+            for (let index = 0; index <= gridLines; index += 1) {
+                const y = topPadding + (chartHeight / gridLines) * index;
+                const line = createSvgElement("line", {
+                    x1: 0,
+                    x2: width,
+                    y1: y.toFixed(2),
+                    y2: y.toFixed(2),
+                    class: "admin-chart__grid-line",
+                });
+                chartSvg.appendChild(line);
+            }
+
+            chartSeries.forEach((series) => {
+                const pathData = normalised
+                    .map((point, index) => {
+                        const value = Number(point[series.key]);
+                        const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0;
+                        const x = normalised.length > 1 ? index * stepX : width / 2;
+                        const y = topPadding + chartHeight - (safeValue / maxValue) * chartHeight;
+                        return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
+                    })
+                    .join(" ");
+
+                const path = createSvgElement("path", {
+                    d: pathData,
+                    class: "admin-chart__line",
+                    stroke: series.color,
+                });
+                path.dataset.series = series.key;
+                chartSvg.appendChild(path);
+
+                normalised.forEach((point, index) => {
+                    const value = Number(point[series.key]);
+                    const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0;
+                    const x = normalised.length > 1 ? index * stepX : width / 2;
+                    const y = topPadding + chartHeight - (safeValue / maxValue) * chartHeight;
+                    const circle = createSvgElement("circle", {
+                        cx: x.toFixed(2),
+                        cy: y.toFixed(2),
+                        r: 4,
+                        class: "admin-chart__point",
+                        stroke: series.color,
+                    });
+                    circle.dataset.series = series.key;
+                    chartSvg.appendChild(circle);
+                });
+            });
+
+            chartSeries.forEach((series) => {
+                const legendItem = document.createElement("li");
+                legendItem.className = "admin-chart__legend-item";
+                legendItem.dataset.series = series.key;
+                const swatch = document.createElement("span");
+                swatch.className = "admin-chart__legend-swatch";
+                const label = document.createElement("span");
+                label.className = "admin-chart__legend-label";
+                label.textContent = series.label;
+                legendItem.appendChild(swatch);
+                legendItem.appendChild(label);
+                chartLegend.appendChild(legendItem);
+            });
+
+            normalised.forEach((point) => {
+                const item = document.createElement("li");
+                item.className = "admin-chart__summary-item";
+
+                const period = document.createElement("span");
+                period.className = "admin-chart__summary-period";
+                period.textContent = formatMonthLabel(point.period) || "—";
+                item.appendChild(period);
+
+                chartSeries.forEach((series) => {
+                    const value = Number(point[series.key]);
+                    const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0;
+                    const valueElement = document.createElement("span");
+                    valueElement.className = "admin-chart__summary-value";
+                    valueElement.dataset.series = series.key;
+                    valueElement.textContent = `${formatNumber(safeValue)} ${series.label.toLowerCase()}`;
+                    item.appendChild(valueElement);
+                });
+
+                chartSummary.appendChild(item);
             });
         };
 
@@ -1685,6 +1888,11 @@
                 const metrics = payload?.statistics || {};
                 state.metrics = metrics;
                 renderMetrics(metrics);
+                const trend = Array.isArray(payload?.activity_trend)
+                    ? payload.activity_trend
+                    : [];
+                state.activityTrend = trend;
+                renderMetricsChart(trend);
             } catch (error) {
                 handleRequestError(error);
             }
@@ -2172,6 +2380,7 @@
         postTagsInput?.addEventListener("input", renderTagSuggestions);
         
         clearAlert();
+        renderMetricsChart(state.activityTrend);
         loadStats();
         loadTags();
         loadCategories().then(() => {
