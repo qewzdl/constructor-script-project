@@ -291,13 +291,39 @@
             sections: [],
         };
 
+        let draggingIndex = null;
+
+        const clearDropIndicators = () => {
+            list
+                .querySelectorAll(".section-card--drop-before, .section-card--drop-after")
+                .forEach((card) => {
+                    card.classList.remove("section-card--drop-before", "section-card--drop-after");
+                    delete card.dataset.dropPosition;
+                });
+        };
+
+        const endDrag = () => {
+            list.classList.remove("section-builder__list--dragging");
+            clearDropIndicators();
+            draggingIndex = null;
+            list.querySelectorAll(".section-card").forEach((card) => {
+                card.classList.remove("section-card--dragging");
+                card.draggable = false;
+            });
+        };
+
         const moveSection = (fromIndex, toIndex) => {
-            if (toIndex < 0 || toIndex >= state.sections.length) {
+            if (fromIndex === toIndex) {
+                return;
+            }
+            if (fromIndex < 0 || fromIndex >= state.sections.length) {
                 return;
             }
             const [removed] = state.sections.splice(fromIndex, 1);
-            state.sections.splice(toIndex, 0, removed);
+            const boundedIndex = Math.max(0, Math.min(toIndex, state.sections.length));
+            state.sections.splice(boundedIndex, 0, removed);
             render();
+            endDrag();
         };
 
         const removeSection = (index) => {
@@ -353,8 +379,35 @@
         const createSectionCard = (section, index) => {
             const item = createElement("li", { className: "section-card" });
             item.dataset.sectionId = section.id;
+            item.dataset.index = index;
+            item.draggable = false;
 
             const header = createElement("div", { className: "section-card__header" });
+
+            const dragHandle = createElement("button", {
+                className: "section-card__drag-handle",
+                type: "button",
+                attrs: {
+                    "aria-label": "Reorder section",
+                    title: "Drag to reorder section",
+                },
+                html: "<span aria-hidden=\"true\">⋮⋮</span>",
+            });
+
+            dragHandle.addEventListener("pointerdown", () => {
+                item.draggable = true;
+            });
+
+            const resetDraggable = () => {
+                if (!item.classList.contains("section-card--dragging")) {
+                    item.draggable = false;
+                }
+            };
+
+            dragHandle.addEventListener("pointerup", resetDraggable);
+            dragHandle.addEventListener("pointercancel", resetDraggable);
+
+            header.appendChild(dragHandle);
             header.appendChild(
                 createElement("span", {
                     className: "section-card__title",
@@ -391,6 +444,62 @@
 
             header.appendChild(controls);
             item.appendChild(header);
+
+            item.addEventListener("dragstart", (event) => {
+                draggingIndex = index;
+                list.classList.add("section-builder__list--dragging");
+                item.classList.add("section-card--dragging");
+                try {
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", String(index));
+                } catch (error) {
+                    // ignore when dataTransfer is unavailable
+                }
+            });
+
+            item.addEventListener("dragover", (event) => {
+                if (draggingIndex === null || draggingIndex === index) {
+                    return;
+                }
+                event.preventDefault();
+                clearDropIndicators();
+                const rect = item.getBoundingClientRect();
+                const offset = event.clientY - rect.top;
+                const insertBefore = offset < rect.height / 2;
+                item.dataset.dropPosition = insertBefore ? "before" : "after";
+                item.classList.add(
+                    insertBefore ? "section-card--drop-before" : "section-card--drop-after"
+                );
+                try {
+                    event.dataTransfer.dropEffect = "move";
+                } catch (error) {
+                    // ignore when dataTransfer is unavailable
+                }
+            });
+
+            item.addEventListener("drop", (event) => {
+                if (draggingIndex === null) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                const fromIndex = draggingIndex;
+                const dropPosition = item.dataset.dropPosition === "before" ? "before" : "after";
+                let destination = dropPosition === "before" ? index : index + 1;
+                if (fromIndex < destination) {
+                    destination -= 1;
+                }
+                clearDropIndicators();
+                if (fromIndex === destination) {
+                    endDrag();
+                    return;
+                }
+                moveSection(fromIndex, destination);
+            });
+
+            item.addEventListener("dragend", () => {
+                endDrag();
+            });
 
             const body = createElement("div", { className: "section-card__body" });
             const titleId = `${section.id}-title`;
@@ -725,6 +834,32 @@
             wrapper.appendChild(body);
             return wrapper;
         };
+
+        list.addEventListener("dragover", (event) => {
+            if (draggingIndex === null) {
+                return;
+            }
+            event.preventDefault();
+            if (event.target === list) {
+                clearDropIndicators();
+            }
+        });
+
+        list.addEventListener("drop", (event) => {
+            if (draggingIndex === null) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            clearDropIndicators();
+            const fromIndex = draggingIndex;
+            const destination = state.sections.length - 1;
+            if (fromIndex === destination) {
+                endDrag();
+                return;
+            }
+            moveSection(fromIndex, destination);
+        });
 
         const render = () => {
             list.innerHTML = "";
