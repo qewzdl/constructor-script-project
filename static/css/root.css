@@ -1,37 +1,37 @@
 :root {
-    /* Цвета */
+    /* Colors */
     --color-bg: #ffffff;
-    --color-bg-dark: #121212;
     --color-text: #1a1a1a;
-    --color-text-light: #f5f5f5;
     --color-primary: #3b82f6;
     --color-secondary: #64748b;
     --color-accent: #10b981;
     --color-error: #ef4444;
     --color-border: #e5e7eb;
 
-    /* Шрифт */
+    /* Font */
     --font-family-base: "Outfit", "Inter", sans-serif;
-    --font-size-base: 16px;
-    --font-size-small: 14px;
-    --font-size-large: 18px;
 
-    /* Отступы и радиусы */
-    --spacing-xs: 0.25rem;
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 2rem;
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 16px;
+    /* Font sizes */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
 
-    /* Тени и переходы */
+    /* Sizes */
+    --size-min: 2px;
+    --size-xs: 4px;
+    --size-sm: 8px;
+    --size-base: 16px;
+    --size-mid: 32px;
+    --size-lg: 48px;
+    --size-max: 64px;
+
+    /* Shadows */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
-    --transition-fast: 0.15s ease;
-    --transition-base: 0.3s ease;
 
-    /* Контейнер */
-    --max-width: 1200px;
+    /* Container */
+    --max-width: 800px;
 }

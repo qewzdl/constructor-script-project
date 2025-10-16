@@ -8,7 +8,6 @@
 
     <section class="blog" aria-labelledby="blog-title">
         <h2 id="blog-title" class="blog__title">Latest Posts</h2>
-
         <div class="blog__posts">
             {{ if .Posts }}
             {{ range .Posts }}
@@ -18,7 +17,7 @@
             <p class="blog__empty">No posts available yet. Check back soon!</p>
             {{ end }}
         </div>
-
+        
         {{ with .Pagination }}
             {{ template "components/pagination" . }}
         {{ end }}
