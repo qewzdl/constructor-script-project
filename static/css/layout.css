@@ -1,0 +1,10 @@
+body {
+    min-height: 100vh;
+
+    diisplay: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+        "header"
+        "main"
+        "footer";
+}
