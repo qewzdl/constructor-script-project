@@ -336,11 +336,18 @@
             if (!section || !Array.isArray(section.elements)) {
                 return;
             }
-            if (toIndex < 0 || toIndex >= section.elements.length) {
+            if (fromIndex < 0 || fromIndex >= section.elements.length) {
+                return;
+            }
+            if (toIndex < 0 || toIndex > section.elements.length) {
+                return;
+            }
+            if (fromIndex === toIndex) {
                 return;
             }
             const [removed] = section.elements.splice(fromIndex, 1);
-            section.elements.splice(toIndex, 0, removed);
+            const boundedIndex = Math.max(0, Math.min(toIndex, section.elements.length));
+            section.elements.splice(boundedIndex, 0, removed);
             render();
         };
 
@@ -531,8 +538,47 @@
             body.appendChild(imageField);
 
             const elementsWrapper = createElement("div", { className: "section-elements" });
+            const elementList = createElement("div", { className: "section-element-list" });
+
+            let elementDraggingIndex = null;
+
+            const clearElementDropIndicators = () => {
+                elementList
+                    .querySelectorAll(
+                        ".section-element--drop-before, .section-element--drop-after"
+                    )
+                    .forEach((card) => {
+                        card.classList.remove(
+                            "section-element--drop-before",
+                            "section-element--drop-after"
+                        );
+                        delete card.dataset.dropPosition;
+                    });
+            };
+
+            const endElementDrag = () => {
+                elementList.classList.remove("section-element-list--dragging");
+                clearElementDropIndicators();
+                elementDraggingIndex = null;
+                elementList.querySelectorAll(".section-element").forEach((card) => {
+                    card.classList.remove("section-element--dragging");
+                    card.draggable = false;
+                });
+            };
+
+            const elementHelpers = {
+                clearDropIndicators: clearElementDropIndicators,
+                endDrag: endElementDrag,
+                getDraggingIndex: () => elementDraggingIndex,
+                startDrag: (dragIndex, card) => {
+                    elementDraggingIndex = dragIndex;
+                    elementList.classList.add("section-element-list--dragging");
+                    card.classList.add("section-element--dragging");
+                },
+            };
+
             if (!section.elements.length) {
-                elementsWrapper.appendChild(
+                elementList.appendChild(
                     createElement("p", {
                         className: "section-elements__empty",
                         textContent: "No elements added yet.",
@@ -540,11 +586,18 @@
                 );
             } else {
                 section.elements.forEach((element, elementIndex) => {
-                    elementsWrapper.appendChild(
-                        createElementCard(section, index, element, elementIndex)
+                    elementList.appendChild(
+                        createElementCard(
+                            section,
+                            index,
+                            element,
+                            elementIndex,
+                            elementHelpers
+                        )
                     );
                 });
             }
+            elementsWrapper.appendChild(elementList);
 
             const elementActions = createElement("div", { className: "section-elements__actions" });
             const addParagraph = createElement("button", {
@@ -587,11 +640,44 @@
             return item;
         };
 
-        const createElementCard = (section, sectionIndex, element, elementIndex) => {
+        const createElementCard = (
+            section,
+            sectionIndex,
+            element,
+            elementIndex,
+            elementDragHelpers
+        ) => {
             const wrapper = createElement("div", { className: "section-element" });
             wrapper.dataset.elementId = element.id;
+            wrapper.dataset.index = elementIndex;
+            wrapper.draggable = false;
 
             const header = createElement("div", { className: "section-element__header" });
+
+            const dragHandle = createElement("button", {
+                className: "section-element__drag-handle",
+                type: "button",
+                attrs: {
+                    "aria-label": "Reorder element",
+                    title: "Drag to reorder element",
+                },
+                html: "<span aria-hidden=\"true\">⋮⋮</span>",
+            });
+
+            dragHandle.addEventListener("pointerdown", () => {
+                wrapper.draggable = true;
+            });
+
+            const resetElementDraggable = () => {
+                if (!wrapper.classList.contains("section-element--dragging")) {
+                    wrapper.draggable = false;
+                }
+            };
+
+            dragHandle.addEventListener("pointerup", resetElementDraggable);
+            dragHandle.addEventListener("pointercancel", resetElementDraggable);
+
+            header.appendChild(dragHandle);
             header.appendChild(
                 createElement("span", {
                     className: "section-element__title",
@@ -627,6 +713,66 @@
 
             header.appendChild(controls);
             wrapper.appendChild(header);
+
+            wrapper.addEventListener("dragstart", (event) => {
+                elementDragHelpers.startDrag(elementIndex, wrapper);
+                try {
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", String(elementIndex));
+                } catch (error) {
+                    // ignore when dataTransfer is unavailable
+                }
+            });
+
+            wrapper.addEventListener("dragover", (event) => {
+                const draggingIndex = elementDragHelpers.getDraggingIndex();
+                if (draggingIndex === null || draggingIndex === elementIndex) {
+                    return;
+                }
+                event.preventDefault();
+                elementDragHelpers.clearDropIndicators();
+                const rect = wrapper.getBoundingClientRect();
+                const offset = event.clientY - rect.top;
+                const insertBefore = offset < rect.height / 2;
+                wrapper.dataset.dropPosition = insertBefore ? "before" : "after";
+                wrapper.classList.add(
+                    insertBefore
+                        ? "section-element--drop-before"
+                        : "section-element--drop-after"
+                );
+                try {
+                    event.dataTransfer.dropEffect = "move";
+                } catch (error) {
+                    // ignore when dataTransfer is unavailable
+                }
+            });
+
+            wrapper.addEventListener("drop", (event) => {
+                const draggingIndex = elementDragHelpers.getDraggingIndex();
+                if (draggingIndex === null) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                const fromIndex = draggingIndex;
+                const dropPosition =
+                    wrapper.dataset.dropPosition === "before" ? "before" : "after";
+                let destination = dropPosition === "before" ? elementIndex : elementIndex + 1;
+                if (fromIndex < destination) {
+                    destination -= 1;
+                }
+                elementDragHelpers.clearDropIndicators();
+                if (fromIndex === destination) {
+                    elementDragHelpers.endDrag();
+                    return;
+                }
+                elementDragHelpers.endDrag();
+                moveElement(sectionIndex, fromIndex, destination);
+            });
+
+            wrapper.addEventListener("dragend", () => {
+                elementDragHelpers.endDrag();
+            });
 
             const body = createElement("div", { className: "section-element__body" });
             if (element.type === "paragraph") {
