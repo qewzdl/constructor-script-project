@@ -1066,20 +1066,12 @@
         const pageSectionBuilder = pageForm
             ? window.SectionBuilder?.init(pageForm.querySelector('[data-section-builder="page"]'))
             : null;
-
-        const postContentField = postForm?.querySelector('textarea[name="content"]');
-        let postContentManuallyEdited = false;
-        postContentField?.addEventListener("input", () => {
-            if (!postContentField) {
-                return;
-            }
-            postContentManuallyEdited = postContentField.value.trim().length > 0;
-        });
+        const postContentField = postForm?.querySelector('[name="content"]');
 
         const sectionBuilder = createSectionBuilder(postForm);
         if (sectionBuilder) {
             sectionBuilder.onChange((sections) => {
-                if (!postContentField || postContentManuallyEdited) {
+                if (!postContentField) {
                     return;
                 }
                 postContentField.value = generateContentPreview(sections);
@@ -1526,9 +1518,7 @@
             postForm.description.value = post.description || "";
             postForm.content.value = post.content || "";
             if (postContentField) {
-                const existingContent = post.content || "";
-                postContentField.value = existingContent;
-                postContentManuallyEdited = Boolean(existingContent.trim());
+                postContentField.value = post.content || "";
             }
             if (sectionBuilder) {
                 const postSections = post.sections || post.Sections || [];
@@ -1570,7 +1560,6 @@
             }
             postForm.reset();
             delete postForm.dataset.id;
-            postContentManuallyEdited = false;
             if (sectionBuilder) {
                 sectionBuilder.reset();
             }
