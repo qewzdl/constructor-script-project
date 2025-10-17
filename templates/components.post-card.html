@@ -2,7 +2,18 @@
     {{ with .Post }}
     {{ $post := . }}
     {{ $classes := default "post-card" $.WrapperClass }}
-    <article class="{{ $classes }}"{{ if $.AriaLabelledby }} aria-labelledby="{{ $.AriaLabelledby }}"{{ end }}>
+    {{ $titleID := $.TitleID }}
+    {{ $articleLabelledby := $.AriaLabelledby }}
+    {{ if and (not $articleLabelledby) $titleID }}
+        {{ $articleLabelledby = $titleID }}
+    {{ end }}
+    <article
+        class="{{ $classes }}"
+        role="link"
+        tabindex="0"
+        data-post-url="/blog/post/{{ $post.Slug }}"
+        {{- if $articleLabelledby -}}aria-labelledby="{{ $articleLabelledby }}"{{- else -}}aria-label="Read post: {{ $post.Title }}"{{- end }}
+    >
         {{ if and $post.FeaturedImg (not $.HideImage) }}
             {{ if $.UseFigure }}
             <figure class="post-card__figure">
@@ -25,7 +36,6 @@
 
         <div class="post-card__content">
             {{ $heading := default "h2" $.Heading }}
-            {{ $titleID := $.TitleID }}
             {{ if eq $heading "h1" }}
             <h1 class="post-card__title"{{ if $titleID }} id="{{ $titleID }}"{{ end }}>
                 <a href="/blog/post/{{ $post.Slug }}" class="post-card__link">{{ $post.Title }}</a>
