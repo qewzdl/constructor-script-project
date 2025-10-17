@@ -57,6 +57,7 @@
     --font-family-base: "Outfit", "Inter", sans-serif;
 
     /* Font sizes */
+    --font-size-min: 0.5rem;
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;

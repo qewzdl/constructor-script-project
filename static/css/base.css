@@ -1178,11 +1178,14 @@ textarea.form-field__input {
 
 .category-list__link {
     margin: var(--size-sm) 0;
-    padding: var(--size-sm) 12px;
+    padding: var(--size-sm) var(--size-base);
     display: flex;
     justify-content: center;
     align-items: center;
     border: 1px solid var(--color-border);
+    color: var(--color-secondary);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
 }
 
 .category-list__link:hover {
