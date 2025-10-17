@@ -1082,6 +1082,45 @@
             });
         };
 
+        const focusFirstField = (form) => {
+            if (!form) {
+                return null;
+            }
+            const selector = [
+                'input:not([type="hidden"]):not([disabled])',
+                "textarea:not([disabled])",
+                "select:not([disabled])",
+            ].join(", ");
+            const field = form.querySelector(selector);
+            if (field && typeof field.focus === "function") {
+                field.focus();
+                return field;
+            }
+            if (typeof form.focus === "function") {
+                form.focus();
+            }
+            return field || null;
+        };
+
+        const bringFormIntoView = (form) => {
+            if (!form) {
+                return;
+            }
+            if (typeof form.scrollIntoView === "function") {
+                try {
+                    form.scrollIntoView({ behavior: "smooth", block: "start" });
+                } catch (error) {
+                    form.scrollIntoView();
+                }
+            }
+            const scheduleFocus = () => focusFirstField(form);
+            if (typeof window.requestAnimationFrame === "function") {
+                window.requestAnimationFrame(scheduleFocus);
+            } else {
+                scheduleFocus();
+            }
+        };
+
         const metricElements = new Map();
         root.querySelectorAll(".admin__metric").forEach((card) => {
             const key = card.dataset.metric;
@@ -1914,6 +1953,9 @@
             if (postTagsInput) {
                 postTagsInput.value = "";
             }
+            if (postContentField) {
+                postContentField.value = "";
+            }
             if (postSubmitButton) {
                 postSubmitButton.textContent = "Create post";
             }
@@ -1923,6 +1965,7 @@
             postSectionBuilder?.reset();
             renderTagSuggestions();
             highlightRow(tables.posts);
+            bringFormIntoView(postForm);
         };
 
         const selectPage = (id) => {
@@ -1981,6 +2024,7 @@
             }
             pageSectionBuilder?.reset();
             highlightRow(tables.pages);
+            bringFormIntoView(pageForm);
         };
 
         const selectCategory = (id) => {
@@ -2021,6 +2065,7 @@
                 categoryDeleteButton.hidden = true;
             }
             highlightRow(tables.categories);
+            bringFormIntoView(pageForm);
         };
 
         const loadStats = async () => {
