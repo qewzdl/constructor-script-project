@@ -162,6 +162,21 @@ func (h *PostHandler) GetAllTags(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"tags": tags})
 }
 
+func (h *PostHandler) DeleteTag(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag id"})
+		return
+	}
+
+	if err := h.postService.DeleteTag(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "tag deleted successfully"})
+}
+
 func (h *PostHandler) GetPostsByTag(c *gin.Context) {
 	slug := c.Param("slug")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

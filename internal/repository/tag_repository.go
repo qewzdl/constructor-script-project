@@ -8,9 +8,11 @@ import (
 
 type TagRepository interface {
 	Create(tag *models.Tag) error
+	Delete(id uint) error
 	GetByID(id uint) (*models.Tag, error)
 	GetBySlug(slug string) (*models.Tag, error)
 	GetAll() ([]models.Tag, error)
+	GetUsed() ([]models.Tag, error)
 	ExistsByName(name string) (bool, error)
 }
 
@@ -27,7 +29,12 @@ func (r *tagRepository) Create(tag *models.Tag) error {
 }
 
 func (r *tagRepository) Delete(id uint) error {
-	return r.db.Unscoped().Delete(&models.Tag{}, id).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("DELETE FROM post_tags WHERE tag_id = ?", id).Error; err != nil {
+			return err
+		}
+		return tx.Unscoped().Delete(&models.Tag{}, id).Error
+	})
 }
 
 func (r *tagRepository) GetByID(id uint) (*models.Tag, error) {
@@ -45,6 +52,17 @@ func (r *tagRepository) GetBySlug(slug string) (*models.Tag, error) {
 func (r *tagRepository) GetAll() ([]models.Tag, error) {
 	var tags []models.Tag
 	err := r.db.Find(&tags).Error
+	return tags, err
+}
+
+func (r *tagRepository) GetUsed() ([]models.Tag, error) {
+	var tags []models.Tag
+	err := r.db.Model(&models.Tag{}).
+		Select("tags.*").
+		Joins("JOIN post_tags ON post_tags.tag_id = tags.id").
+		Group("tags.id").
+		Order("LOWER(tags.name)").
+		Find(&tags).Error
 	return tags, err
 }
 

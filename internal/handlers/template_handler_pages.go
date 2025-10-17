@@ -238,7 +238,7 @@ func (h *TemplateHandler) RenderBlog(c *gin.Context) {
 	}
 
 	var tags []models.Tag
-	if loadedTags, tagErr := h.postService.GetAllTags(); tagErr != nil {
+	if loadedTags, tagErr := h.postService.GetTagsInUse(); tagErr != nil {
 		logger.Error(tagErr, "Failed to load tags", nil)
 	} else {
 		tags = loadedTags
@@ -479,7 +479,7 @@ func (h *TemplateHandler) RenderTag(c *gin.Context) {
 	}
 
 	var tags []models.Tag
-	if loadedTags, tagErr := h.postService.GetAllTags(); tagErr != nil {
+	if loadedTags, tagErr := h.postService.GetTagsInUse(); tagErr != nil {
 		logger.Error(tagErr, "Failed to load tags", nil)
 	} else {
 		tags = loadedTags
@@ -610,6 +610,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"CategoriesIndex": "/api/v1/categories",
 			"Comments":        "/api/v1/admin/comments",
 			"Tags":            "/api/v1/tags",
+			"TagsAdmin":       "/api/v1/admin/tags",
 			"SiteSettings":    "/api/v1/admin/settings/site",
 		},
 		"NoIndex": true,

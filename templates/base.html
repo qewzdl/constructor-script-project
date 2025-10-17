@@ -121,7 +121,16 @@
                         class="header__logo-image"
                     />
                 </a>
-                <ul class="header__nav-list">
+                <button
+                    type="button"
+                    class="header__menu-toggle"
+                    data-menu-toggle
+                    aria-controls="primary-navigation"
+                    aria-expanded="false"
+                >
+                    <span class="header__menu-icon" aria-hidden="true"></span>
+                </button>
+                <ul class="header__nav-list" id="primary-navigation" data-menu>
                     <li class="header__nav-item">
                         <a href="/" class="header__nav-link" aria-current="page"
                             >Home</a
@@ -271,6 +280,7 @@
         </footer>
         {{ end }}
 
+        <script src="{{ asset "/static/js/header.js" }}" defer></script>
         <script src="{{ asset "/static/js/auth.js" }}" defer></script>
         <script src="{{ asset "/static/js/comments.js" }}" defer></script>
         {{ if .Scripts }} {{ range .Scripts }}

@@ -23,6 +23,14 @@ type PostService struct {
 	cache        *cache.Cache
 }
 
+func (s *PostService) invalidateTagCaches() {
+	if s.cache == nil {
+		return
+	}
+	s.cache.Delete("tags:all")
+	s.cache.Delete("tags:used")
+}
+
 func NewPostService(
 	postRepo repository.PostRepository,
 	tagRepo repository.TagRepository,
@@ -101,6 +109,7 @@ func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*mode
 		return nil, fmt.Errorf("failed to create post: %w", err)
 	}
 
+	s.invalidateTagCaches()
 	if s.cache != nil {
 		s.cache.InvalidatePostsCache()
 	}
@@ -156,18 +165,23 @@ func (s *PostService) Update(id uint, req models.UpdatePostRequest, userID uint,
 		}
 	}
 
-	if len(req.TagNames) > 0 {
-		tags, err := s.getOrCreateTags(req.TagNames)
-		if err != nil {
-			return nil, err
+	if req.TagNames != nil {
+		if len(req.TagNames) == 0 {
+			post.Tags = []models.Tag{}
+		} else {
+			tags, err := s.getOrCreateTags(req.TagNames)
+			if err != nil {
+				return nil, err
+			}
+			post.Tags = tags
 		}
-		post.Tags = tags
 	}
 
 	if err := s.postRepo.Update(post); err != nil {
 		return nil, err
 	}
 
+	s.invalidateTagCaches()
 	if s.cache != nil {
 		s.cache.InvalidatePost(id)
 		s.cache.InvalidatePostsCache()
@@ -298,9 +312,7 @@ func (s *PostService) getOrCreateTags(tagNames []string) ([]models.Tag, error) {
 					return nil, err
 				}
 
-				if s.cache != nil {
-					s.cache.Delete("tags:all")
-				}
+				s.invalidateTagCaches()
 			} else {
 				return nil, err
 			}
@@ -326,6 +338,7 @@ func (s *PostService) Delete(id uint, userID uint, isAdmin bool) error {
 		return err
 	}
 
+	s.invalidateTagCaches()
 	if s.cache != nil {
 		s.cache.InvalidatePost(id)
 		s.cache.InvalidatePostsCache()
@@ -517,6 +530,41 @@ func (s *PostService) GetAllTags() ([]models.Tag, error) {
 	}
 
 	return tags, nil
+}
+
+func (s *PostService) GetTagsInUse() ([]models.Tag, error) {
+
+	if s.cache != nil {
+		var tags []models.Tag
+		if err := s.cache.Get("tags:used", &tags); err == nil {
+			return tags, nil
+		}
+	}
+
+	tags, err := s.tagRepo.GetUsed()
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(tags, func(i, j int) bool {
+		return strings.ToLower(tags[i].Name) < strings.ToLower(tags[j].Name)
+	})
+
+	if s.cache != nil {
+		s.cache.Set("tags:used", tags, 2*time.Hour)
+	}
+
+	return tags, nil
+}
+
+func (s *PostService) DeleteTag(id uint) error {
+	if err := s.tagRepo.Delete(id); err != nil {
+		return err
+	}
+
+	s.invalidateTagCaches()
+
+	return nil
 }
 
 func (s *PostService) GetPopularPosts(limit int) ([]models.Post, error) {

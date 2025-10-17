@@ -447,6 +447,8 @@ func (a *Application) initRouter() error {
 			admin.PUT("/comments/:id/approve", a.handlers.Comment.ApproveComment)
 			admin.PUT("/comments/:id/reject", a.handlers.Comment.RejectComment)
 
+			admin.DELETE("/tags/:id", a.handlers.Post.DeleteTag)
+
 			admin.GET("/settings/site", a.handlers.Setup.GetSiteSettings)
 			admin.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
 
