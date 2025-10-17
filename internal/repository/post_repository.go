@@ -74,7 +74,7 @@ func (r *postRepository) GetAll(offset, limit int, categoryID *uint, tagName *st
 }
 
 func (r *postRepository) Update(post *models.Post) error {
-	return r.db.Session(&gorm.Session{FullSaveAssociations: true}).Save(post).Error
+	return r.db.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Category").Save(post).Error
 }
 
 func (r *postRepository) Delete(id uint) error {
