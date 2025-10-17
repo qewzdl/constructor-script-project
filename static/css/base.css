@@ -136,6 +136,13 @@ header {
     font-size: var(--font-size-base);
 }
 
+.header__nav-link--active {
+    border-color: transparent;
+    color: var(--color-primary);
+    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    font-weight: 600;
+}
+
 @media (max-width: 768px) {
     .header__menu-toggle {
         display: inline-flex;
@@ -240,6 +247,7 @@ header {
     display: inline-flex;
     align-items: center;
     gap: var(--size-xs);
+    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
     padding: var(--size-xs) var(--size-sm);
     border: 1px solid var(--color-border);
     color: var(--color-primary);

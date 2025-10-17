@@ -77,6 +77,7 @@ func (h *TemplateHandler) renderTemplate(c *gin.Context, templateName, title, de
 func (h *TemplateHandler) renderWithLayout(c *gin.Context, layout, content string, data gin.H) {
 	h.addUserContext(c, data)
 	h.applySEOMetadata(c, data)
+	h.setNavigationState(c, data)
 
 	if noIndex, ok := data["NoIndex"].(bool); ok && noIndex {
 		c.Header("X-Robots-Tag", "noindex, nofollow")
@@ -197,6 +198,34 @@ func (h *TemplateHandler) applySEOMetadata(c *gin.Context, data gin.H) {
 	if strings.TrimSpace(getString(data, "TwitterDescription")) == "" {
 		data["TwitterDescription"] = description
 	}
+}
+
+func (h *TemplateHandler) setNavigationState(c *gin.Context, data gin.H) {
+	if _, exists := data["ActiveNav"]; exists {
+		return
+	}
+
+	path := c.Request.URL.Path
+	active := ""
+
+	switch {
+	case path == "/" || path == "":
+		active = "home"
+	case strings.HasPrefix(path, "/blog"):
+		active = "blog"
+	case strings.HasPrefix(path, "/search"):
+		active = "search"
+	case strings.HasPrefix(path, "/admin"):
+		active = "admin"
+	case strings.HasPrefix(path, "/profile"):
+		active = "profile"
+	case strings.HasPrefix(path, "/login"):
+		active = "login"
+	case strings.HasPrefix(path, "/register"):
+		active = "register"
+	}
+
+	data["ActiveNav"] = active
 }
 
 func (h *TemplateHandler) resolveAbsoluteURL(baseURL, value string, r *http.Request) string {

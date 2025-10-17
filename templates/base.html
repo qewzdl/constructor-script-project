@@ -130,22 +130,41 @@
                 >
                     <span class="header__menu-icon" aria-hidden="true"></span>
                 </button>
+                {{ $activeNav := .ActiveNav }}
                 <ul class="header__nav-list" id="primary-navigation" data-menu>
                     <li class="header__nav-item">
-                        <a href="/" class="header__nav-link" aria-current="page"
+                        <a
+                            href="/"
+                            class="header__nav-link{{ if eq $activeNav "home" }} header__nav-link--active{{ end }}"
+                            {{ if eq $activeNav "home" }}aria-current="page"{{ end }}
                             >Home</a
                         >
                     </li>
                     <li class="header__nav-item">
-                        <a href="/blog" class="header__nav-link">Blog</a>
+                        <a
+                            href="/blog"
+                            class="header__nav-link{{ if eq $activeNav "blog" }} header__nav-link--active{{ end }}"
+                            {{ if eq $activeNav "blog" }}aria-current="page"{{ end }}
+                            >Blog</a
+                        >
                     </li>
                     <li class="header__nav-item">
-                        <a href="/search" class="header__nav-link">Search</a>
+                        <a
+                            href="/search"
+                            class="header__nav-link{{ if eq $activeNav "search" }} header__nav-link--active{{ end }}"
+                            {{ if eq $activeNav "search" }}aria-current="page"{{ end }}
+                            >Search</a
+                        >
                     </li>
                     {{ with .CurrentUser }} {{ if and $.IsAuthenticated (eq
                     .Role "admin") }}
                     <li class="header__nav-item" data-auth="auth">
-                        <a href="/admin" class="header__nav-link">Admin</a>
+                        <a
+                            href="/admin"
+                            class="header__nav-link{{ if eq $activeNav "admin" }} header__nav-link--active{{ end }}"
+                            {{ if eq $activeNav "admin" }}aria-current="page"{{ end }}
+                            >Admin</a
+                        >
                     </li>
                     {{ end }} {{ end }} {{ if .IsAuthenticated }}
                     <li
@@ -159,7 +178,12 @@
                         end
                         }}
                     >
-                        <a href="/profile" class="header__nav-link">Profile</a>
+                        <a
+                            href="/profile"
+                            class="header__nav-link{{ if eq $activeNav "profile" }} header__nav-link--active{{ end }}"
+                            {{ if eq $activeNav "profile" }}aria-current="page"{{ end }}
+                            >Profile</a
+                        >
                     </li>
                     <li
                         class="header__nav-item"
@@ -191,7 +215,12 @@
                         end
                         }}
                     >
-                        <a href="/login" class="header__nav-link">Sign in</a>
+                        <a
+                            href="/login"
+                            class="header__nav-link{{ if eq $activeNav "login" }} header__nav-link--active{{ end }}"
+                            {{ if eq $activeNav "login" }}aria-current="page"{{ end }}
+                            >Sign in</a
+                        >
                     </li>
                     <li
                         class="header__nav-item"
@@ -203,7 +232,10 @@
                         end
                         }}
                     >
-                        <a href="/register" class="header__nav-link"
+                        <a
+                            href="/register"
+                            class="header__nav-link{{ if eq $activeNav "register" }} header__nav-link--active{{ end }}"
+                            {{ if eq $activeNav "register" }}aria-current="page"{{ end }}
                             >Create account</a
                         >
                     </li>
