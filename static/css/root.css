@@ -7,9 +7,11 @@
     --color-primary-hover: color-mix(in srgb, var(--color-primary) 90%, #ffffff 10%);
     --color-secondary: #64748b;
     --color-accent: #10b981;
+    --color-accent-transparent: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --color-text-accent: color-mix(in srgb, var(--color-accent) 80%, #063);
     --color-error: #ef4444;
+    --color-error-transparent: color-mix(in srgb, var(--color-error) 12%, transparent);
     --color-border: #e5e7eb;
-
     --color-bg-darker: #121212;
     --color-text-darker: #ffffff;
     --color-secondary-darker: #94a3b8;
@@ -24,7 +26,10 @@
     --color-primary-hover-light: color-mix(in srgb, var(--color-primary) 90%, #ffffff 10%);
     --color-secondary-light: #64748b;
     --color-accent-light: #10b981;
+    --color-accent-transparent-light: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --color-text-accent-light: color-mix(in srgb, var(--color-accent) 80%, #063);
     --color-error-light: #ef4444;
+    --color-error-transparent-light: color-mix(in srgb, var(--color-error) 12%, transparent);
     --color-border-light: #e5e7eb;
     --color-text-darker-light: #ffffff;
     --color-secondary-darker-light: #94a3b8;
@@ -39,7 +44,10 @@
     --color-primary-hover-dark: color-mix(in srgb, var(--color-primary) 90%, #ffffff 10%);
     --color-secondary-dark: #94a3b8;
     --color-accent-dark: #10b981;
+    --color-accent-transparent-dark: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    --color-text-accent-dark: color-mix(in srgb, var(--color-accent) 80%, #063);
     --color-error-dark: #ef4444;
+    --color-error-transparent-dark: color-mix(in srgb, var(--color-error) 12%, transparent);
     --color-border-dark: #374151;
     --color-text-darker-dark: #ffffff;
     --color-secondary-darker-dark: #94a3b8;
@@ -82,7 +90,10 @@
     --color-primary-hover: var(--color-primary-hover-light);
     --color-secondary: var(--color-secondary-light);
     --color-accent: var(--color-accent-light);
+    --color-accent-transparent: var(--color-accent-transparent-light);
+    --color-text-accent: var(--color-text-accent-light);
     --color-error: var(--color-error-light);
+    --color-error-transparent: var(--color-error-transparent-light);
     --color-border: var(--color-border-light);
     --color-text-darker: var(--color-text-darker-light);
     --color-secondary-darker: var(--color-secondary-darker-light);
@@ -99,7 +110,10 @@
     --color-primary-hover: var(--color-primary-hover-dark);
     --color-secondary: var(--color-secondary-dark);
     --color-accent: var(--color-accent-dark);
+    --color-accent-transparent: var(--color-accent-transparent-dark);
+    --color-text-accent: var(--color-text-accent-dark);
     --color-error: var(--color-error-dark);
+    --color-error-transparent: var(--color-error-transparent-dark);
     --color-border: var(--color-border-dark);
     --color-text-darker: var(--color-text-darker-dark);
     --color-secondary-darker: var(--color-secondary-darker-dark);

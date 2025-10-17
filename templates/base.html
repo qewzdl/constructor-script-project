@@ -27,6 +27,29 @@
         <meta name="robots" content="index, follow" />
         {{ end }}
 
+        <script>
+            (function () {
+                const storageKey = "theme";
+                const root = document.documentElement;
+
+                try {
+                    const storedTheme = localStorage.getItem(storageKey);
+                    if (storedTheme === "light" || storedTheme === "dark") {
+                        root.setAttribute("data-theme", storedTheme);
+                        return;
+                    }
+                } catch (error) {}
+
+                const prefersDark =
+                    window.matchMedia &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+                if (prefersDark) {
+                    root.setAttribute("data-theme", "dark");
+                }
+            })();
+        </script>
+
         <!-- Core CSS stylesheets -->
          <link rel="stylesheet" href="{{ asset "/static/css/root.css" }}" />
         <link rel="stylesheet" href="{{ asset "/static/css/layout.css" }}" />
@@ -241,6 +264,17 @@
                     </li>
                     {{ end }}
                 </ul>
+                <button
+                    type="button"
+                    class="header__theme-toggle"
+                    data-theme-toggle
+                    aria-label="Toggle dark mode"
+                >
+                    <span aria-hidden="true" class="header__theme-icon">🌙</span>
+                    <span class="header__theme-label" data-theme-toggle-label>
+                        Dark mode
+                    </span>
+                </button>
             </nav>
         </header>
         {{ end }}
@@ -312,6 +346,7 @@
         </footer>
         {{ end }}
 
+        <script src="{{ asset "/static/js/theme.js" }}" defer></script>
         <script src="{{ asset "/static/js/header.js" }}" defer></script>
         <script src="{{ asset "/static/js/auth.js" }}" defer></script>
         <script src="{{ asset "/static/js/comments.js" }}" defer></script>

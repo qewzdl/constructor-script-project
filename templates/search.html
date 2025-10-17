@@ -22,14 +22,90 @@
             </div>
 
             <div class="search__input-group">
-                <label class="search__label" for="search-type">Filter by</label>
-                <select id="search-type" class="search__select" name="type">
-                    <option value="all" {{ if eq .SearchType "all" }}selected{{ end }}>Title & content</option>
-                    <option value="title" {{ if eq .SearchType "title" }}selected{{ end }}>Title</option>
-                    <option value="content" {{ if eq .SearchType "content" }}selected{{ end }}>Content</option>
-                    <option value="tag" {{ if eq .SearchType "tag" }}selected{{ end }}>Tag</option>
-                    <option value="author" {{ if eq .SearchType "author" }}selected{{ end }}>Author</option>
-                </select>
+                <label class="search__label" id="search-type-label" for="search-type-trigger">Filter by</label>
+                <div class="search__custom-select" data-custom-select>
+                    <input
+                        type="hidden"
+                        name="type"
+                        value="{{ if .SearchType }}{{ .SearchType }}{{ else }}all{{ end }}"
+                        data-custom-select-input
+                    />
+                    <button
+                        id="search-type-trigger"
+                        class="search__custom-trigger"
+                        type="button"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-labelledby="search-type-label search-type-trigger"
+                        aria-controls="search-type-options"
+                        data-custom-select-trigger
+                    >
+                        <span data-custom-select-label>
+                            {{- if eq .SearchType "title" -}}Title{{- else if eq .SearchType "content" -}}Content{{- else if eq .SearchType "tag" -}}Tag{{- else if eq .SearchType "author" -}}Author{{- else -}}Title &amp; content{{- end -}}
+                        </span>
+                        <span class="search__custom-icon" aria-hidden="true"></span>
+                    </button>
+                    <ul
+                        id="search-type-options"
+                        class="search__custom-options"
+                        role="listbox"
+                        aria-labelledby="search-type-label"
+                        tabindex="-1"
+                        hidden
+                        data-custom-select-list
+                    >
+                        <li
+                            id="search-type-option-all"
+                            class="search__custom-option{{ if or (eq .SearchType "" ) (eq .SearchType "all") }} search__custom-option--selected{{ end }}"
+                            role="option"
+                            data-value="all"
+                            aria-selected="{{ if or (eq .SearchType "" ) (eq .SearchType "all") }}true{{ else }}false{{ end }}"
+                            data-custom-select-option
+                        >
+                            Title &amp; content
+                        </li>
+                        <li
+                            id="search-type-option-title"
+                            class="search__custom-option{{ if eq .SearchType "title" }} search__custom-option--selected{{ end }}"
+                            role="option"
+                            data-value="title"
+                            aria-selected="{{ if eq .SearchType "title" }}true{{ else }}false{{ end }}"
+                            data-custom-select-option
+                        >
+                            Title
+                        </li>
+                        <li
+                            id="search-type-option-content"
+                            class="search__custom-option{{ if eq .SearchType "content" }} search__custom-option--selected{{ end }}"
+                            role="option"
+                            data-value="content"
+                            aria-selected="{{ if eq .SearchType "content" }}true{{ else }}false{{ end }}"
+                            data-custom-select-option
+                        >
+                            Content
+                        </li>
+                        <li
+                            id="search-type-option-tag"
+                            class="search__custom-option{{ if eq .SearchType "tag" }} search__custom-option--selected{{ end }}"
+                            role="option"
+                            data-value="tag"
+                            aria-selected="{{ if eq .SearchType "tag" }}true{{ else }}false{{ end }}"
+                            data-custom-select-option
+                        >
+                            Tag
+                        </li>
+                        <li
+                            id="search-type-option-author"
+                            class="search__custom-option{{ if eq .SearchType "author" }} search__custom-option--selected{{ end }}"
+                            role="option"
+                            data-value="author"
+                            aria-selected="{{ if eq .SearchType "author" }}true{{ else }}false{{ end }}"
+                            data-custom-select-option
+                        >
+                            Author
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
 

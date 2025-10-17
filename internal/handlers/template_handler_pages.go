@@ -328,6 +328,7 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 		"Result":      result,
 		"SearchQuery": query,
 		"Styles":      []string{"/static/css/search.css"},
+		"Scripts":     []string{"/static/js/search.js"},
 	}
 
 	if result != nil {
