@@ -1,5 +1,5 @@
 :root {
-    /* Colors */
+    /* Base colors (fallback) */
     --color-bg: #ffffff;
     --color-text: #1a1a1a;
     --color-primary: #3b82f6;
@@ -8,7 +8,38 @@
     --color-error: #ef4444;
     --color-border: #e5e7eb;
 
-    /* Font */
+    --color-bg-darker: #121212;
+    --color-text-darker: #ffffff;
+    --color-secondary-darker: #94a3b8;
+    --color-border-darker: #374151;
+
+    /* Light mode */
+    --color-bg-light: #ffffff;
+    --color-bg-darker-light: #121212;
+    --color-text-light: #1a1a1a;
+    --color-primary-light: #3b82f6;
+    --color-secondary-light: #64748b;
+    --color-accent-light: #10b981;
+    --color-error-light: #ef4444;
+    --color-border-light: #e5e7eb;
+    --color-text-darker-light: #ffffff;
+    --color-secondary-darker-light: #94a3b8;
+    --color-border-darker-light: #374151;
+
+    /* Dark mode */
+    --color-bg-dark: #121212;
+    --color-bg-darker-dark: #000000;
+    --color-text-dark: #e5e7eb;
+    --color-primary-dark: #3b82f6;
+    --color-secondary-dark: #94a3b8;
+    --color-accent-dark: #10b981;
+    --color-error-dark: #ef4444;
+    --color-border-dark: #374151;
+    --color-text-darker-dark: #ffffff;
+    --color-secondary-darker-dark: #94a3b8;
+    --color-border-darker-dark: #374151;
+
+    /* Typography */
     --font-family-base: "Outfit", "Inter", sans-serif;
 
     /* Font sizes */
@@ -18,20 +49,61 @@
     --font-size-lg: 1.125rem;
     --font-size-xl: 1.25rem;
 
-    /* Sizes */
+    /* Spacing and sizes */
     --size-min: 2px;
     --size-xs: 4px;
     --size-sm: 8px;
     --size-base: 16px;
     --size-mid: 32px;
+    --size-md: 40px;
     --size-lg: 48px;
     --size-max: 64px;
+    --size-max-lg: 96px;
+    --size-max-xl: 128px;
 
     /* Shadows */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
 
-    /* Container */
-    --max-width: 800px;
+    /* Layout */
+    --max-width: 1000px;
+    --side-padding: 8%;
+}
+
+/* Light theme override */
+:root[data-theme="light"] {
+    --color-bg: var(--color-bg-light);
+    --color-bg-darker: var(--color-bg-darker-light);
+    --color-text: var(--color-text-light);
+    --color-primary: var(--color-primary-light);
+    --color-secondary: var(--color-secondary-light);
+    --color-accent: var(--color-accent-light);
+    --color-error: var(--color-error-light);
+    --color-border: var(--color-border-light);
+    --color-text-darker: var(--color-text-darker-light);
+    --color-secondary-darker: var(--color-secondary-darker-light);
+    --color-border-darker: var(--color-border-darker-light);
+}
+
+/* Dark theme override */
+:root[data-theme="dark"] {
+    --color-bg: var(--color-bg-dark);
+    --color-bg-darker: var(--color-bg-darker-dark);
+    --color-text: var(--color-text-dark);
+    --color-primary: var(--color-primary-dark);
+    --color-secondary: var(--color-secondary-dark);
+    --color-accent: var(--color-accent-dark);
+    --color-error: var(--color-error-dark);
+    --color-border: var(--color-border-dark);
+    --color-text-darker: var(--color-text-darker-dark);
+    --color-secondary-darker: var(--color-secondary-darker-dark);
+    --color-border-darker: var(--color-border-darker-dark);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    :root {
+        --side-padding: 4%;
+    }
 }

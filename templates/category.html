@@ -32,17 +32,11 @@
     </header>
 
     {{ with .Categories }}
-    {{ $active := $.Category.Slug }}
-    <nav class="blog__tags category-page__tags" aria-label="Browse categories">
-        <ul class="tag-list">
+    <nav class="blog__categories" aria-label="Browse by category">
+        <ul class="category-list">
             {{ range . }}
-            {{ $isActive := eq .Slug $active }}
-            <li class="tag-list__item">
-                <a
-                    href="/category/{{ .Slug }}"
-                    class="tag-list__link{{ if $isActive }} tag-list__link--active{{ end }}"
-                    {{ if $isActive }}aria-current="page"{{ end }}
-                >
+            <li class="category-list__item">
+                <a href="/category/{{ .Slug }}" class="category-list__link">
                     {{ if .Name }}
                         {{ .Name }}
                     {{ else }}

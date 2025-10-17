@@ -1,12 +1,14 @@
 <section class="blog" aria-labelledby="blog-title">
-    <h1 id="blog-title" class="blog__title">Latest Posts</h1>
+    <header class="blog__header">
+        <h1 id="blog-title" class="blog__title">Latest Posts</h1>
+    </header>
 
     {{ with .Categories }}
     <nav class="blog__categories" aria-label="Browse by category">
-        <ul class="tag-list">
+        <ul class="category-list">
             {{ range . }}
-            <li class="tag-list__item">
-                <a href="/category/{{ .Slug }}" class="tag-list__link">
+            <li class="category-list__item">
+                <a href="/category/{{ .Slug }}" class="category-list__link">
                     {{ if .Name }}
                         {{ .Name }}
                     {{ else }}

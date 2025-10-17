@@ -2,12 +2,14 @@
     <header class="home__header">
         <h1 class="home__title">Hello, {{ .Site.Name }}!</h1>
         <p class="home__subtitle">
-            Welcome to your new website powered by {{ .Site.Name }}.
+            Welcome to your new website powered by Constructor Script.
         </p>
     </header>
 
     <section class="blog" aria-labelledby="blog-title">
-        <h2 id="blog-title" class="blog__title">Latest Posts</h2>
+        <header class="blog__header">
+            <h2 id="blog-title" class="blog__title">Latest Posts</h2>
+        </header>
         <div class="blog__posts">
             {{ if .Posts }}
             {{ range .Posts }}
@@ -17,7 +19,7 @@
             <p class="blog__empty">No posts available yet. Check back soon!</p>
             {{ end }}
         </div>
-        
+
         {{ with .Pagination }}
             {{ template "components/pagination" . }}
         {{ end }}

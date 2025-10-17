@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
     <head>
         <!-- Define character encoding and responsive viewport -->
         <meta charset="UTF-8" />
@@ -208,14 +208,66 @@
 
         {{ if .HideChrome }} {{ else }}
         <footer class="footer" role="contentinfo">
-            <section class="footer__info">
-                <p class="footer__text">
+            <div class="footer__container">
+                <section class="footer__info">
+                    <a
+                        href="/"
+                        class="footer__brand-link"
+                        aria-label="Go to {{ .Site.Name }} homepage"
+                    >
+                        {{ .Site.Name }}
+                    </a>
+                    <p class="footer__text">
+                        Build, publish, and grow your content with confidence.
+                    </p>
+                </section>
+                <nav class="footer__nav" aria-label="Footer navigation">
+                    <div class="footer__group">
+                        <h2 class="footer__heading">Explore</h2>
+                        <ul class="footer__list">
+                            <li class="footer__item">
+                                <a href="/" class="footer__link">Home</a>
+                            </li>
+                            <li class="footer__item">
+                                <a href="/blog" class="footer__link">Blog</a>
+                            </li>
+                            <li class="footer__item">
+                                <a href="/search" class="footer__link">Search</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="footer__group">
+                        <h2 class="footer__heading">Account</h2>
+                        <ul class="footer__list">
+                            <li class="footer__item">
+                                <a href="/login" class="footer__link">Sign in</a>
+                            </li>
+                            <li class="footer__item">
+                                <a href="/register" class="footer__link">Create account</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="footer__group">
+                        <h2 class="footer__heading">Legal</h2>
+                        <ul class="footer__list">
+                            <li class="footer__item">
+                                <a href="/page/terms" class="footer__link">Terms</a>
+                            </li>
+                            <li class="footer__item">
+                                <a href="/page/privacy" class="footer__link">Privacy</a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+            <div class="footer__bottom">
+                <p class="footer__copyright">
                     &copy;
                     <time datetime="2025" class="footer__year">2025</time>
                     <span class="footer__brand">{{ .Site.Name }}</span>. All
                     rights reserved.
                 </p>
-            </section>
+            </div>
         </footer>
         {{ end }}
 
