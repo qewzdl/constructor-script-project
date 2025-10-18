@@ -1666,7 +1666,7 @@ textarea.form-field__input {
     border-radius: 100%;
     border: none;
     background-color: transparent;
-    color: var(--color-white);
+    color: #ffffff;
     font-size: 0;
     cursor: pointer;
     display: grid;
