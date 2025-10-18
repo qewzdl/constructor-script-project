@@ -516,7 +516,6 @@ textarea.form-field__input {
 }
 
 .profile__container {
-    width: min(100%, 960px);
     display: grid;
     gap: var(--size-max);
 }
