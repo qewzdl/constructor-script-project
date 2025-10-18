@@ -97,10 +97,10 @@
         </div>
 
         {{ if .Post.Tags }}
-        <ul class="post__tags" aria-label="Tags">
+        <ul class="tag-list" aria-label="Tags">
             {{ range .Post.Tags }}
-            <li class="post__tag">
-                <a href="/tag/{{ .Slug }}" class="post__tag-link">#{{ .Name }}</a>
+            <li class="tag-list__item">
+                <a href="/tag/{{ .Slug }}" class="tag-list__link">#{{ .Name }}</a>
             </li>
             {{ end }}
         </ul>
@@ -116,38 +116,38 @@
     <section class="post__content">
         {{ .Content }}
     </section>
-
-    {{ if .RelatedPosts }}
-    <section class="post__related" aria-label="Related posts">
-        <h2 class="post__related-title">Related Articles</h2>
-        <div class="post__related-grid">
-            {{ range .RelatedPosts }}
-            <article class="post__related-card">
-                {{ if .FeaturedImg }}
-                <img
-                    src="{{ .FeaturedImg }}"
-                    alt="{{ .Title }}"
-                    class="post__related-image"
-                />
-                {{ end }}
-                <div class="post__related-content">
-                    <h3 class="post__related-heading">
-                        <a href="/blog/post/{{ .Slug }}" class="post__related-link"
-                            >{{ .Title }}</a
-                        >
-                    </h3>
-                    <time
-                        class="post__related-date"
-                        datetime='{{ .CreatedAt.Format "2006-01-02" }}'
-                        >{{ .CreatedAt.Format "02.01.2006" }}</time
-                    >
-                </div>
-            </article>
-            {{ end }}
-        </div>
-    </section>
-    {{ end }}
 </article>
+
+{{ if .RelatedPosts }}
+<section class="post__related" aria-label="Related posts">
+    <h2 class="post__related-title">Related Articles</h2>
+    <div class="post__related-grid">
+        {{ range .RelatedPosts }}
+        <article class="post__related-card">
+            {{ if .FeaturedImg }}
+            <img
+                src="{{ .FeaturedImg }}"
+                alt="{{ .Title }}"
+                class="post__related-image"
+            />
+            {{ end }}
+            <div class="post__related-content">
+                <h3 class="post__related-heading">
+                    <a href="/blog/post/{{ .Slug }}" class="post__related-link"
+                        >{{ .Title }}</a
+                    >
+                </h3>
+                <time
+                    class="post__related-date"
+                    datetime='{{ .CreatedAt.Format "2006-01-02" }}'
+                    >{{ .CreatedAt.Format "02.01.2006" }}</time
+                >
+            </div>
+        </article>
+        {{ end }}
+    </div>
+</section>
+{{ end }}
 
 {{ $root := . }}
 {{ $postPath := printf "/blog/post/%s" .Post.Slug }}
