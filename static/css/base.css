@@ -605,6 +605,7 @@ textarea.form-field__input {
     gap: var(--size-base);
     padding: var(--size-base);
     background-color: var(--color-primary-transparent);
+    border: 1px solid var(--color-border);
 }
 
 .search__fields {

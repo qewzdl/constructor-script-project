@@ -11,7 +11,7 @@
     --color-text-accent: color-mix(in srgb, var(--color-accent) 80%, #063);
     --color-error: #ef4444;
     --color-error-transparent: color-mix(in srgb, var(--color-error) 12%, transparent);
-    --color-border: #e5e7eb;
+    --color-border: #cccccc;
     --color-bg-darker: #121212;
     --color-text-darker: #ffffff;
     --color-secondary-darker: #94a3b8;
@@ -30,7 +30,7 @@
     --color-text-accent-light: color-mix(in srgb, var(--color-accent) 80%, #063);
     --color-error-light: #ef4444;
     --color-error-transparent-light: color-mix(in srgb, var(--color-error) 12%, transparent);
-    --color-border-light: #e5e7eb;
+    --color-border-light: #cccccc;
     --color-text-darker-light: #ffffff;
     --color-secondary-darker-light: #94a3b8;
     --color-border-darker-light: #374151;
