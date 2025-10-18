@@ -123,7 +123,7 @@
     <h2 class="post__related-title">Related Articles</h2>
     <div class="post__related-grid">
         {{ range .RelatedPosts }}
-        <article class="post__related-card">
+        <a class="post__related-card" href="/blog/post/{{ .Slug }}">
             {{ if .FeaturedImg }}
             <img
                 src="{{ .FeaturedImg }}"
@@ -132,18 +132,14 @@
             />
             {{ end }}
             <div class="post__related-content">
-                <h3 class="post__related-heading">
-                    <a href="/blog/post/{{ .Slug }}" class="post__related-link"
-                        >{{ .Title }}</a
-                    >
-                </h3>
+                <h3 class="post__related-heading">{{ .Title }}</h3>
                 <time
                     class="post__related-date"
                     datetime='{{ .CreatedAt.Format "2006-01-02" }}'
                     >{{ .CreatedAt.Format "02.01.2006" }}</time
                 >
             </div>
-        </article>
+        </a>
         {{ end }}
     </div>
 </section>

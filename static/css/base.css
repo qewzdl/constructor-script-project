@@ -1191,6 +1191,8 @@ textarea.form-field__input {
     gap: 0;
     flex: 0 0 auto;
     margin-bottom: var(--size-sm);
+    color: var(--color-text);
+    text-decoration: none;
 }
 
 .post__related-image {
@@ -1210,9 +1212,10 @@ textarea.form-field__input {
     font-weight: 600;
 }
 
-.post__related-link:hover,
-.post__related-link:focus-visible {
+.post__related-card:hover,
+.post__related-card:focus-visible {
     color: var(--color-primary);
+    border-color: var(--color-primary);
 }
 
 .post__related-date {
