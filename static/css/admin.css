@@ -109,32 +109,99 @@
 .admin__chart {
     display: grid;
     gap: var(--size-base);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+    background: var(--admin-chart-surface);
     padding: var(--size-mid);
+    position: relative;
+    overflow: hidden;
 }
 
 .admin-chart__viewport {
     width: 100%;
     min-height: 260px;
-    border: 1px dashed color-mix(in srgb, var(--color-border) 70%, transparent);
-    background: repeating-linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--color-border) 50%, transparent) 0,
-        color-mix(in srgb, var(--color-border) 50%, transparent) 1px,
-        transparent 1px,
-        transparent 60px
-    );
+    border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 92%, transparent), color-mix(in srgb, var(--color-primary-transparent) 40%, var(--color-bg)));
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    position: relative;
+    isolation: isolate;
+}
+
+.admin-chart__viewport::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+            180deg,
+            transparent 0,
+            transparent calc(100% - 48px),
+            color-mix(in srgb, var(--color-border) 45%, transparent) calc(100% - 48px)
+        ),
+        repeating-linear-gradient(
+            180deg,
+            transparent 0,
+            transparent 63px,
+            color-mix(in srgb, var(--color-border) 35%, transparent) 64px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent 59px,
+            color-mix(in srgb, var(--color-border) 20%, transparent) 60px
+        );
+    opacity: 0.4;
+    mix-blend-mode: soft-light;
+    pointer-events: none;
+    z-index: 0;
 }
 
 .admin-chart__svg {
     width: 100%;
     height: 100%;
     display: block;
+    position: relative;
+    z-index: 1;
+}
+
+.admin-chart__grid-line {
+    stroke: var(--admin-chart-grid-line);
+    stroke-width: 1;
+}
+
+.admin-chart__grid-line:last-of-type {
+    stroke-opacity: 0.8;
+}
+
+.admin-chart__line {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.admin-chart__line[data-series="posts"] {
+    stroke: var(--admin-chart-posts);
+    filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--admin-chart-posts) 20%, transparent));
+}
+
+.admin-chart__line[data-series="comments"] {
+    stroke: var(--admin-chart-comments);
+    filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--admin-chart-comments) 20%, transparent));
+}
+
+.admin-chart__point {
+    fill: var(--admin-chart-point-bg);
+    stroke-width: 3;
+}
+
+.admin-chart__point[data-series="posts"] {
+    stroke: var(--admin-chart-posts);
+}
+
+.admin-chart__point[data-series="comments"] {
+    stroke: var(--admin-chart-comments);
 }
 
 .admin-chart__footer {
@@ -151,11 +218,83 @@
     color: var(--color-secondary);
 }
 
+.admin-chart__legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-xs);
+    padding: var(--size-xs) var(--size-sm);
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    background-color: var(--color-bg);
+}
+
+.admin-chart__legend-swatch {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+}
+
+.admin-chart__legend-item[data-series="posts"] .admin-chart__legend-swatch {
+    background: var(--admin-chart-posts);
+}
+
+.admin-chart__legend-item[data-series="comments"] .admin-chart__legend-swatch {
+    background: var(--admin-chart-comments);
+}
+
+.admin-chart__legend-label {
+    color: var(--color-secondary);
+}
+
 .admin-chart__summary {
     display: grid;
-    gap: var(--size-xs);
+    gap: var(--size-sm);
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.admin-chart__summary-item {
+    display: grid;
+    gap: var(--size-xs);
+    padding: var(--size-sm);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg);
+}
+
+.admin-chart__summary-period {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.admin-chart__summary-value {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-chart__summary-value::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+}
+
+.admin-chart__summary-value[data-series="posts"] {
+    color: color-mix(in srgb, var(--admin-chart-posts) 75%, var(--color-text));
+}
+
+.admin-chart__summary-value[data-series="posts"]::before {
+    background: var(--admin-chart-posts);
+}
+
+.admin-chart__summary-value[data-series="comments"] {
+    color: color-mix(in srgb, var(--admin-chart-comments) 75%, var(--color-text));
+}
+
+.admin-chart__summary-value[data-series="comments"]::before {
+    background: var(--admin-chart-comments);
 }
 
 .admin-chart__empty {
@@ -410,7 +549,6 @@
     background: color-mix(in srgb, var(--color-error-transparent) 50%, var(--color-bg));
     color: var(--color-error);
     font-weight: 600;
-    transition: background 0.2s ease, color 0.2s ease;
 }
 
 .admin-form__delete:hover,
@@ -912,5 +1050,23 @@
 }
 
 :root[data-theme="dark"] .admin-chart__viewport {
+    border-color: color-mix(in srgb, var(--color-border-darker) 80%, transparent);
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-bg) 90%, transparent),
+        color-mix(in srgb, var(--color-primary-transparent) 55%, var(--color-bg))
+    );
+}
+
+:root[data-theme="dark"] .admin__chart {
     border-color: var(--color-border-darker);
+}
+
+:root[data-theme="dark"] .admin-chart__viewport {
+    border-color: var(--color-border-darker);
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-bg) 90%, transparent),
+        color-mix(in srgb, var(--color-primary-transparent) 55%, var(--color-bg))
+    );
 }

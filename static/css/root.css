@@ -53,6 +53,16 @@
     --color-secondary-darker-dark: #94a3b8;
     --color-border-darker-dark: #374151;
 
+    /* Admin chart */
+    --admin-chart-posts: #2563eb;
+    --admin-chart-comments: #f97316;
+    --admin-chart-surface: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg) 94%);
+    --admin-chart-grid-line: color-mix(in srgb, var(--color-border) 65%, transparent);
+    --admin-chart-point-bg: var(--color-bg);
+    --admin-chart-surface: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg) 88%);
+    --admin-chart-grid-line: color-mix(in srgb, var(--color-border) 45%, transparent);
+    --admin-chart-point-bg: color-mix(in srgb, var(--color-bg) 70%, transparent);
+
     /* Typography */
     --font-family-base: "Outfit", "Inter", sans-serif;
 
