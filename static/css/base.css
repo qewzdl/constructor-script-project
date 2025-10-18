@@ -997,6 +997,7 @@ textarea.form-field__input {
 .post__image {
     width: 100%;
     display: block;
+    border: 1px solid var(--color-border);
 }
 
 .post__title {
@@ -1131,8 +1132,8 @@ textarea.form-field__input {
     margin: var(--size-base) 0;
 }
 
-.post__section-image img {
-    border: 1px solid var(--color-border);
+.post__content .post__image {
+    margin: var(--size-base) 0;
 }
 
 .post__image-group {
@@ -1627,6 +1628,76 @@ textarea.form-field__input {
 .category-list__link:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
+}
+
+.post-image-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(10, 10, 20, 0.88);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.post-image-modal--active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.post-image-modal__image {
+    max-width: min(90vw, 1200px);
+    max-height: 90vh;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+    object-fit: contain;
+}
+
+.post-image-modal__close {
+    position: absolute;
+    top: var(--size-base);
+    right: var(--size-base);
+    width: var(--size-mid);
+    height: var(--size-mid);
+    border-radius: 100%;
+    border: none;
+    background-color: transparent;
+    color: var(--color-white);
+    font-size: 0;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+}
+
+.post-image-modal__close::before,
+.post-image-modal__close::after {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 2px;
+    background-color: currentColor;
+    border-radius: 999px;
+}
+
+.post-image-modal__close::before {
+    transform: rotate(45deg);
+}
+
+.post-image-modal__close::after {
+    transform: rotate(-45deg);
+}
+
+.post-image-modal__close:hover,
+.post-image-modal__close:focus {
+    outline: none;
+}
+
+.post-image-modal[hidden] {
+    display: none;
 }
 
 @media (min-width: 768px) {

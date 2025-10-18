@@ -70,6 +70,7 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 		"OGImage":        post.FeaturedImg,
 		"TwitterImage":   post.FeaturedImg,
 		"StructuredData": structuredData,
+		"Scripts":        []string{"/static/js/post.js"},
 	})
 
 	if len(keywords) > 0 {
