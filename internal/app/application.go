@@ -47,36 +47,39 @@ type Application struct {
 }
 
 type repositoryContainer struct {
-	User     repository.UserRepository
-	Category repository.CategoryRepository
-	Post     repository.PostRepository
-	Tag      repository.TagRepository
-	Comment  repository.CommentRepository
-	Search   repository.SearchRepository
-	Page     repository.PageRepository
-	Setting  repository.SettingRepository
+	User       repository.UserRepository
+	Category   repository.CategoryRepository
+	Post       repository.PostRepository
+	Tag        repository.TagRepository
+	Comment    repository.CommentRepository
+	Search     repository.SearchRepository
+	Page       repository.PageRepository
+	Setting    repository.SettingRepository
+	SocialLink repository.SocialLinkRepository
 }
 
 type serviceContainer struct {
-	Auth     *service.AuthService
-	Category *service.CategoryService
-	Post     *service.PostService
-	Comment  *service.CommentService
-	Search   *service.SearchService
-	Upload   *service.UploadService
-	Page     *service.PageService
-	Setup    *service.SetupService
+	Auth       *service.AuthService
+	Category   *service.CategoryService
+	Post       *service.PostService
+	Comment    *service.CommentService
+	Search     *service.SearchService
+	Upload     *service.UploadService
+	Page       *service.PageService
+	Setup      *service.SetupService
+	SocialLink *service.SocialLinkService
 }
 
 type handlerContainer struct {
-	Auth     *handlers.AuthHandler
-	Category *handlers.CategoryHandler
-	Post     *handlers.PostHandler
-	Comment  *handlers.CommentHandler
-	Search   *handlers.SearchHandler
-	Upload   *handlers.UploadHandler
-	Page     *handlers.PageHandler
-	Setup    *handlers.SetupHandler
+	Auth       *handlers.AuthHandler
+	Category   *handlers.CategoryHandler
+	Post       *handlers.PostHandler
+	Comment    *handlers.CommentHandler
+	Search     *handlers.SearchHandler
+	Upload     *handlers.UploadHandler
+	Page       *handlers.PageHandler
+	Setup      *handlers.SetupHandler
+	SocialLink *handlers.SocialLinkHandler
 }
 
 func New(cfg *config.Config, opts Options) (*Application, error) {
@@ -204,6 +207,7 @@ func (a *Application) runMigrations() error {
 		&models.Tag{},
 		&models.Comment{},
 		&models.Setting{},
+		&models.SocialLink{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
@@ -250,40 +254,43 @@ func (a *Application) initCache() {
 
 func (a *Application) initRepositories() {
 	a.repositories = repositoryContainer{
-		User:     repository.NewUserRepository(a.db),
-		Category: repository.NewCategoryRepository(a.db),
-		Post:     repository.NewPostRepository(a.db),
-		Tag:      repository.NewTagRepository(a.db),
-		Comment:  repository.NewCommentRepository(a.db),
-		Search:   repository.NewSearchRepository(a.db),
-		Page:     repository.NewPageRepository(a.db),
-		Setting:  repository.NewSettingRepository(a.db),
+		User:       repository.NewUserRepository(a.db),
+		Category:   repository.NewCategoryRepository(a.db),
+		Post:       repository.NewPostRepository(a.db),
+		Tag:        repository.NewTagRepository(a.db),
+		Comment:    repository.NewCommentRepository(a.db),
+		Search:     repository.NewSearchRepository(a.db),
+		Page:       repository.NewPageRepository(a.db),
+		Setting:    repository.NewSettingRepository(a.db),
+		SocialLink: repository.NewSocialLinkRepository(a.db),
 	}
 }
 
 func (a *Application) initServices() {
 	a.services = serviceContainer{
-		Auth:     service.NewAuthService(a.repositories.User, a.cfg.JWTSecret),
-		Category: service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache),
-		Post:     service.NewPostService(a.repositories.Post, a.repositories.Tag, a.repositories.Category, a.cache, a.repositories.Setting),
-		Comment:  service.NewCommentService(a.repositories.Comment),
-		Search:   service.NewSearchService(a.repositories.Search),
-		Upload:   service.NewUploadService(a.cfg.UploadDir),
-		Page:     service.NewPageService(a.repositories.Page, a.cache),
-		Setup:    service.NewSetupService(a.repositories.User, a.repositories.Setting),
+		Auth:       service.NewAuthService(a.repositories.User, a.cfg.JWTSecret),
+		Category:   service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache),
+		Post:       service.NewPostService(a.repositories.Post, a.repositories.Tag, a.repositories.Category, a.cache, a.repositories.Setting),
+		Comment:    service.NewCommentService(a.repositories.Comment),
+		Search:     service.NewSearchService(a.repositories.Search),
+		Upload:     service.NewUploadService(a.cfg.UploadDir),
+		Page:       service.NewPageService(a.repositories.Page, a.cache),
+		Setup:      service.NewSetupService(a.repositories.User, a.repositories.Setting),
+		SocialLink: service.NewSocialLinkService(a.repositories.SocialLink),
 	}
 }
 
 func (a *Application) initHandlers() error {
 	a.handlers = handlerContainer{
-		Auth:     handlers.NewAuthHandler(a.services.Auth),
-		Category: handlers.NewCategoryHandler(a.services.Category),
-		Post:     handlers.NewPostHandler(a.services.Post),
-		Comment:  handlers.NewCommentHandler(a.services.Comment),
-		Search:   handlers.NewSearchHandler(a.services.Search),
-		Upload:   handlers.NewUploadHandler(a.services.Upload),
-		Page:     handlers.NewPageHandler(a.services.Page),
-		Setup:    handlers.NewSetupHandler(a.services.Setup, a.cfg),
+		Auth:       handlers.NewAuthHandler(a.services.Auth),
+		Category:   handlers.NewCategoryHandler(a.services.Category),
+		Post:       handlers.NewPostHandler(a.services.Post),
+		Comment:    handlers.NewCommentHandler(a.services.Comment),
+		Search:     handlers.NewSearchHandler(a.services.Search),
+		Upload:     handlers.NewUploadHandler(a.services.Upload),
+		Page:       handlers.NewPageHandler(a.services.Page),
+		Setup:      handlers.NewSetupHandler(a.services.Setup, a.cfg),
+		SocialLink: handlers.NewSocialLinkHandler(a.services.SocialLink),
 	}
 
 	templateHandler, err := handlers.NewTemplateHandler(
@@ -294,6 +301,7 @@ func (a *Application) initHandlers() error {
 		a.services.Search,
 		a.services.Setup,
 		a.services.Category,
+		a.services.SocialLink,
 		a.cfg,
 		a.options.TemplatesDir,
 	)
@@ -451,6 +459,11 @@ func (a *Application) initRouter() error {
 
 			admin.GET("/settings/site", a.handlers.Setup.GetSiteSettings)
 			admin.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
+
+			admin.GET("/social-links", a.handlers.SocialLink.List)
+			admin.POST("/social-links", a.handlers.SocialLink.Create)
+			admin.PUT("/social-links/:id", a.handlers.SocialLink.Update)
+			admin.DELETE("/social-links/:id", a.handlers.SocialLink.Delete)
 
 			admin.GET("/stats", handlers.GetStatistics(a.db))
 

@@ -12,6 +12,7 @@
     data-endpoint-tags="{{ index .AdminEndpoints "Tags" }}"
     data-endpoint-tags-admin="{{ index .AdminEndpoints "TagsAdmin" }}"
     data-endpoint-site-settings="{{ index .AdminEndpoints "SiteSettings" }}"
+    data-endpoint-social-links="{{ index .AdminEndpoints "SocialLinks" }}"
 >
     <header class="admin__header">
         <div class="admin__intro">
@@ -465,6 +466,45 @@
                         </button>
                     </div>
                 </form>
+                <section class="admin-social" aria-labelledby="admin-social-title">
+                    <div class="admin-social__header">
+                        <h3 id="admin-social-title" class="admin-form__legend">Social profiles</h3>
+                        <p class="admin-form__hint">
+                            Manage the social networks displayed in the site footer. Add a name, destination URL, and an optional icon for each profile.
+                        </p>
+                    </div>
+                    <div class="admin-social__content">
+                        <ul class="admin-social__list" data-role="social-list" aria-live="polite">
+                            <li class="admin-social__empty" data-role="social-empty">No social profiles added yet.</li>
+                        </ul>
+                        <form id="admin-social-form" class="admin-social__form" novalidate>
+                            <input type="hidden" name="id" />
+                            <label class="admin-form__label">
+                                Name
+                                <input type="text" name="name" required class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__label">
+                                Profile URL
+                                <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
+                            </label>
+                            <label class="admin-form__label">
+                                Icon URL
+                                <input type="text" name="icon" class="admin-form__input" placeholder="/static/icons/social/twitter.svg" />
+                                <small class="admin-form__hint">
+                                    Provide an SVG or PNG icon. Leave blank to display the network initials.
+                                </small>
+                            </label>
+                            <div class="admin-form__actions admin-form__actions--inline">
+                                <button type="submit" class="admin-form__submit" data-role="social-submit">
+                                    Save social link
+                                </button>
+                                <button type="button" class="admin-form__cancel" data-role="social-cancel" hidden>
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
             </div>
         </section>
     </div>

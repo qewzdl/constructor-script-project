@@ -3,6 +3,7 @@
     --color-bg: #ffffff;
     --color-text: #1a1a1a;
     --color-primary: #3b82f6;
+    --color-primary-opposite: #ffffff;
     --color-primary-transparent: color-mix(in srgb, var(--color-primary) 10%, transparent);
     --color-primary-hover: color-mix(in srgb, var(--color-primary) 90%, #ffffff 10%);
     --color-secondary: #64748b;
@@ -22,6 +23,7 @@
     --color-bg-darker-light: #121212;
     --color-text-light: #1a1a1a;
     --color-primary-light: #3b82f6;
+    --color-primary-opposite-light: #ffffff;
     --color-primary-transparent-light: color-mix(in srgb, var(--color-primary) 10%, transparent);
     --color-primary-hover-light: color-mix(in srgb, var(--color-primary) 90%, #ffffff 10%);
     --color-secondary-light: #64748b;
@@ -40,6 +42,7 @@
     --color-bg-darker-dark: #000000;
     --color-text-dark: #e5e7eb;
     --color-primary-dark: #3b82f6;
+    --color-primary-opposite-dark: #ffffffff;
     --color-primary-transparent-dark: color-mix(in srgb, var(--color-primary) 10%, transparent);
     --color-primary-hover-dark: color-mix(in srgb, var(--color-primary) 90%, #ffffff 10%);
     --color-secondary-dark: #94a3b8;
@@ -98,6 +101,7 @@
     --color-bg-darker: var(--color-bg-darker-light);
     --color-text: var(--color-text-light);
     --color-primary: var(--color-primary-light);
+    --color-primary-opposite: var(--color-primary-opposite-light);
     --color-primary-transparent: var(--color-primary-transparent-light);
     --color-primary-hover: var(--color-primary-hover-light);
     --color-secondary: var(--color-secondary-light);
@@ -118,6 +122,7 @@
     --color-bg-darker: var(--color-bg-darker-dark);
     --color-text: var(--color-text-dark);
     --color-primary: var(--color-primary-dark);
+    --color-primary-opposite: var(--color-primary-opposite-dark);
     --color-primary-transparent: var(--color-primary-transparent-dark);
     --color-primary-hover: var(--color-primary-hover-dark);
     --color-secondary: var(--color-secondary-dark);

@@ -1411,6 +1411,7 @@
             tags: root.dataset.endpointTags,
             tagsAdmin: root.dataset.endpointTagsAdmin,
             siteSettings: root.dataset.endpointSiteSettings,
+            socialLinks: root.dataset.endpointSocialLinks,
         };
 
         const alertElement = document.getElementById('admin-alert');
@@ -1550,6 +1551,11 @@
         const pageForm = root.querySelector('#admin-page-form');
         const categoryForm = root.querySelector('#admin-category-form');
         const settingsForm = root.querySelector('#admin-settings-form');
+        const socialList = root.querySelector('[data-role="social-list"]');
+        const socialEmpty = root.querySelector('[data-role="social-empty"]');
+        const socialForm = document.getElementById('admin-social-form');
+        const socialSubmitButton = socialForm?.querySelector('[data-role="social-submit"]');
+        const socialCancelButton = socialForm?.querySelector('[data-role="social-cancel"]');
         const postDeleteButton = postForm?.querySelector(
             '[data-role="post-delete"]'
         );
@@ -1609,6 +1615,8 @@
             categories: [],
             comments: [],
             tags: [],
+            socialLinks: [],
+            editingSocialLinkId: '',
             defaultCategoryId: '',
             site: null,
             postSearchQuery: '',
@@ -2950,6 +2958,249 @@
             }
         };
 
+        const renderSocialLinks = () => {
+            if (!socialList) {
+                return;
+            }
+            const links = Array.isArray(state.socialLinks)
+                ? state.socialLinks
+                : [];
+            socialList
+                .querySelectorAll('[data-role="social-item"]')
+                .forEach((item) => item.remove());
+            if (!links.length) {
+                if (socialEmpty) {
+                    socialEmpty.hidden = false;
+                }
+                return;
+            }
+            if (socialEmpty) {
+                socialEmpty.hidden = true;
+            }
+            links.forEach((link) => {
+                if (!link) {
+                    return;
+                }
+                const li = document.createElement('li');
+                li.className = 'admin-social__item';
+                li.dataset.role = 'social-item';
+                const idValue = link.id || link.ID || link.Id;
+                if (idValue !== undefined) {
+                    li.dataset.id = String(idValue);
+                }
+
+                const details = document.createElement('div');
+                details.className = 'admin-social__details';
+
+                const name = document.createElement('span');
+                name.className = 'admin-social__name';
+                name.textContent = link.name || link.Name || 'Social link';
+                details.appendChild(name);
+
+                const url = document.createElement('a');
+                url.className = 'admin-social__url';
+                url.href = link.url || link.URL || '#';
+                url.target = '_blank';
+                url.rel = 'noopener noreferrer';
+                url.textContent = link.url || link.URL || '';
+                details.appendChild(url);
+
+                const actions = document.createElement('div');
+                actions.className = 'admin-social__actions';
+
+                const editButton = document.createElement('button');
+                editButton.type = 'button';
+                editButton.className = 'admin-social__button';
+                editButton.dataset.action = 'edit';
+                editButton.textContent = 'Edit';
+                actions.appendChild(editButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'admin-social__button admin-social__button--danger';
+                deleteButton.dataset.action = 'delete';
+                deleteButton.textContent = 'Delete';
+                actions.appendChild(deleteButton);
+
+                li.appendChild(details);
+                li.appendChild(actions);
+                socialList.appendChild(li);
+            });
+        };
+
+        const resetSocialForm = () => {
+            if (!socialForm) {
+                return;
+            }
+            socialForm.reset();
+            const idField = socialForm.querySelector('input[name="id"]');
+            if (idField) {
+                idField.value = '';
+            }
+            state.editingSocialLinkId = '';
+            if (socialSubmitButton) {
+                socialSubmitButton.textContent = 'Save social link';
+            }
+            if (socialCancelButton) {
+                socialCancelButton.hidden = true;
+                socialCancelButton.disabled = false;
+            }
+        };
+
+        const startEditSocialLink = (link) => {
+            if (!socialForm || !link) {
+                return;
+            }
+            const idField = socialForm.querySelector('input[name="id"]');
+            const nameField = socialForm.querySelector('input[name="name"]');
+            const urlField = socialForm.querySelector('input[name="url"]');
+            const iconField = socialForm.querySelector('input[name="icon"]');
+
+            const idValue = link.id || link.ID || link.Id;
+            if (idField) {
+                idField.value = idValue ? String(idValue) : '';
+            }
+            if (nameField) {
+                nameField.value = link.name || link.Name || '';
+            }
+            if (urlField) {
+                urlField.value = link.url || link.URL || '';
+            }
+            if (iconField) {
+                iconField.value = link.icon || link.Icon || '';
+            }
+            state.editingSocialLinkId = idField?.value || '';
+            if (socialSubmitButton) {
+                socialSubmitButton.textContent = 'Update social link';
+            }
+            if (socialCancelButton) {
+                socialCancelButton.hidden = false;
+            }
+            bringFormIntoView(socialForm);
+        };
+
+        const loadSocialLinks = async () => {
+            if (!endpoints.socialLinks) {
+                return;
+            }
+            try {
+                const payload = await apiRequest(endpoints.socialLinks);
+                state.socialLinks = payload?.social_links || [];
+                renderSocialLinks();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleSocialFormSubmit = async (event) => {
+            event.preventDefault();
+            if (!socialForm || !endpoints.socialLinks) {
+                return;
+            }
+
+            const nameField = socialForm.querySelector('input[name="name"]');
+            const urlField = socialForm.querySelector('input[name="url"]');
+            const iconField = socialForm.querySelector('input[name="icon"]');
+
+            const name = nameField ? nameField.value.trim() : '';
+            const url = urlField ? urlField.value.trim() : '';
+            const icon = iconField ? iconField.value.trim() : '';
+
+            if (!name) {
+                showAlert('Please provide the social network name.', 'error');
+                focusFirstField(socialForm);
+                return;
+            }
+
+            if (!url) {
+                showAlert('Please provide the URL for the social profile.', 'error');
+                focusFirstField(socialForm);
+                return;
+            }
+
+            const payload = { name, url, icon };
+            const isEditing = Boolean(state.editingSocialLinkId);
+            const endpoint = isEditing
+                ? `${endpoints.socialLinks}/${state.editingSocialLinkId}`
+                : endpoints.socialLinks;
+            const method = isEditing ? 'PUT' : 'POST';
+
+            disableForm(socialForm, true);
+            clearAlert();
+
+            try {
+                await apiRequest(endpoint, {
+                    method,
+                    body: JSON.stringify(payload),
+                });
+                await loadSocialLinks();
+                showAlert(
+                    isEditing
+                        ? 'Social link updated successfully.'
+                        : 'Social link created successfully.',
+                    'success'
+                );
+                resetSocialForm();
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(socialForm, false);
+            }
+        };
+
+        const handleSocialCancelEdit = () => {
+            resetSocialForm();
+        };
+
+        const handleSocialListClick = async (event) => {
+            const button = event.target?.closest('[data-action]');
+            if (!button || !socialList || !endpoints.socialLinks) {
+                return;
+            }
+
+            const listItem = button.closest('[data-role="social-item"]');
+            if (!listItem) {
+                return;
+            }
+
+            const id = listItem.dataset.id;
+            if (!id) {
+                return;
+            }
+
+            if (button.dataset.action === 'edit') {
+                const link = state.socialLinks.find(
+                    (item) => String(item?.id || item?.ID || item?.Id) === id
+                );
+                if (link) {
+                    startEditSocialLink(link);
+                }
+                return;
+            }
+
+            if (button.dataset.action === 'delete') {
+                if (!window.confirm('Delete this social link?')) {
+                    return;
+                }
+                disableForm(socialForm, true);
+                clearAlert();
+                try {
+                    await apiRequest(`${endpoints.socialLinks}/${id}`, {
+                        method: 'DELETE',
+                    });
+                    showAlert('Social link deleted.', 'success');
+                    if (state.editingSocialLinkId === id) {
+                        resetSocialForm();
+                    }
+                    await loadSocialLinks();
+                } catch (error) {
+                    handleRequestError(error);
+                } finally {
+                    disableForm(socialForm, false);
+                }
+            }
+        };
+
         const approveComment = async (id, button) => {
             if (!endpoints.comments) {
                 return;
@@ -3385,6 +3636,9 @@
         categoryForm?.addEventListener('submit', handleCategorySubmit);
         categoryDeleteButton?.addEventListener('click', handleCategoryDelete);
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
+        socialForm?.addEventListener('submit', handleSocialFormSubmit);
+        socialCancelButton?.addEventListener('click', handleSocialCancelEdit);
+        socialList?.addEventListener('click', handleSocialListClick);
         postTagsInput?.addEventListener('input', renderTagSuggestions);
 
         clearAlert();
@@ -3398,6 +3652,7 @@
         loadPages();
         loadComments();
         loadSiteSettings();
+        loadSocialLinks();
     };
 
     if (document.readyState === 'loading') {

@@ -13,17 +13,18 @@ import (
 )
 
 type TemplateHandler struct {
-	postService      *service.PostService
-	categoryService  *service.CategoryService
-	pageService      *service.PageService
-	authService      *service.AuthService
-	commentService   *service.CommentService
-	searchService    *service.SearchService
-	setupService     *service.SetupService
-	templates        *template.Template
-	config           *config.Config
-	sanitizer        *bluemonday.Policy
-	sectionRenderers map[string]SectionRenderer
+	postService       *service.PostService
+	categoryService   *service.CategoryService
+	pageService       *service.PageService
+	authService       *service.AuthService
+	commentService    *service.CommentService
+	searchService     *service.SearchService
+	setupService      *service.SetupService
+	socialLinkService *service.SocialLinkService
+	templates         *template.Template
+	config            *config.Config
+	sanitizer         *bluemonday.Policy
+	sectionRenderers  map[string]SectionRenderer
 }
 
 func NewTemplateHandler(
@@ -34,6 +35,7 @@ func NewTemplateHandler(
 	searchService *service.SearchService,
 	setupService *service.SetupService,
 	categoryService *service.CategoryService,
+	socialLinkService *service.SocialLinkService,
 	cfg *config.Config,
 	templatesDir string,
 ) (*TemplateHandler, error) {
@@ -52,16 +54,17 @@ func NewTemplateHandler(
 	policy.AllowAttrs("style").OnElements("span", "div", "p")
 
 	handler := &TemplateHandler{
-		postService:     postService,
-		categoryService: categoryService,
-		pageService:     pageService,
-		authService:     authService,
-		commentService:  commentService,
-		searchService:   searchService,
-		setupService:    setupService,
-		templates:       templates,
-		config:          cfg,
-		sanitizer:       policy,
+		postService:       postService,
+		categoryService:   categoryService,
+		pageService:       pageService,
+		authService:       authService,
+		commentService:    commentService,
+		searchService:     searchService,
+		setupService:      setupService,
+		socialLinkService: socialLinkService,
+		templates:         templates,
+		config:            cfg,
+		sanitizer:         policy,
 	}
 
 	handler.registerDefaultSectionRenderers()

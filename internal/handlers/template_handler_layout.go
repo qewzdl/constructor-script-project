@@ -28,6 +28,7 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 			"Favicon":     site.Favicon,
 			"FaviconType": site.FaviconType,
 			"Logo":        site.Logo,
+			"SocialLinks": site.SocialLinks,
 		},
 		"SearchQuery": "",
 		"SearchType":  "all",
@@ -63,6 +64,15 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 
 	if settings.FaviconType == "" {
 		settings.FaviconType = models.DetectFaviconType(settings.Favicon)
+	}
+
+	if h.socialLinkService != nil {
+		links, err := h.socialLinkService.ListPublic()
+		if err != nil {
+			logger.Error(err, "Failed to load social links", nil)
+		} else {
+			settings.SocialLinks = links
+		}
 	}
 
 	return settings

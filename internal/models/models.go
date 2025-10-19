@@ -264,13 +264,14 @@ type Setting struct {
 }
 
 type SiteSettings struct {
-	Name                    string `json:"name"`
-	Description             string `json:"description"`
-	URL                     string `json:"url"`
-	Favicon                 string `json:"favicon"`
-	FaviconType             string `json:"favicon_type"`
-	Logo                    string `json:"logo"`
-	UnusedTagRetentionHours int    `json:"unused_tag_retention_hours"`
+	Name                    string       `json:"name"`
+	Description             string       `json:"description"`
+	URL                     string       `json:"url"`
+	Favicon                 string       `json:"favicon"`
+	FaviconType             string       `json:"favicon_type"`
+	Logo                    string       `json:"logo"`
+	UnusedTagRetentionHours int          `json:"unused_tag_retention_hours"`
+	SocialLinks             []SocialLink `json:"social_links"`
 }
 
 type UpdateSiteSettingsRequest struct {
@@ -326,4 +327,30 @@ type SetupRequest struct {
 	SiteURL         string `json:"site_url" binding:"required"`
 	SiteFavicon     string `json:"site_favicon"`
 	SiteLogo        string `json:"site_logo"`
+}
+
+type SocialLink struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Name  string `gorm:"not null" json:"name"`
+	URL   string `gorm:"not null" json:"url"`
+	Icon  string `json:"icon"`
+	Order int    `gorm:"default:0" json:"order"`
+}
+
+type CreateSocialLinkRequest struct {
+	Name  string `json:"name" binding:"required"`
+	URL   string `json:"url" binding:"required"`
+	Icon  string `json:"icon"`
+	Order *int   `json:"order"`
+}
+
+type UpdateSocialLinkRequest struct {
+	Name  string `json:"name" binding:"required"`
+	URL   string `json:"url" binding:"required"`
+	Icon  string `json:"icon"`
+	Order *int   `json:"order"`
 }

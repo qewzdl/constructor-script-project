@@ -334,6 +334,35 @@
                         </ul>
                     </div>
                 </nav>
+                {{ if .Site.SocialLinks }}
+                <aside class="footer__social" aria-label="Social media links">
+                    <ul class="footer__social-list">
+                        {{ range .Site.SocialLinks }}
+                        <li class="footer__social-item">
+                            <a
+                                href="{{ .URL }}"
+                                class="footer__social-link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="{{ .Name }}"
+                            >
+                                {{ if .Icon }}
+                                <img
+                                    src="{{ safeURL .Icon }}"
+                                    alt=""
+                                    class="footer__social-icon"
+                                    loading="lazy"
+                                />
+                                <span class="footer__social-label">{{ .Name }}</span>
+                                {{ else }}
+                                <span class="footer__social-fallback">{{ .Name }}</span>
+                                {{ end }}
+                            </a>
+                        </li>
+                        {{ end }}
+                    </ul>
+                </aside>
+                {{ end }}
             </div>
             <div class="footer__bottom">
                 <p class="footer__copyright">
