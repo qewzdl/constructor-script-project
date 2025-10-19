@@ -618,8 +618,21 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 	}
 
 	h.renderTemplate(c, "admin", "Admin dashboard", "Monitor site activity, review content performance, and manage published resources in one place.", gin.H{
-		"Styles":  []string{"/static/css/admin.css"},
-		"Scripts": []string{"/static/js/section-builder.js", "/static/js/admin.js"},
+		"Styles": []string{"/static/css/admin.css"},
+		"Scripts": []string{
+			"/static/js/admin/utils.js",
+			"/static/js/admin/elements/registry.js",
+			"/static/js/admin/elements/paragraph.js",
+			"/static/js/admin/elements/image.js",
+			"/static/js/admin/elements/image-group.js",
+			"/static/js/admin/elements/list.js",
+			"/static/js/admin/builder/section-state.js",
+			"/static/js/admin/builder/section-view.js",
+			"/static/js/admin/builder/section-events.js",
+			"/static/js/admin/builder/section-builder.js",
+			"/static/js/section-builder.js",
+			"/static/js/admin.js",
+		},
 		"AdminEndpoints": gin.H{
 			"Stats":           "/api/v1/admin/stats",
 			"Posts":           "/api/v1/admin/posts",

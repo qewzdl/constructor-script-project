@@ -881,7 +881,7 @@ textarea.form-field__input {
 .post-card {
     display: flex;
     flex-direction: column;
-    gap: var(--common-gap);
+    gap: var(--size-base);
     padding: var(--size-base);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
