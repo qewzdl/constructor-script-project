@@ -33,6 +33,29 @@
         return element;
     };
 
+    const buildAbsoluteUrl = (path, site) => {
+        if (!path) {
+            return '';
+        }
+        const trimmedPath = path.startsWith('/') ? path : `/${path}`;
+        const siteUrl = site?.url || site?.Url;
+        if (siteUrl) {
+            try {
+                return new URL(trimmedPath, siteUrl).toString();
+            } catch (error) {
+                // Fall back to returning the path below
+            }
+        }
+        if (window.location?.origin) {
+            try {
+                return new URL(trimmedPath, window.location.origin).toString();
+            } catch (error) {
+                // If URL construction fails, return the trimmed path
+            }
+        }
+        return trimmedPath;
+    };
+
     const randomId = () => {
         if (window.crypto && typeof window.crypto.randomUUID === 'function') {
             return window.crypto.randomUUID();
@@ -1628,6 +1651,54 @@
             hasLoadedCategories: false,
         };
 
+        const getPostPublicPath = (post) => {
+            if (!post) {
+                return '';
+            }
+            const slug = normaliseString(post.slug ?? post.Slug ?? '').trim();
+            if (slug) {
+                return `/blog/post/${encodeURIComponent(slug)}`;
+            }
+            const id = post.id ?? post.ID;
+            if (id) {
+                return `/blog/post/${encodeURIComponent(String(id))}`;
+            }
+            return '';
+        };
+
+        const getPagePublicPath = (page) => {
+            if (!page) {
+                return '';
+            }
+            const slug = normaliseString(page.slug ?? page.Slug ?? '').trim();
+            if (slug) {
+                return `/page/${encodeURIComponent(slug)}`;
+            }
+            const id = page.id ?? page.ID;
+            if (id) {
+                return `/page/${encodeURIComponent(String(id))}`;
+            }
+            return '';
+        };
+
+        const createLinkedCell = (label, path) => {
+            const cell = createElement('td');
+            const text = label?.toString().trim() || 'Untitled';
+            if (path) {
+                const link = createElement('a', { textContent: text });
+                link.href = buildAbsoluteUrl(path, state.site);
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                });
+                cell.appendChild(link);
+            } else {
+                cell.textContent = text;
+            }
+            return cell;
+        };
+
         const validateSections = (sections) => {
             if (!Array.isArray(sections)) {
                 return '';
@@ -2325,9 +2396,10 @@
                 const row = createElement('tr');
                 row.dataset.id = post.id;
                 row.appendChild(
-                    createElement('td', {
-                        textContent: post.title || 'Untitled',
-                    })
+                    createLinkedCell(
+                        post.title || post.Title || 'Untitled',
+                        getPostPublicPath(post)
+                    )
                 );
                 const categoryName =
                     post.category?.name ||
@@ -2389,9 +2461,10 @@
                 const row = createElement('tr');
                 row.dataset.id = page.id;
                 row.appendChild(
-                    createElement('td', {
-                        textContent: page.title || 'Untitled',
-                    })
+                    createLinkedCell(
+                        page.title || page.Title || 'Untitled',
+                        getPagePublicPath(page)
+                    )
                 );
                 row.appendChild(
                     createElement('td', {
