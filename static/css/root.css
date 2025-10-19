@@ -1,4 +1,7 @@
 :root {
+    /* Transition for theme changes */
+    --theme-transition-duration: 0.5s;
+
     /* Base colors (fallback) */
     --color-bg-bottom: #f2f2f2ff;
     --color-bg-top: #ffffff;
@@ -93,9 +96,10 @@
     --size-max-xl: 128px;
 
     /* Layout */
-    --max-width: 1000px;
+    --header-height: var(--size-max);
     --side-padding: 8%;
     --side-padding-after: var(--size-base);
+    --common-gap: 8px;
 }
 
 /* Light theme override */
@@ -159,4 +163,14 @@
     :root {
         --side-padding: 0;
     }
+}
+
+:root.theme-transition,
+:root.theme-transition * {
+    transition:
+        background-color var(--theme-transition-duration) ease,
+        color var(--theme-transition-duration) ease,
+        border-color var(--theme-transition-duration) ease,
+        fill var(--theme-transition-duration) ease,
+        stroke var(--theme-transition-duration) ease;
 }

@@ -22,7 +22,20 @@
         }
     };
 
+    let transitionTimeoutId;
+
+    const startThemeTransition = () => {
+        root.classList.add("theme-transition");
+        if (transitionTimeoutId) {
+            window.clearTimeout(transitionTimeoutId);
+        }
+        transitionTimeoutId = window.setTimeout(() => {
+            root.classList.remove("theme-transition");
+        }, 800);
+    };
+
     const applyTheme = (theme) => {
+        startThemeTransition();
         root.setAttribute("data-theme", theme);
         try {
             localStorage.setItem(storageKey, theme);

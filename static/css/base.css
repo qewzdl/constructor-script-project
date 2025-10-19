@@ -25,15 +25,6 @@ body {
     color: var(--color-text);
 }
 
-html, body, * {
-    transition:
-        background-color 0.8s ease,
-        color 0.8s ease,
-        border-color 0.8s ease,
-        fill 0.8s ease,
-        stroke 0.8s ease;
-}
-
 section > header {
     margin-bottom: var(--size-base);
 }
@@ -51,9 +42,11 @@ textarea {
 
 .header {
     grid-area: header;
+    height: var(--header-height);
     border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
+    justify-content: center;
     padding: var(--size-sm) var(--side-padding);
     position: sticky;
     top: 0;
@@ -64,7 +57,7 @@ textarea {
 .header__nav {
     display: flex;
     align-items: center;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     width: 100%;
     justify-content: space-between;
     position: relative;
@@ -297,7 +290,7 @@ textarea {
 
 .form-grid {
     display: grid;
-    gap: var(--size-base);
+    var(--common-gap);
 }
 
 .form-field {
@@ -376,7 +369,7 @@ textarea.form-field__input {
     border: 1px solid var(--color-border);
     padding: var(--size-base);
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     background-color: var(--color-primary-transparent);
 }
 
@@ -460,7 +453,7 @@ textarea.form-field__input {
 
 .auth__form {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 .auth__form.is-disabled {
@@ -538,7 +531,7 @@ textarea.form-field__input {
 
 .profile__grid {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 @media (min-width: 960px) {
@@ -549,7 +542,7 @@ textarea.form-field__input {
 
 .profile-card {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
@@ -572,7 +565,7 @@ textarea.form-field__input {
 
 .profile-form {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 .profile-form.is-disabled {
@@ -601,7 +594,7 @@ textarea.form-field__input {
 
 .search__form {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     padding: var(--size-base);
     background-color: var(--color-primary-transparent);
     border: 1px solid var(--color-border);
@@ -609,7 +602,7 @@ textarea.form-field__input {
 
 .search__fields {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 @media (min-width: 720px) {
@@ -742,7 +735,7 @@ textarea.form-field__input {
 
 .search__results {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 .search__meta {
@@ -753,7 +746,7 @@ textarea.form-field__input {
 
 .search__posts {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 .search__empty,
@@ -787,7 +780,7 @@ textarea.form-field__input {
 .error {
     display: grid;
     justify-items: center;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     padding: var(--size-max) var(--side-padding);
     text-align: center;
 }
@@ -817,7 +810,7 @@ textarea.form-field__input {
 
 .error__actions {
     display: flex;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     flex-wrap: wrap;
     justify-content: center;
 }
@@ -851,7 +844,7 @@ textarea.form-field__input {
 
 .blog__posts {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
@@ -888,7 +881,7 @@ textarea.form-field__input {
 .post-card {
     display: flex;
     flex-direction: column;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     padding: var(--size-base);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
@@ -908,7 +901,7 @@ textarea.form-field__input {
 .post-card__content {
     display: flex;
     flex-direction: column;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 .post-card__figure {
@@ -970,7 +963,7 @@ textarea.form-field__input {
 
 .post {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 .post__section :nth-child(2),
@@ -1051,8 +1044,7 @@ textarea.form-field__input {
 
 .post__sidebar {
     display: grid;
-    gap: var(--size-base);
-    background-color: var(--color-bg-top);
+    gap: var(--common-gap);
     overflow-x: hidden;
 }
 
@@ -1130,6 +1122,7 @@ textarea.form-field__input {
     overflow: hidden;
     border: 1px solid var(--color-border);
     padding: var(--size-mid);
+    background-color: var(--color-bg-top);
 }
 
 .post__toc-list {
@@ -1300,7 +1293,7 @@ textarea.form-field__input {
 
 .post__related {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 .post__related-title {
@@ -1373,7 +1366,7 @@ textarea.form-field__input {
         grid-column: 1;
         grid-row: 2;
         position: sticky;
-        top: calc(var(--size-md) + var(--size-base) + var(--size-base));
+        top: calc(var(--header-height) + var(--common-gap));
     }
 }
 
@@ -1390,7 +1383,7 @@ textarea.form-field__input {
 
 .comments {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
@@ -1400,7 +1393,7 @@ textarea.form-field__input {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 .comments__title {
@@ -1528,7 +1521,7 @@ textarea.form-field__input {
 
 .comments__list {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 
 .comments__item {
@@ -1692,7 +1685,7 @@ textarea.form-field__input {
 .footer__social {
     display: flex;
     flex-direction: column;
-    gap: var(--size-base);
+    gap: var(--common-gap);
 }
 .footer__social-list {
     display: flex;
@@ -1787,7 +1780,7 @@ textarea.form-field__input {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: var(--size-base);
+    gap: var(--common-gap);
     padding: var(--size-sm) var(--side-padding);
     font-size: var(--font-size-sm);
 }
