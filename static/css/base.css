@@ -242,7 +242,7 @@ textarea {
     grid-area: main;
     display: grid;
     gap: var(--size-max);
-    padding: 0 var(--side-padding);
+    padding: var(--size-max) var(--side-padding);
     background-color: var(--color-bg);
 }
 
@@ -1939,7 +1939,7 @@ textarea.form-field__input {
     gap: var(--size-max);
 }
 
-.page-view__content {
+.page-view__content, .page-view__sections {
     display: flex;
     flex-direction: column;
     gap: var(--size-lg);
