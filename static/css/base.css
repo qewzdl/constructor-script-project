@@ -965,7 +965,11 @@ textarea.form-field__input {
     gap: var(--size-base);
 }
 
-.post__section {
+.post__section *:first-child {
+    margin-top: 0 !important;
+}
+.post__section > *:last-child {
+    margin-bottom: 0 !important;
 }
 
 .post__section-title {
@@ -1129,14 +1133,21 @@ textarea.form-field__input {
     display: none;
 }
 
+.post__content .post__image {
+    margin: var(--size-sm) 0;
+}
+
 .post__paragraph {
     color: var(--color-text);
-    margin: var(--size-base) 0;
+    margin: var(--size-mid) 0;
+    line-height: 1.6;
+    font-size: var(--font-size-base);
 }
 
 .post__list {
-    margin: var(--size-base) 0;
+    margin: var(--size-mid) 0;
     padding-left: 1.75rem;
+    font-size: var(--font-size-base);
 }
 
 .post__list:not(.post__list--ordered) {
@@ -1162,10 +1173,6 @@ textarea.form-field__input {
 .section-field--checkbox input[type="checkbox"] {
     width: 1.2rem;
     height: 1.2rem;
-}
-
-.post__content .post__image {
-    margin: var(--size-base) 0;
 }
 
 .post__image-group {
@@ -1478,7 +1485,7 @@ textarea.form-field__input {
 
 .comments__actions button {
     padding: 0.35rem 0.85rem;
-    border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    border: 1px solid var(--color-border);
     background-color: color-mix(in srgb, var(--color-border) 35%, transparent);
     color: var(--color-secondary);
     font-size: var(--font-size-sm);
@@ -1486,7 +1493,7 @@ textarea.form-field__input {
 
 .comments__actions button:hover,
 .comments__actions button:focus-visible {
-    background-color: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    background-color: var(--color-primary);
     color: var(--color-text-darker);
 }
 
@@ -1608,6 +1615,7 @@ textarea.form-field__input {
 .footer__list {
     display: grid;
     gap: var(--size-xs);
+    list-style: none;
 }
 
 .footer__link {
