@@ -1094,7 +1094,6 @@ textarea.form-field__input {
     padding: var(--size-sm);
     border: 1px solid var(--color-border);
     background-color: transparent;
-    color: var(--color-primary);
     font-weight: 600;
     font-size: var(--font-size-sm);
     cursor: pointer;
@@ -1103,6 +1102,7 @@ textarea.form-field__input {
 .post__share-button:hover,
 .post__share-button:focus-visible {
     background-color: var(--color-primary-transparent);
+    color: var(--color-primary);
     border-color: var(--color-primary);
 }
 
