@@ -1703,6 +1703,54 @@ textarea.form-field__input {
     object-fit: contain;
 }
 
+.post-image-modal__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--size-lg);
+    height: var(--size-lg);
+    border-radius: 100%;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    background-color: transparent;
+}
+
+.post-image-modal__nav::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+}
+
+.post-image-modal__nav--prev {
+    left: clamp(0.5rem, 4vw, 3rem);
+}
+
+.post-image-modal__nav--prev::before {
+    transform: rotate(135deg);
+}
+
+.post-image-modal__nav--next {
+    right: clamp(0.5rem, 4vw, 3rem);
+}
+
+.post-image-modal__nav--next::before {
+    transform: rotate(-45deg);
+}
+
+.post-image-modal__nav:hover,
+.post-image-modal__nav:focus-visible {
+    outline: none;
+}
+
+.post-image-modal__nav[hidden] {
+    display: none;
+}
+
 .post-image-modal__close {
     position: absolute;
     top: var(--size-base);
