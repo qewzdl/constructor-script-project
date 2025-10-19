@@ -137,3 +137,15 @@
         --side-padding: 4%;
     }
 }
+
+@media (max-width: 600px) {
+    :root {
+        --side-padding: 2%;
+    }
+}
+
+@media (max-width: 520px) {
+    :root {
+        --side-padding: 0;
+    }
+}

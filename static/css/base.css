@@ -200,6 +200,11 @@ textarea {
 
     .header__theme-toggle {
         margin-left: 0;
+        height: var(--size-md);
+        width: var(--size-md);
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
     .header__theme-label {
@@ -1007,13 +1012,13 @@ textarea.form-field__input {
 }
 
 .post__title {
-    font-size: clamp(2.1rem, 5vw, 2.5rem);
+    font-size: clamp(2rem, 5vw, 2.5rem);
     font-weight: 900;
     margin-top: var(--size-base);
 }
 
 .post__description {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-base);
     color: var(--color-secondary);
 }
 
@@ -1766,7 +1771,17 @@ textarea.form-field__input {
         align-items: flex-start;
     }
 
-    .post__content, .post__sidebar, .post__header {
+    .post__content, .post__header {
         padding: var(--size-base);
+    }
+}
+
+@media (max-width: 520px) {
+    .header, .footer {
+        padding: var(--size-base);
+    }
+
+    .main-content > *, .post > * {
+        border-inline: none;
     }
 }
