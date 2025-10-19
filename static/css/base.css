@@ -1066,6 +1066,13 @@ textarea.form-field__input {
     color: var(--color-primary);
 }
 
+
+.post__sidebar h2 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    margin-bottom: var(--size-base);
+}
+
 .post__share {
     display: grid;
     gap: var(--size-sm);
@@ -1123,12 +1130,6 @@ textarea.form-field__input {
     overflow: hidden;
     border: 1px solid var(--color-border);
     padding: var(--size-mid);
-}
-
-.post__toc-title {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    margin-bottom: var(--size-base);
 }
 
 .post__toc-list {
