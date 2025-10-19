@@ -25,8 +25,8 @@ body {
     color: var(--color-text);
 }
 
-main > section > header {
-    margin-bottom: var(--size-mid);
+section > header {
+    margin-bottom: var(--size-base);
 }
 
 header {
@@ -242,7 +242,7 @@ textarea {
     grid-area: main;
     display: grid;
     gap: var(--size-max);
-    padding: var(--size-max) var(--side-padding);
+    padding: 0 var(--side-padding);
     background-color: var(--color-bg);
 }
 
@@ -290,12 +290,6 @@ textarea {
 .form-grid {
     display: grid;
     gap: var(--size-base);
-}
-
-@media (min-width: 720px) {
-    .form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 
 .form-field {
@@ -423,21 +417,15 @@ textarea.form-field__input {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--size-max) var(--side-padding);
-    background: linear-gradient(
-        160deg,
-        var(--color-primary-transparent),
-        transparent 45%
-    );
+    padding: 0 var(--side-padding);
 }
 
 .auth__container {
-    width: min(100%, 480px);
+    width: min(100%, 580px);
     display: grid;
     gap: var(--size-mid);
-    padding: var(--size-max) clamp(var(--size-base), 6vw, var(--size-lg));
-    border: 1px solid
-        color-mix(in srgb, var(--color-border) 70%, var(--color-primary) 30%);
+    padding: var(--size-max);
+    border: 1px solid var(--color-border);
     background-color: var(--color-bg);
 }
 
@@ -1241,6 +1229,10 @@ textarea.form-field__input {
     height: 1.2rem;
 }
 
+.post__section-image {
+    margin: var(--size-sm) 0;
+}
+
 .post__image-group {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1917,6 +1909,21 @@ textarea.form-field__input {
     display: none;
 }
 
+.page {
+    display: grid;
+    gap: var(--size-max);
+}
+
+.page__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-lg);
+}
+
+.page__content > * {
+    max-width: 800px;
+}
+
 @media (min-width: 768px) {
     .footer__nav {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1966,7 +1973,8 @@ textarea.form-field__input {
     .search__meta,
     .search__empty,
     .search__hint,
-    .profile__header {
+    .profile__header,
+    article.page > * {
         padding: 0 var(--side-padding-after);
     }
 
@@ -1978,5 +1986,10 @@ textarea.form-field__input {
     .profile__grid > *,
     .post__sidebar > * {
         border-inline: none;
+    }
+
+    .auth__container {
+        padding: var(--size-base) var(--side-padding-after);
+        border: none;
     }
 }
