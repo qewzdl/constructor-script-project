@@ -957,12 +957,12 @@
                     className: 'section-field',
                 });
                 const label = createElement('label', {
-                    textContent: 'HTML content',
+                    textContent: 'Text content',
                     attrs: { for: contentId },
                 });
                 const textarea = document.createElement('textarea');
                 textarea.id = contentId;
-                textarea.placeholder = '<p>Describe this section…</p>';
+                textarea.placeholder = 'Describe this section…';
                 textarea.value = element.content?.text || '';
                 textarea.addEventListener('input', (event) => {
                     element.content.text = event.target.value;
