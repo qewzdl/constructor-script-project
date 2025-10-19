@@ -2,6 +2,7 @@ package repository
 
 import (
 	"constructor-script-backend/internal/models"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -14,6 +15,9 @@ type TagRepository interface {
 	GetAll() ([]models.Tag, error)
 	GetUsed() ([]models.Tag, error)
 	ExistsByName(name string) (bool, error)
+	MarkAsUsed(ids []uint) error
+	MarkUnused(now time.Time) error
+	DeleteUnusedBefore(cutoff time.Time) (int64, error)
 }
 
 type tagRepository struct {
@@ -105,4 +109,43 @@ func (r *tagRepository) ExistsByName(name string) (bool, error) {
 	var count int64
 	err := r.db.Model(&models.Tag{}).Where("name = ?", name).Count(&count).Error
 	return count > 0, err
+}
+
+func (r *tagRepository) MarkAsUsed(ids []uint) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	return r.db.Model(&models.Tag{}).
+		Where("id IN ?", ids).
+		Updates(map[string]interface{}{
+			"unused_since": nil,
+		}).Error
+}
+
+func (r *tagRepository) MarkUnused(now time.Time) error {
+	subQuery := r.db.Table("post_tags").
+		Select("1").
+		Where("post_tags.tag_id = tags.id")
+
+	return r.db.Model(&models.Tag{}).
+		Where("unused_since IS NULL").
+		Where("NOT EXISTS (?)", subQuery).
+		Updates(map[string]interface{}{
+			"unused_since": now,
+		}).Error
+}
+
+func (r *tagRepository) DeleteUnusedBefore(cutoff time.Time) (int64, error) {
+	subQuery := r.db.Table("post_tags").
+		Select("1").
+		Where("post_tags.tag_id = tags.id")
+
+	result := r.db.
+		Where("unused_since IS NOT NULL").
+		Where("unused_since <= ?", cutoff).
+		Where("NOT EXISTS (?)", subQuery).
+		Delete(&models.Tag{})
+
+	return result.RowsAffected, result.Error
 }

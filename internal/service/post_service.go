@@ -10,6 +10,7 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/cache"
+	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
 
 	"github.com/google/uuid"
@@ -29,6 +30,32 @@ func (s *PostService) invalidateTagCaches() {
 	}
 	s.cache.Delete("tags:all")
 	s.cache.Delete("tags:used")
+}
+
+func (s *PostService) handleTagChanges() {
+	s.invalidateTagCaches()
+	s.scheduleUnusedTagCleanup()
+}
+
+func (s *PostService) scheduleUnusedTagCleanup() {
+	if s.tagRepo == nil {
+		return
+	}
+
+	go func() {
+		now := time.Now().UTC()
+		if err := s.tagRepo.MarkUnused(now); err != nil {
+			logger.Error(err, "Failed to mark unused tags", nil)
+			return
+		}
+
+		cutoff := now.Add(-48 * time.Hour)
+		if deleted, err := s.tagRepo.DeleteUnusedBefore(cutoff); err != nil {
+			logger.Error(err, "Failed to delete unused tags", nil)
+		} else if deleted > 0 {
+			logger.Info("Removed unused tags", map[string]interface{}{"count": deleted})
+		}
+	}()
 }
 
 func NewPostService(
@@ -109,7 +136,7 @@ func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*mode
 		return nil, fmt.Errorf("failed to create post: %w", err)
 	}
 
-	s.invalidateTagCaches()
+	s.handleTagChanges()
 	if s.cache != nil {
 		s.cache.InvalidatePostsCache()
 	}
@@ -181,7 +208,7 @@ func (s *PostService) Update(id uint, req models.UpdatePostRequest, userID uint,
 		return nil, err
 	}
 
-	s.invalidateTagCaches()
+	s.handleTagChanges()
 	if s.cache != nil {
 		s.cache.InvalidatePost(id)
 		s.cache.InvalidatePostsCache()
@@ -335,7 +362,7 @@ func (s *PostService) getOrCreateTags(tagNames []string) ([]models.Tag, error) {
 					return nil, err
 				}
 
-				s.invalidateTagCaches()
+				s.handleTagChanges()
 			} else {
 				return nil, err
 			}
@@ -361,7 +388,7 @@ func (s *PostService) Delete(id uint, userID uint, isAdmin bool) error {
 		return err
 	}
 
-	s.invalidateTagCaches()
+	s.handleTagChanges()
 	if s.cache != nil {
 		s.cache.InvalidatePost(id)
 		s.cache.InvalidatePostsCache()
@@ -585,7 +612,7 @@ func (s *PostService) DeleteTag(id uint) error {
 		return err
 	}
 
-	s.invalidateTagCaches()
+	s.handleTagChanges()
 
 	return nil
 }

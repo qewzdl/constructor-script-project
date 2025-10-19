@@ -77,9 +77,10 @@ type Tag struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Name  string `gorm:"uniqueIndex;not null" json:"name"`
-	Slug  string `gorm:"uniqueIndex;not null" json:"slug"`
-	Posts []Post `gorm:"many2many:post_tags;" json:"posts,omitempty"`
+	Name        string     `gorm:"uniqueIndex;not null" json:"name"`
+	Slug        string     `gorm:"uniqueIndex;not null" json:"slug"`
+	UnusedSince *time.Time `gorm:"index" json:"unused_since,omitempty"`
+	Posts       []Post     `gorm:"many2many:post_tags;" json:"posts,omitempty"`
 }
 
 type Comment struct {
