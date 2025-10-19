@@ -107,11 +107,32 @@
         {{ end }}
     </header>
 
-    {{ if .TOC }}
     <aside class="post__sidebar">
+        {{ if .TOC }}
         {{ .TOC }}
+        {{ end }}
+        <section class="post__share" aria-label="Share this post">
+            <h2 class="post__share-title">Share</h2>
+            <button
+                type="button"
+                class="post__share-button"
+                data-copy-link-button
+                aria-describedby="post-share-feedback"
+                {{ if .Canonical }}data-copy-link-url="{{ .Canonical }}"{{ end }}
+            >
+                <span class="post__share-button-icon" aria-hidden="true">🔗</span>
+                <span class="post__share-button-text" data-copy-link-label>Copy link</span>
+            </button>
+            <p
+                class="post__share-feedback"
+                id="post-share-feedback"
+                data-copy-link-feedback
+                role="status"
+                aria-live="polite"
+                hidden
+            ></p>
+        </section>
     </aside>
-    {{ end }}
 
     <section class="post__content">
         {{ .Content }}

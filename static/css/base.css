@@ -1066,6 +1066,59 @@ textarea.form-field__input {
     color: var(--color-primary);
 }
 
+.post__share {
+    display: grid;
+    gap: var(--size-sm);
+    padding: var(--size-mid);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg);
+}
+
+.post__share-title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.post__share-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-sm);
+    padding: var(--size-sm);
+    border: 1px solid var(--color-border);
+    background-color: transparent;
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.post__share-button:hover,
+.post__share-button:focus-visible {
+    background-color: var(--color-primary-transparent);
+}
+
+.post__share-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.post__share-button-icon {
+    font-size: var(--font-size-sm);
+    line-height: 1;
+}
+
+.post__share-feedback {
+    margin: 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-secondary);
+}
+
+.post__share-feedback--error {
+    color: var(--color-error);
+}
+
 .post__toc {
     overflow: hidden;
     border: 1px solid var(--color-border);

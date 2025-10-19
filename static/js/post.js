@@ -1,4 +1,132 @@
 (function () {
+    const copyButton = document.querySelector('[data-copy-link-button]');
+    if (copyButton) {
+        const label = copyButton.querySelector('[data-copy-link-label]');
+        const feedback = document.querySelector('[data-copy-link-feedback]');
+        const defaultLabel = label
+            ? label.textContent.trim()
+            : copyButton.textContent.trim();
+        let labelResetTimeout = null;
+        let feedbackResetTimeout = null;
+
+        const updateLabel = (value) => {
+            if (label) {
+                label.textContent = value;
+                return;
+            }
+
+            copyButton.textContent = value;
+        };
+
+        const resetLabel = () => {
+            updateLabel(defaultLabel);
+        };
+
+        const showFeedback = (message, isError) => {
+            if (!feedback) {
+                return;
+            }
+
+            feedback.textContent = message;
+            feedback.hidden = false;
+            feedback.classList.toggle(
+                'post__share-feedback--error',
+                Boolean(isError)
+            );
+
+            if (feedbackResetTimeout) {
+                window.clearTimeout(feedbackResetTimeout);
+            }
+
+            feedbackResetTimeout = window.setTimeout(() => {
+                feedback.hidden = true;
+                feedback.textContent = '';
+                feedback.classList.remove('post__share-feedback--error');
+            }, 4000);
+        };
+
+        const legacyCopy = (text) => {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.setAttribute('readonly', '');
+            textArea.style.position = 'absolute';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '0';
+            document.body.appendChild(textArea);
+
+            const selection = document.getSelection();
+            const selectedRange =
+                selection && selection.rangeCount > 0
+                    ? selection.getRangeAt(0)
+                    : null;
+
+            textArea.select();
+
+            let succeeded = false;
+            try {
+                succeeded = document.execCommand('copy');
+            } catch (error) {
+                succeeded = false;
+            }
+
+            document.body.removeChild(textArea);
+
+            if (selectedRange && selection) {
+                selection.removeAllRanges();
+                selection.addRange(selectedRange);
+            }
+
+            return succeeded;
+        };
+
+        const copyToClipboard = async (text) => {
+            if (
+                navigator.clipboard &&
+                typeof navigator.clipboard.writeText === 'function'
+            ) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (error) {
+                    // Continue with fallback
+                }
+            }
+
+            if (typeof document.execCommand === 'function') {
+                return legacyCopy(text);
+            }
+
+            return false;
+        };
+
+        copyButton.addEventListener('click', async () => {
+            const targetUrl =
+                copyButton.getAttribute('data-copy-link-url') ||
+                window.location.href;
+
+            if (labelResetTimeout) {
+                window.clearTimeout(labelResetTimeout);
+            }
+
+            try {
+                const copied = await copyToClipboard(targetUrl);
+                if (!copied) {
+                    throw new Error('Copy command failed');
+                }
+
+                updateLabel('Copied!');
+                showFeedback('Link copied to clipboard');
+            } catch (error) {
+                updateLabel('Copy failed');
+                showFeedback('Unable to copy link to clipboard', true);
+            } finally {
+                labelResetTimeout = window.setTimeout(() => {
+                    resetLabel();
+                }, 2000);
+            }
+        });
+    }
+
     const modal = document.querySelector('[data-post-image-modal]');
     if (!modal) {
         return;
