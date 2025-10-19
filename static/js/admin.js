@@ -53,6 +53,598 @@
         return '';
     };
 
+    const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
+    const createImageState = (image = {}) => ({
+        clientId: randomId(),
+        url: normaliseString(image.url ?? image.URL ?? ''),
+        alt: normaliseString(image.alt ?? image.Alt ?? ''),
+        caption: normaliseString(image.caption ?? image.Caption ?? ''),
+    });
+
+    const elementDefinitions = {
+        paragraph: {
+            label: 'Paragraph',
+            addLabel: 'Add paragraph',
+            order: 10,
+            initialFocusSelector: 'textarea',
+            create: () => ({
+                clientId: randomId(),
+                id: '',
+                type: 'paragraph',
+                content: {
+                    text: '',
+                },
+            }),
+            fromRaw: ({ id, rawContent }) => ({
+                clientId: randomId(),
+                id,
+                type: 'paragraph',
+                content: {
+                    text: normaliseString(
+                        rawContent.text ?? rawContent.Text ?? ''
+                    ),
+                },
+            }),
+            renderEditor: (elementNode, element) => {
+                const paragraphField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                paragraphField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Paragraph text',
+                    })
+                );
+                const paragraphTextarea = createElement('textarea', {
+                    className: 'admin-builder__textarea',
+                });
+                paragraphTextarea.placeholder =
+                    'Write the narrative for this part of the section…';
+                paragraphTextarea.value = element.content?.text || '';
+                paragraphTextarea.dataset.field = 'paragraph-text';
+                paragraphField.append(paragraphTextarea);
+                elementNode.append(paragraphField);
+            },
+            updateField: (element, field, value) => {
+                if (field === 'paragraph-text') {
+                    element.content.text = value;
+                    return true;
+                }
+                return false;
+            },
+            hasContent: (element) => Boolean(element.content?.text?.trim()),
+            sanitise: (element, index) => ({
+                id: element.id || '',
+                type: 'paragraph',
+                order: index + 1,
+                content: {
+                    text: element.content.text.trim(),
+                },
+            }),
+            preview: (element, parts) => {
+                if (element.content?.text) {
+                    parts.push(element.content.text);
+                }
+            },
+        },
+        image: {
+            label: 'Image',
+            addLabel: 'Add image',
+            order: 20,
+            initialFocusSelector: '[data-field="image-url"]',
+            create: () => ({
+                clientId: randomId(),
+                id: '',
+                type: 'image',
+                content: {
+                    url: '',
+                    alt: '',
+                    caption: '',
+                },
+            }),
+            fromRaw: ({ id, rawContent }) => ({
+                clientId: randomId(),
+                id,
+                type: 'image',
+                content: {
+                    url: normaliseString(
+                        rawContent.url ?? rawContent.URL ?? ''
+                    ),
+                    alt: normaliseString(
+                        rawContent.alt ?? rawContent.Alt ?? ''
+                    ),
+                    caption: normaliseString(
+                        rawContent.caption ?? rawContent.Caption ?? ''
+                    ),
+                },
+            }),
+            renderEditor: (elementNode, element) => {
+                const urlField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                urlField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Image URL',
+                    })
+                );
+                const urlInput = createElement('input', {
+                    className: 'admin-builder__input',
+                });
+                urlInput.type = 'url';
+                urlInput.placeholder = 'https://example.com/visual.png';
+                urlInput.value = element.content?.url || '';
+                urlInput.dataset.field = 'image-url';
+                urlField.append(urlInput);
+                elementNode.append(urlField);
+
+                const altField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                altField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Accessible alt text',
+                    })
+                );
+                const altInput = createElement('input', {
+                    className: 'admin-builder__input',
+                });
+                altInput.type = 'text';
+                altInput.placeholder = 'Describe the visual for screen readers';
+                altInput.value = element.content?.alt || '';
+                altInput.dataset.field = 'image-alt';
+                altField.append(altInput);
+                elementNode.append(altField);
+
+                const captionField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                captionField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Optional caption',
+                    })
+                );
+                const captionInput = createElement('input', {
+                    className: 'admin-builder__input',
+                });
+                captionInput.type = 'text';
+                captionInput.placeholder =
+                    'Add context that appears under the image';
+                captionInput.value = element.content?.caption || '';
+                captionInput.dataset.field = 'image-caption';
+                captionField.append(captionInput);
+                elementNode.append(captionField);
+            },
+            updateField: (element, field, value) => {
+                if (field === 'image-url') {
+                    element.content.url = value;
+                    return true;
+                }
+                if (field === 'image-alt') {
+                    element.content.alt = value;
+                    return true;
+                }
+                if (field === 'image-caption') {
+                    element.content.caption = value;
+                    return true;
+                }
+                return false;
+            },
+            hasContent: (element) => Boolean(element.content?.url?.trim()),
+            sanitise: (element, index) => {
+                const payload = {
+                    url: element.content.url.trim(),
+                };
+                if (element.content.alt && element.content.alt.trim()) {
+                    payload.alt = element.content.alt.trim();
+                }
+                if (element.content.caption && element.content.caption.trim()) {
+                    payload.caption = element.content.caption.trim();
+                }
+                return {
+                    id: element.id || '',
+                    type: 'image',
+                    order: index + 1,
+                    content: payload,
+                };
+            },
+        },
+        image_group: {
+            label: 'Image group',
+            addLabel: 'Add image group',
+            order: 30,
+            initialFocusSelector: '[data-field="image-group-layout"]',
+            create: () => ({
+                clientId: randomId(),
+                id: '',
+                type: 'image_group',
+                content: {
+                    layout: 'grid',
+                    images: [createImageState({})],
+                },
+            }),
+            fromRaw: ({ id, rawContent }) => {
+                const images = ensureArray(
+                    rawContent.images ?? rawContent.Images
+                ).map(createImageState);
+                return {
+                    clientId: randomId(),
+                    id,
+                    type: 'image_group',
+                    content: {
+                        layout: normaliseString(
+                            rawContent.layout ?? rawContent.Layout ?? 'grid'
+                        ),
+                        images,
+                    },
+                };
+            },
+            renderEditor: (elementNode, element) => {
+                const groupContainer = createElement('div', {
+                    className: 'admin-builder__group',
+                });
+
+                const layoutField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                layoutField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Layout preset',
+                    })
+                );
+                const layoutInput = createElement('input', {
+                    className: 'admin-builder__input',
+                });
+                layoutInput.type = 'text';
+                layoutInput.placeholder = 'e.g. grid, carousel, mosaic';
+                layoutInput.value = element.content?.layout || '';
+                layoutInput.dataset.field = 'image-group-layout';
+                layoutField.append(layoutInput);
+                groupContainer.append(layoutField);
+
+                const groupList = createElement('div', {
+                    className: 'admin-builder__group-list',
+                });
+
+                if (!element.content?.images?.length) {
+                    groupList.append(
+                        createElement('p', {
+                            className: 'admin-builder__element-empty',
+                            textContent: 'No images in this group yet.',
+                        })
+                    );
+                } else {
+                    element.content.images.forEach((image) => {
+                        const groupItem = createElement('div', {
+                            className: 'admin-builder__group-item',
+                        });
+                        groupItem.dataset.groupImageClient = image.clientId;
+
+                        const groupUrlField = createElement('label', {
+                            className: 'admin-builder__field',
+                        });
+                        groupUrlField.append(
+                            createElement('span', {
+                                className: 'admin-builder__label',
+                                textContent: 'Image URL',
+                            })
+                        );
+                        const groupUrlInput = createElement('input', {
+                            className: 'admin-builder__input',
+                        });
+                        groupUrlInput.type = 'url';
+                        groupUrlInput.placeholder =
+                            'https://example.com/gallery-image.jpg';
+                        groupUrlInput.value = image.url || '';
+                        groupUrlInput.dataset.field = 'group-image-url';
+                        groupUrlField.append(groupUrlInput);
+                        groupItem.append(groupUrlField);
+
+                        const groupAltField = createElement('label', {
+                            className: 'admin-builder__field',
+                        });
+                        groupAltField.append(
+                            createElement('span', {
+                                className: 'admin-builder__label',
+                                textContent: 'Alt text',
+                            })
+                        );
+                        const groupAltInput = createElement('input', {
+                            className: 'admin-builder__input',
+                        });
+                        groupAltInput.type = 'text';
+                        groupAltInput.placeholder = 'Describe this image';
+                        groupAltInput.value = image.alt || '';
+                        groupAltInput.dataset.field = 'group-image-alt';
+                        groupAltField.append(groupAltInput);
+                        groupItem.append(groupAltField);
+
+                        const groupCaptionField = createElement('label', {
+                            className: 'admin-builder__field',
+                        });
+                        groupCaptionField.append(
+                            createElement('span', {
+                                className: 'admin-builder__label',
+                                textContent: 'Caption',
+                            })
+                        );
+                        const groupCaptionInput = createElement('input', {
+                            className: 'admin-builder__input',
+                        });
+                        groupCaptionInput.type = 'text';
+                        groupCaptionInput.placeholder = 'Optional caption';
+                        groupCaptionInput.value = image.caption || '';
+                        groupCaptionInput.dataset.field = 'group-image-caption';
+                        groupCaptionField.append(groupCaptionInput);
+                        groupItem.append(groupCaptionField);
+
+                        const groupActions = createElement('div', {
+                            className: 'admin-builder__group-actions',
+                        });
+                        const removeImageButton = createElement('button', {
+                            className: 'admin-builder__element-remove',
+                            textContent: 'Remove image',
+                        });
+                        removeImageButton.type = 'button';
+                        removeImageButton.dataset.action = 'group-image-remove';
+                        groupActions.append(removeImageButton);
+                        groupItem.append(groupActions);
+
+                        groupList.append(groupItem);
+                    });
+                }
+
+                groupContainer.append(groupList);
+
+                const addGroupImageButton = createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost',
+                    textContent: 'Add image to group',
+                });
+                addGroupImageButton.type = 'button';
+                addGroupImageButton.dataset.action = 'group-image-add';
+                groupContainer.append(addGroupImageButton);
+
+                elementNode.append(groupContainer);
+            },
+            updateField: (element, field, value, imageClientId) => {
+                if (field === 'image-group-layout') {
+                    element.content.layout = value;
+                    return true;
+                }
+                if (
+                    field === 'group-image-url' ||
+                    field === 'group-image-alt' ||
+                    field === 'group-image-caption'
+                ) {
+                    if (!element.content.images) {
+                        element.content.images = [];
+                    }
+                    const image = element.content.images.find(
+                        (img) => img.clientId === imageClientId
+                    );
+                    if (!image) {
+                        return false;
+                    }
+                    if (field === 'group-image-url') {
+                        image.url = value;
+                        return true;
+                    }
+                    if (field === 'group-image-alt') {
+                        image.alt = value;
+                        return true;
+                    }
+                    image.caption = value;
+                    return true;
+                }
+                return false;
+            },
+            hasContent: (element) =>
+                Array.isArray(element.content?.images) &&
+                element.content.images.some(
+                    (image) => image.url && image.url.trim()
+                ),
+            sanitise: (element, index) => {
+                const images = (element.content.images || [])
+                    .map((image) => {
+                        const url = (image.url || '').trim();
+                        if (!url) {
+                            return null;
+                        }
+                        const payload = { url };
+                        if (image.alt && image.alt.trim()) {
+                            payload.alt = image.alt.trim();
+                        }
+                        if (image.caption && image.caption.trim()) {
+                            payload.caption = image.caption.trim();
+                        }
+                        return payload;
+                    })
+                    .filter(Boolean);
+
+                if (!images.length) {
+                    return null;
+                }
+
+                const payload = { images };
+                if (element.content.layout && element.content.layout.trim()) {
+                    payload.layout = element.content.layout.trim();
+                }
+
+                return {
+                    id: element.id || '',
+                    type: 'image_group',
+                    order: index + 1,
+                    content: payload,
+                };
+            },
+        },
+        list: {
+            label: 'List',
+            addLabel: 'Add list',
+            order: 40,
+            initialFocusSelector: '[data-field="list-items"]',
+            create: () => ({
+                clientId: randomId(),
+                id: '',
+                type: 'list',
+                content: {
+                    ordered: false,
+                    items: [''],
+                },
+            }),
+            fromRaw: ({ id, rawContent }) => {
+                const rawItems = ensureArray(
+                    rawContent.items ?? rawContent.Items
+                );
+                const items = rawItems.map((item) => normaliseString(item));
+                const orderedValue =
+                    rawContent.ordered ?? rawContent.Ordered ?? false;
+                const ordered =
+                    typeof orderedValue === 'string'
+                        ? orderedValue.toLowerCase() === 'true'
+                        : Boolean(orderedValue);
+                return {
+                    clientId: randomId(),
+                    id,
+                    type: 'list',
+                    content: {
+                        ordered,
+                        items,
+                    },
+                };
+            },
+            renderEditor: (elementNode, element) => {
+                if (!Array.isArray(element.content?.items)) {
+                    element.content.items = [''];
+                }
+
+                const orderedField = createElement('label', {
+                    className:
+                        'admin-builder__field admin-builder__field--checkbox',
+                });
+                const orderedInput = createElement('input', {
+                    className: 'admin-builder__checkbox',
+                });
+                orderedInput.type = 'checkbox';
+                orderedInput.checked = Boolean(element.content?.ordered);
+                orderedInput.dataset.field = 'list-ordered';
+                orderedInput.addEventListener('input', (event) => {
+                    element.content.ordered = event.target.checked;
+                });
+                orderedField.append(
+                    orderedInput,
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Numbered list',
+                    })
+                );
+                elementNode.append(orderedField);
+
+                const itemsField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                itemsField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'List items',
+                    })
+                );
+                const itemsTextarea = createElement('textarea', {
+                    className: 'admin-builder__textarea',
+                });
+                itemsTextarea.placeholder = 'Write one item per line';
+                itemsTextarea.value = element.content.items.join('\n');
+                itemsTextarea.dataset.field = 'list-items';
+                itemsTextarea.addEventListener('input', (event) => {
+                    const nextValue = event.target.value.replace(/\r/g, '');
+                    element.content.items = nextValue.split('\n');
+                });
+                itemsField.append(itemsTextarea);
+                elementNode.append(itemsField);
+            },
+            updateField: (element, field, value) => {
+                if (field === 'list-ordered') {
+                    element.content.ordered = Boolean(value);
+                    return true;
+                }
+                if (field === 'list-items') {
+                    if (Array.isArray(value)) {
+                        element.content.items = value;
+                        return true;
+                    }
+                    if (typeof value === 'string') {
+                        element.content.items = value
+                            .replace(/\r/g, '')
+                            .split('\n');
+                        return true;
+                    }
+                }
+                return false;
+            },
+            hasContent: (element) => {
+                if (!Array.isArray(element.content?.items)) {
+                    return false;
+                }
+                return element.content.items.some(
+                    (item) => item && item.toString().trim()
+                );
+            },
+            sanitise: (element, index) => {
+                const sourceItems = Array.isArray(element.content.items)
+                    ? element.content.items
+                    : [];
+                const items = sourceItems
+                    .map((item) => {
+                        if (typeof item === 'string') {
+                            return item.trim();
+                        }
+                        if (item === null || item === undefined) {
+                            return '';
+                        }
+                        return String(item).trim();
+                    })
+                    .filter(Boolean);
+
+                if (!items.length) {
+                    return null;
+                }
+
+                const payload = { items };
+                if (element.content.ordered) {
+                    payload.ordered = true;
+                }
+
+                return {
+                    id: element.id || '',
+                    type: 'list',
+                    order: index + 1,
+                    content: payload,
+                };
+            },
+            preview: (element, parts) => {
+                if (!Array.isArray(element.content?.items)) {
+                    return;
+                }
+                element.content.items
+                    .filter((item) => item && item.toString().trim())
+                    .forEach((item) => {
+                        parts.push(item.toString());
+                    });
+            },
+        },
+    };
+
+    const orderedElementTypes = Object.keys(elementDefinitions).sort(
+        (a, b) =>
+            (elementDefinitions[a].order || 0) -
+            (elementDefinitions[b].order || 0)
+    );
+
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const createSvgElement = (tag, attributes = {}) => {
         const element = document.createElementNS(SVG_NS, tag);
@@ -130,15 +722,6 @@
         const listeners = new Set();
         let sections = [];
 
-        const ensureArray = (value) => (Array.isArray(value) ? value : []);
-
-        const createImageState = (image = {}) => ({
-            clientId: randomId(),
-            url: normaliseString(image.url ?? image.URL ?? ''),
-            alt: normaliseString(image.alt ?? image.Alt ?? ''),
-            caption: normaliseString(image.caption ?? image.Caption ?? ''),
-        });
-
         const createElementState = (element = {}) => {
             const type =
                 normaliseString(
@@ -146,76 +729,10 @@
                 ).toLowerCase() || 'paragraph';
             const id = normaliseString(element.id ?? element.ID ?? '');
             const rawContent = element.content ?? element.Content ?? {};
+            const definition = elementDefinitions[type];
 
-            if (type === 'paragraph') {
-                return {
-                    clientId: randomId(),
-                    id,
-                    type,
-                    content: {
-                        text: normaliseString(
-                            rawContent.text ?? rawContent.Text ?? ''
-                        ),
-                    },
-                };
-            }
-
-            if (type === 'image') {
-                return {
-                    clientId: randomId(),
-                    id,
-                    type,
-                    content: {
-                        url: normaliseString(
-                            rawContent.url ?? rawContent.URL ?? ''
-                        ),
-                        alt: normaliseString(
-                            rawContent.alt ?? rawContent.Alt ?? ''
-                        ),
-                        caption: normaliseString(
-                            rawContent.caption ?? rawContent.Caption ?? ''
-                        ),
-                    },
-                };
-            }
-
-            if (type === 'image_group') {
-                const images = ensureArray(
-                    rawContent.images ?? rawContent.Images
-                ).map(createImageState);
-                return {
-                    clientId: randomId(),
-                    id,
-                    type,
-                    content: {
-                        layout: normaliseString(
-                            rawContent.layout ?? rawContent.Layout ?? 'grid'
-                        ),
-                        images,
-                    },
-                };
-            }
-
-            if (type === 'list') {
-                const rawItems = ensureArray(
-                    rawContent.items ?? rawContent.Items
-                );
-                const items = rawItems.map((item) => normaliseString(item));
-                const orderedValue =
-                    rawContent.ordered ?? rawContent.Ordered ?? false;
-                const ordered =
-                    typeof orderedValue === 'string'
-                        ? orderedValue.toLowerCase() === 'true'
-                        : Boolean(orderedValue);
-                return {
-                    clientId: randomId(),
-                    id,
-                    type,
-                    content: {
-                        ordered,
-                        items,
-                    },
-                };
+            if (definition && typeof definition.fromRaw === 'function') {
+                return definition.fromRaw({ id, rawContent });
             }
 
             return {
@@ -241,18 +758,11 @@
         };
 
         const elementLabel = (type) => {
-            switch (type) {
-                case 'paragraph':
-                    return 'Paragraph';
-                case 'image':
-                    return 'Image';
-                case 'image_group':
-                    return 'Image group';
-                case 'list':
-                    return 'List';
-                default:
-                    return type || 'Block';
+            const definition = elementDefinitions[type];
+            if (definition && definition.label) {
+                return definition.label;
             }
+            return type || 'Block';
         };
 
         const emitChange = () => {
@@ -396,296 +906,12 @@
                         elementHeader.append(elementTitle, elementActions);
                         elementNode.append(elementHeader);
 
-                        if (element.type === 'paragraph') {
-                            const paragraphField = createElement('label', {
-                                className: 'admin-builder__field',
-                            });
-                            paragraphField.append(
-                                createElement('span', {
-                                    className: 'admin-builder__label',
-                                    textContent: 'Paragraph text',
-                                })
-                            );
-                            const paragraphTextarea = createElement(
-                                'textarea',
-                                { className: 'admin-builder__textarea' }
-                            );
-                            paragraphTextarea.placeholder =
-                                'Write the narrative for this part of the section…';
-                            paragraphTextarea.value =
-                                element.content?.text || '';
-                            paragraphTextarea.dataset.field = 'paragraph-text';
-                            paragraphField.append(paragraphTextarea);
-                            elementNode.append(paragraphField);
-                        } else if (element.type === 'image') {
-                            const urlField = createElement('label', {
-                                className: 'admin-builder__field',
-                            });
-                            urlField.append(
-                                createElement('span', {
-                                    className: 'admin-builder__label',
-                                    textContent: 'Image URL',
-                                })
-                            );
-                            const urlInput = createElement('input', {
-                                className: 'admin-builder__input',
-                            });
-                            urlInput.type = 'url';
-                            urlInput.placeholder =
-                                'https://example.com/visual.png';
-                            urlInput.value = element.content?.url || '';
-                            urlInput.dataset.field = 'image-url';
-                            urlField.append(urlInput);
-                            elementNode.append(urlField);
-
-                            const altField = createElement('label', {
-                                className: 'admin-builder__field',
-                            });
-                            altField.append(
-                                createElement('span', {
-                                    className: 'admin-builder__label',
-                                    textContent: 'Accessible alt text',
-                                })
-                            );
-                            const altInput = createElement('input', {
-                                className: 'admin-builder__input',
-                            });
-                            altInput.type = 'text';
-                            altInput.placeholder =
-                                'Describe the visual for screen readers';
-                            altInput.value = element.content?.alt || '';
-                            altInput.dataset.field = 'image-alt';
-                            altField.append(altInput);
-                            elementNode.append(altField);
-
-                            const captionField = createElement('label', {
-                                className: 'admin-builder__field',
-                            });
-                            captionField.append(
-                                createElement('span', {
-                                    className: 'admin-builder__label',
-                                    textContent: 'Optional caption',
-                                })
-                            );
-                            const captionInput = createElement('input', {
-                                className: 'admin-builder__input',
-                            });
-                            captionInput.type = 'text';
-                            captionInput.placeholder =
-                                'Add context that appears under the image';
-                            captionInput.value = element.content?.caption || '';
-                            captionInput.dataset.field = 'image-caption';
-                            captionField.append(captionInput);
-                            elementNode.append(captionField);
-                        } else if (element.type === 'list') {
-                            if (!Array.isArray(element.content?.items)) {
-                                element.content.items = [''];
-                            }
-
-                            const orderedField = createElement('label', {
-                                className:
-                                    'admin-builder__field admin-builder__field--checkbox',
-                            });
-                            const orderedInput = createElement('input', {
-                                className: 'admin-builder__checkbox',
-                            });
-                            orderedInput.type = 'checkbox';
-                            orderedInput.checked = Boolean(
-                                element.content?.ordered
-                            );
-                            orderedInput.dataset.field = 'list-ordered';
-                            orderedInput.addEventListener('input', (event) => {
-                                element.content.ordered = event.target.checked;
-                            });
-                            orderedField.append(
-                                orderedInput,
-                                createElement('span', {
-                                    className: 'admin-builder__label',
-                                    textContent: 'Numbered list',
-                                })
-                            );
-                            elementNode.append(orderedField);
-
-                            const itemsField = createElement('label', {
-                                className: 'admin-builder__field',
-                            });
-                            itemsField.append(
-                                createElement('span', {
-                                    className: 'admin-builder__label',
-                                    textContent: 'List items',
-                                })
-                            );
-                            const itemsTextarea = createElement('textarea', {
-                                className: 'admin-builder__textarea',
-                            });
-                            itemsTextarea.placeholder =
-                                'Write one item per line';
-                            itemsTextarea.value =
-                                element.content.items.join('\n');
-                            itemsTextarea.dataset.field = 'list-items';
-                            itemsTextarea.addEventListener('input', (event) => {
-                                const nextValue = event.target.value.replace(
-                                    /\r/g,
-                                    ''
-                                );
-                                element.content.items = nextValue.split('\n');
-                            });
-                            itemsField.append(itemsTextarea);
-                            elementNode.append(itemsField);
-                        } else if (element.type === 'image_group') {
-                            const groupContainer = createElement('div', {
-                                className: 'admin-builder__group',
-                            });
-
-                            const layoutField = createElement('label', {
-                                className: 'admin-builder__field',
-                            });
-                            layoutField.append(
-                                createElement('span', {
-                                    className: 'admin-builder__label',
-                                    textContent: 'Layout preset',
-                                })
-                            );
-                            const layoutInput = createElement('input', {
-                                className: 'admin-builder__input',
-                            });
-                            layoutInput.type = 'text';
-                            layoutInput.placeholder =
-                                'e.g. grid, carousel, mosaic';
-                            layoutInput.value = element.content?.layout || '';
-                            layoutInput.dataset.field = 'image-group-layout';
-                            layoutField.append(layoutInput);
-                            groupContainer.append(layoutField);
-
-                            const groupList = createElement('div', {
-                                className: 'admin-builder__group-list',
-                            });
-
-                            if (!element.content?.images?.length) {
-                                groupList.append(
-                                    createElement('p', {
-                                        className:
-                                            'admin-builder__element-empty',
-                                        textContent:
-                                            'No images in this group yet.',
-                                    })
-                                );
-                            } else {
-                                element.content.images.forEach((image) => {
-                                    const groupItem = createElement('div', {
-                                        className: 'admin-builder__group-item',
-                                    });
-                                    groupItem.dataset.groupImageClient =
-                                        image.clientId;
-
-                                    const groupUrlField = createElement(
-                                        'label',
-                                        { className: 'admin-builder__field' }
-                                    );
-                                    groupUrlField.append(
-                                        createElement('span', {
-                                            className: 'admin-builder__label',
-                                            textContent: 'Image URL',
-                                        })
-                                    );
-                                    const groupUrlInput = createElement(
-                                        'input',
-                                        { className: 'admin-builder__input' }
-                                    );
-                                    groupUrlInput.type = 'url';
-                                    groupUrlInput.placeholder =
-                                        'https://example.com/gallery-image.jpg';
-                                    groupUrlInput.value = image.url || '';
-                                    groupUrlInput.dataset.field =
-                                        'group-image-url';
-                                    groupUrlField.append(groupUrlInput);
-                                    groupItem.append(groupUrlField);
-
-                                    const groupAltField = createElement(
-                                        'label',
-                                        { className: 'admin-builder__field' }
-                                    );
-                                    groupAltField.append(
-                                        createElement('span', {
-                                            className: 'admin-builder__label',
-                                            textContent: 'Alt text',
-                                        })
-                                    );
-                                    const groupAltInput = createElement(
-                                        'input',
-                                        { className: 'admin-builder__input' }
-                                    );
-                                    groupAltInput.type = 'text';
-                                    groupAltInput.placeholder =
-                                        'Describe this image';
-                                    groupAltInput.value = image.alt || '';
-                                    groupAltInput.dataset.field =
-                                        'group-image-alt';
-                                    groupAltField.append(groupAltInput);
-                                    groupItem.append(groupAltField);
-
-                                    const groupCaptionField = createElement(
-                                        'label',
-                                        { className: 'admin-builder__field' }
-                                    );
-                                    groupCaptionField.append(
-                                        createElement('span', {
-                                            className: 'admin-builder__label',
-                                            textContent: 'Caption',
-                                        })
-                                    );
-                                    const groupCaptionInput = createElement(
-                                        'input',
-                                        { className: 'admin-builder__input' }
-                                    );
-                                    groupCaptionInput.type = 'text';
-                                    groupCaptionInput.placeholder =
-                                        'Optional caption';
-                                    groupCaptionInput.value =
-                                        image.caption || '';
-                                    groupCaptionInput.dataset.field =
-                                        'group-image-caption';
-                                    groupCaptionField.append(groupCaptionInput);
-                                    groupItem.append(groupCaptionField);
-
-                                    const groupActions = createElement('div', {
-                                        className:
-                                            'admin-builder__group-actions',
-                                    });
-                                    const removeImageButton = createElement(
-                                        'button',
-                                        {
-                                            className:
-                                                'admin-builder__element-remove',
-                                            textContent: 'Remove image',
-                                        }
-                                    );
-                                    removeImageButton.type = 'button';
-                                    removeImageButton.dataset.action =
-                                        'group-image-remove';
-                                    groupActions.append(removeImageButton);
-                                    groupItem.append(groupActions);
-
-                                    groupList.append(groupItem);
-                                });
-                            }
-
-                            groupContainer.append(groupList);
-
-                            const addGroupImageButton = createElement(
-                                'button',
-                                {
-                                    className:
-                                        'admin-builder__button admin-builder__button--ghost',
-                                    textContent: 'Add image to group',
-                                }
-                            );
-                            addGroupImageButton.type = 'button';
-                            addGroupImageButton.dataset.action =
-                                'group-image-add';
-                            groupContainer.append(addGroupImageButton);
-
-                            elementNode.append(groupContainer);
+                        const definition = elementDefinitions[element.type];
+                        if (
+                            definition &&
+                            typeof definition.renderEditor === 'function'
+                        ) {
+                            definition.renderEditor(elementNode, element);
                         } else if (element.unsupported) {
                             elementNode.append(
                                 createElement('p', {
@@ -706,48 +932,23 @@
                     className: 'admin-builder__section-actions',
                 });
 
-                const addParagraphButton = createElement('button', {
-                    className:
-                        'admin-builder__button admin-builder__button--ghost',
-                    textContent: 'Add paragraph',
+                orderedElementTypes.forEach((type) => {
+                    const definition = elementDefinitions[type];
+                    if (!definition || !definition.addLabel) {
+                        return;
+                    }
+                    const button = createElement('button', {
+                        className:
+                            'admin-builder__button admin-builder__button--ghost',
+                        textContent: definition.addLabel,
+                    });
+                    button.type = 'button';
+                    button.dataset.action = 'element-add';
+                    button.dataset.elementType = type;
+                    sectionActions.append(button);
                 });
-                addParagraphButton.type = 'button';
-                addParagraphButton.dataset.action = 'element-add';
-                addParagraphButton.dataset.elementType = 'paragraph';
-                sectionActions.append(addParagraphButton);
-
-                const addImageButton = createElement('button', {
-                    className:
-                        'admin-builder__button admin-builder__button--ghost',
-                    textContent: 'Add image',
-                });
-                addImageButton.type = 'button';
-                addImageButton.dataset.action = 'element-add';
-                addImageButton.dataset.elementType = 'image';
-                sectionActions.append(addImageButton);
-
-                const addImageGroupButton = createElement('button', {
-                    className:
-                        'admin-builder__button admin-builder__button--ghost',
-                    textContent: 'Add image group',
-                });
-                addImageGroupButton.type = 'button';
-                addImageGroupButton.dataset.action = 'element-add';
-                addImageGroupButton.dataset.elementType = 'image_group';
-                sectionActions.append(addImageGroupButton);
-
-                const addListButton = createElement('button', {
-                    className:
-                        'admin-builder__button admin-builder__button--ghost',
-                    textContent: 'Add list',
-                });
-                addListButton.type = 'button';
-                addListButton.dataset.action = 'element-add';
-                addListButton.dataset.elementType = 'list';
-                sectionActions.append(addListButton);
 
                 sectionItem.append(sectionActions);
-
                 sectionList.append(sectionItem);
             });
         };
@@ -780,28 +981,21 @@
             if (!section) {
                 return;
             }
-            const element = createElementState({ type });
-            if (
-                type === 'image_group' &&
-                (!element.content || !element.content.images.length)
-            ) {
-                element.content.images = [createImageState({})];
-            }
-            if (type === 'list') {
-                if (!Array.isArray(element.content?.items)) {
-                    element.content.items = [''];
-                }
-                if (typeof element.content.ordered !== 'boolean') {
-                    element.content.ordered = Boolean(element.content.ordered);
-                }
-            }
+            const definition = elementDefinitions[type];
+            const element =
+                definition && typeof definition.create === 'function'
+                    ? definition.create()
+                    : createElementState({ type });
             section.elements.push(element);
             render();
             emitChange();
+            const focusSelector = definition?.initialFocusSelector
+                ? ` ${definition.initialFocusSelector}`
+                : type === 'paragraph'
+                ? ' textarea'
+                : ' [data-field]';
             focusField(
-                type === 'paragraph'
-                    ? `[data-section-client="${sectionClientId}"] [data-element-client="${element.clientId}"] textarea`
-                    : `[data-section-client="${sectionClientId}"] [data-element-client="${element.clientId}"] [data-field]`
+                `[data-section-client="${sectionClientId}"] [data-element-client="${element.clientId}"]${focusSelector}`
             );
         };
 
@@ -882,60 +1076,17 @@
             if (!element) {
                 return;
             }
-            switch (field) {
-                case 'paragraph-text':
-                    element.content.text = value;
-                    break;
-                case 'image-url':
-                    element.content.url = value;
-                    break;
-                case 'image-alt':
-                    element.content.alt = value;
-                    break;
-                case 'image-caption':
-                    element.content.caption = value;
-                    break;
-                case 'image-group-layout':
-                    element.content.layout = value;
-                    break;
-                case 'list-ordered':
-                    element.content.ordered = Boolean(value);
-                    break;
-                case 'list-items':
-                    if (Array.isArray(value)) {
-                        element.content.items = value;
-                    } else if (typeof value === 'string') {
-                        element.content.items = value
-                            .replace(/\r/g, '')
-                            .split('\n');
-                    }
-                    break;
-                case 'group-image-url':
-                case 'group-image-alt':
-                case 'group-image-caption':
-                    if (!element.content.images) {
-                        element.content.images = [];
-                    }
-                    {
-                        const image = element.content.images.find(
-                            (img) => img.clientId === imageClientId
-                        );
-                        if (!image) {
-                            return;
-                        }
-                        if (field === 'group-image-url') {
-                            image.url = value;
-                        }
-                        if (field === 'group-image-alt') {
-                            image.alt = value;
-                        }
-                        if (field === 'group-image-caption') {
-                            image.caption = value;
-                        }
-                    }
-                    break;
-                default:
-                    break;
+            const definition = elementDefinitions[element.type];
+            if (definition && typeof definition.updateField === 'function') {
+                const handled = definition.updateField(
+                    element,
+                    field,
+                    value,
+                    imageClientId
+                );
+                if (handled) {
+                    return;
+                }
             }
         };
 
@@ -943,25 +1094,9 @@
             if (!element) {
                 return false;
             }
-            if (element.type === 'paragraph') {
-                return Boolean(element.content?.text?.trim());
-            }
-            if (element.type === 'image') {
-                return Boolean(element.content?.url?.trim());
-            }
-            if (element.type === 'image_group') {
-                return (
-                    Array.isArray(element.content?.images) &&
-                    element.content.images.some(
-                        (image) => image.url && image.url.trim()
-                    )
-                );
-            }
-            if (element.type === "list") {
-                if (!Array.isArray(element.content?.items)) {
-                    return false;
-                }
-                return element.content.items.some((item) => item && item.toString().trim());
+            const definition = elementDefinitions[element.type];
+            if (definition && typeof definition.hasContent === 'function') {
+                return definition.hasContent(element);
             }
             return true;
         };
@@ -970,98 +1105,9 @@
             if (!elementHasContent(element)) {
                 return null;
             }
-            if (element.type === 'paragraph') {
-                return {
-                    id: element.id || '',
-                    type: 'paragraph',
-                    order: index + 1,
-                    content: {
-                        text: element.content.text.trim(),
-                    },
-                };
-            }
-            if (element.type === 'image') {
-                const payload = {
-                    url: element.content.url.trim(),
-                };
-                if (element.content.alt && element.content.alt.trim()) {
-                    payload.alt = element.content.alt.trim();
-                }
-                if (element.content.caption && element.content.caption.trim()) {
-                    payload.caption = element.content.caption.trim();
-                }
-                return {
-                    id: element.id || '',
-                    type: 'image',
-                    order: index + 1,
-                    content: payload,
-                };
-            }
-            if (element.type === "list") {
-                const sourceItems = Array.isArray(element.content.items)
-                    ? element.content.items
-                    : [];
-                const items = sourceItems
-                    .map((item) => {
-                        if (typeof item === "string") {
-                            return item.trim();
-                        }
-                        if (item === null || item === undefined) {
-                            return "";
-                        }
-                        return String(item).trim();
-                    })
-                    .filter(Boolean);
-
-                if (!items.length) {
-                    return null;
-                }
-
-                const payload = { items };
-                if (element.content.ordered) {
-                    payload.ordered = true;
-                }
-
-                return {
-                    id: element.id || "",
-                    type: "list",
-                    order: index + 1,
-                    content: payload,
-                };
-            }
-            if (element.type === 'image_group') {
-                const images = (element.content.images || [])
-                    .map((image) => {
-                        const url = (image.url || '').trim();
-                        if (!url) {
-                            return null;
-                        }
-                        const payload = { url };
-                        if (image.alt && image.alt.trim()) {
-                            payload.alt = image.alt.trim();
-                        }
-                        if (image.caption && image.caption.trim()) {
-                            payload.caption = image.caption.trim();
-                        }
-                        return payload;
-                    })
-                    .filter(Boolean);
-
-                if (!images.length) {
-                    return null;
-                }
-
-                const payload = { images };
-                if (element.content.layout && element.content.layout.trim()) {
-                    payload.layout = element.content.layout.trim();
-                }
-
-                return {
-                    id: element.id || '',
-                    type: 'image_group',
-                    order: index + 1,
-                    content: payload,
-                };
+            const definition = elementDefinitions[element.type];
+            if (definition && typeof definition.sanitise === 'function') {
+                return definition.sanitise(element, index);
             }
             return {
                 id: element.id || '',
@@ -1177,12 +1223,12 @@
             }
         });
 
-        sectionList.addEventListener("input", (event) => {
+        sectionList.addEventListener('input', (event) => {
             const target = event.target;
             if (!(target instanceof HTMLElement)) {
                 return;
             }
-            const sectionNode = target.closest("[data-section-client]");
+            const sectionNode = target.closest('[data-section-client]');
             if (!sectionNode) {
                 return;
             }
@@ -1196,15 +1242,25 @@
                 return;
             }
 
-            const elementNode = target.closest("[data-element-client]");
+            const elementNode = target.closest('[data-element-client]');
             if (elementNode) {
                 const elementClientId = elementNode.dataset.elementClient;
-                const imageNode = target.closest("[data-group-image-client]");
-                const imageClientId = imageNode ? imageNode.dataset.groupImageClient : undefined;
-                const fieldValue = target.type === "checkbox" ? target.checked : target.value;
-                updateElementField(sectionClientId, elementClientId, field, fieldValue, imageClientId);
+                const imageNode = target.closest('[data-group-image-client]');
+                const imageClientId = imageNode
+                    ? imageNode.dataset.groupImageClient
+                    : undefined;
+                const fieldValue =
+                    target.type === 'checkbox' ? target.checked : target.value;
+                updateElementField(
+                    sectionClientId,
+                    elementClientId,
+                    field,
+                    fieldValue,
+                    imageClientId
+                );
             } else {
-                const fieldValue = target.type === "checkbox" ? target.checked : target.value;
+                const fieldValue =
+                    target.type === 'checkbox' ? target.checked : target.value;
                 updateSectionField(sectionClientId, field, fieldValue);
             }
             emitChange();
@@ -1242,7 +1298,7 @@
 
     const generateContentPreview = (sections) => {
         if (!Array.isArray(sections) || sections.length === 0) {
-            return "";
+            return '';
         }
         const parts = [];
         sections.forEach((section) => {
@@ -1251,20 +1307,14 @@
             }
             if (Array.isArray(section.elements)) {
                 section.elements.forEach((element) => {
-                    if (element.type === "paragraph" && element.content?.text) {
-                        parts.push(element.content.text);
-                    }
-                    if (element.type === "list" && Array.isArray(element.content?.items)) {
-                        element.content.items
-                            .filter((item) => item && item.toString().trim())
-                            .forEach((item) => {
-                                parts.push(item.toString());
-                            });
+                    const definition = elementDefinitions[element.type];
+                    if (definition && typeof definition.preview === 'function') {
+                        definition.preview(element, parts);
                     }
                 });
             }
         });
-        return parts.join("\n\n");
+        return parts.join('\n\n');
     };
 
     const initialiseAdminDashboard = () => {
@@ -1613,11 +1663,17 @@
                             }" is missing a URL.`;
                         }
                     }
-                    if (element.type === "list") {
-                        const items = Array.isArray(element.content?.items) ? element.content.items : [];
-                        const hasItems = items.some((item) => item && item.toString().trim());
+                    if (element.type === 'list') {
+                        const items = Array.isArray(element.content?.items)
+                            ? element.content.items
+                            : [];
+                        const hasItems = items.some(
+                            (item) => item && item.toString().trim()
+                        );
                         if (!hasItems) {
-                            return `List ${elementIndex + 1} in section "${section.title}" needs at least one item.`;
+                            return `List ${elementIndex + 1} in section "${
+                                section.title
+                            }" needs at least one item.`;
                         }
                     }
                 }
