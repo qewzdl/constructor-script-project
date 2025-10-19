@@ -1051,7 +1051,7 @@ textarea.form-field__input {
 
 .post__sidebar {
     display: grid;
-    gap: var(--size-sm);
+    gap: var(--size-base);
     background-color: var(--color-bg);
     overflow-x: hidden;
 }
@@ -1065,7 +1065,6 @@ textarea.form-field__input {
 .post__sidebar a:focus-visible {
     color: var(--color-primary);
 }
-
 
 .post__sidebar h2 {
     font-size: var(--font-size-lg);
