@@ -855,7 +855,7 @@ textarea.form-field__input {
 .blog__posts {
     display: grid;
     gap: var(--size-base);
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 .blog__empty {
@@ -897,6 +897,7 @@ textarea.form-field__input {
     background-color: var(--color-bg);
     user-select: none;
     cursor: pointer;
+    overflow: hidden;
 }
 
 .post-card:hover {
@@ -927,6 +928,11 @@ textarea.form-field__input {
 .post-card__title {
     font-size: var(--font-size-xl);
     font-weight: 600;
+    width: 100%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .post-card__link {
