@@ -89,6 +89,7 @@
     /* Layout */
     --max-width: 1000px;
     --side-padding: 8%;
+    --side-padding-after: var(--size-base);
 }
 
 /* Light theme override */

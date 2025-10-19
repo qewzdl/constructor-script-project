@@ -1104,6 +1104,10 @@
 }
 
 @media (max-width: 520px) {
+    .admin > *, .admin__panels > * {
+        border-inline: none;
+    }
+
     .admin__tabs {
         padding-inline: var(--size-base);
     }
