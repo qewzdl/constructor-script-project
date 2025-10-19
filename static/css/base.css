@@ -970,7 +970,7 @@ textarea.form-field__input {
     gap: var(--size-base);
 }
 
-.post__section *:first-child {
+.post__section :nth-child(2) {
     margin-top: 0 !important;
 }
 .post__section > *:last-child {
