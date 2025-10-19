@@ -3,7 +3,6 @@
     padding: 0;
     box-sizing: border-box;
     text-decoration: none;
-    list-style: none;
     font-family: var(--font-family-base);
 }
 
@@ -101,6 +100,7 @@ textarea {
 .header__nav-list {
     display: flex;
     align-items: center;
+    list-style: none;
 }
 
 @media (min-width: 768px) {
@@ -863,6 +863,7 @@ textarea.form-field__input {
     flex-wrap: wrap;
     gap: var(--size-xs);
     margin-block: var(--size-sm);
+    list-style: none;
 }
 
 .tag-list__link {
@@ -944,6 +945,7 @@ textarea.form-field__input {
     display: flex;
     flex-wrap: wrap;
     gap: var(--size-xs);
+    list-style: none;
 }
 
 .post-card__tag-link {
@@ -1130,6 +1132,36 @@ textarea.form-field__input {
 .post__paragraph {
     color: var(--color-text);
     margin: var(--size-base) 0;
+}
+
+.post__list {
+    margin: var(--size-base) 0;
+    padding-left: 1.75rem;
+}
+
+.post__list:not(.post__list--ordered) {
+    list-style: disc;
+}
+
+.post__list--ordered {
+    list-style: decimal;
+}
+
+.post__list-item {
+    color: var(--color-text);
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+.section-field--checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.section-field--checkbox input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
 }
 
 .post__content .post__image {
@@ -1611,6 +1643,7 @@ textarea.form-field__input {
 
 .category-list {
     display: flex;
+    list-style: none;
 }
 
 .category-list__link {

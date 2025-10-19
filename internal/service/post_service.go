@@ -239,7 +239,7 @@ func (s *PostService) prepareSectionElements(elements []models.SectionElement) (
 		}
 
 		switch elem.Type {
-		case "paragraph", "image", "image_group":
+		case "paragraph", "image", "image_group", "list":
 
 		default:
 			return nil, fmt.Errorf("element %d: unknown type '%s'", i, elem.Type)
@@ -268,6 +268,29 @@ func (s *PostService) generateContentFromSections(sections models.PostSections) 
 					if text, ok := contentMap["text"].(string); ok {
 						content.WriteString(text)
 						content.WriteString("\n\n")
+					}
+				}
+				continue
+			}
+
+			if elem.Type == "list" {
+				if contentMap, ok := elem.Content.(map[string]interface{}); ok {
+					if items, ok := contentMap["items"].([]interface{}); ok {
+						for _, item := range items {
+							if text, ok := item.(string); ok && text != "" {
+								content.WriteString(text)
+								content.WriteString("\n")
+							}
+						}
+						content.WriteString("\n")
+					} else if strItems, ok := contentMap["items"].([]string); ok {
+						for _, text := range strItems {
+							if text != "" {
+								content.WriteString(text)
+								content.WriteString("\n")
+							}
+						}
+						content.WriteString("\n")
 					}
 				}
 			}

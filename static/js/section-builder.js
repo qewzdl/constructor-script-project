@@ -2,12 +2,14 @@
     const builders = new WeakMap();
 
     const generateId = () =>
-        window.crypto && typeof window.crypto.randomUUID === "function"
+        window.crypto && typeof window.crypto.randomUUID === 'function'
             ? window.crypto.randomUUID()
-            : `section-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+            : `section-${Date.now().toString(36)}-${Math.random()
+                  .toString(36)
+                  .slice(2, 10)}`;
 
     const cloneDeep = (value) => {
-        if (typeof window.structuredClone === "function") {
+        if (typeof window.structuredClone === 'function') {
             try {
                 return window.structuredClone(value);
             } catch (error) {
@@ -20,7 +22,7 @@
             if (Array.isArray(value)) {
                 return value.slice();
             }
-            if (value && typeof value === "object") {
+            if (value && typeof value === 'object') {
                 return Object.assign({}, value);
             }
             return value;
@@ -28,8 +30,8 @@
     };
 
     const capitalise = (value) => {
-        if (typeof value !== "string" || !value.length) {
-            return "";
+        if (typeof value !== 'string' || !value.length) {
+            return '';
         }
         return value.charAt(0).toUpperCase() + value.slice(1);
     };
@@ -62,36 +64,62 @@
     };
 
     const normaliseImageContent = (content = {}) => ({
-        url: content.url || content.URL || "",
-        alt: content.alt || content.Alt || "",
-        caption: content.caption || content.Caption || "",
+        url: content.url || content.URL || '',
+        alt: content.alt || content.Alt || '',
+        caption: content.caption || content.Caption || '',
     });
 
     const normaliseImageGroupContent = (content = {}) => {
         const imagesSource = content.images || content.Images;
         const images = Array.isArray(imagesSource) ? imagesSource : [];
         return {
-            layout: content.layout || content.Layout || "grid",
+            layout: content.layout || content.Layout || 'grid',
             images: images.map((image) => normaliseImageContent(image)),
         };
     };
 
+    const normaliseListContent = (content = {}) => {
+        const itemsSource = content.items || content.Items;
+        const items = Array.isArray(itemsSource)
+            ? itemsSource.map((item) => {
+                  if (typeof item === 'string') {
+                      return item;
+                  }
+                  if (item === null || item === undefined) {
+                      return '';
+                  }
+                  return String(item);
+              })
+            : [];
+        const orderedValue = content.ordered ?? content.Ordered ?? false;
+        const ordered =
+            typeof orderedValue === 'string'
+                ? orderedValue.toLowerCase() === 'true'
+                : Boolean(orderedValue);
+        return {
+            ordered,
+            items,
+        };
+    };
+
     const normaliseElement = (element) => {
-        if (!element || typeof element !== "object") {
+        if (!element || typeof element !== 'object') {
             return {
                 id: generateId(),
-                type: "paragraph",
-                content: { text: "" },
+                type: 'paragraph',
+                content: { text: '' },
             };
         }
-        const type = element.type || element.Type || "paragraph";
+        const type = element.type || element.Type || 'paragraph';
         let content = element.content || element.Content || {};
-        if (type === "paragraph") {
-            content = { text: content.text || content.Text || "" };
-        } else if (type === "image") {
+        if (type === 'paragraph') {
+            content = { text: content.text || content.Text || '' };
+        } else if (type === 'image') {
             content = normaliseImageContent(content);
-        } else if (type === "image_group") {
+        } else if (type === 'image_group') {
             content = normaliseImageGroupContent(content);
+        } else if (type === 'list') {
+            content = normaliseListContent(content);
         } else {
             content = cloneDeep(content);
         }
@@ -103,11 +131,11 @@
     };
 
     const normaliseSection = (section) => {
-        if (!section || typeof section !== "object") {
+        if (!section || typeof section !== 'object') {
             return {
                 id: generateId(),
-                title: "",
-                image: "",
+                title: '',
+                image: '',
                 elements: [],
             };
         }
@@ -117,55 +145,70 @@
             : [];
         return {
             id: section.id || section.ID || generateId(),
-            title: section.title || section.Title || "",
-            image: section.image || section.Image || "",
+            title: section.title || section.Title || '',
+            image: section.image || section.Image || '',
             elements,
         };
     };
 
     const createEmptySection = () => ({
         id: generateId(),
-        title: "",
-        image: "",
+        title: '',
+        image: '',
         elements: [],
     });
 
     const createElementByType = (type) => {
-        if (type === "image") {
-            return { id: generateId(), type: "image", content: { url: "", alt: "", caption: "" } };
+        if (type === 'image') {
+            return {
+                id: generateId(),
+                type: 'image',
+                content: { url: '', alt: '', caption: '' },
+            };
         }
-        if (type === "image_group") {
-            return { id: generateId(), type: "image_group", content: { layout: "grid", images: [] } };
+        if (type === 'image_group') {
+            return {
+                id: generateId(),
+                type: 'image_group',
+                content: { layout: 'grid', images: [] },
+            };
         }
-        return { id: generateId(), type: "paragraph", content: { text: "" } };
+        if (type === 'list') {
+            return {
+                id: generateId(),
+                type: 'list',
+                content: { ordered: false, items: [''] },
+            };
+        }
+        return { id: generateId(), type: 'paragraph', content: { text: '' } };
     };
 
     const serialiseElementContent = (element) => {
-        if (!element || typeof element !== "object") {
+        if (!element || typeof element !== 'object') {
             return null;
         }
-        if (element.type === "paragraph") {
-            const text = element.content?.text || "";
+        if (element.type === 'paragraph') {
+            const text = element.content?.text || '';
             return text.trim() ? { text: text } : null;
         }
-        if (element.type === "image") {
-            const url = element.content?.url || "";
+        if (element.type === 'image') {
+            const url = element.content?.url || '';
             if (!url.trim()) {
                 return null;
             }
             const payload = { url: url.trim() };
-            const alt = element.content?.alt || "";
+            const alt = element.content?.alt || '';
             if (alt.trim()) {
                 payload.alt = alt.trim();
             }
-            const caption = element.content?.caption || "";
+            const caption = element.content?.caption || '';
             if (caption.trim()) {
                 payload.caption = caption.trim();
             }
             return payload;
         }
-        if (element.type === "image_group") {
-            const layout = element.content?.layout || "";
+        if (element.type === 'image_group') {
+            const layout = element.content?.layout || '';
             const imagesSource = element.content?.images;
             const images = Array.isArray(imagesSource) ? imagesSource : [];
             const serialisedImages = images
@@ -173,16 +216,16 @@
                     if (!image) {
                         return null;
                     }
-                    const url = image.url || image.URL || "";
+                    const url = image.url || image.URL || '';
                     if (!url.trim()) {
                         return null;
                     }
                     const payload = { url: url.trim() };
-                    const alt = image.alt || image.Alt || "";
+                    const alt = image.alt || image.Alt || '';
                     if (alt.trim()) {
                         payload.alt = alt.trim();
                     }
-                    const caption = image.caption || image.Caption || "";
+                    const caption = image.caption || image.Caption || '';
                     if (caption.trim()) {
                         payload.caption = caption.trim();
                     }
@@ -193,9 +236,33 @@
                 return null;
             }
             return {
-                layout: (layout || "grid").trim() || "grid",
+                layout: (layout || 'grid').trim() || 'grid',
                 images: serialisedImages,
             };
+        }
+        if (element.type === 'list') {
+            const itemsSource = Array.isArray(element.content?.items)
+                ? element.content.items
+                : [];
+            const items = itemsSource
+                .map((item) => {
+                    if (typeof item === 'string') {
+                        return item.trim();
+                    }
+                    if (item === null || item === undefined) {
+                        return '';
+                    }
+                    return String(item).trim();
+                })
+                .filter(Boolean);
+            if (!items.length) {
+                return null;
+            }
+            const payload = { items };
+            if (element.content?.ordered) {
+                payload.ordered = true;
+            }
+            return payload;
         }
         return cloneDeep(element.content);
     };
@@ -223,8 +290,8 @@
                 : [];
             return {
                 id: section.id || generateId(),
-                title: (section.title || "").trim(),
-                image: (section.image || "").trim(),
+                title: (section.title || '').trim(),
+                image: (section.image || '').trim(),
                 order: index + 1,
                 elements,
             };
@@ -237,7 +304,7 @@
         }
         for (let i = 0; i < sections.length; i += 1) {
             const section = sections[i];
-            const title = section?.title || "";
+            const title = section?.title || '';
             if (!title.trim()) {
                 return `Section ${i + 1} requires a title.`;
             }
@@ -249,24 +316,48 @@
                 if (!element || !element.type) {
                     return `Section ${i + 1}, element ${j + 1} is invalid.`;
                 }
-                if (element.type === "paragraph") {
-                    const text = element.content?.text || "";
+                if (element.type === 'paragraph') {
+                    const text = element.content?.text || '';
                     if (!text.trim()) {
-                        return `Section ${i + 1}, paragraph ${j + 1} requires content.`;
+                        return `Section ${i + 1}, paragraph ${
+                            j + 1
+                        } requires content.`;
                     }
-                } else if (element.type === "image") {
-                    const url = element.content?.url || "";
+                } else if (element.type === 'image') {
+                    const url = element.content?.url || '';
                     if (!url.trim()) {
-                        return `Section ${i + 1}, image ${j + 1} requires an image URL.`;
+                        return `Section ${i + 1}, image ${
+                            j + 1
+                        } requires an image URL.`;
                     }
-                } else if (element.type === "image_group") {
-                    const images = Array.isArray(element.content?.images) ? element.content.images : [];
+                } else if (element.type === 'image_group') {
+                    const images = Array.isArray(element.content?.images)
+                        ? element.content.images
+                        : [];
                     if (!images.length) {
-                        return `Section ${i + 1}, image group ${j + 1} requires at least one image.`;
+                        return `Section ${i + 1}, image group ${
+                            j + 1
+                        } requires at least one image.`;
                     }
-                    const missingIndex = images.findIndex((image) => !(image?.url || "").trim());
+                    const missingIndex = images.findIndex(
+                        (image) => !(image?.url || '').trim()
+                    );
                     if (missingIndex !== -1) {
-                        return `Section ${i + 1}, image group ${j + 1} image ${missingIndex + 1} requires an image URL.`;
+                        return `Section ${i + 1}, image group ${j + 1} image ${
+                            missingIndex + 1
+                        } requires an image URL.`;
+                    }
+                } else if (element.type === 'list') {
+                    const items = Array.isArray(element.content?.items)
+                        ? element.content.items
+                        : [];
+                    const hasItems = items.some((item) =>
+                        (item || '').toString().trim()
+                    );
+                    if (!hasItems) {
+                        return `Section ${i + 1}, list ${
+                            j + 1
+                        } requires at least one item.`;
                     }
                 }
             }
@@ -274,7 +365,8 @@
         return null;
     };
 
-    const elementTypeLabel = (type) => capitalise(String(type || "Paragraph").replace(/_/g, " "));
+    const elementTypeLabel = (type) =>
+        capitalise(String(type || 'Paragraph').replace(/_/g, ' '));
 
     const createBuilder = (root) => {
         if (!root) {
@@ -294,20 +386,23 @@
         let draggingIndex = null;
 
         const clearDropIndicators = () => {
-            list
-                .querySelectorAll(".section-card--drop-before, .section-card--drop-after")
-                .forEach((card) => {
-                    card.classList.remove("section-card--drop-before", "section-card--drop-after");
-                    delete card.dataset.dropPosition;
-                });
+            list.querySelectorAll(
+                '.section-card--drop-before, .section-card--drop-after'
+            ).forEach((card) => {
+                card.classList.remove(
+                    'section-card--drop-before',
+                    'section-card--drop-after'
+                );
+                delete card.dataset.dropPosition;
+            });
         };
 
         const endDrag = () => {
-            list.classList.remove("section-builder__list--dragging");
+            list.classList.remove('section-builder__list--dragging');
             clearDropIndicators();
             draggingIndex = null;
-            list.querySelectorAll(".section-card").forEach((card) => {
-                card.classList.remove("section-card--dragging");
+            list.querySelectorAll('.section-card').forEach((card) => {
+                card.classList.remove('section-card--dragging');
                 card.draggable = false;
             });
         };
@@ -320,7 +415,10 @@
                 return;
             }
             const [removed] = state.sections.splice(fromIndex, 1);
-            const boundedIndex = Math.max(0, Math.min(toIndex, state.sections.length));
+            const boundedIndex = Math.max(
+                0,
+                Math.min(toIndex, state.sections.length)
+            );
             state.sections.splice(boundedIndex, 0, removed);
             render();
             endDrag();
@@ -346,7 +444,10 @@
                 return;
             }
             const [removed] = section.elements.splice(fromIndex, 1);
-            const boundedIndex = Math.max(0, Math.min(toIndex, section.elements.length));
+            const boundedIndex = Math.max(
+                0,
+                Math.min(toIndex, section.elements.length)
+            );
             section.elements.splice(boundedIndex, 0, removed);
             render();
         };
@@ -360,10 +461,17 @@
             render();
         };
 
-        const moveGroupImage = (sectionIndex, elementIndex, fromIndex, toIndex) => {
+        const moveGroupImage = (
+            sectionIndex,
+            elementIndex,
+            fromIndex,
+            toIndex
+        ) => {
             const section = state.sections[sectionIndex];
             const element = section?.elements?.[elementIndex];
-            const images = Array.isArray(element?.content?.images) ? element.content.images : null;
+            const images = Array.isArray(element?.content?.images)
+                ? element.content.images
+                : null;
             if (!images || toIndex < 0 || toIndex >= images.length) {
                 return;
             }
@@ -375,7 +483,9 @@
         const removeGroupImage = (sectionIndex, elementIndex, imageIndex) => {
             const section = state.sections[sectionIndex];
             const element = section?.elements?.[elementIndex];
-            const images = Array.isArray(element?.content?.images) ? element.content.images : null;
+            const images = Array.isArray(element?.content?.images)
+                ? element.content.images
+                : null;
             if (!images) {
                 return;
             }
@@ -384,87 +494,95 @@
         };
 
         const createSectionCard = (section, index) => {
-            const item = createElement("li", { className: "section-card" });
+            const item = createElement('li', { className: 'section-card' });
             item.dataset.sectionId = section.id;
             item.dataset.index = index;
             item.draggable = false;
 
-            const header = createElement("div", { className: "section-card__header" });
-
-            const dragHandle = createElement("button", {
-                className: "section-card__drag-handle",
-                type: "button",
-                attrs: {
-                    "aria-label": "Reorder section",
-                    title: "Drag to reorder section",
-                },
-                html: "<span aria-hidden=\"true\">⋮⋮</span>",
+            const header = createElement('div', {
+                className: 'section-card__header',
             });
 
-            dragHandle.addEventListener("pointerdown", () => {
+            const dragHandle = createElement('button', {
+                className: 'section-card__drag-handle',
+                type: 'button',
+                attrs: {
+                    'aria-label': 'Reorder section',
+                    title: 'Drag to reorder section',
+                },
+                html: '<span aria-hidden="true">⋮⋮</span>',
+            });
+
+            dragHandle.addEventListener('pointerdown', () => {
                 item.draggable = true;
             });
 
             const resetDraggable = () => {
-                if (!item.classList.contains("section-card--dragging")) {
+                if (!item.classList.contains('section-card--dragging')) {
                     item.draggable = false;
                 }
             };
 
-            dragHandle.addEventListener("pointerup", resetDraggable);
-            dragHandle.addEventListener("pointercancel", resetDraggable);
+            dragHandle.addEventListener('pointerup', resetDraggable);
+            dragHandle.addEventListener('pointercancel', resetDraggable);
 
             header.appendChild(dragHandle);
             header.appendChild(
-                createElement("span", {
-                    className: "section-card__title",
+                createElement('span', {
+                    className: 'section-card__title',
                     textContent: `Section ${index + 1}`,
                 })
             );
 
-            const controls = createElement("div", { className: "section-card__controls" });
-            const moveUp = createElement("button", {
-                className: "section-card__control",
-                textContent: "Move up",
-                type: "button",
+            const controls = createElement('div', {
+                className: 'section-card__controls',
+            });
+            const moveUp = createElement('button', {
+                className: 'section-card__control',
+                textContent: 'Move up',
+                type: 'button',
             });
             moveUp.disabled = index === 0;
-            moveUp.addEventListener("click", () => moveSection(index, index - 1));
+            moveUp.addEventListener('click', () =>
+                moveSection(index, index - 1)
+            );
             controls.appendChild(moveUp);
 
-            const moveDown = createElement("button", {
-                className: "section-card__control",
-                textContent: "Move down",
-                type: "button",
+            const moveDown = createElement('button', {
+                className: 'section-card__control',
+                textContent: 'Move down',
+                type: 'button',
             });
             moveDown.disabled = index === state.sections.length - 1;
-            moveDown.addEventListener("click", () => moveSection(index, index + 1));
+            moveDown.addEventListener('click', () =>
+                moveSection(index, index + 1)
+            );
             controls.appendChild(moveDown);
 
-            const remove = createElement("button", {
-                className: "section-card__control",
-                textContent: "Remove",
-                type: "button",
+            const remove = createElement('button', {
+                className: 'section-card__control',
+                textContent: 'Remove',
+                type: 'button',
             });
-            remove.addEventListener("click", () => removeSection(index));
+            remove.addEventListener('click', () => removeSection(index));
             controls.appendChild(remove);
 
             header.appendChild(controls);
             item.appendChild(header);
 
-            item.addEventListener("dragstart", (event) => {
+            item.addEventListener('dragstart', (event) => {
                 draggingIndex = index;
-                list.classList.add("section-builder__list--dragging");
-                item.classList.add("section-card--dragging");
+                list.classList.add('section-builder__list--dragging');
+                item.classList.add('section-card--dragging');
                 try {
-                    event.dataTransfer.effectAllowed = "move";
-                    event.dataTransfer.setData("text/plain", String(index));
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', String(index));
                 } catch (error) {
                     // ignore when dataTransfer is unavailable
                 }
             });
 
-            item.addEventListener("dragover", (event) => {
+            item.addEventListener('dragover', (event) => {
                 if (draggingIndex === null || draggingIndex === index) {
                     return;
                 }
@@ -473,26 +591,29 @@
                 const rect = item.getBoundingClientRect();
                 const offset = event.clientY - rect.top;
                 const insertBefore = offset < rect.height / 2;
-                item.dataset.dropPosition = insertBefore ? "before" : "after";
+                item.dataset.dropPosition = insertBefore ? 'before' : 'after';
                 item.classList.add(
-                    insertBefore ? "section-card--drop-before" : "section-card--drop-after"
+                    insertBefore
+                        ? 'section-card--drop-before'
+                        : 'section-card--drop-after'
                 );
                 try {
-                    event.dataTransfer.dropEffect = "move";
+                    event.dataTransfer.dropEffect = 'move';
                 } catch (error) {
                     // ignore when dataTransfer is unavailable
                 }
             });
 
-            item.addEventListener("drop", (event) => {
+            item.addEventListener('drop', (event) => {
                 if (draggingIndex === null) {
                     return;
                 }
                 event.preventDefault();
                 event.stopPropagation();
                 const fromIndex = draggingIndex;
-                const dropPosition = item.dataset.dropPosition === "before" ? "before" : "after";
-                let destination = dropPosition === "before" ? index : index + 1;
+                const dropPosition =
+                    item.dataset.dropPosition === 'before' ? 'before' : 'after';
+                let destination = dropPosition === 'before' ? index : index + 1;
                 if (fromIndex < destination) {
                     destination -= 1;
                 }
@@ -504,19 +625,26 @@
                 moveSection(fromIndex, destination);
             });
 
-            item.addEventListener("dragend", () => {
+            item.addEventListener('dragend', () => {
                 endDrag();
             });
 
-            const body = createElement("div", { className: "section-card__body" });
+            const body = createElement('div', {
+                className: 'section-card__body',
+            });
             const titleId = `${section.id}-title`;
-            const titleField = createElement("div", { className: "section-field" });
-            const titleLabel = createElement("label", { textContent: "Title", attrs: { for: titleId } });
-            const titleInput = createElement("input", { type: "text" });
+            const titleField = createElement('div', {
+                className: 'section-field',
+            });
+            const titleLabel = createElement('label', {
+                textContent: 'Title',
+                attrs: { for: titleId },
+            });
+            const titleInput = createElement('input', { type: 'text' });
             titleInput.id = titleId;
-            titleInput.value = section.title || "";
-            titleInput.placeholder = "Section heading";
-            titleInput.addEventListener("input", (event) => {
+            titleInput.value = section.title || '';
+            titleInput.placeholder = 'Section heading';
+            titleInput.addEventListener('input', (event) => {
                 section.title = event.target.value;
             });
             titleField.appendChild(titleLabel);
@@ -524,46 +652,57 @@
             body.appendChild(titleField);
 
             const imageId = `${section.id}-image`;
-            const imageField = createElement("div", { className: "section-field" });
-            const imageLabel = createElement("label", { textContent: "Featured image (optional)", attrs: { for: imageId } });
-            const imageInput = createElement("input", { type: "url" });
+            const imageField = createElement('div', {
+                className: 'section-field',
+            });
+            const imageLabel = createElement('label', {
+                textContent: 'Featured image (optional)',
+                attrs: { for: imageId },
+            });
+            const imageInput = createElement('input', { type: 'url' });
             imageInput.id = imageId;
-            imageInput.placeholder = "https://example.com/image.jpg";
-            imageInput.value = section.image || "";
-            imageInput.addEventListener("input", (event) => {
+            imageInput.placeholder = 'https://example.com/image.jpg';
+            imageInput.value = section.image || '';
+            imageInput.addEventListener('input', (event) => {
                 section.image = event.target.value;
             });
             imageField.appendChild(imageLabel);
             imageField.appendChild(imageInput);
             body.appendChild(imageField);
 
-            const elementsWrapper = createElement("div", { className: "section-elements" });
-            const elementList = createElement("div", { className: "section-element-list" });
+            const elementsWrapper = createElement('div', {
+                className: 'section-elements',
+            });
+            const elementList = createElement('div', {
+                className: 'section-element-list',
+            });
 
             let elementDraggingIndex = null;
 
             const clearElementDropIndicators = () => {
                 elementList
                     .querySelectorAll(
-                        ".section-element--drop-before, .section-element--drop-after"
+                        '.section-element--drop-before, .section-element--drop-after'
                     )
                     .forEach((card) => {
                         card.classList.remove(
-                            "section-element--drop-before",
-                            "section-element--drop-after"
+                            'section-element--drop-before',
+                            'section-element--drop-after'
                         );
                         delete card.dataset.dropPosition;
                     });
             };
 
             const endElementDrag = () => {
-                elementList.classList.remove("section-element-list--dragging");
+                elementList.classList.remove('section-element-list--dragging');
                 clearElementDropIndicators();
                 elementDraggingIndex = null;
-                elementList.querySelectorAll(".section-element").forEach((card) => {
-                    card.classList.remove("section-element--dragging");
-                    card.draggable = false;
-                });
+                elementList
+                    .querySelectorAll('.section-element')
+                    .forEach((card) => {
+                        card.classList.remove('section-element--dragging');
+                        card.draggable = false;
+                    });
             };
 
             const elementHelpers = {
@@ -572,16 +711,16 @@
                 getDraggingIndex: () => elementDraggingIndex,
                 startDrag: (dragIndex, card) => {
                     elementDraggingIndex = dragIndex;
-                    elementList.classList.add("section-element-list--dragging");
-                    card.classList.add("section-element--dragging");
+                    elementList.classList.add('section-element-list--dragging');
+                    card.classList.add('section-element--dragging');
                 },
             };
 
             if (!section.elements.length) {
                 elementList.appendChild(
-                    createElement("p", {
-                        className: "section-elements__empty",
-                        textContent: "No elements added yet.",
+                    createElement('p', {
+                        className: 'section-elements__empty',
+                        textContent: 'No elements added yet.',
                     })
                 );
             } else {
@@ -599,39 +738,52 @@
             }
             elementsWrapper.appendChild(elementList);
 
-            const elementActions = createElement("div", { className: "section-elements__actions" });
-            const addParagraph = createElement("button", {
-                className: "section-elements__button",
-                textContent: "Add paragraph",
-                type: "button",
+            const elementActions = createElement('div', {
+                className: 'section-elements__actions',
             });
-            addParagraph.addEventListener("click", () => {
-                section.elements.push(createElementByType("paragraph"));
+            const addParagraph = createElement('button', {
+                className: 'section-elements__button',
+                textContent: 'Add paragraph',
+                type: 'button',
+            });
+            addParagraph.addEventListener('click', () => {
+                section.elements.push(createElementByType('paragraph'));
                 render();
             });
             elementActions.appendChild(addParagraph);
 
-            const addImage = createElement("button", {
-                className: "section-elements__button",
-                textContent: "Add image",
-                type: "button",
+            const addImage = createElement('button', {
+                className: 'section-elements__button',
+                textContent: 'Add image',
+                type: 'button',
             });
-            addImage.addEventListener("click", () => {
-                section.elements.push(createElementByType("image"));
+            addImage.addEventListener('click', () => {
+                section.elements.push(createElementByType('image'));
                 render();
             });
             elementActions.appendChild(addImage);
 
-            const addGallery = createElement("button", {
-                className: "section-elements__button",
-                textContent: "Add image group",
-                type: "button",
+            const addGallery = createElement('button', {
+                className: 'section-elements__button',
+                textContent: 'Add image group',
+                type: 'button',
             });
-            addGallery.addEventListener("click", () => {
-                section.elements.push(createElementByType("image_group"));
+            addGallery.addEventListener('click', () => {
+                section.elements.push(createElementByType('image_group'));
                 render();
             });
             elementActions.appendChild(addGallery);
+
+            const addList = createElement('button', {
+                className: 'section-elements__button',
+                textContent: 'Add list',
+                type: 'button',
+            });
+            addList.addEventListener('click', () => {
+                section.elements.push(createElementByType('list'));
+                render();
+            });
+            elementActions.appendChild(addList);
 
             elementsWrapper.appendChild(elementActions);
             body.appendChild(elementsWrapper);
@@ -647,84 +799,101 @@
             elementIndex,
             elementDragHelpers
         ) => {
-            const wrapper = createElement("div", { className: "section-element" });
+            const wrapper = createElement('div', {
+                className: 'section-element',
+            });
             wrapper.dataset.elementId = element.id;
             wrapper.dataset.index = elementIndex;
             wrapper.draggable = false;
 
-            const header = createElement("div", { className: "section-element__header" });
-
-            const dragHandle = createElement("button", {
-                className: "section-element__drag-handle",
-                type: "button",
-                attrs: {
-                    "aria-label": "Reorder element",
-                    title: "Drag to reorder element",
-                },
-                html: "<span aria-hidden=\"true\">⋮⋮</span>",
+            const header = createElement('div', {
+                className: 'section-element__header',
             });
 
-            dragHandle.addEventListener("pointerdown", () => {
+            const dragHandle = createElement('button', {
+                className: 'section-element__drag-handle',
+                type: 'button',
+                attrs: {
+                    'aria-label': 'Reorder element',
+                    title: 'Drag to reorder element',
+                },
+                html: '<span aria-hidden="true">⋮⋮</span>',
+            });
+
+            dragHandle.addEventListener('pointerdown', () => {
                 wrapper.draggable = true;
             });
 
             const resetElementDraggable = () => {
-                if (!wrapper.classList.contains("section-element--dragging")) {
+                if (!wrapper.classList.contains('section-element--dragging')) {
                     wrapper.draggable = false;
                 }
             };
 
-            dragHandle.addEventListener("pointerup", resetElementDraggable);
-            dragHandle.addEventListener("pointercancel", resetElementDraggable);
+            dragHandle.addEventListener('pointerup', resetElementDraggable);
+            dragHandle.addEventListener('pointercancel', resetElementDraggable);
 
             header.appendChild(dragHandle);
             header.appendChild(
-                createElement("span", {
-                    className: "section-element__title",
-                    textContent: `${elementTypeLabel(element.type)} ${elementIndex + 1}`,
+                createElement('span', {
+                    className: 'section-element__title',
+                    textContent: `${elementTypeLabel(element.type)} ${
+                        elementIndex + 1
+                    }`,
                 })
             );
-            const controls = createElement("div", { className: "section-element__controls" });
-            const moveUp = createElement("button", {
-                className: "section-element__control",
-                textContent: "Up",
-                type: "button",
+            const controls = createElement('div', {
+                className: 'section-element__controls',
+            });
+            const moveUp = createElement('button', {
+                className: 'section-element__control',
+                textContent: 'Up',
+                type: 'button',
             });
             moveUp.disabled = elementIndex === 0;
-            moveUp.addEventListener("click", () => moveElement(sectionIndex, elementIndex, elementIndex - 1));
+            moveUp.addEventListener('click', () =>
+                moveElement(sectionIndex, elementIndex, elementIndex - 1)
+            );
             controls.appendChild(moveUp);
 
-            const moveDown = createElement("button", {
-                className: "section-element__control",
-                textContent: "Down",
-                type: "button",
+            const moveDown = createElement('button', {
+                className: 'section-element__control',
+                textContent: 'Down',
+                type: 'button',
             });
             moveDown.disabled = elementIndex === section.elements.length - 1;
-            moveDown.addEventListener("click", () => moveElement(sectionIndex, elementIndex, elementIndex + 1));
+            moveDown.addEventListener('click', () =>
+                moveElement(sectionIndex, elementIndex, elementIndex + 1)
+            );
             controls.appendChild(moveDown);
 
-            const remove = createElement("button", {
-                className: "section-element__control",
-                textContent: "Remove",
-                type: "button",
+            const remove = createElement('button', {
+                className: 'section-element__control',
+                textContent: 'Remove',
+                type: 'button',
             });
-            remove.addEventListener("click", () => removeElement(sectionIndex, elementIndex));
+            remove.addEventListener('click', () =>
+                removeElement(sectionIndex, elementIndex)
+            );
             controls.appendChild(remove);
 
             header.appendChild(controls);
             wrapper.appendChild(header);
 
-            wrapper.addEventListener("dragstart", (event) => {
+            wrapper.addEventListener('dragstart', (event) => {
                 elementDragHelpers.startDrag(elementIndex, wrapper);
                 try {
-                    event.dataTransfer.effectAllowed = "move";
-                    event.dataTransfer.setData("text/plain", String(elementIndex));
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData(
+                        'text/plain',
+                        String(elementIndex)
+                    );
                 } catch (error) {
                     // ignore when dataTransfer is unavailable
                 }
             });
 
-            wrapper.addEventListener("dragover", (event) => {
+            wrapper.addEventListener('dragover', (event) => {
                 const draggingIndex = elementDragHelpers.getDraggingIndex();
                 if (draggingIndex === null || draggingIndex === elementIndex) {
                     return;
@@ -734,20 +903,22 @@
                 const rect = wrapper.getBoundingClientRect();
                 const offset = event.clientY - rect.top;
                 const insertBefore = offset < rect.height / 2;
-                wrapper.dataset.dropPosition = insertBefore ? "before" : "after";
+                wrapper.dataset.dropPosition = insertBefore
+                    ? 'before'
+                    : 'after';
                 wrapper.classList.add(
                     insertBefore
-                        ? "section-element--drop-before"
-                        : "section-element--drop-after"
+                        ? 'section-element--drop-before'
+                        : 'section-element--drop-after'
                 );
                 try {
-                    event.dataTransfer.dropEffect = "move";
+                    event.dataTransfer.dropEffect = 'move';
                 } catch (error) {
                     // ignore when dataTransfer is unavailable
                 }
             });
 
-            wrapper.addEventListener("drop", (event) => {
+            wrapper.addEventListener('drop', (event) => {
                 const draggingIndex = elementDragHelpers.getDraggingIndex();
                 if (draggingIndex === null) {
                     return;
@@ -756,8 +927,11 @@
                 event.stopPropagation();
                 const fromIndex = draggingIndex;
                 const dropPosition =
-                    wrapper.dataset.dropPosition === "before" ? "before" : "after";
-                let destination = dropPosition === "before" ? elementIndex : elementIndex + 1;
+                    wrapper.dataset.dropPosition === 'before'
+                        ? 'before'
+                        : 'after';
+                let destination =
+                    dropPosition === 'before' ? elementIndex : elementIndex + 1;
                 if (fromIndex < destination) {
                     destination -= 1;
                 }
@@ -770,40 +944,46 @@
                 moveElement(sectionIndex, fromIndex, destination);
             });
 
-            wrapper.addEventListener("dragend", () => {
+            wrapper.addEventListener('dragend', () => {
                 elementDragHelpers.endDrag();
             });
 
-            const body = createElement("div", { className: "section-element__body" });
-            if (element.type === "paragraph") {
+            const body = createElement('div', {
+                className: 'section-element__body',
+            });
+            if (element.type === 'paragraph') {
                 const contentId = `${section.id}-${element.id}-content`;
-                const field = createElement("div", { className: "section-field" });
-                const label = createElement("label", {
-                    textContent: "HTML content",
+                const field = createElement('div', {
+                    className: 'section-field',
+                });
+                const label = createElement('label', {
+                    textContent: 'HTML content',
                     attrs: { for: contentId },
                 });
-                const textarea = document.createElement("textarea");
+                const textarea = document.createElement('textarea');
                 textarea.id = contentId;
-                textarea.placeholder = "<p>Describe this section…</p>";
-                textarea.value = element.content?.text || "";
-                textarea.addEventListener("input", (event) => {
+                textarea.placeholder = '<p>Describe this section…</p>';
+                textarea.value = element.content?.text || '';
+                textarea.addEventListener('input', (event) => {
                     element.content.text = event.target.value;
                 });
                 field.appendChild(label);
                 field.appendChild(textarea);
                 body.appendChild(field);
-            } else if (element.type === "image") {
+            } else if (element.type === 'image') {
                 const urlId = `${section.id}-${element.id}-url`;
-                const urlField = createElement("div", { className: "section-field" });
-                const urlLabel = createElement("label", {
-                    textContent: "Image URL",
+                const urlField = createElement('div', {
+                    className: 'section-field',
+                });
+                const urlLabel = createElement('label', {
+                    textContent: 'Image URL',
                     attrs: { for: urlId },
                 });
-                const urlInput = createElement("input", { type: "url" });
+                const urlInput = createElement('input', { type: 'url' });
                 urlInput.id = urlId;
-                urlInput.placeholder = "https://example.com/image.jpg";
-                urlInput.value = element.content?.url || "";
-                urlInput.addEventListener("input", (event) => {
+                urlInput.placeholder = 'https://example.com/image.jpg';
+                urlInput.value = element.content?.url || '';
+                urlInput.addEventListener('input', (event) => {
                     element.content.url = event.target.value;
                 });
                 urlField.appendChild(urlLabel);
@@ -811,16 +991,18 @@
                 body.appendChild(urlField);
 
                 const altId = `${section.id}-${element.id}-alt`;
-                const altField = createElement("div", { className: "section-field" });
-                const altLabel = createElement("label", {
-                    textContent: "Alt text",
+                const altField = createElement('div', {
+                    className: 'section-field',
+                });
+                const altLabel = createElement('label', {
+                    textContent: 'Alt text',
                     attrs: { for: altId },
                 });
-                const altInput = createElement("input", { type: "text" });
+                const altInput = createElement('input', { type: 'text' });
                 altInput.id = altId;
-                altInput.placeholder = "Describe the image for accessibility";
-                altInput.value = element.content?.alt || "";
-                altInput.addEventListener("input", (event) => {
+                altInput.placeholder = 'Describe the image for accessibility';
+                altInput.value = element.content?.alt || '';
+                altInput.addEventListener('input', (event) => {
                     element.content.alt = event.target.value;
                 });
                 altField.appendChild(altLabel);
@@ -828,64 +1010,120 @@
                 body.appendChild(altField);
 
                 const captionId = `${section.id}-${element.id}-caption`;
-                const captionField = createElement("div", { className: "section-field" });
-                const captionLabel = createElement("label", {
-                    textContent: "Caption (optional)",
+                const captionField = createElement('div', {
+                    className: 'section-field',
+                });
+                const captionLabel = createElement('label', {
+                    textContent: 'Caption (optional)',
                     attrs: { for: captionId },
                 });
-                const captionInput = createElement("input", { type: "text" });
+                const captionInput = createElement('input', { type: 'text' });
                 captionInput.id = captionId;
-                captionInput.placeholder = "Add a supporting caption";
-                captionInput.value = element.content?.caption || "";
-                captionInput.addEventListener("input", (event) => {
+                captionInput.placeholder = 'Add a supporting caption';
+                captionInput.value = element.content?.caption || '';
+                captionInput.addEventListener('input', (event) => {
                     element.content.caption = event.target.value;
                 });
                 captionField.appendChild(captionLabel);
                 captionField.appendChild(captionInput);
                 body.appendChild(captionField);
-            } else if (element.type === "image_group") {
+            } else if (element.type === 'list') {
+                if (!Array.isArray(element.content?.items)) {
+                    element.content.items = [''];
+                }
+
+                const orderedId = `${section.id}-${element.id}-ordered`;
+                const orderedField = createElement('div', {
+                    className: 'section-field section-field--checkbox',
+                });
+                const orderedLabel = createElement('label', {
+                    textContent: 'Numbered list',
+                    attrs: { for: orderedId },
+                });
+                const orderedInput = createElement('input', {
+                    type: 'checkbox',
+                });
+                orderedInput.id = orderedId;
+                orderedInput.checked = Boolean(element.content?.ordered);
+                orderedInput.addEventListener('input', (event) => {
+                    element.content.ordered = event.target.checked;
+                });
+                orderedField.appendChild(orderedInput);
+                orderedField.appendChild(orderedLabel);
+                body.appendChild(orderedField);
+
+                const itemsId = `${section.id}-${element.id}-items`;
+                const itemsField = createElement('div', {
+                    className: 'section-field',
+                });
+                const itemsLabel = createElement('label', {
+                    textContent: 'List items',
+                    attrs: { for: itemsId },
+                });
+                const itemsTextarea = document.createElement('textarea');
+                itemsTextarea.id = itemsId;
+                itemsTextarea.placeholder = 'Write one item per line';
+                itemsTextarea.value = element.content.items.join('\n');
+                itemsTextarea.addEventListener('input', (event) => {
+                    const nextValue = event.target.value.replace(/\r/g, '');
+                    element.content.items = nextValue.split('\n');
+                });
+                itemsField.appendChild(itemsLabel);
+                itemsField.appendChild(itemsTextarea);
+                body.appendChild(itemsField);
+            } else if (element.type === 'image_group') {
                 if (!Array.isArray(element.content?.images)) {
                     element.content.images = [];
                 }
                 const layoutId = `${section.id}-${element.id}-layout`;
-                const layoutField = createElement("div", { className: "section-field" });
-                const layoutLabel = createElement("label", {
-                    textContent: "Layout",
+                const layoutField = createElement('div', {
+                    className: 'section-field',
+                });
+                const layoutLabel = createElement('label', {
+                    textContent: 'Layout',
                     attrs: { for: layoutId },
                 });
-                const layoutInput = createElement("input", { type: "text" });
+                const layoutInput = createElement('input', { type: 'text' });
                 layoutInput.id = layoutId;
-                layoutInput.placeholder = "grid | columns | masonry";
-                layoutInput.value = element.content?.layout || "grid";
-                layoutInput.addEventListener("input", (event) => {
+                layoutInput.placeholder = 'grid | columns | masonry';
+                layoutInput.value = element.content?.layout || 'grid';
+                layoutInput.addEventListener('input', (event) => {
                     element.content.layout = event.target.value;
                 });
                 layoutField.appendChild(layoutLabel);
                 layoutField.appendChild(layoutInput);
                 body.appendChild(layoutField);
 
-                const imageList = createElement("div", { className: "image-group-list" });
+                const imageList = createElement('div', {
+                    className: 'image-group-list',
+                });
                 if (!element.content.images.length) {
                     imageList.appendChild(
-                        createElement("p", {
-                            className: "section-elements__empty",
-                            textContent: "No images added to this group.",
+                        createElement('p', {
+                            className: 'section-elements__empty',
+                            textContent: 'No images added to this group.',
                         })
                     );
                 } else {
                     element.content.images.forEach((image, imageIndex) => {
-                        const item = createElement("div", { className: "image-group-item" });
+                        const item = createElement('div', {
+                            className: 'image-group-item',
+                        });
                         const urlId = `${section.id}-${element.id}-image-${imageIndex}-url`;
-                        const urlField = createElement("div", { className: "section-field" });
-                        const urlLabel = createElement("label", {
+                        const urlField = createElement('div', {
+                            className: 'section-field',
+                        });
+                        const urlLabel = createElement('label', {
                             textContent: `Image ${imageIndex + 1} URL`,
                             attrs: { for: urlId },
                         });
-                        const urlInput = createElement("input", { type: "url" });
+                        const urlInput = createElement('input', {
+                            type: 'url',
+                        });
                         urlInput.id = urlId;
-                        urlInput.placeholder = "https://example.com/image.jpg";
-                        urlInput.value = image.url || image.URL || "";
-                        urlInput.addEventListener("input", (event) => {
+                        urlInput.placeholder = 'https://example.com/image.jpg';
+                        urlInput.value = image.url || image.URL || '';
+                        urlInput.addEventListener('input', (event) => {
                             image.url = event.target.value;
                         });
                         urlField.appendChild(urlLabel);
@@ -893,16 +1131,20 @@
                         item.appendChild(urlField);
 
                         const altId = `${section.id}-${element.id}-image-${imageIndex}-alt`;
-                        const altField = createElement("div", { className: "section-field" });
-                        const altLabel = createElement("label", {
-                            textContent: "Alt text",
+                        const altField = createElement('div', {
+                            className: 'section-field',
+                        });
+                        const altLabel = createElement('label', {
+                            textContent: 'Alt text',
                             attrs: { for: altId },
                         });
-                        const altInput = createElement("input", { type: "text" });
+                        const altInput = createElement('input', {
+                            type: 'text',
+                        });
                         altInput.id = altId;
-                        altInput.placeholder = "Describe the image";
-                        altInput.value = image.alt || image.Alt || "";
-                        altInput.addEventListener("input", (event) => {
+                        altInput.placeholder = 'Describe the image';
+                        altInput.value = image.alt || image.Alt || '';
+                        altInput.addEventListener('input', (event) => {
                             image.alt = event.target.value;
                         });
                         altField.appendChild(altLabel);
@@ -910,52 +1152,74 @@
                         item.appendChild(altField);
 
                         const captionId = `${section.id}-${element.id}-image-${imageIndex}-caption`;
-                        const captionField = createElement("div", { className: "section-field" });
-                        const captionLabel = createElement("label", {
-                            textContent: "Caption",
+                        const captionField = createElement('div', {
+                            className: 'section-field',
+                        });
+                        const captionLabel = createElement('label', {
+                            textContent: 'Caption',
                             attrs: { for: captionId },
                         });
-                        const captionInput = createElement("input", { type: "text" });
+                        const captionInput = createElement('input', {
+                            type: 'text',
+                        });
                         captionInput.id = captionId;
-                        captionInput.placeholder = "Optional caption";
-                        captionInput.value = image.caption || image.Caption || "";
-                        captionInput.addEventListener("input", (event) => {
+                        captionInput.placeholder = 'Optional caption';
+                        captionInput.value =
+                            image.caption || image.Caption || '';
+                        captionInput.addEventListener('input', (event) => {
                             image.caption = event.target.value;
                         });
                         captionField.appendChild(captionLabel);
                         captionField.appendChild(captionInput);
                         item.appendChild(captionField);
 
-                        const imageControls = createElement("div", { className: "image-group-item__controls" });
-                        const imageUp = createElement("button", {
-                            className: "image-group-item__control",
-                            textContent: "Up",
-                            type: "button",
+                        const imageControls = createElement('div', {
+                            className: 'image-group-item__controls',
+                        });
+                        const imageUp = createElement('button', {
+                            className: 'image-group-item__control',
+                            textContent: 'Up',
+                            type: 'button',
                         });
                         imageUp.disabled = imageIndex === 0;
-                        imageUp.addEventListener("click", () =>
-                            moveGroupImage(sectionIndex, elementIndex, imageIndex, imageIndex - 1)
+                        imageUp.addEventListener('click', () =>
+                            moveGroupImage(
+                                sectionIndex,
+                                elementIndex,
+                                imageIndex,
+                                imageIndex - 1
+                            )
                         );
                         imageControls.appendChild(imageUp);
 
-                        const imageDown = createElement("button", {
-                            className: "image-group-item__control",
-                            textContent: "Down",
-                            type: "button",
+                        const imageDown = createElement('button', {
+                            className: 'image-group-item__control',
+                            textContent: 'Down',
+                            type: 'button',
                         });
-                        imageDown.disabled = imageIndex === element.content.images.length - 1;
-                        imageDown.addEventListener("click", () =>
-                            moveGroupImage(sectionIndex, elementIndex, imageIndex, imageIndex + 1)
+                        imageDown.disabled =
+                            imageIndex === element.content.images.length - 1;
+                        imageDown.addEventListener('click', () =>
+                            moveGroupImage(
+                                sectionIndex,
+                                elementIndex,
+                                imageIndex,
+                                imageIndex + 1
+                            )
                         );
                         imageControls.appendChild(imageDown);
 
-                        const imageRemove = createElement("button", {
-                            className: "image-group-item__control",
-                            textContent: "Remove",
-                            type: "button",
+                        const imageRemove = createElement('button', {
+                            className: 'image-group-item__control',
+                            textContent: 'Remove',
+                            type: 'button',
                         });
-                        imageRemove.addEventListener("click", () =>
-                            removeGroupImage(sectionIndex, elementIndex, imageIndex)
+                        imageRemove.addEventListener('click', () =>
+                            removeGroupImage(
+                                sectionIndex,
+                                elementIndex,
+                                imageIndex
+                            )
                         );
                         imageControls.appendChild(imageRemove);
 
@@ -964,13 +1228,17 @@
                     });
                 }
 
-                const addImageButton = createElement("button", {
-                    className: "section-elements__button",
-                    textContent: "Add image to group",
-                    type: "button",
+                const addImageButton = createElement('button', {
+                    className: 'section-elements__button',
+                    textContent: 'Add image to group',
+                    type: 'button',
                 });
-                addImageButton.addEventListener("click", () => {
-                    element.content.images.push({ url: "", alt: "", caption: "" });
+                addImageButton.addEventListener('click', () => {
+                    element.content.images.push({
+                        url: '',
+                        alt: '',
+                        caption: '',
+                    });
                     render();
                 });
                 imageList.appendChild(addImageButton);
@@ -981,7 +1249,7 @@
             return wrapper;
         };
 
-        list.addEventListener("dragover", (event) => {
+        list.addEventListener('dragover', (event) => {
             if (draggingIndex === null) {
                 return;
             }
@@ -991,7 +1259,7 @@
             }
         });
 
-        list.addEventListener("drop", (event) => {
+        list.addEventListener('drop', (event) => {
             if (draggingIndex === null) {
                 return;
             }
@@ -1008,7 +1276,7 @@
         });
 
         const render = () => {
-            list.innerHTML = "";
+            list.innerHTML = '';
             if (!state.sections.length) {
                 empty.hidden = false;
                 return;
@@ -1019,11 +1287,14 @@
             });
         };
 
-        addButton?.addEventListener("click", () => {
+        addButton?.addEventListener('click', () => {
             state.sections.push(createEmptySection());
             render();
             window.requestAnimationFrame(() => {
-                list.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "center" });
+                list.lastElementChild?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
             });
         });
 
@@ -1034,7 +1305,9 @@
             getSections: () => state.sections,
             setSections: (sections) => {
                 if (Array.isArray(sections)) {
-                    state.sections = sections.map((section) => normaliseSection(section));
+                    state.sections = sections.map((section) =>
+                        normaliseSection(section)
+                    );
                 } else {
                     state.sections = [];
                 }

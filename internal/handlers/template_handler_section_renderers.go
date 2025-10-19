@@ -29,6 +29,7 @@ func (h *TemplateHandler) registerDefaultSectionRenderers() {
 	h.RegisterSectionRenderer("paragraph", renderParagraphSection)
 	h.RegisterSectionRenderer("image", renderImageSection)
 	h.RegisterSectionRenderer("image_group", renderImageGroupSection)
+	h.RegisterSectionRenderer("list", renderListSection)
 }
 
 func renderParagraphSection(h *TemplateHandler, elem models.SectionElement) string {
@@ -101,6 +102,73 @@ func renderImageGroupSection(h *TemplateHandler, elem models.SectionElement) str
 	}
 
 	sb.WriteString(`</div>`)
+	return sb.String()
+}
+
+func renderListSection(h *TemplateHandler, elem models.SectionElement) string {
+	content := sectionContent(elem)
+
+	rawItems, ok := content["items"]
+	if !ok {
+		return ""
+	}
+
+	var items []string
+
+	switch values := rawItems.(type) {
+	case []interface{}:
+		for _, item := range values {
+			str, ok := item.(string)
+			if !ok {
+				continue
+			}
+			str = strings.TrimSpace(str)
+			if str == "" {
+				continue
+			}
+			items = append(items, str)
+		}
+	case []string:
+		for _, item := range values {
+			str := strings.TrimSpace(item)
+			if str == "" {
+				continue
+			}
+			items = append(items, str)
+		}
+	}
+
+	if len(items) == 0 {
+		return ""
+	}
+
+	ordered := false
+
+	if rawOrdered, ok := content["ordered"]; ok {
+		switch value := rawOrdered.(type) {
+		case bool:
+			ordered = value
+		case string:
+			ordered = strings.EqualFold(value, "true")
+		}
+	}
+
+	listTag := "ul"
+	listClass := "post__list"
+	if ordered {
+		listTag = "ol"
+		listClass += " post__list--ordered"
+	}
+
+	var sb strings.Builder
+	sb.WriteString(`<` + listTag + ` class="` + listClass + `">`)
+
+	for _, item := range items {
+		sanitized := h.sanitizer.Sanitize(item)
+		sb.WriteString(`<li class="post__list-item">` + sanitized + `</li>`)
+	}
+
+	sb.WriteString(`</` + listTag + `>`)
 	return sb.String()
 }
 

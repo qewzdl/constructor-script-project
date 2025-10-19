@@ -165,6 +165,11 @@ type ImageGroupContent struct {
 	Layout string         `json:"layout"`
 }
 
+type ListContent struct {
+	Items   []string `json:"items"`
+	Ordered bool     `json:"ordered"`
+}
+
 func (ps *PostSections) Scan(value interface{}) error {
 	if value == nil {
 		*ps = PostSections{}

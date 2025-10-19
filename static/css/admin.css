@@ -780,6 +780,16 @@
     gap: var(--size-xs);
 }
 
+.section-field.section-field--checkbox {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+}
+
+.section-field--checkbox input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
 .section-field label {
     font-size: var(--font-size-sm);
     font-weight: 600;
@@ -1056,6 +1066,17 @@
         color-mix(in srgb, var(--color-bg) 90%, transparent),
         color-mix(in srgb, var(--color-primary-transparent) 55%, var(--color-bg))
     );
+}
+
+.admin-builder__field--checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-builder__checkbox {
+    width: 1.1rem;
+    height: 1.1rem;
 }
 
 :root[data-theme="dark"] .admin__chart {

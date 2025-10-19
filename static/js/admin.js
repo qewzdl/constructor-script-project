@@ -1,7 +1,7 @@
 (() => {
     const formatDate = (value) => {
         if (!value) {
-            return "—";
+            return '—';
         }
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) {
@@ -9,15 +9,15 @@
         }
         try {
             return new Intl.DateTimeFormat(undefined, {
-                dateStyle: "medium",
-                timeStyle: "short",
+                dateStyle: 'medium',
+                timeStyle: 'short',
             }).format(date);
         } catch (error) {
             return date.toLocaleString();
         }
     };
 
-    const booleanLabel = (value) => (value ? "Yes" : "No");
+    const booleanLabel = (value) => (value ? 'Yes' : 'No');
 
     const createElement = (tag, options = {}) => {
         const element = document.createElement(tag);
@@ -34,26 +34,26 @@
     };
 
     const randomId = () => {
-        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
             return window.crypto.randomUUID();
         }
         return `id-${Math.random().toString(36).slice(2, 11)}`;
     };
 
     const normaliseString = (value) => {
-        if (typeof value === "string") {
+        if (typeof value === 'string') {
             return value;
         }
         if (value === null || value === undefined) {
-            return "";
+            return '';
         }
-        if (typeof value === "number" || typeof value === "boolean") {
+        if (typeof value === 'number' || typeof value === 'boolean') {
             return String(value);
         }
-        return "";
+        return '';
     };
 
-    const SVG_NS = "http://www.w3.org/2000/svg";
+    const SVG_NS = 'http://www.w3.org/2000/svg';
     const createSvgElement = (tag, attributes = {}) => {
         const element = document.createElementNS(SVG_NS, tag);
         Object.entries(attributes).forEach(([key, value]) => {
@@ -67,7 +67,7 @@
     const formatNumber = (value) => {
         const numeric = Number(value);
         if (Number.isNaN(numeric)) {
-            return "0";
+            return '0';
         }
         try {
             return numeric.toLocaleString();
@@ -78,7 +78,10 @@
 
     const monthFormatter = (() => {
         try {
-            return new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
+            return new Intl.DateTimeFormat(undefined, {
+                month: 'short',
+                year: 'numeric',
+            });
         } catch (error) {
             return null;
         }
@@ -86,11 +89,11 @@
 
     const formatMonthLabel = (value) => {
         if (!value) {
-            return "";
+            return '';
         }
         const date = value instanceof Date ? value : new Date(value);
         if (Number.isNaN(date.getTime())) {
-            return typeof value === "string" ? value : "";
+            return typeof value === 'string' ? value : '';
         }
         if (monthFormatter) {
             try {
@@ -100,7 +103,7 @@
             }
         }
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, '0');
         return `${year}-${month}`;
     };
 
@@ -109,14 +112,16 @@
             return null;
         }
 
-        const builderRoot = form.querySelector("[data-section-builder]");
+        const builderRoot = form.querySelector('[data-section-builder]');
         if (!builderRoot) {
             return null;
         }
 
-        const sectionList = builderRoot.querySelector("[data-section-list]");
-        const emptyState = builderRoot.querySelector("[data-section-empty]");
-        const addSectionButton = builderRoot.querySelector('[data-action="section-add"]');
+        const sectionList = builderRoot.querySelector('[data-section-list]');
+        const emptyState = builderRoot.querySelector('[data-section-empty]');
+        const addSectionButton = builderRoot.querySelector(
+            '[data-action="section-add"]'
+        );
 
         if (!sectionList || !addSectionButton) {
             return null;
@@ -129,49 +134,86 @@
 
         const createImageState = (image = {}) => ({
             clientId: randomId(),
-            url: normaliseString(image.url ?? image.URL ?? ""),
-            alt: normaliseString(image.alt ?? image.Alt ?? ""),
-            caption: normaliseString(image.caption ?? image.Caption ?? ""),
+            url: normaliseString(image.url ?? image.URL ?? ''),
+            alt: normaliseString(image.alt ?? image.Alt ?? ''),
+            caption: normaliseString(image.caption ?? image.Caption ?? ''),
         });
 
         const createElementState = (element = {}) => {
-            const type = normaliseString(element.type ?? element.Type ?? "").toLowerCase() || "paragraph";
-            const id = normaliseString(element.id ?? element.ID ?? "");
+            const type =
+                normaliseString(
+                    element.type ?? element.Type ?? ''
+                ).toLowerCase() || 'paragraph';
+            const id = normaliseString(element.id ?? element.ID ?? '');
             const rawContent = element.content ?? element.Content ?? {};
 
-            if (type === "paragraph") {
+            if (type === 'paragraph') {
                 return {
                     clientId: randomId(),
                     id,
                     type,
                     content: {
-                        text: normaliseString(rawContent.text ?? rawContent.Text ?? ""),
+                        text: normaliseString(
+                            rawContent.text ?? rawContent.Text ?? ''
+                        ),
                     },
                 };
             }
 
-            if (type === "image") {
+            if (type === 'image') {
                 return {
                     clientId: randomId(),
                     id,
                     type,
                     content: {
-                        url: normaliseString(rawContent.url ?? rawContent.URL ?? ""),
-                        alt: normaliseString(rawContent.alt ?? rawContent.Alt ?? ""),
-                        caption: normaliseString(rawContent.caption ?? rawContent.Caption ?? ""),
+                        url: normaliseString(
+                            rawContent.url ?? rawContent.URL ?? ''
+                        ),
+                        alt: normaliseString(
+                            rawContent.alt ?? rawContent.Alt ?? ''
+                        ),
+                        caption: normaliseString(
+                            rawContent.caption ?? rawContent.Caption ?? ''
+                        ),
                     },
                 };
             }
 
-            if (type === "image_group") {
-                const images = ensureArray(rawContent.images ?? rawContent.Images).map(createImageState);
+            if (type === 'image_group') {
+                const images = ensureArray(
+                    rawContent.images ?? rawContent.Images
+                ).map(createImageState);
                 return {
                     clientId: randomId(),
                     id,
                     type,
                     content: {
-                        layout: normaliseString(rawContent.layout ?? rawContent.Layout ?? "grid"),
+                        layout: normaliseString(
+                            rawContent.layout ?? rawContent.Layout ?? 'grid'
+                        ),
                         images,
+                    },
+                };
+            }
+
+            if (type === 'list') {
+                const rawItems = ensureArray(
+                    rawContent.items ?? rawContent.Items
+                );
+                const items = rawItems.map((item) => normaliseString(item));
+                const orderedValue =
+                    rawContent.ordered ?? rawContent.Ordered ?? false;
+                const ordered =
+                    typeof orderedValue === 'string'
+                        ? orderedValue.toLowerCase() === 'true'
+                        : Boolean(orderedValue);
+                return {
+                    clientId: randomId(),
+                    id,
+                    type,
+                    content: {
+                        ordered,
+                        items,
                     },
                 };
             }
@@ -186,26 +228,30 @@
         };
 
         const createSectionState = (section = {}) => {
-            const elementsSource = ensureArray(section.elements ?? section.Elements);
+            const elementsSource = ensureArray(
+                section.elements ?? section.Elements
+            );
             return {
                 clientId: randomId(),
-                id: normaliseString(section.id ?? section.ID ?? ""),
-                title: normaliseString(section.title ?? section.Title ?? ""),
-                image: normaliseString(section.image ?? section.Image ?? ""),
+                id: normaliseString(section.id ?? section.ID ?? ''),
+                title: normaliseString(section.title ?? section.Title ?? ''),
+                image: normaliseString(section.image ?? section.Image ?? ''),
                 elements: elementsSource.map(createElementState),
             };
         };
 
         const elementLabel = (type) => {
             switch (type) {
-                case "paragraph":
-                    return "Paragraph";
-                case "image":
-                    return "Image";
-                case "image_group":
-                    return "Image group";
+                case 'paragraph':
+                    return 'Paragraph';
+                case 'image':
+                    return 'Image';
+                case 'image_group':
+                    return 'Image group';
+                case 'list':
+                    return 'List';
                 default:
-                    return type || "Block";
+                    return type || 'Block';
             }
         };
 
@@ -215,7 +261,7 @@
                 try {
                     listener(snapshot);
                 } catch (error) {
-                    console.error("Section builder listener failed", error);
+                    console.error('Section builder listener failed', error);
                 }
             });
         };
@@ -226,14 +272,14 @@
             }
             requestAnimationFrame(() => {
                 const field = sectionList.querySelector(selector);
-                if (field && typeof field.focus === "function") {
+                if (field && typeof field.focus === 'function') {
                     field.focus();
                 }
             });
         };
 
         const render = () => {
-            sectionList.innerHTML = "";
+            sectionList.innerHTML = '';
 
             if (!sections.length) {
                 if (emptyState) {
@@ -247,229 +293,376 @@
             }
 
             sections.forEach((section, index) => {
-                const sectionItem = createElement("li", { className: "admin-builder__section" });
+                const sectionItem = createElement('li', {
+                    className: 'admin-builder__section',
+                });
                 sectionItem.dataset.sectionClient = section.clientId;
                 sectionItem.dataset.sectionIndex = String(index);
 
-                const sectionHeader = createElement("div", { className: "admin-builder__section-header" });
-                const sectionTitle = createElement("h3", {
-                    className: "admin-builder__section-title",
+                const sectionHeader = createElement('div', {
+                    className: 'admin-builder__section-header',
+                });
+                const sectionTitle = createElement('h3', {
+                    className: 'admin-builder__section-title',
                     textContent: `Section ${index + 1}`,
                 });
-                const removeButton = createElement("button", {
-                    className: "admin-builder__remove",
-                    textContent: "Remove section",
+                const removeButton = createElement('button', {
+                    className: 'admin-builder__remove',
+                    textContent: 'Remove section',
                 });
-                removeButton.type = "button";
-                removeButton.dataset.action = "section-remove";
+                removeButton.type = 'button';
+                removeButton.dataset.action = 'section-remove';
                 sectionHeader.append(sectionTitle, removeButton);
                 sectionItem.append(sectionHeader);
 
-                const titleField = createElement("label", { className: "admin-builder__field" });
+                const titleField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
                 titleField.append(
-                    createElement("span", {
-                        className: "admin-builder__label",
-                        textContent: "Section title",
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Section title',
                     })
                 );
-                const titleInput = createElement("input", { className: "admin-builder__input" });
-                titleInput.type = "text";
-                titleInput.placeholder = "e.g. Getting started";
+                const titleInput = createElement('input', {
+                    className: 'admin-builder__input',
+                });
+                titleInput.type = 'text';
+                titleInput.placeholder = 'e.g. Getting started';
                 titleInput.value = section.title;
-                titleInput.dataset.field = "section-title";
+                titleInput.dataset.field = 'section-title';
                 titleField.append(titleInput);
                 sectionItem.append(titleField);
 
-                const imageField = createElement("label", { className: "admin-builder__field" });
+                const imageField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
                 imageField.append(
-                    createElement("span", {
-                        className: "admin-builder__label",
-                        textContent: "Optional header image URL",
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Optional header image URL',
                     })
                 );
-                const imageInput = createElement("input", { className: "admin-builder__input" });
-                imageInput.type = "url";
-                imageInput.placeholder = "https://example.com/cover.jpg";
+                const imageInput = createElement('input', {
+                    className: 'admin-builder__input',
+                });
+                imageInput.type = 'url';
+                imageInput.placeholder = 'https://example.com/cover.jpg';
                 imageInput.value = section.image;
-                imageInput.dataset.field = "section-image";
+                imageInput.dataset.field = 'section-image';
                 imageField.append(imageInput);
                 sectionItem.append(imageField);
 
-                const elementsContainer = createElement("div", { className: "admin-builder__section-elements" });
+                const elementsContainer = createElement('div', {
+                    className: 'admin-builder__section-elements',
+                });
 
                 if (!section.elements.length) {
                     elementsContainer.append(
-                        createElement("p", {
-                            className: "admin-builder__element-empty",
-                            textContent: "No content blocks yet. Add one below.",
+                        createElement('p', {
+                            className: 'admin-builder__element-empty',
+                            textContent:
+                                'No content blocks yet. Add one below.',
                         })
                     );
                 } else {
                     section.elements.forEach((element, elementIndex) => {
-                        const elementNode = createElement("div", { className: "admin-builder__element" });
+                        const elementNode = createElement('div', {
+                            className: 'admin-builder__element',
+                        });
                         elementNode.dataset.elementClient = element.clientId;
                         elementNode.dataset.elementType = element.type;
                         elementNode.dataset.elementIndex = String(elementIndex);
 
-                        const elementHeader = createElement("div", { className: "admin-builder__element-header" });
-                        const elementTitle = createElement("span", {
-                            className: "admin-builder__element-title",
-                            textContent: `${elementLabel(element.type)} ${elementIndex + 1}`,
+                        const elementHeader = createElement('div', {
+                            className: 'admin-builder__element-header',
                         });
-                        const elementActions = createElement("div", { className: "admin-builder__element-actions" });
-                        const removeElementButton = createElement("button", {
-                            className: "admin-builder__element-remove",
-                            textContent: "Remove",
+                        const elementTitle = createElement('span', {
+                            className: 'admin-builder__element-title',
+                            textContent: `${elementLabel(element.type)} ${
+                                elementIndex + 1
+                            }`,
                         });
-                        removeElementButton.type = "button";
-                        removeElementButton.dataset.action = "element-remove";
+                        const elementActions = createElement('div', {
+                            className: 'admin-builder__element-actions',
+                        });
+                        const removeElementButton = createElement('button', {
+                            className: 'admin-builder__element-remove',
+                            textContent: 'Remove',
+                        });
+                        removeElementButton.type = 'button';
+                        removeElementButton.dataset.action = 'element-remove';
                         elementActions.append(removeElementButton);
                         elementHeader.append(elementTitle, elementActions);
                         elementNode.append(elementHeader);
 
-                        if (element.type === "paragraph") {
-                            const paragraphField = createElement("label", { className: "admin-builder__field" });
+                        if (element.type === 'paragraph') {
+                            const paragraphField = createElement('label', {
+                                className: 'admin-builder__field',
+                            });
                             paragraphField.append(
-                                createElement("span", {
-                                    className: "admin-builder__label",
-                                    textContent: "Paragraph text",
+                                createElement('span', {
+                                    className: 'admin-builder__label',
+                                    textContent: 'Paragraph text',
                                 })
                             );
-                            const paragraphTextarea = createElement("textarea", { className: "admin-builder__textarea" });
-                            paragraphTextarea.placeholder = "Write the narrative for this part of the section…";
-                            paragraphTextarea.value = element.content?.text || "";
-                            paragraphTextarea.dataset.field = "paragraph-text";
+                            const paragraphTextarea = createElement(
+                                'textarea',
+                                { className: 'admin-builder__textarea' }
+                            );
+                            paragraphTextarea.placeholder =
+                                'Write the narrative for this part of the section…';
+                            paragraphTextarea.value =
+                                element.content?.text || '';
+                            paragraphTextarea.dataset.field = 'paragraph-text';
                             paragraphField.append(paragraphTextarea);
                             elementNode.append(paragraphField);
-                        } else if (element.type === "image") {
-                            const urlField = createElement("label", { className: "admin-builder__field" });
+                        } else if (element.type === 'image') {
+                            const urlField = createElement('label', {
+                                className: 'admin-builder__field',
+                            });
                             urlField.append(
-                                createElement("span", {
-                                    className: "admin-builder__label",
-                                    textContent: "Image URL",
+                                createElement('span', {
+                                    className: 'admin-builder__label',
+                                    textContent: 'Image URL',
                                 })
                             );
-                            const urlInput = createElement("input", { className: "admin-builder__input" });
-                            urlInput.type = "url";
-                            urlInput.placeholder = "https://example.com/visual.png";
-                            urlInput.value = element.content?.url || "";
-                            urlInput.dataset.field = "image-url";
+                            const urlInput = createElement('input', {
+                                className: 'admin-builder__input',
+                            });
+                            urlInput.type = 'url';
+                            urlInput.placeholder =
+                                'https://example.com/visual.png';
+                            urlInput.value = element.content?.url || '';
+                            urlInput.dataset.field = 'image-url';
                             urlField.append(urlInput);
                             elementNode.append(urlField);
 
-                            const altField = createElement("label", { className: "admin-builder__field" });
+                            const altField = createElement('label', {
+                                className: 'admin-builder__field',
+                            });
                             altField.append(
-                                createElement("span", {
-                                    className: "admin-builder__label",
-                                    textContent: "Accessible alt text",
+                                createElement('span', {
+                                    className: 'admin-builder__label',
+                                    textContent: 'Accessible alt text',
                                 })
                             );
-                            const altInput = createElement("input", { className: "admin-builder__input" });
-                            altInput.type = "text";
-                            altInput.placeholder = "Describe the visual for screen readers";
-                            altInput.value = element.content?.alt || "";
-                            altInput.dataset.field = "image-alt";
+                            const altInput = createElement('input', {
+                                className: 'admin-builder__input',
+                            });
+                            altInput.type = 'text';
+                            altInput.placeholder =
+                                'Describe the visual for screen readers';
+                            altInput.value = element.content?.alt || '';
+                            altInput.dataset.field = 'image-alt';
                             altField.append(altInput);
                             elementNode.append(altField);
 
-                            const captionField = createElement("label", { className: "admin-builder__field" });
+                            const captionField = createElement('label', {
+                                className: 'admin-builder__field',
+                            });
                             captionField.append(
-                                createElement("span", {
-                                    className: "admin-builder__label",
-                                    textContent: "Optional caption",
+                                createElement('span', {
+                                    className: 'admin-builder__label',
+                                    textContent: 'Optional caption',
                                 })
                             );
-                            const captionInput = createElement("input", { className: "admin-builder__input" });
-                            captionInput.type = "text";
-                            captionInput.placeholder = "Add context that appears under the image";
-                            captionInput.value = element.content?.caption || "";
-                            captionInput.dataset.field = "image-caption";
+                            const captionInput = createElement('input', {
+                                className: 'admin-builder__input',
+                            });
+                            captionInput.type = 'text';
+                            captionInput.placeholder =
+                                'Add context that appears under the image';
+                            captionInput.value = element.content?.caption || '';
+                            captionInput.dataset.field = 'image-caption';
                             captionField.append(captionInput);
                             elementNode.append(captionField);
-                        } else if (element.type === "image_group") {
-                            const groupContainer = createElement("div", { className: "admin-builder__group" });
+                        } else if (element.type === 'list') {
+                            if (!Array.isArray(element.content?.items)) {
+                                element.content.items = [''];
+                            }
 
-                            const layoutField = createElement("label", { className: "admin-builder__field" });
-                            layoutField.append(
-                                createElement("span", {
-                                    className: "admin-builder__label",
-                                    textContent: "Layout preset",
+                            const orderedField = createElement('label', {
+                                className:
+                                    'admin-builder__field admin-builder__field--checkbox',
+                            });
+                            const orderedInput = createElement('input', {
+                                className: 'admin-builder__checkbox',
+                            });
+                            orderedInput.type = 'checkbox';
+                            orderedInput.checked = Boolean(
+                                element.content?.ordered
+                            );
+                            orderedInput.dataset.field = 'list-ordered';
+                            orderedInput.addEventListener('input', (event) => {
+                                element.content.ordered = event.target.checked;
+                            });
+                            orderedField.append(
+                                orderedInput,
+                                createElement('span', {
+                                    className: 'admin-builder__label',
+                                    textContent: 'Numbered list',
                                 })
                             );
-                            const layoutInput = createElement("input", { className: "admin-builder__input" });
-                            layoutInput.type = "text";
-                            layoutInput.placeholder = "e.g. grid, carousel, mosaic";
-                            layoutInput.value = element.content?.layout || "";
-                            layoutInput.dataset.field = "image-group-layout";
+                            elementNode.append(orderedField);
+
+                            const itemsField = createElement('label', {
+                                className: 'admin-builder__field',
+                            });
+                            itemsField.append(
+                                createElement('span', {
+                                    className: 'admin-builder__label',
+                                    textContent: 'List items',
+                                })
+                            );
+                            const itemsTextarea = createElement('textarea', {
+                                className: 'admin-builder__textarea',
+                            });
+                            itemsTextarea.placeholder =
+                                'Write one item per line';
+                            itemsTextarea.value =
+                                element.content.items.join('\n');
+                            itemsTextarea.dataset.field = 'list-items';
+                            itemsTextarea.addEventListener('input', (event) => {
+                                const nextValue = event.target.value.replace(
+                                    /\r/g,
+                                    ''
+                                );
+                                element.content.items = nextValue.split('\n');
+                            });
+                            itemsField.append(itemsTextarea);
+                            elementNode.append(itemsField);
+                        } else if (element.type === 'image_group') {
+                            const groupContainer = createElement('div', {
+                                className: 'admin-builder__group',
+                            });
+
+                            const layoutField = createElement('label', {
+                                className: 'admin-builder__field',
+                            });
+                            layoutField.append(
+                                createElement('span', {
+                                    className: 'admin-builder__label',
+                                    textContent: 'Layout preset',
+                                })
+                            );
+                            const layoutInput = createElement('input', {
+                                className: 'admin-builder__input',
+                            });
+                            layoutInput.type = 'text';
+                            layoutInput.placeholder =
+                                'e.g. grid, carousel, mosaic';
+                            layoutInput.value = element.content?.layout || '';
+                            layoutInput.dataset.field = 'image-group-layout';
                             layoutField.append(layoutInput);
                             groupContainer.append(layoutField);
 
-                            const groupList = createElement("div", { className: "admin-builder__group-list" });
+                            const groupList = createElement('div', {
+                                className: 'admin-builder__group-list',
+                            });
 
                             if (!element.content?.images?.length) {
                                 groupList.append(
-                                    createElement("p", {
-                                        className: "admin-builder__element-empty",
-                                        textContent: "No images in this group yet.",
+                                    createElement('p', {
+                                        className:
+                                            'admin-builder__element-empty',
+                                        textContent:
+                                            'No images in this group yet.',
                                     })
                                 );
                             } else {
                                 element.content.images.forEach((image) => {
-                                    const groupItem = createElement("div", { className: "admin-builder__group-item" });
-                                    groupItem.dataset.groupImageClient = image.clientId;
+                                    const groupItem = createElement('div', {
+                                        className: 'admin-builder__group-item',
+                                    });
+                                    groupItem.dataset.groupImageClient =
+                                        image.clientId;
 
-                                    const groupUrlField = createElement("label", { className: "admin-builder__field" });
+                                    const groupUrlField = createElement(
+                                        'label',
+                                        { className: 'admin-builder__field' }
+                                    );
                                     groupUrlField.append(
-                                        createElement("span", {
-                                            className: "admin-builder__label",
-                                            textContent: "Image URL",
+                                        createElement('span', {
+                                            className: 'admin-builder__label',
+                                            textContent: 'Image URL',
                                         })
                                     );
-                                    const groupUrlInput = createElement("input", { className: "admin-builder__input" });
-                                    groupUrlInput.type = "url";
-                                    groupUrlInput.placeholder = "https://example.com/gallery-image.jpg";
-                                    groupUrlInput.value = image.url || "";
-                                    groupUrlInput.dataset.field = "group-image-url";
+                                    const groupUrlInput = createElement(
+                                        'input',
+                                        { className: 'admin-builder__input' }
+                                    );
+                                    groupUrlInput.type = 'url';
+                                    groupUrlInput.placeholder =
+                                        'https://example.com/gallery-image.jpg';
+                                    groupUrlInput.value = image.url || '';
+                                    groupUrlInput.dataset.field =
+                                        'group-image-url';
                                     groupUrlField.append(groupUrlInput);
                                     groupItem.append(groupUrlField);
 
-                                    const groupAltField = createElement("label", { className: "admin-builder__field" });
+                                    const groupAltField = createElement(
+                                        'label',
+                                        { className: 'admin-builder__field' }
+                                    );
                                     groupAltField.append(
-                                        createElement("span", {
-                                            className: "admin-builder__label",
-                                            textContent: "Alt text",
+                                        createElement('span', {
+                                            className: 'admin-builder__label',
+                                            textContent: 'Alt text',
                                         })
                                     );
-                                    const groupAltInput = createElement("input", { className: "admin-builder__input" });
-                                    groupAltInput.type = "text";
-                                    groupAltInput.placeholder = "Describe this image";
-                                    groupAltInput.value = image.alt || "";
-                                    groupAltInput.dataset.field = "group-image-alt";
+                                    const groupAltInput = createElement(
+                                        'input',
+                                        { className: 'admin-builder__input' }
+                                    );
+                                    groupAltInput.type = 'text';
+                                    groupAltInput.placeholder =
+                                        'Describe this image';
+                                    groupAltInput.value = image.alt || '';
+                                    groupAltInput.dataset.field =
+                                        'group-image-alt';
                                     groupAltField.append(groupAltInput);
                                     groupItem.append(groupAltField);
 
-                                    const groupCaptionField = createElement("label", { className: "admin-builder__field" });
+                                    const groupCaptionField = createElement(
+                                        'label',
+                                        { className: 'admin-builder__field' }
+                                    );
                                     groupCaptionField.append(
-                                        createElement("span", {
-                                            className: "admin-builder__label",
-                                            textContent: "Caption",
+                                        createElement('span', {
+                                            className: 'admin-builder__label',
+                                            textContent: 'Caption',
                                         })
                                     );
-                                    const groupCaptionInput = createElement("input", { className: "admin-builder__input" });
-                                    groupCaptionInput.type = "text";
-                                    groupCaptionInput.placeholder = "Optional caption";
-                                    groupCaptionInput.value = image.caption || "";
-                                    groupCaptionInput.dataset.field = "group-image-caption";
+                                    const groupCaptionInput = createElement(
+                                        'input',
+                                        { className: 'admin-builder__input' }
+                                    );
+                                    groupCaptionInput.type = 'text';
+                                    groupCaptionInput.placeholder =
+                                        'Optional caption';
+                                    groupCaptionInput.value =
+                                        image.caption || '';
+                                    groupCaptionInput.dataset.field =
+                                        'group-image-caption';
                                     groupCaptionField.append(groupCaptionInput);
                                     groupItem.append(groupCaptionField);
 
-                                    const groupActions = createElement("div", { className: "admin-builder__group-actions" });
-                                    const removeImageButton = createElement("button", {
-                                        className: "admin-builder__element-remove",
-                                        textContent: "Remove image",
+                                    const groupActions = createElement('div', {
+                                        className:
+                                            'admin-builder__group-actions',
                                     });
-                                    removeImageButton.type = "button";
-                                    removeImageButton.dataset.action = "group-image-remove";
+                                    const removeImageButton = createElement(
+                                        'button',
+                                        {
+                                            className:
+                                                'admin-builder__element-remove',
+                                            textContent: 'Remove image',
+                                        }
+                                    );
+                                    removeImageButton.type = 'button';
+                                    removeImageButton.dataset.action =
+                                        'group-image-remove';
                                     groupActions.append(removeImageButton);
                                     groupItem.append(groupActions);
 
@@ -479,19 +672,24 @@
 
                             groupContainer.append(groupList);
 
-                            const addGroupImageButton = createElement("button", {
-                                className: "admin-builder__button admin-builder__button--ghost",
-                                textContent: "Add image to group",
-                            });
-                            addGroupImageButton.type = "button";
-                            addGroupImageButton.dataset.action = "group-image-add";
+                            const addGroupImageButton = createElement(
+                                'button',
+                                {
+                                    className:
+                                        'admin-builder__button admin-builder__button--ghost',
+                                    textContent: 'Add image to group',
+                                }
+                            );
+                            addGroupImageButton.type = 'button';
+                            addGroupImageButton.dataset.action =
+                                'group-image-add';
                             groupContainer.append(addGroupImageButton);
 
                             elementNode.append(groupContainer);
                         } else if (element.unsupported) {
                             elementNode.append(
-                                createElement("p", {
-                                    className: "admin-builder__note",
+                                createElement('p', {
+                                    className: 'admin-builder__note',
                                     textContent:
                                         "This block type isn't supported in the visual builder yet, but it will be kept intact when you save.",
                                 })
@@ -504,34 +702,49 @@
 
                 sectionItem.append(elementsContainer);
 
-                const sectionActions = createElement("div", { className: "admin-builder__section-actions" });
-
-                const addParagraphButton = createElement("button", {
-                    className: "admin-builder__button admin-builder__button--ghost",
-                    textContent: "Add paragraph",
+                const sectionActions = createElement('div', {
+                    className: 'admin-builder__section-actions',
                 });
-                addParagraphButton.type = "button";
-                addParagraphButton.dataset.action = "element-add";
-                addParagraphButton.dataset.elementType = "paragraph";
+
+                const addParagraphButton = createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost',
+                    textContent: 'Add paragraph',
+                });
+                addParagraphButton.type = 'button';
+                addParagraphButton.dataset.action = 'element-add';
+                addParagraphButton.dataset.elementType = 'paragraph';
                 sectionActions.append(addParagraphButton);
 
-                const addImageButton = createElement("button", {
-                    className: "admin-builder__button admin-builder__button--ghost",
-                    textContent: "Add image",
+                const addImageButton = createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost',
+                    textContent: 'Add image',
                 });
-                addImageButton.type = "button";
-                addImageButton.dataset.action = "element-add";
-                addImageButton.dataset.elementType = "image";
+                addImageButton.type = 'button';
+                addImageButton.dataset.action = 'element-add';
+                addImageButton.dataset.elementType = 'image';
                 sectionActions.append(addImageButton);
 
-                const addImageGroupButton = createElement("button", {
-                    className: "admin-builder__button admin-builder__button--ghost",
-                    textContent: "Add image group",
+                const addImageGroupButton = createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost',
+                    textContent: 'Add image group',
                 });
-                addImageGroupButton.type = "button";
-                addImageGroupButton.dataset.action = "element-add";
-                addImageGroupButton.dataset.elementType = "image_group";
+                addImageGroupButton.type = 'button';
+                addImageGroupButton.dataset.action = 'element-add';
+                addImageGroupButton.dataset.elementType = 'image_group';
                 sectionActions.append(addImageGroupButton);
+
+                const addListButton = createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost',
+                    textContent: 'Add list',
+                });
+                addListButton.type = 'button';
+                addListButton.dataset.action = 'element-add';
+                addListButton.dataset.elementType = 'list';
+                sectionActions.append(addListButton);
 
                 sectionItem.append(sectionActions);
 
@@ -539,7 +752,8 @@
             });
         };
 
-        const findSection = (clientId) => sections.find((section) => section.clientId === clientId);
+        const findSection = (clientId) =>
+            sections.find((section) => section.clientId === clientId);
         const findElement = (section, clientId) =>
             section?.elements?.find((element) => element.clientId === clientId);
 
@@ -548,11 +762,15 @@
             sections.push(section);
             render();
             emitChange();
-            focusField(`[data-section-client="${section.clientId}"] [data-field="section-title"]`);
+            focusField(
+                `[data-section-client="${section.clientId}"] [data-field="section-title"]`
+            );
         };
 
         const removeSection = (clientId) => {
-            sections = sections.filter((section) => section.clientId !== clientId);
+            sections = sections.filter(
+                (section) => section.clientId !== clientId
+            );
             render();
             emitChange();
         };
@@ -563,14 +781,25 @@
                 return;
             }
             const element = createElementState({ type });
-            if (type === "image_group" && (!element.content || !element.content.images.length)) {
+            if (
+                type === 'image_group' &&
+                (!element.content || !element.content.images.length)
+            ) {
                 element.content.images = [createImageState({})];
+            }
+            if (type === 'list') {
+                if (!Array.isArray(element.content?.items)) {
+                    element.content.items = [''];
+                }
+                if (typeof element.content.ordered !== 'boolean') {
+                    element.content.ordered = Boolean(element.content.ordered);
+                }
             }
             section.elements.push(element);
             render();
             emitChange();
             focusField(
-                type === "paragraph"
+                type === 'paragraph'
                     ? `[data-section-client="${sectionClientId}"] [data-element-client="${element.clientId}"] textarea`
                     : `[data-section-client="${sectionClientId}"] [data-element-client="${element.clientId}"] [data-field]`
             );
@@ -581,7 +810,9 @@
             if (!section) {
                 return;
             }
-            section.elements = section.elements.filter((element) => element.clientId !== elementClientId);
+            section.elements = section.elements.filter(
+                (element) => element.clientId !== elementClientId
+            );
             render();
             emitChange();
         };
@@ -592,7 +823,7 @@
                 return;
             }
             const element = findElement(section, elementClientId);
-            if (!element || element.type !== "image_group") {
+            if (!element || element.type !== 'image_group') {
                 return;
             }
             const image = createImageState({});
@@ -604,16 +835,22 @@
             );
         };
 
-        const removeGroupImage = (sectionClientId, elementClientId, imageClientId) => {
+        const removeGroupImage = (
+            sectionClientId,
+            elementClientId,
+            imageClientId
+        ) => {
             const section = findSection(sectionClientId);
             if (!section) {
                 return;
             }
             const element = findElement(section, elementClientId);
-            if (!element || element.type !== "image_group") {
+            if (!element || element.type !== 'image_group') {
                 return;
             }
-            element.content.images = element.content.images.filter((image) => image.clientId !== imageClientId);
+            element.content.images = element.content.images.filter(
+                (image) => image.clientId !== imageClientId
+            );
             render();
             emitChange();
         };
@@ -623,14 +860,20 @@
             if (!section) {
                 return;
             }
-            if (field === "section-title") {
+            if (field === 'section-title') {
                 section.title = value;
-            } else if (field === "section-image") {
+            } else if (field === 'section-image') {
                 section.image = value;
             }
         };
 
-        const updateElementField = (sectionClientId, elementClientId, field, value, imageClientId) => {
+        const updateElementField = (
+            sectionClientId,
+            elementClientId,
+            field,
+            value,
+            imageClientId
+        ) => {
             const section = findSection(sectionClientId);
             if (!section) {
                 return;
@@ -640,39 +883,53 @@
                 return;
             }
             switch (field) {
-                case "paragraph-text":
+                case 'paragraph-text':
                     element.content.text = value;
                     break;
-                case "image-url":
+                case 'image-url':
                     element.content.url = value;
                     break;
-                case "image-alt":
+                case 'image-alt':
                     element.content.alt = value;
                     break;
-                case "image-caption":
+                case 'image-caption':
                     element.content.caption = value;
                     break;
-                case "image-group-layout":
+                case 'image-group-layout':
                     element.content.layout = value;
                     break;
-                case "group-image-url":
-                case "group-image-alt":
-                case "group-image-caption":
+                case 'list-ordered':
+                    element.content.ordered = Boolean(value);
+                    break;
+                case 'list-items':
+                    if (Array.isArray(value)) {
+                        element.content.items = value;
+                    } else if (typeof value === 'string') {
+                        element.content.items = value
+                            .replace(/\r/g, '')
+                            .split('\n');
+                    }
+                    break;
+                case 'group-image-url':
+                case 'group-image-alt':
+                case 'group-image-caption':
                     if (!element.content.images) {
                         element.content.images = [];
                     }
                     {
-                        const image = element.content.images.find((img) => img.clientId === imageClientId);
+                        const image = element.content.images.find(
+                            (img) => img.clientId === imageClientId
+                        );
                         if (!image) {
                             return;
                         }
-                        if (field === "group-image-url") {
+                        if (field === 'group-image-url') {
                             image.url = value;
                         }
-                        if (field === "group-image-alt") {
+                        if (field === 'group-image-alt') {
                             image.alt = value;
                         }
-                        if (field === "group-image-caption") {
+                        if (field === 'group-image-caption') {
                             image.caption = value;
                         }
                     }
@@ -686,17 +943,25 @@
             if (!element) {
                 return false;
             }
-            if (element.type === "paragraph") {
+            if (element.type === 'paragraph') {
                 return Boolean(element.content?.text?.trim());
             }
-            if (element.type === "image") {
+            if (element.type === 'image') {
                 return Boolean(element.content?.url?.trim());
             }
-            if (element.type === "image_group") {
+            if (element.type === 'image_group') {
                 return (
                     Array.isArray(element.content?.images) &&
-                    element.content.images.some((image) => image.url && image.url.trim())
+                    element.content.images.some(
+                        (image) => image.url && image.url.trim()
+                    )
                 );
+            }
+            if (element.type === "list") {
+                if (!Array.isArray(element.content?.items)) {
+                    return false;
+                }
+                return element.content.items.some((item) => item && item.toString().trim());
             }
             return true;
         };
@@ -705,17 +970,17 @@
             if (!elementHasContent(element)) {
                 return null;
             }
-            if (element.type === "paragraph") {
+            if (element.type === 'paragraph') {
                 return {
-                    id: element.id || "",
-                    type: "paragraph",
+                    id: element.id || '',
+                    type: 'paragraph',
                     order: index + 1,
                     content: {
                         text: element.content.text.trim(),
                     },
                 };
             }
-            if (element.type === "image") {
+            if (element.type === 'image') {
                 const payload = {
                     url: element.content.url.trim(),
                 };
@@ -726,16 +991,48 @@
                     payload.caption = element.content.caption.trim();
                 }
                 return {
-                    id: element.id || "",
-                    type: "image",
+                    id: element.id || '',
+                    type: 'image',
                     order: index + 1,
                     content: payload,
                 };
             }
-            if (element.type === "image_group") {
+            if (element.type === "list") {
+                const sourceItems = Array.isArray(element.content.items)
+                    ? element.content.items
+                    : [];
+                const items = sourceItems
+                    .map((item) => {
+                        if (typeof item === "string") {
+                            return item.trim();
+                        }
+                        if (item === null || item === undefined) {
+                            return "";
+                        }
+                        return String(item).trim();
+                    })
+                    .filter(Boolean);
+
+                if (!items.length) {
+                    return null;
+                }
+
+                const payload = { items };
+                if (element.content.ordered) {
+                    payload.ordered = true;
+                }
+
+                return {
+                    id: element.id || "",
+                    type: "list",
+                    order: index + 1,
+                    content: payload,
+                };
+            }
+            if (element.type === 'image_group') {
                 const images = (element.content.images || [])
                     .map((image) => {
-                        const url = (image.url || "").trim();
+                        const url = (image.url || '').trim();
                         if (!url) {
                             return null;
                         }
@@ -760,14 +1057,14 @@
                 }
 
                 return {
-                    id: element.id || "",
-                    type: "image_group",
+                    id: element.id || '',
+                    type: 'image_group',
                     order: index + 1,
                     content: payload,
                 };
             }
             return {
-                id: element.id || "",
+                id: element.id || '',
                 type: element.type,
                 order: index + 1,
                 content: element.content,
@@ -778,19 +1075,23 @@
             sections
                 .map((section, index) => {
                     const elements = section.elements
-                        .map((element, elementIndex) => sanitiseElement(element, elementIndex))
+                        .map((element, elementIndex) =>
+                            sanitiseElement(element, elementIndex)
+                        )
                         .filter(Boolean);
 
                     const image = section.image.trim();
                     const title = section.title.trim();
-                    const hasContent = Boolean(title || image || elements.length > 0);
+                    const hasContent = Boolean(
+                        title || image || elements.length > 0
+                    );
 
                     if (!hasContent) {
                         return null;
                     }
 
                     const payload = {
-                        id: section.id || "",
+                        id: section.id || '',
                         title,
                         order: index + 1,
                         elements,
@@ -804,16 +1105,16 @@
                 })
                 .filter(Boolean);
 
-        addSectionButton.addEventListener("click", () => {
+        addSectionButton.addEventListener('click', () => {
             addSection();
         });
 
-        sectionList.addEventListener("click", (event) => {
+        sectionList.addEventListener('click', (event) => {
             const target = event.target;
             if (!(target instanceof HTMLElement)) {
                 return;
             }
-            const sectionNode = target.closest("[data-section-client]");
+            const sectionNode = target.closest('[data-section-client]');
             if (!sectionNode) {
                 return;
             }
@@ -830,39 +1131,49 @@
 
             if (target.matches('[data-action="element-remove"]')) {
                 event.preventDefault();
-                const elementNode = target.closest("[data-element-client]");
+                const elementNode = target.closest('[data-element-client]');
                 if (!elementNode) {
                     return;
                 }
-                removeElementFromSection(sectionClientId, elementNode.dataset.elementClient);
+                removeElementFromSection(
+                    sectionClientId,
+                    elementNode.dataset.elementClient
+                );
                 return;
             }
 
             if (target.matches('[data-action="element-add"]')) {
                 event.preventDefault();
-                const type = target.dataset.elementType || "paragraph";
+                const type = target.dataset.elementType || 'paragraph';
                 addElementToSection(sectionClientId, type);
                 return;
             }
 
             if (target.matches('[data-action="group-image-add"]')) {
                 event.preventDefault();
-                const elementNode = target.closest("[data-element-client]");
+                const elementNode = target.closest('[data-element-client]');
                 if (!elementNode) {
                     return;
                 }
-                addGroupImage(sectionClientId, elementNode.dataset.elementClient);
+                addGroupImage(
+                    sectionClientId,
+                    elementNode.dataset.elementClient
+                );
                 return;
             }
 
             if (target.matches('[data-action="group-image-remove"]')) {
                 event.preventDefault();
-                const elementNode = target.closest("[data-element-client]");
-                const imageNode = target.closest("[data-group-image-client]");
+                const elementNode = target.closest('[data-element-client]');
+                const imageNode = target.closest('[data-group-image-client]');
                 if (!elementNode || !imageNode) {
                     return;
                 }
-                removeGroupImage(sectionClientId, elementNode.dataset.elementClient, imageNode.dataset.groupImageClient);
+                removeGroupImage(
+                    sectionClientId,
+                    elementNode.dataset.elementClient,
+                    imageNode.dataset.groupImageClient
+                );
             }
         });
 
@@ -890,9 +1201,11 @@
                 const elementClientId = elementNode.dataset.elementClient;
                 const imageNode = target.closest("[data-group-image-client]");
                 const imageClientId = imageNode ? imageNode.dataset.groupImageClient : undefined;
-                updateElementField(sectionClientId, elementClientId, field, target.value, imageClientId);
+                const fieldValue = target.type === "checkbox" ? target.checked : target.value;
+                updateElementField(sectionClientId, elementClientId, field, fieldValue, imageClientId);
             } else {
-                updateSectionField(sectionClientId, field, target.value);
+                const fieldValue = target.type === "checkbox" ? target.checked : target.value;
+                updateSectionField(sectionClientId, field, fieldValue);
             }
             emitChange();
         });
@@ -910,7 +1223,7 @@
         };
 
         const onChange = (listener) => {
-            if (typeof listener !== "function") {
+            if (typeof listener !== 'function') {
                 return () => {};
             }
             listeners.add(listener);
@@ -941,6 +1254,13 @@
                     if (element.type === "paragraph" && element.content?.text) {
                         parts.push(element.content.text);
                     }
+                    if (element.type === "list" && Array.isArray(element.content?.items)) {
+                        element.content.items
+                            .filter((item) => item && item.toString().trim())
+                            .forEach((item) => {
+                                parts.push(item.toString());
+                            });
+                    }
                 });
             }
         });
@@ -958,35 +1278,39 @@
         const fallbackApiRequest = async (url, options = {}) => {
             const headers = Object.assign({}, options.headers || {});
             const token =
-                auth && typeof auth.getToken === "function" ? auth.getToken() : undefined;
+                auth && typeof auth.getToken === 'function'
+                    ? auth.getToken()
+                    : undefined;
 
             if (options.body && !(options.body instanceof FormData)) {
-                headers["Content-Type"] = headers["Content-Type"] || "application/json";
+                headers['Content-Type'] =
+                    headers['Content-Type'] || 'application/json';
             }
 
             if (token) {
-                headers.Authorization = headers.Authorization || `Bearer ${token}`;
+                headers.Authorization =
+                    headers.Authorization || `Bearer ${token}`;
             }
 
             const response = await fetch(url, {
-                credentials: "include",
+                credentials: 'include',
                 ...options,
                 headers,
             });
 
-            const contentType = response.headers.get("content-type") || "";
-            const isJson = contentType.includes("application/json");
+            const contentType = response.headers.get('content-type') || '';
+            const isJson = contentType.includes('application/json');
             const payload = isJson
                 ? await response.json().catch(() => null)
                 : await response.text();
 
             if (!response.ok) {
                 const message =
-                    payload && typeof payload === "object" && payload.error
+                    payload && typeof payload === 'object' && payload.error
                         ? payload.error
-                        : typeof payload === "string"
+                        : typeof payload === 'string'
                         ? payload
-                        : "Request failed";
+                        : 'Request failed';
                 const error = new Error(message);
                 error.status = response.status;
                 error.payload = payload;
@@ -997,22 +1321,27 @@
         };
 
         const apiRequest =
-            typeof app.apiRequest === "function" ? app.apiRequest : fallbackApiRequest;
-        if (typeof app.apiRequest !== "function") {
+            typeof app.apiRequest === 'function'
+                ? app.apiRequest
+                : fallbackApiRequest;
+        if (typeof app.apiRequest !== 'function') {
             console.warn(
-                "Admin dashboard is using fallback API client because App.apiRequest is unavailable."
+                'Admin dashboard is using fallback API client because App.apiRequest is unavailable.'
             );
         }
-        const setAlert = typeof app.setAlert === "function" ? app.setAlert : null;
+        const setAlert =
+            typeof app.setAlert === 'function' ? app.setAlert : null;
         const toggleFormDisabled =
-            typeof app.toggleFormDisabled === "function" ? app.toggleFormDisabled : null;
+            typeof app.toggleFormDisabled === 'function'
+                ? app.toggleFormDisabled
+                : null;
 
         const requireAuth = () => {
-            if (!auth || typeof auth.getToken !== "function") {
+            if (!auth || typeof auth.getToken !== 'function') {
                 return true;
             }
             if (!auth.getToken()) {
-                window.location.href = "/login?redirect=/admin";
+                window.location.href = '/login?redirect=/admin';
                 return false;
             }
             return true;
@@ -1034,52 +1363,58 @@
             siteSettings: root.dataset.endpointSiteSettings,
         };
 
-        const alertElement = document.getElementById("admin-alert");
-        const showAlert = (message, type = "info") => {
+        const alertElement = document.getElementById('admin-alert');
+        const showAlert = (message, type = 'info') => {
             if (!alertElement) {
                 return;
             }
-            if (typeof setAlert === "function") {
+            if (typeof setAlert === 'function') {
                 setAlert(alertElement, message, type);
                 return;
             }
-            alertElement.textContent = message || "";
+            alertElement.textContent = message || '';
             alertElement.hidden = !message;
         };
 
-        const clearAlert = () => showAlert("");
+        const clearAlert = () => showAlert('');
 
         const handleRequestError = (error) => {
             if (!error) {
                 return;
             }
             if (error.status === 401) {
-                if (auth && typeof auth.clearToken === "function") {
+                if (auth && typeof auth.clearToken === 'function') {
                     auth.clearToken();
                 }
-                window.location.href = "/login?redirect=/admin";
+                window.location.href = '/login?redirect=/admin';
                 return;
             }
             if (error.status === 403) {
-                showAlert("You do not have permission to perform this action.", "error");
+                showAlert(
+                    'You do not have permission to perform this action.',
+                    'error'
+                );
                 return;
             }
-            const message = error.message || "Request failed. Please try again.";
-            showAlert(message, "error");
-            console.error("Admin dashboard request failed", error);
+            const message =
+                error.message || 'Request failed. Please try again.';
+            showAlert(message, 'error');
+            console.error('Admin dashboard request failed', error);
         };
 
         const disableForm = (form, disabled) => {
             if (!form) {
                 return;
             }
-            if (typeof toggleFormDisabled === "function") {
+            if (typeof toggleFormDisabled === 'function') {
                 toggleFormDisabled(form, disabled);
                 return;
             }
-            form.querySelectorAll("input, select, textarea, button").forEach((field) => {
-                field.disabled = disabled;
-            });
+            form.querySelectorAll('input, select, textarea, button').forEach(
+                (field) => {
+                    field.disabled = disabled;
+                }
+            );
         };
 
         const focusFirstField = (form) => {
@@ -1088,15 +1423,15 @@
             }
             const selector = [
                 'input:not([type="hidden"]):not([disabled])',
-                "textarea:not([disabled])",
-                "select:not([disabled])",
-            ].join(", ");
+                'textarea:not([disabled])',
+                'select:not([disabled])',
+            ].join(', ');
             const field = form.querySelector(selector);
-            if (field && typeof field.focus === "function") {
+            if (field && typeof field.focus === 'function') {
                 field.focus();
                 return field;
             }
-            if (typeof form.focus === "function") {
+            if (typeof form.focus === 'function') {
                 form.focus();
             }
             return field || null;
@@ -1106,15 +1441,15 @@
             if (!form) {
                 return;
             }
-            if (typeof form.scrollIntoView === "function") {
+            if (typeof form.scrollIntoView === 'function') {
                 try {
-                    form.scrollIntoView({ behavior: "smooth", block: "start" });
+                    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch (error) {
                     form.scrollIntoView();
                 }
             }
             const scheduleFocus = () => focusFirstField(form);
-            if (typeof window.requestAnimationFrame === "function") {
+            if (typeof window.requestAnimationFrame === 'function') {
                 window.requestAnimationFrame(scheduleFocus);
             } else {
                 scheduleFocus();
@@ -1122,52 +1457,84 @@
         };
 
         const metricElements = new Map();
-        root.querySelectorAll(".admin__metric").forEach((card) => {
+        root.querySelectorAll('.admin__metric').forEach((card) => {
             const key = card.dataset.metric;
-            const valueElement = card.querySelector(".admin__metric-value");
+            const valueElement = card.querySelector('.admin__metric-value');
             if (key && valueElement) {
                 metricElements.set(key, valueElement);
             }
         });
 
-        const chartContainer = root.querySelector('[data-role="metrics-chart"]');
-        const chartSvg = chartContainer?.querySelector("svg");
-        const chartLegend = chartContainer?.querySelector('[data-role="chart-legend"]');
-        const chartSummary = chartContainer?.querySelector('[data-role="chart-summary"]');
-        const chartEmpty = chartContainer?.querySelector('[data-role="chart-empty"]');
+        const chartContainer = root.querySelector(
+            '[data-role="metrics-chart"]'
+        );
+        const chartSvg = chartContainer?.querySelector('svg');
+        const chartLegend = chartContainer?.querySelector(
+            '[data-role="chart-legend"]'
+        );
+        const chartSummary = chartContainer?.querySelector(
+            '[data-role="chart-summary"]'
+        );
+        const chartEmpty = chartContainer?.querySelector(
+            '[data-role="chart-empty"]'
+        );
         const chartSeries = [
-            { key: "posts", label: "Posts", color: "var(--admin-chart-posts)" },
-            { key: "comments", label: "Comments", color: "var(--admin-chart-comments)" },
+            { key: 'posts', label: 'Posts', color: 'var(--admin-chart-posts)' },
+            {
+                key: 'comments',
+                label: 'Comments',
+                color: 'var(--admin-chart-comments)',
+            },
         ];
 
         const tables = {
-            posts: root.querySelector("#admin-posts-table"),
-            pages: root.querySelector("#admin-pages-table"),
-            categories: root.querySelector("#admin-categories-table"),
+            posts: root.querySelector('#admin-posts-table'),
+            pages: root.querySelector('#admin-pages-table'),
+            categories: root.querySelector('#admin-categories-table'),
         };
-        const commentsList = root.querySelector("#admin-comments-list");
-        const postForm = root.querySelector("#admin-post-form");
-        const pageForm = root.querySelector("#admin-page-form");
-        const categoryForm = root.querySelector("#admin-category-form");
-        const settingsForm = root.querySelector("#admin-settings-form");
-        const postDeleteButton = postForm?.querySelector('[data-role="post-delete"]');
-        const postSubmitButton = postForm?.querySelector('[data-role="post-submit"]');
-        const pageDeleteButton = pageForm?.querySelector('[data-role="page-delete"]');
-        const pageSubmitButton = pageForm?.querySelector('[data-role="page-submit"]');
-        const categoryDeleteButton = categoryForm?.querySelector('[data-role="category-delete"]');
-        const categorySubmitButton = categoryForm?.querySelector('[data-role="category-submit"]');
-        const postCategorySelect = postForm?.querySelector("#admin-post-category");
-        const postTagsInput = postForm?.querySelector("#admin-post-tags");
-        const postFeaturedImageInput = postForm?.querySelector('input[name="featured_img"]');
-        const tagList = document.getElementById("admin-tags-list");
-        const postTagsList = document.getElementById("admin-post-tags-list");
-        const DEFAULT_CATEGORY_SLUG = "uncategorized";
+        const commentsList = root.querySelector('#admin-comments-list');
+        const postForm = root.querySelector('#admin-post-form');
+        const pageForm = root.querySelector('#admin-page-form');
+        const categoryForm = root.querySelector('#admin-category-form');
+        const settingsForm = root.querySelector('#admin-settings-form');
+        const postDeleteButton = postForm?.querySelector(
+            '[data-role="post-delete"]'
+        );
+        const postSubmitButton = postForm?.querySelector(
+            '[data-role="post-submit"]'
+        );
+        const pageDeleteButton = pageForm?.querySelector(
+            '[data-role="page-delete"]'
+        );
+        const pageSubmitButton = pageForm?.querySelector(
+            '[data-role="page-submit"]'
+        );
+        const categoryDeleteButton = categoryForm?.querySelector(
+            '[data-role="category-delete"]'
+        );
+        const categorySubmitButton = categoryForm?.querySelector(
+            '[data-role="category-submit"]'
+        );
+        const postCategorySelect = postForm?.querySelector(
+            '#admin-post-category'
+        );
+        const postTagsInput = postForm?.querySelector('#admin-post-tags');
+        const postFeaturedImageInput = postForm?.querySelector(
+            'input[name="featured_img"]'
+        );
+        const tagList = document.getElementById('admin-tags-list');
+        const postTagsList = document.getElementById('admin-post-tags-list');
+        const DEFAULT_CATEGORY_SLUG = 'uncategorized';
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
         const postSectionBuilder = postForm
-            ? window.SectionBuilder?.init(postForm.querySelector('[data-section-builder="post"]'))
+            ? window.SectionBuilder?.init(
+                  postForm.querySelector('[data-section-builder="post"]')
+              )
             : null;
         const pageSectionBuilder = pageForm
-            ? window.SectionBuilder?.init(pageForm.querySelector('[data-section-builder="page"]'))
+            ? window.SectionBuilder?.init(
+                  pageForm.querySelector('[data-section-builder="page"]')
+              )
             : null;
         const postContentField = postForm?.querySelector('[name="content"]');
 
@@ -1189,13 +1556,13 @@
             categories: [],
             comments: [],
             tags: [],
-            defaultCategoryId: "",
+            defaultCategoryId: '',
             site: null,
         };
 
         const validateSections = (sections) => {
             if (!Array.isArray(sections)) {
-                return "";
+                return '';
             }
             for (let index = 0; index < sections.length; index += 1) {
                 const section = sections[index];
@@ -1208,37 +1575,62 @@
                 if (!Array.isArray(section.elements)) {
                     continue;
                 }
-                for (let elementIndex = 0; elementIndex < section.elements.length; elementIndex += 1) {
+                for (
+                    let elementIndex = 0;
+                    elementIndex < section.elements.length;
+                    elementIndex += 1
+                ) {
                     const element = section.elements[elementIndex];
                     if (!element) {
                         continue;
                     }
-                    if (element.type === "paragraph" && !element.content?.text) {
-                        return `Paragraph ${elementIndex + 1} in section "${section.title}" is empty.`;
+                    if (
+                        element.type === 'paragraph' &&
+                        !element.content?.text
+                    ) {
+                        return `Paragraph ${elementIndex + 1} in section "${
+                            section.title
+                        }" is empty.`;
                     }
-                    if (element.type === "image" && !element.content?.url) {
-                        return `Image ${elementIndex + 1} in section "${section.title}" is missing a URL.`;
+                    if (element.type === 'image' && !element.content?.url) {
+                        return `Image ${elementIndex + 1} in section "${
+                            section.title
+                        }" is missing a URL.`;
                     }
-                    if (element.type === "image_group") {
-                        const images = Array.isArray(element.content?.images) ? element.content.images : [];
+                    if (element.type === 'image_group') {
+                        const images = Array.isArray(element.content?.images)
+                            ? element.content.images
+                            : [];
                         if (!images.length) {
                             return `The image group in section "${section.title}" needs at least one image.`;
                         }
                         const missing = images.findIndex((img) => !img?.url);
                         if (missing !== -1) {
-                            return `Image ${missing + 1} in the group for section "${section.title}" is missing a URL.`;
+                            return `Image ${
+                                missing + 1
+                            } in the group for section "${
+                                section.title
+                            }" is missing a URL.`;
+                        }
+                    }
+                    if (element.type === "list") {
+                        const items = Array.isArray(element.content?.items) ? element.content.items : [];
+                        const hasItems = items.some((item) => item && item.toString().trim());
+                        if (!hasItems) {
+                            return `List ${elementIndex + 1} in section "${section.title}" needs at least one item.`;
                         }
                     }
                 }
             }
-            return "";
+            return '';
         };
 
-        const normaliseSlug = (value) => (typeof value === "string" ? value.toLowerCase() : "");
+        const normaliseSlug = (value) =>
+            typeof value === 'string' ? value.toLowerCase() : '';
 
         const extractCategorySlug = (category) => {
             if (!category) {
-                return "";
+                return '';
             }
             const candidates = [category.slug, category.Slug];
             for (const candidate of candidates) {
@@ -1246,26 +1638,26 @@
                 if (normalised) {
                     return normalised;
                 }
-                if (candidate && typeof candidate.value === "string") {
+                if (candidate && typeof candidate.value === 'string') {
                     const nested = normaliseSlug(candidate.value);
                     if (nested) {
                         return nested;
                     }
                 }
             }
-            return normaliseSlug(category.name || category.Name || "");
+            return normaliseSlug(category.name || category.Name || '');
         };
 
         const extractCategoryId = (category) => {
             if (!category) {
-                return "";
+                return '';
             }
             const candidates = [category.id, category.ID];
             for (const candidate of candidates) {
                 if (candidate === undefined || candidate === null) {
                     continue;
                 }
-                if (typeof candidate === "object" && candidate !== null) {
+                if (typeof candidate === 'object' && candidate !== null) {
                     const value = candidate.value ?? candidate.Value;
                     if (value !== undefined && value !== null) {
                         const normalised = String(value).trim();
@@ -1280,7 +1672,7 @@
                     return normalised;
                 }
             }
-            return "";
+            return '';
         };
 
         const extractSectionsFromEntry = (entry) => {
@@ -1288,24 +1680,28 @@
             if (!Array.isArray(sections)) {
                 return [];
             }
-            return sections
-                .slice()
-                .sort((a, b) => {
-                    const orderA = Number(a?.order ?? a?.Order ?? 0);
-                    const orderB = Number(b?.order ?? b?.Order ?? 0);
-                    return orderA - orderB;
-                });
+            return sections.slice().sort((a, b) => {
+                const orderA = Number(a?.order ?? a?.Order ?? 0);
+                const orderB = Number(b?.order ?? b?.Order ?? 0);
+                return orderA - orderB;
+            });
         };
 
         const refreshDefaultCategoryId = () => {
             const defaultSlug = normaliseSlug(DEFAULT_CATEGORY_SLUG);
-            const matchBySlug = state.categories.find((category) => extractCategorySlug(category) === defaultSlug);
+            const matchBySlug = state.categories.find(
+                (category) => extractCategorySlug(category) === defaultSlug
+            );
             if (matchBySlug) {
                 state.defaultCategoryId = extractCategoryId(matchBySlug);
                 return;
             }
-            const fallback = state.categories.find((category) => extractCategoryId(category));
-            state.defaultCategoryId = fallback ? extractCategoryId(fallback) : "";
+            const fallback = state.categories.find((category) =>
+                extractCategoryId(category)
+            );
+            state.defaultCategoryId = fallback
+                ? extractCategoryId(fallback)
+                : '';
         };
 
         const ensureDefaultCategorySelection = () => {
@@ -1318,13 +1714,21 @@
             if (state.defaultCategoryId) {
                 postCategorySelect.value = state.defaultCategoryId;
             }
-            if (!postCategorySelect.value && postCategorySelect.options.length) {
-                const firstUsable = Array.from(postCategorySelect.options).find((option) => option.value);
+            if (
+                !postCategorySelect.value &&
+                postCategorySelect.options.length
+            ) {
+                const firstUsable = Array.from(postCategorySelect.options).find(
+                    (option) => option.value
+                );
                 if (firstUsable) {
                     postCategorySelect.value = firstUsable.value;
                 }
             }
-            if (!postCategorySelect.value && postCategorySelect.options.length) {
+            if (
+                !postCategorySelect.value &&
+                postCategorySelect.options.length
+            ) {
                 postCategorySelect.selectedIndex = 0;
             }
             if (postCategorySelect.value) {
@@ -1332,15 +1736,16 @@
             }
         };
 
-        const normaliseTagName = (value) => (typeof value === "string" ? value.trim() : "");
+        const normaliseTagName = (value) =>
+            typeof value === 'string' ? value.trim() : '';
 
         const parseTags = (value) => {
-            if (typeof value !== "string" || !value.trim()) {
+            if (typeof value !== 'string' || !value.trim()) {
                 return [];
             }
             const unique = new Map();
             value
-                .split(",")
+                .split(',')
                 .map((entry) => normaliseTagName(entry))
                 .filter(Boolean)
                 .forEach((name) => {
@@ -1396,12 +1801,12 @@
             }
 
             const ordered = Array.from(suggestions.values()).sort((a, b) =>
-                a.localeCompare(b, undefined, { sensitivity: "base" })
+                a.localeCompare(b, undefined, { sensitivity: 'base' })
             );
 
-            postTagsList.innerHTML = "";
+            postTagsList.innerHTML = '';
             ordered.forEach((name) => {
-                const option = document.createElement("option");
+                const option = document.createElement('option');
                 option.value = name;
                 postTagsList.appendChild(option);
             });
@@ -1409,22 +1814,24 @@
 
         const extractTagId = (tag) => {
             if (!tag) {
-                return "";
+                return '';
             }
-            if (typeof tag.id !== "undefined" && tag.id !== null) {
+            if (typeof tag.id !== 'undefined' && tag.id !== null) {
                 return String(tag.id);
             }
-            if (typeof tag.ID !== "undefined" && tag.ID !== null) {
+            if (typeof tag.ID !== 'undefined' && tag.ID !== null) {
                 return String(tag.ID);
             }
-            return "";
+            return '';
         };
 
         const extractTagSlug = (tag) => {
             if (!tag) {
-                return "";
+                return '';
             }
-            return normaliseSlug(tag.slug || tag.Slug || tag.name || tag.Name || "");
+            return normaliseSlug(
+                tag.slug || tag.Slug || tag.name || tag.Name || ''
+            );
         };
 
         const handleTagDelete = async (tag, button, usageCount = 0) => {
@@ -1436,8 +1843,9 @@
                 return;
             }
             const name = normaliseTagName(tag?.name || tag?.Name);
-            const label = name ? `"${name}"` : "this tag";
-            const usageText = usageCount === 1 ? "1 post" : `${usageCount} posts`;
+            const label = name ? `"${name}"` : 'this tag';
+            const usageText =
+                usageCount === 1 ? '1 post' : `${usageCount} posts`;
             const confirmMessage =
                 usageCount > 0
                     ? `The tag ${label} is used by ${usageText}. Deleting it will remove the tag from those posts. Continue?`
@@ -1450,8 +1858,10 @@
             }
             clearAlert();
             try {
-                await apiRequest(`${endpoints.tagsAdmin}/${id}`, { method: "DELETE" });
-                showAlert("Tag deleted successfully.", "success");
+                await apiRequest(`${endpoints.tagsAdmin}/${id}`, {
+                    method: 'DELETE',
+                });
+                showAlert('Tag deleted successfully.', 'success');
                 await loadTags();
                 await loadPosts();
             } catch (error) {
@@ -1467,11 +1877,11 @@
             if (!tagList) {
                 return;
             }
-            tagList.innerHTML = "";
+            tagList.innerHTML = '';
             if (!state.tags.length) {
-                const empty = createElement("li", {
-                    className: "admin-tags__item admin-tags__item--empty",
-                    textContent: "No tags available.",
+                const empty = createElement('li', {
+                    className: 'admin-tags__item admin-tags__item--empty',
+                    textContent: 'No tags available.',
                 });
                 tagList.appendChild(empty);
                 return;
@@ -1492,13 +1902,13 @@
                 });
             });
 
-            const sorted = state.tags
-                .slice()
-                .sort((a, b) => {
-                    const nameA = normaliseTagName(a?.name || a?.Name);
-                    const nameB = normaliseTagName(b?.name || b?.Name);
-                    return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
+            const sorted = state.tags.slice().sort((a, b) => {
+                const nameA = normaliseTagName(a?.name || a?.Name);
+                const nameB = normaliseTagName(b?.name || b?.Name);
+                return nameA.localeCompare(nameB, undefined, {
+                    sensitivity: 'base',
                 });
+            });
 
             sorted.forEach((tag) => {
                 const id = extractTagId(tag);
@@ -1506,31 +1916,39 @@
                 const name = normaliseTagName(tag?.name || tag?.Name);
                 const count = usage.get(slug) || 0;
 
-                const item = createElement("li", { className: "admin-tags__item" });
+                const item = createElement('li', {
+                    className: 'admin-tags__item',
+                });
                 item.dataset.id = id;
 
-                const info = createElement("div", { className: "admin-tags__info" });
+                const info = createElement('div', {
+                    className: 'admin-tags__info',
+                });
                 info.appendChild(
-                    createElement("span", {
-                        className: "admin-tags__name",
-                        textContent: name ? `#${name}` : "(untitled)",
+                    createElement('span', {
+                        className: 'admin-tags__name',
+                        textContent: name ? `#${name}` : '(untitled)',
                     })
                 );
                 info.appendChild(
-                    createElement("span", {
-                        className: "admin-tags__meta",
-                        textContent: count === 1 ? "1 post" : `${count} posts`,
+                    createElement('span', {
+                        className: 'admin-tags__meta',
+                        textContent: count === 1 ? '1 post' : `${count} posts`,
                     })
                 );
                 item.appendChild(info);
 
-                const actions = createElement("div", { className: "admin-tags__actions" });
-                const button = createElement("button", {
-                    className: "admin-tags__delete",
-                    textContent: "Delete",
+                const actions = createElement('div', {
+                    className: 'admin-tags__actions',
                 });
-                button.type = "button";
-                button.addEventListener("click", () => handleTagDelete(tag, button, count));
+                const button = createElement('button', {
+                    className: 'admin-tags__delete',
+                    textContent: 'Delete',
+                });
+                button.type = 'button';
+                button.addEventListener('click', () =>
+                    handleTagDelete(tag, button, count)
+                );
                 actions.appendChild(button);
                 item.appendChild(actions);
 
@@ -1542,8 +1960,11 @@
             if (!table) {
                 return;
             }
-            table.querySelectorAll("tr").forEach((row) => {
-                row.classList.toggle("is-selected", id && String(row.dataset.id) === String(id));
+            table.querySelectorAll('tr').forEach((row) => {
+                row.classList.toggle(
+                    'is-selected',
+                    id && String(row.dataset.id) === String(id)
+                );
             });
         };
 
@@ -1553,26 +1974,45 @@
                 if (target) {
                     target.textContent = Number.isFinite(Number(value))
                         ? Number(value).toLocaleString()
-                        : String(value ?? "—");
+                        : String(value ?? '—');
                 }
             });
         };
 
         const renderMetricsChart = (trend = []) => {
-            if (!chartContainer || !chartSvg || !chartLegend || !chartSummary || !chartEmpty) {
+            if (
+                !chartContainer ||
+                !chartSvg ||
+                !chartLegend ||
+                !chartSummary ||
+                !chartEmpty
+            ) {
                 return;
             }
 
             const normalised = Array.isArray(trend)
                 ? trend
                       .map((entry) => {
-                          const period = entry?.period || entry?.Period || entry?.date || entry?.Date || "";
-                          const postsValue = Number(entry?.posts ?? entry?.Posts ?? 0);
-                          const commentsValue = Number(entry?.comments ?? entry?.Comments ?? 0);
+                          const period =
+                              entry?.period ||
+                              entry?.Period ||
+                              entry?.date ||
+                              entry?.Date ||
+                              '';
+                          const postsValue = Number(
+                              entry?.posts ?? entry?.Posts ?? 0
+                          );
+                          const commentsValue = Number(
+                              entry?.comments ?? entry?.Comments ?? 0
+                          );
                           return {
                               period,
-                              posts: Number.isFinite(postsValue) ? Math.max(0, postsValue) : 0,
-                              comments: Number.isFinite(commentsValue) ? Math.max(0, commentsValue) : 0,
+                              posts: Number.isFinite(postsValue)
+                                  ? Math.max(0, postsValue)
+                                  : 0,
+                              comments: Number.isFinite(commentsValue)
+                                  ? Math.max(0, commentsValue)
+                                  : 0,
                           };
                       })
                       .filter((entry) => entry.period)
@@ -1586,42 +2026,43 @@
             );
             const maxValue = values.length ? Math.max(...values, 0) : 0;
 
-            chartLegend.innerHTML = "";
-            chartSummary.innerHTML = "";
+            chartLegend.innerHTML = '';
+            chartSummary.innerHTML = '';
 
             if (!normalised.length || maxValue <= 0) {
-                chartSvg.innerHTML = "";
+                chartSvg.innerHTML = '';
                 chartEmpty.hidden = false;
                 chartLegend.hidden = true;
                 chartSummary.hidden = true;
-                chartContainer.dataset.state = "empty";
+                chartContainer.dataset.state = 'empty';
                 return;
             }
 
             chartEmpty.hidden = true;
             chartLegend.hidden = false;
             chartSummary.hidden = false;
-            chartContainer.dataset.state = "ready";
+            chartContainer.dataset.state = 'ready';
 
             const width = 600;
             const height = 260;
             const topPadding = 16;
             const bottomPadding = 32;
             const chartHeight = height - topPadding - bottomPadding;
-            const stepX = normalised.length > 1 ? width / (normalised.length - 1) : 0;
+            const stepX =
+                normalised.length > 1 ? width / (normalised.length - 1) : 0;
 
-            chartSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-            chartSvg.innerHTML = "";
+            chartSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            chartSvg.innerHTML = '';
 
             const gridLines = 4;
             for (let index = 0; index <= gridLines; index += 1) {
                 const y = topPadding + (chartHeight / gridLines) * index;
-                const line = createSvgElement("line", {
+                const line = createSvgElement('line', {
                     x1: 0,
                     x2: width,
                     y1: y.toFixed(2),
                     y2: y.toFixed(2),
-                    class: "admin-chart__grid-line",
+                    class: 'admin-chart__grid-line',
                 });
                 chartSvg.appendChild(line);
             }
@@ -1630,16 +2071,24 @@
                 const pathData = normalised
                     .map((point, index) => {
                         const value = Number(point[series.key]);
-                        const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0;
-                        const x = normalised.length > 1 ? index * stepX : width / 2;
-                        const y = topPadding + chartHeight - (safeValue / maxValue) * chartHeight;
-                        return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
+                        const safeValue = Number.isFinite(value)
+                            ? Math.max(0, value)
+                            : 0;
+                        const x =
+                            normalised.length > 1 ? index * stepX : width / 2;
+                        const y =
+                            topPadding +
+                            chartHeight -
+                            (safeValue / maxValue) * chartHeight;
+                        return `${index === 0 ? 'M' : 'L'}${x.toFixed(
+                            2
+                        )} ${y.toFixed(2)}`;
                     })
-                    .join(" ");
+                    .join(' ');
 
-                const path = createSvgElement("path", {
+                const path = createSvgElement('path', {
                     d: pathData,
-                    class: "admin-chart__line",
+                    class: 'admin-chart__line',
                     stroke: series.color,
                 });
                 path.dataset.series = series.key;
@@ -1647,14 +2096,19 @@
 
                 normalised.forEach((point, index) => {
                     const value = Number(point[series.key]);
-                    const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0;
+                    const safeValue = Number.isFinite(value)
+                        ? Math.max(0, value)
+                        : 0;
                     const x = normalised.length > 1 ? index * stepX : width / 2;
-                    const y = topPadding + chartHeight - (safeValue / maxValue) * chartHeight;
-                    const circle = createSvgElement("circle", {
+                    const y =
+                        topPadding +
+                        chartHeight -
+                        (safeValue / maxValue) * chartHeight;
+                    const circle = createSvgElement('circle', {
                         cx: x.toFixed(2),
                         cy: y.toFixed(2),
                         r: 4,
-                        class: "admin-chart__point",
+                        class: 'admin-chart__point',
                         stroke: series.color,
                     });
                     circle.dataset.series = series.key;
@@ -1663,13 +2117,13 @@
             });
 
             chartSeries.forEach((series) => {
-                const legendItem = document.createElement("li");
-                legendItem.className = "admin-chart__legend-item";
+                const legendItem = document.createElement('li');
+                legendItem.className = 'admin-chart__legend-item';
                 legendItem.dataset.series = series.key;
-                const swatch = document.createElement("span");
-                swatch.className = "admin-chart__legend-swatch";
-                const label = document.createElement("span");
-                label.className = "admin-chart__legend-label";
+                const swatch = document.createElement('span');
+                swatch.className = 'admin-chart__legend-swatch';
+                const label = document.createElement('span');
+                label.className = 'admin-chart__legend-label';
                 label.textContent = series.label;
                 legendItem.appendChild(swatch);
                 legendItem.appendChild(label);
@@ -1677,21 +2131,25 @@
             });
 
             normalised.forEach((point) => {
-                const item = document.createElement("li");
-                item.className = "admin-chart__summary-item";
+                const item = document.createElement('li');
+                item.className = 'admin-chart__summary-item';
 
-                const period = document.createElement("span");
-                period.className = "admin-chart__summary-period";
-                period.textContent = formatMonthLabel(point.period) || "—";
+                const period = document.createElement('span');
+                period.className = 'admin-chart__summary-period';
+                period.textContent = formatMonthLabel(point.period) || '—';
                 item.appendChild(period);
 
                 chartSeries.forEach((series) => {
                     const value = Number(point[series.key]);
-                    const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0;
-                    const valueElement = document.createElement("span");
-                    valueElement.className = "admin-chart__summary-value";
+                    const safeValue = Number.isFinite(value)
+                        ? Math.max(0, value)
+                        : 0;
+                    const valueElement = document.createElement('span');
+                    valueElement.className = 'admin-chart__summary-value';
                     valueElement.dataset.series = series.key;
-                    valueElement.textContent = `${formatNumber(safeValue)} ${series.label.toLowerCase()}`;
+                    valueElement.textContent = `${formatNumber(
+                        safeValue
+                    )} ${series.label.toLowerCase()}`;
                     item.appendChild(valueElement);
                 });
 
@@ -1704,10 +2162,14 @@
             if (!table) {
                 return;
             }
-            table.innerHTML = "";
+            table.innerHTML = '';
             if (!state.posts.length) {
-                const row = createElement("tr", { className: "admin-table__placeholder" });
-                const cell = createElement("td", { textContent: "No posts found" });
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No posts found',
+                });
                 cell.colSpan = 5;
                 row.appendChild(cell);
                 table.appendChild(row);
@@ -1715,17 +2177,33 @@
                 return;
             }
             state.posts.forEach((post) => {
-                const row = createElement("tr");
+                const row = createElement('tr');
                 row.dataset.id = post.id;
-                row.appendChild(createElement("td", { textContent: post.title || "Untitled" }));
-                const categoryName = post.category?.name || post.category_name || "—";
-                row.appendChild(createElement("td", { textContent: categoryName || "—" }));
-                const tagNames = extractTagNames(post).join(", ");
-                row.appendChild(createElement("td", { textContent: tagNames || "—" }));
-                row.appendChild(createElement("td", { textContent: booleanLabel(post.published) }));
-                const updated = post.updated_at || post.updatedAt || post.UpdatedAt;
-                row.appendChild(createElement("td", { textContent: formatDate(updated) }));
-                row.addEventListener("click", () => selectPost(post.id));
+                row.appendChild(
+                    createElement('td', {
+                        textContent: post.title || 'Untitled',
+                    })
+                );
+                const categoryName =
+                    post.category?.name || post.category_name || '—';
+                row.appendChild(
+                    createElement('td', { textContent: categoryName || '—' })
+                );
+                const tagNames = extractTagNames(post).join(', ');
+                row.appendChild(
+                    createElement('td', { textContent: tagNames || '—' })
+                );
+                row.appendChild(
+                    createElement('td', {
+                        textContent: booleanLabel(post.published),
+                    })
+                );
+                const updated =
+                    post.updated_at || post.updatedAt || post.UpdatedAt;
+                row.appendChild(
+                    createElement('td', { textContent: formatDate(updated) })
+                );
+                row.addEventListener('click', () => selectPost(post.id));
                 table.appendChild(row);
             });
             highlightRow(table, postForm?.dataset.id);
@@ -1737,24 +2215,41 @@
             if (!table) {
                 return;
             }
-            table.innerHTML = "";
+            table.innerHTML = '';
             if (!state.pages.length) {
-                const row = createElement("tr", { className: "admin-table__placeholder" });
-                const cell = createElement("td", { textContent: "No pages found" });
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No pages found',
+                });
                 cell.colSpan = 4;
                 row.appendChild(cell);
                 table.appendChild(row);
                 return;
             }
             state.pages.forEach((page) => {
-                const row = createElement("tr");
+                const row = createElement('tr');
                 row.dataset.id = page.id;
-                row.appendChild(createElement("td", { textContent: page.title || "Untitled" }));
-                row.appendChild(createElement("td", { textContent: page.slug || "—" }));
-                row.appendChild(createElement("td", { textContent: booleanLabel(page.published) }));
-                const updated = page.updated_at || page.updatedAt || page.UpdatedAt;
-                row.appendChild(createElement("td", { textContent: formatDate(updated) }));
-                row.addEventListener("click", () => selectPage(page.id));
+                row.appendChild(
+                    createElement('td', {
+                        textContent: page.title || 'Untitled',
+                    })
+                );
+                row.appendChild(
+                    createElement('td', { textContent: page.slug || '—' })
+                );
+                row.appendChild(
+                    createElement('td', {
+                        textContent: booleanLabel(page.published),
+                    })
+                );
+                const updated =
+                    page.updated_at || page.updatedAt || page.UpdatedAt;
+                row.appendChild(
+                    createElement('td', { textContent: formatDate(updated) })
+                );
+                row.addEventListener('click', () => selectPage(page.id));
                 table.appendChild(row);
             });
             highlightRow(table, pageForm?.dataset.id);
@@ -1765,10 +2260,14 @@
             if (!table) {
                 return;
             }
-            table.innerHTML = "";
+            table.innerHTML = '';
             if (!state.categories.length) {
-                const row = createElement("tr", { className: "admin-table__placeholder" });
-                const cell = createElement("td", { textContent: "No categories found" });
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No categories found',
+                });
                 cell.colSpan = 3;
                 row.appendChild(cell);
                 table.appendChild(row);
@@ -1779,13 +2278,24 @@
                 if (!id) {
                     return;
                 }
-                const row = createElement("tr");
+                const row = createElement('tr');
                 row.dataset.id = id;
-                row.appendChild(createElement("td", { textContent: category.name || "Untitled" }));
-                row.appendChild(createElement("td", { textContent: category.slug || "—" }));
-                const updated = category.updated_at || category.updatedAt || category.UpdatedAt;
-                row.appendChild(createElement("td", { textContent: formatDate(updated) }));
-                row.addEventListener("click", () => selectCategory(id));
+                row.appendChild(
+                    createElement('td', {
+                        textContent: category.name || 'Untitled',
+                    })
+                );
+                row.appendChild(
+                    createElement('td', { textContent: category.slug || '—' })
+                );
+                const updated =
+                    category.updated_at ||
+                    category.updatedAt ||
+                    category.UpdatedAt;
+                row.appendChild(
+                    createElement('td', { textContent: formatDate(updated) })
+                );
+                row.addEventListener('click', () => selectCategory(id));
                 table.appendChild(row);
             });
             highlightRow(table, categoryForm?.dataset.id);
@@ -1796,7 +2306,7 @@
                 return;
             }
             const currentValue = postCategorySelect.value;
-            postCategorySelect.innerHTML = "";
+            postCategorySelect.innerHTML = '';
 
             const seen = new Set();
             state.categories.forEach((category) => {
@@ -1808,12 +2318,19 @@
                     return;
                 }
                 seen.add(id);
-                const option = createElement("option", { textContent: category.name || "Untitled" });
+                const option = createElement('option', {
+                    textContent: category.name || 'Untitled',
+                });
                 option.value = id;
                 postCategorySelect.appendChild(option);
             });
 
-            if (currentValue && state.categories.some((category) => extractCategoryId(category) === currentValue)) {
+            if (
+                currentValue &&
+                state.categories.some(
+                    (category) => extractCategoryId(category) === currentValue
+                )
+            ) {
                 postCategorySelect.value = currentValue;
             } else {
                 ensureDefaultCategorySelection();
@@ -1824,18 +2341,23 @@
             if (!commentsList) {
                 return;
             }
-            commentsList.innerHTML = "";
+            commentsList.innerHTML = '';
             if (!state.comments.length) {
-                const item = createElement("li", {
-                    className: "admin-comment-list__item admin-comment-list__item--empty",
-                    textContent: "No comments available",
+                const item = createElement('li', {
+                    className:
+                        'admin-comment-list__item admin-comment-list__item--empty',
+                    textContent: 'No comments available',
                 });
                 commentsList.appendChild(item);
                 return;
             }
             state.comments.forEach((comment) => {
-                const item = createElement("li", { className: "admin-comment-list__item" });
-                const meta = createElement("div", { className: "admin-comment-list__meta" });
+                const item = createElement('li', {
+                    className: 'admin-comment-list__item',
+                });
+                const meta = createElement('div', {
+                    className: 'admin-comment-list__meta',
+                });
                 const pieces = [];
                 if (comment.author?.username) {
                     pieces.push(`by ${comment.author.username}`);
@@ -1843,38 +2365,49 @@
                 if (comment.post?.title) {
                     pieces.push(`on "${comment.post.title}"`);
                 }
-                pieces.push(comment.approved ? "approved" : "pending approval");
-                const created = comment.created_at || comment.createdAt || comment.CreatedAt;
+                pieces.push(comment.approved ? 'approved' : 'pending approval');
+                const created =
+                    comment.created_at ||
+                    comment.createdAt ||
+                    comment.CreatedAt;
                 pieces.push(formatDate(created));
-                meta.textContent = pieces.join(" · ");
-                const content = createElement("p", {
-                    className: "admin-comment-list__content",
-                    textContent: comment.content || "(no content)",
+                meta.textContent = pieces.join(' · ');
+                const content = createElement('p', {
+                    className: 'admin-comment-list__content',
+                    textContent: comment.content || '(no content)',
                 });
-                const actions = createElement("div", { className: "admin-comment-list__actions" });
+                const actions = createElement('div', {
+                    className: 'admin-comment-list__actions',
+                });
                 if (!comment.approved) {
-                    const approveButton = createElement("button", {
-                        className: "admin-comment-button",
-                        textContent: "Approve",
+                    const approveButton = createElement('button', {
+                        className: 'admin-comment-button',
+                        textContent: 'Approve',
                     });
-                    approveButton.dataset.action = "approve";
-                    approveButton.addEventListener("click", () => approveComment(comment.id, approveButton));
+                    approveButton.dataset.action = 'approve';
+                    approveButton.addEventListener('click', () =>
+                        approveComment(comment.id, approveButton)
+                    );
                     actions.appendChild(approveButton);
                 } else {
-                    const rejectButton = createElement("button", {
-                        className: "admin-comment-button",
-                        textContent: "Reject",
+                    const rejectButton = createElement('button', {
+                        className: 'admin-comment-button',
+                        textContent: 'Reject',
                     });
-                    rejectButton.dataset.action = "reject";
-                    rejectButton.addEventListener("click", () => rejectComment(comment.id, rejectButton));
+                    rejectButton.dataset.action = 'reject';
+                    rejectButton.addEventListener('click', () =>
+                        rejectComment(comment.id, rejectButton)
+                    );
                     actions.appendChild(rejectButton);
                 }
-                const deleteButton = createElement("button", {
-                    className: "admin-comment-button",
-                    textContent: "Delete",
+                const deleteButton = createElement('button', {
+                    className: 'admin-comment-button',
+                    textContent: 'Delete',
                 });
-                deleteButton.dataset.action = "delete";
-                deleteButton.addEventListener("click", () => deleteComment(comment.id, deleteButton));
+                deleteButton.dataset.action = 'delete';
+                deleteButton.addEventListener('click', () =>
+                    deleteComment(comment.id, deleteButton)
+                );
                 actions.appendChild(deleteButton);
                 item.appendChild(meta);
                 item.appendChild(content);
@@ -1887,21 +2420,26 @@
             if (!postForm) {
                 return;
             }
-            const post = state.posts.find((entry) => String(entry.id) === String(id));
+            const post = state.posts.find(
+                (entry) => String(entry.id) === String(id)
+            );
             if (!post) {
                 return;
             }
             postForm.dataset.id = post.id;
-            postForm.title.value = post.title || "";
-            postForm.description.value = post.description || "";
+            postForm.title.value = post.title || '';
+            postForm.description.value = post.description || '';
             if (postFeaturedImageInput) {
                 const featured =
-                    post.featured_img || post.featuredImg || post.FeaturedImg || "";
+                    post.featured_img ||
+                    post.featuredImg ||
+                    post.FeaturedImg ||
+                    '';
                 postFeaturedImageInput.value = featured;
             }
-            postForm.content.value = post.content || "";
+            postForm.content.value = post.content || '';
             if (postContentField) {
-                postContentField.value = post.content || "";
+                postContentField.value = post.content || '';
             }
             if (sectionBuilder) {
                 const postSections = post.sections || post.Sections || [];
@@ -1920,14 +2458,16 @@
                 }
             }
             if (postTagsInput) {
-                postTagsInput.value = extractTagNames(post).join(", ");
+                postTagsInput.value = extractTagNames(post).join(', ');
             }
-            const publishedField = postForm.querySelector('input[name="published"]');
+            const publishedField = postForm.querySelector(
+                'input[name="published"]'
+            );
             if (publishedField) {
                 publishedField.checked = Boolean(post.published);
             }
             if (postSubmitButton) {
-                postSubmitButton.textContent = "Update post";
+                postSubmitButton.textContent = 'Update post';
             }
             if (postDeleteButton) {
                 postDeleteButton.hidden = false;
@@ -1947,17 +2487,17 @@
                 sectionBuilder.reset();
             }
             if (postFeaturedImageInput) {
-                postFeaturedImageInput.value = "";
+                postFeaturedImageInput.value = '';
             }
             ensureDefaultCategorySelection();
             if (postTagsInput) {
-                postTagsInput.value = "";
+                postTagsInput.value = '';
             }
             if (postContentField) {
-                postContentField.value = "";
+                postContentField.value = '';
             }
             if (postSubmitButton) {
-                postSubmitButton.textContent = "Create post";
+                postSubmitButton.textContent = 'Create post';
             }
             if (postDeleteButton) {
                 postDeleteButton.hidden = true;
@@ -1972,28 +2512,33 @@
             if (!pageForm) {
                 return;
             }
-            const page = state.pages.find((entry) => String(entry.id) === String(id));
+            const page = state.pages.find(
+                (entry) => String(entry.id) === String(id)
+            );
             if (!page) {
                 return;
             }
             pageForm.dataset.id = page.id;
-            pageForm.title.value = page.title || "";
+            pageForm.title.value = page.title || '';
             if (pageSlugInput) {
-                pageSlugInput.value = page.slug || "";
+                pageSlugInput.value = page.slug || '';
                 pageSlugInput.disabled = true;
-                pageSlugInput.title = "The slug is generated from the title when updating";
+                pageSlugInput.title =
+                    'The slug is generated from the title when updating';
             }
-            pageForm.description.value = page.description || "";
+            pageForm.description.value = page.description || '';
             const orderInput = pageForm.querySelector('input[name="order"]');
             if (orderInput) {
                 orderInput.value = page.order ?? 0;
             }
-            const publishedField = pageForm.querySelector('input[name="published"]');
+            const publishedField = pageForm.querySelector(
+                'input[name="published"]'
+            );
             if (publishedField) {
                 publishedField.checked = Boolean(page.published);
             }
             if (pageSubmitButton) {
-                pageSubmitButton.textContent = "Update page";
+                pageSubmitButton.textContent = 'Update page';
             }
             if (pageDeleteButton) {
                 pageDeleteButton.hidden = false;
@@ -2009,14 +2554,14 @@
             pageForm.reset();
             delete pageForm.dataset.id;
             if (pageSubmitButton) {
-                pageSubmitButton.textContent = "Create page";
+                pageSubmitButton.textContent = 'Create page';
             }
             if (pageDeleteButton) {
                 pageDeleteButton.hidden = true;
             }
             if (pageSlugInput) {
                 pageSlugInput.disabled = false;
-                pageSlugInput.title = "Optional custom slug";
+                pageSlugInput.title = 'Optional custom slug';
             }
             const orderInput = pageForm.querySelector('input[name="order"]');
             if (orderInput) {
@@ -2031,7 +2576,9 @@
             if (!categoryForm) {
                 return;
             }
-            const category = state.categories.find((entry) => extractCategoryId(entry) === String(id));
+            const category = state.categories.find(
+                (entry) => extractCategoryId(entry) === String(id)
+            );
             if (!category) {
                 return;
             }
@@ -2041,10 +2588,10 @@
             } else {
                 delete categoryForm.dataset.id;
             }
-            categoryForm.name.value = category.name || "";
-            categoryForm.description.value = category.description || "";
+            categoryForm.name.value = category.name || '';
+            categoryForm.description.value = category.description || '';
             if (categorySubmitButton) {
-                categorySubmitButton.textContent = "Update category";
+                categorySubmitButton.textContent = 'Update category';
             }
             if (categoryDeleteButton) {
                 categoryDeleteButton.hidden = false;
@@ -2059,7 +2606,7 @@
             categoryForm.reset();
             delete categoryForm.dataset.id;
             if (categorySubmitButton) {
-                categorySubmitButton.textContent = "Create category";
+                categorySubmitButton.textContent = 'Create category';
             }
             if (categoryDeleteButton) {
                 categoryDeleteButton.hidden = true;
@@ -2137,8 +2684,12 @@
                 const payload = await apiRequest(endpoints.comments);
                 const comments = payload?.comments || [];
                 comments.sort((a, b) => {
-                    const aDate = new Date(a.created_at || a.createdAt || a.CreatedAt || 0).getTime();
-                    const bDate = new Date(b.created_at || b.createdAt || b.CreatedAt || 0).getTime();
+                    const aDate = new Date(
+                        a.created_at || a.createdAt || a.CreatedAt || 0
+                    ).getTime();
+                    const bDate = new Date(
+                        b.created_at || b.createdAt || b.CreatedAt || 0
+                    ).getTime();
                     return bDate - aDate;
                 });
                 state.comments = comments.slice(0, 15);
@@ -2168,11 +2719,11 @@
             }
 
             const entries = [
-                ["name", site?.name],
-                ["description", site?.description],
-                ["url", site?.url],
-                ["favicon", site?.favicon],
-                ["logo", site?.logo],
+                ['name', site?.name],
+                ['description', site?.description],
+                ['url', site?.url],
+                ['favicon', site?.favicon],
+                ['logo', site?.logo],
             ];
 
             entries.forEach(([key, value]) => {
@@ -2180,7 +2731,7 @@
                 if (!field) {
                     return;
                 }
-                field.value = value || "";
+                field.value = value || '';
             });
         };
 
@@ -2203,8 +2754,10 @@
             }
             try {
                 button.disabled = true;
-                await apiRequest(`${endpoints.comments}/${id}/approve`, { method: "PUT" });
-                showAlert("Comment approved", "success");
+                await apiRequest(`${endpoints.comments}/${id}/approve`, {
+                    method: 'PUT',
+                });
+                showAlert('Comment approved', 'success');
                 await loadComments();
             } catch (error) {
                 handleRequestError(error);
@@ -2219,8 +2772,10 @@
             }
             try {
                 button.disabled = true;
-                await apiRequest(`${endpoints.comments}/${id}/reject`, { method: "PUT" });
-                showAlert("Comment rejected", "info");
+                await apiRequest(`${endpoints.comments}/${id}/reject`, {
+                    method: 'PUT',
+                });
+                showAlert('Comment rejected', 'info');
                 await loadComments();
             } catch (error) {
                 handleRequestError(error);
@@ -2233,13 +2788,15 @@
             if (!endpoints.comments) {
                 return;
             }
-            if (!window.confirm("Delete this comment permanently?")) {
+            if (!window.confirm('Delete this comment permanently?')) {
                 return;
             }
             try {
                 button.disabled = true;
-                await apiRequest(`${endpoints.comments}/${id}`, { method: "DELETE" });
-                showAlert("Comment deleted", "success");
+                await apiRequest(`${endpoints.comments}/${id}`, {
+                    method: 'DELETE',
+                });
+                showAlert('Comment deleted', 'success');
                 await loadComments();
                 await loadStats();
             } catch (error) {
@@ -2257,24 +2814,24 @@
 
             const getValue = (name) => {
                 const field = settingsForm.querySelector(`[name="${name}"]`);
-                return field ? field.value.trim() : "";
+                return field ? field.value.trim() : '';
             };
 
             const payload = {
-                name: getValue("name"),
-                description: getValue("description"),
-                url: getValue("url"),
-                favicon: getValue("favicon"),
-                logo: getValue("logo"),
+                name: getValue('name'),
+                description: getValue('description'),
+                url: getValue('url'),
+                favicon: getValue('favicon'),
+                logo: getValue('logo'),
             };
 
             if (!payload.name) {
-                showAlert("Please provide a site name.", "error");
+                showAlert('Please provide a site name.', 'error');
                 return;
             }
 
             if (!payload.url) {
-                showAlert("Please provide the primary site URL.", "error");
+                showAlert('Please provide the primary site URL.', 'error');
                 return;
             }
 
@@ -2283,12 +2840,12 @@
 
             try {
                 const response = await apiRequest(endpoints.siteSettings, {
-                    method: "PUT",
+                    method: 'PUT',
                     body: JSON.stringify(payload),
                 });
                 state.site = response?.site || payload;
                 populateSiteSettingsForm(state.site);
-                showAlert("Site settings updated successfully.", "success");
+                showAlert('Site settings updated successfully.', 'success');
             } catch (error) {
                 handleRequestError(error);
             } finally {
@@ -2304,15 +2861,19 @@
             const id = postForm.dataset.id;
             const title = postForm.title.value.trim();
             if (!title) {
-                showAlert("Please provide a title for the post.", "error");
+                showAlert('Please provide a title for the post.', 'error');
                 return;
             }
             const description = postForm.description.value.trim();
             const featuredImg = postFeaturedImageInput
                 ? postFeaturedImageInput.value.trim()
-                : "";
-            const content = postContentField ? postContentField.value.trim() : "";
-            const publishedField = postForm.querySelector('input[name="published"]');
+                : '';
+            const content = postContentField
+                ? postContentField.value.trim()
+                : '';
+            const publishedField = postForm.querySelector(
+                'input[name="published"]'
+            );
             const payload = {
                 title,
                 description,
@@ -2324,7 +2885,7 @@
                 const sections = sectionBuilder.getSections();
                 const sectionError = validateSections(sections);
                 if (sectionError) {
-                    showAlert(sectionError, "error");
+                    showAlert(sectionError, 'error');
                     return;
                 }
                 payload.sections = sections;
@@ -2339,7 +2900,7 @@
             if (postSectionBuilder) {
                 const sectionError = postSectionBuilder.validate?.();
                 if (sectionError) {
-                    showAlert(sectionError, "error");
+                    showAlert(sectionError, 'error');
                     return;
                 }
                 payload.sections = postSectionBuilder.serialize?.() || [];
@@ -2349,16 +2910,16 @@
             try {
                 if (id) {
                     await apiRequest(`${endpoints.posts}/${id}`, {
-                        method: "PUT",
+                        method: 'PUT',
                         body: JSON.stringify(payload),
                     });
-                    showAlert("Post updated successfully.", "success");
+                    showAlert('Post updated successfully.', 'success');
                 } else {
                     await apiRequest(endpoints.posts, {
-                        method: "POST",
+                        method: 'POST',
                         body: JSON.stringify(payload),
                     });
-                    showAlert("Post created successfully.", "success");
+                    showAlert('Post created successfully.', 'success');
                 }
                 await loadPosts();
                 await loadTags();
@@ -2375,15 +2936,17 @@
             if (!postForm || !postForm.dataset.id) {
                 return;
             }
-            if (!window.confirm("Delete this post permanently?")) {
+            if (!window.confirm('Delete this post permanently?')) {
                 return;
             }
             const id = postForm.dataset.id;
             disableForm(postForm, true);
             clearAlert();
             try {
-                await apiRequest(`${endpoints.posts}/${id}`, { method: "DELETE" });
-                showAlert("Post deleted successfully.", "success");
+                await apiRequest(`${endpoints.posts}/${id}`, {
+                    method: 'DELETE',
+                });
+                showAlert('Post deleted successfully.', 'success');
                 await loadPosts();
                 await loadTags();
                 await loadStats();
@@ -2403,13 +2966,15 @@
             const id = pageForm.dataset.id;
             const title = pageForm.title.value.trim();
             if (!title) {
-                showAlert("Please provide a title for the page.", "error");
+                showAlert('Please provide a title for the page.', 'error');
                 return;
             }
             const description = pageForm.description.value.trim();
             const orderInput = pageForm.querySelector('input[name="order"]');
             const orderValue = orderInput ? Number(orderInput.value) : 0;
-            const publishedField = pageForm.querySelector('input[name="published"]');
+            const publishedField = pageForm.querySelector(
+                'input[name="published"]'
+            );
             const payload = {
                 title,
                 description,
@@ -2425,7 +2990,7 @@
             if (pageSectionBuilder) {
                 const sectionError = pageSectionBuilder.validate?.();
                 if (sectionError) {
-                    showAlert(sectionError, "error");
+                    showAlert(sectionError, 'error');
                     return;
                 }
                 payload.sections = pageSectionBuilder.serialize?.() || [];
@@ -2435,16 +3000,16 @@
             try {
                 if (id) {
                     await apiRequest(`${endpoints.pages}/${id}`, {
-                        method: "PUT",
+                        method: 'PUT',
                         body: JSON.stringify(payload),
                     });
-                    showAlert("Page updated successfully.", "success");
+                    showAlert('Page updated successfully.', 'success');
                 } else {
                     await apiRequest(endpoints.pages, {
-                        method: "POST",
+                        method: 'POST',
                         body: JSON.stringify(payload),
                     });
-                    showAlert("Page created successfully.", "success");
+                    showAlert('Page created successfully.', 'success');
                 }
                 await loadPages();
                 await loadStats();
@@ -2460,15 +3025,17 @@
             if (!pageForm || !pageForm.dataset.id) {
                 return;
             }
-            if (!window.confirm("Delete this page permanently?")) {
+            if (!window.confirm('Delete this page permanently?')) {
                 return;
             }
             const id = pageForm.dataset.id;
             disableForm(pageForm, true);
             clearAlert();
             try {
-                await apiRequest(`${endpoints.pages}/${id}`, { method: "DELETE" });
-                showAlert("Page deleted successfully.", "success");
+                await apiRequest(`${endpoints.pages}/${id}`, {
+                    method: 'DELETE',
+                });
+                showAlert('Page deleted successfully.', 'success');
                 await loadPages();
                 await loadStats();
                 resetPageForm();
@@ -2487,7 +3054,7 @@
             const id = categoryForm.dataset.id;
             const name = categoryForm.name.value.trim();
             if (!name) {
-                showAlert("Please provide a category name.", "error");
+                showAlert('Please provide a category name.', 'error');
                 return;
             }
             const description = categoryForm.description.value.trim();
@@ -2497,16 +3064,16 @@
             try {
                 if (id) {
                     await apiRequest(`${endpoints.categories}/${id}`, {
-                        method: "PUT",
+                        method: 'PUT',
                         body: JSON.stringify(payload),
                     });
-                    showAlert("Category updated successfully.", "success");
+                    showAlert('Category updated successfully.', 'success');
                 } else {
                     await apiRequest(endpoints.categories, {
-                        method: "POST",
+                        method: 'POST',
                         body: JSON.stringify(payload),
                     });
-                    showAlert("Category created successfully.", "success");
+                    showAlert('Category created successfully.', 'success');
                 }
                 await loadCategories();
                 await loadPosts();
@@ -2523,15 +3090,17 @@
             if (!categoryForm || !categoryForm.dataset.id) {
                 return;
             }
-            if (!window.confirm("Delete this category permanently?")) {
+            if (!window.confirm('Delete this category permanently?')) {
                 return;
             }
             const id = categoryForm.dataset.id;
             disableForm(categoryForm, true);
             clearAlert();
             try {
-                await apiRequest(`${endpoints.categories}/${id}`, { method: "DELETE" });
-                showAlert("Category deleted successfully.", "success");
+                await apiRequest(`${endpoints.categories}/${id}`, {
+                    method: 'DELETE',
+                });
+                showAlert('Category deleted successfully.', 'success');
                 await loadCategories();
                 await loadPosts();
                 await loadStats();
@@ -2544,35 +3113,44 @@
         };
 
         const activateTab = (targetId) => {
-            root.querySelectorAll(".admin__tab").forEach((tab) => {
+            root.querySelectorAll('.admin__tab').forEach((tab) => {
                 const isActive = tab.dataset.tab === targetId;
-                tab.classList.toggle("is-active", isActive);
-                tab.setAttribute("aria-selected", String(isActive));
+                tab.classList.toggle('is-active', isActive);
+                tab.setAttribute('aria-selected', String(isActive));
             });
-            root.querySelectorAll(".admin-panel").forEach((panel) => {
+            root.querySelectorAll('.admin-panel').forEach((panel) => {
                 const isActive = panel.dataset.panel === targetId;
-                panel.toggleAttribute("hidden", !isActive);
-                panel.classList.toggle("is-active", isActive);
+                panel.toggleAttribute('hidden', !isActive);
+                panel.classList.toggle('is-active', isActive);
             });
         };
 
-        root.querySelectorAll(".admin__tab").forEach((tab) => {
-            tab.addEventListener("click", () => activateTab(tab.dataset.tab));
+        root.querySelectorAll('.admin__tab').forEach((tab) => {
+            tab.addEventListener('click', () => activateTab(tab.dataset.tab));
         });
 
-        root.querySelector('[data-action="post-reset"]')?.addEventListener("click", resetPostForm);
-        root.querySelector('[data-action="page-reset"]')?.addEventListener("click", resetPageForm);
-        root.querySelector('[data-action="category-reset"]')?.addEventListener("click", resetCategoryForm);
+        root.querySelector('[data-action="post-reset"]')?.addEventListener(
+            'click',
+            resetPostForm
+        );
+        root.querySelector('[data-action="page-reset"]')?.addEventListener(
+            'click',
+            resetPageForm
+        );
+        root.querySelector('[data-action="category-reset"]')?.addEventListener(
+            'click',
+            resetCategoryForm
+        );
 
-        postForm?.addEventListener("submit", handlePostSubmit);
-        postDeleteButton?.addEventListener("click", handlePostDelete);
-        pageForm?.addEventListener("submit", handlePageSubmit);
-        pageDeleteButton?.addEventListener("click", handlePageDelete);
-        categoryForm?.addEventListener("submit", handleCategorySubmit);
-        categoryDeleteButton?.addEventListener("click", handleCategoryDelete);
-        settingsForm?.addEventListener("submit", handleSiteSettingsSubmit);
-        postTagsInput?.addEventListener("input", renderTagSuggestions);
-        
+        postForm?.addEventListener('submit', handlePostSubmit);
+        postDeleteButton?.addEventListener('click', handlePostDelete);
+        pageForm?.addEventListener('submit', handlePageSubmit);
+        pageDeleteButton?.addEventListener('click', handlePageDelete);
+        categoryForm?.addEventListener('submit', handleCategorySubmit);
+        categoryDeleteButton?.addEventListener('click', handleCategoryDelete);
+        settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
+        postTagsInput?.addEventListener('input', renderTagSuggestions);
+
         clearAlert();
         renderMetricsChart(state.activityTrend);
         loadStats();
@@ -2586,10 +3164,14 @@
         loadSiteSettings();
     };
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initialiseAdminDashboard, {
-            once: true,
-        });
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            initialiseAdminDashboard,
+            {
+                once: true,
+            }
+        );
     } else {
         initialiseAdminDashboard();
     }
