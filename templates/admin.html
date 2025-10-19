@@ -128,7 +128,20 @@
                         Draft, publish and revise long-form content. Selecting an item loads it for editing.
                     </p>
                 </div>
-                <button type="button" class="admin-panel__reset" data-action="post-reset">New post</button>
+                <div class="admin-panel__actions">
+                    <label class="admin-search" for="admin-posts-search">
+                        <span class="admin-search__label">Search posts</span>
+                        <input
+                            id="admin-posts-search"
+                            type="search"
+                            class="admin-search__input"
+                            placeholder="Search posts…"
+                            autocomplete="off"
+                            data-role="post-search"
+                        />
+                    </label>
+                    <button type="button" class="admin-panel__reset" data-action="post-reset">New post</button>
+                </div>
             </header>
             <div class="admin-panel__body">
                 <div class="admin-panel__list" aria-live="polite">
@@ -244,7 +257,20 @@
                         Create landing pages and important evergreen resources for your visitors.
                     </p>
                 </div>
-                <button type="button" class="admin-panel__reset" data-action="page-reset">New page</button>
+                <div class="admin-panel__actions">
+                    <label class="admin-search" for="admin-pages-search">
+                        <span class="admin-search__label">Search pages</span>
+                        <input
+                            id="admin-pages-search"
+                            type="search"
+                            class="admin-search__input"
+                            placeholder="Search pages…"
+                            autocomplete="off"
+                            data-role="page-search"
+                        />
+                    </label>
+                    <button type="button" class="admin-panel__reset" data-action="page-reset">New page</button>
+                </div>
             </header>
             <div class="admin-panel__body">
                 <div class="admin-panel__list" aria-live="polite">
@@ -308,7 +334,20 @@
                         Organise posts into themes. Changes are reflected immediately across the site.
                     </p>
                 </div>
-                <button type="button" class="admin-panel__reset" data-action="category-reset">New category</button>
+                <div class="admin-panel__actions">
+                    <label class="admin-search" for="admin-categories-search">
+                        <span class="admin-search__label">Search categories</span>
+                        <input
+                            id="admin-categories-search"
+                            type="search"
+                            class="admin-search__input"
+                            placeholder="Search categories…"
+                            autocomplete="off"
+                            data-role="category-search"
+                        />
+                    </label>
+                    <button type="button" class="admin-panel__reset" data-action="category-reset">New category</button>
+                </div>
             </header>
             <div class="admin-panel__body">
                 <div class="admin-panel__list" aria-live="polite">

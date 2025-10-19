@@ -1542,6 +1542,9 @@
             pages: root.querySelector('#admin-pages-table'),
             categories: root.querySelector('#admin-categories-table'),
         };
+        const postSearchInput = root.querySelector('[data-role="post-search"]');
+        const pageSearchInput = root.querySelector('[data-role="page-search"]');
+        const categorySearchInput = root.querySelector('[data-role="category-search"]');
         const commentsList = root.querySelector('#admin-comments-list');
         const postForm = root.querySelector('#admin-post-form');
         const pageForm = root.querySelector('#admin-page-form');
@@ -1608,6 +1611,12 @@
             tags: [],
             defaultCategoryId: '',
             site: null,
+            postSearchQuery: '',
+            pageSearchQuery: '',
+            categorySearchQuery: '',
+            hasLoadedPosts: false,
+            hasLoadedPages: false,
+            hasLoadedCategories: false,
         };
 
         const validateSections = (sections) => {
@@ -1831,6 +1840,67 @@
             });
             return Array.from(unique.values());
         };
+
+        const normaliseSearchQuery = (value) =>
+            typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+        const matchesSearchQuery = (fields, query) => {
+            if (!query) {
+                return true;
+            }
+            for (const field of fields) {
+                const text = normaliseString(field).toLowerCase();
+                if (text && text.includes(query)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        const getPostSearchFields = (post) => {
+            const category = post?.category || post?.Category || {};
+            return [
+                post?.id,
+                post?.ID,
+                post?.title,
+                post?.Title,
+                post?.slug,
+                post?.Slug,
+                post?.description,
+                post?.Description,
+                post?.excerpt,
+                post?.Excerpt,
+                post?.category_name,
+                post?.CategoryName,
+                category?.name,
+                category?.Name,
+                category?.slug,
+                category?.Slug,
+                ...extractTagNames(post),
+            ];
+        };
+
+        const getPageSearchFields = (page) => [
+            page?.id,
+            page?.ID,
+            page?.title,
+            page?.Title,
+            page?.slug,
+            page?.Slug,
+            page?.description,
+            page?.Description,
+        ];
+
+        const getCategorySearchFields = (category) => [
+            extractCategoryId(category),
+            category?.name,
+            category?.Name,
+            extractCategorySlug(category),
+            category?.slug,
+            category?.Slug,
+            category?.description,
+            category?.Description,
+        ];
 
         const renderTagSuggestions = () => {
             if (!postTagsList) {
@@ -2219,12 +2289,20 @@
                 return;
             }
             table.innerHTML = '';
-            if (!state.posts.length) {
+            const posts = state.posts.filter((post) =>
+                matchesSearchQuery(
+                    getPostSearchFields(post),
+                    state.postSearchQuery
+                )
+            );
+            if (!posts.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
                 });
                 const cell = createElement('td', {
-                    textContent: 'No posts found',
+                    textContent: state.postSearchQuery
+                        ? 'No posts match your search'
+                        : 'No posts found',
                 });
                 cell.colSpan = 5;
                 row.appendChild(cell);
@@ -2232,7 +2310,7 @@
                 renderTagList();
                 return;
             }
-            state.posts.forEach((post) => {
+            posts.forEach((post) => {
                 const row = createElement('tr');
                 row.dataset.id = post.id;
                 row.appendChild(
@@ -2241,7 +2319,11 @@
                     })
                 );
                 const categoryName =
-                    post.category?.name || post.category_name || '—';
+                    post.category?.name ||
+                    post.category?.Name ||
+                    post.category_name ||
+                    post.CategoryName ||
+                    '—';
                 row.appendChild(
                     createElement('td', { textContent: categoryName || '—' })
                 );
@@ -2272,19 +2354,27 @@
                 return;
             }
             table.innerHTML = '';
-            if (!state.pages.length) {
+            const pages = state.pages.filter((page) =>
+                matchesSearchQuery(
+                    getPageSearchFields(page),
+                    state.pageSearchQuery
+                )
+            );
+            if (!pages.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
                 });
                 const cell = createElement('td', {
-                    textContent: 'No pages found',
+                    textContent: state.pageSearchQuery
+                        ? 'No pages match your search'
+                        : 'No pages found',
                 });
                 cell.colSpan = 4;
                 row.appendChild(cell);
                 table.appendChild(row);
                 return;
             }
-            state.pages.forEach((page) => {
+            pages.forEach((page) => {
                 const row = createElement('tr');
                 row.dataset.id = page.id;
                 row.appendChild(
@@ -2293,7 +2383,9 @@
                     })
                 );
                 row.appendChild(
-                    createElement('td', { textContent: page.slug || '—' })
+                    createElement('td', {
+                        textContent: page.slug || page.Slug || '—',
+                    })
                 );
                 row.appendChild(
                     createElement('td', {
@@ -2311,25 +2403,66 @@
             highlightRow(table, pageForm?.dataset.id);
         };
 
+        const setPostSearchQuery = (value) => {
+            const next = normaliseSearchQuery(value);
+            if (state.postSearchQuery === next) {
+                return;
+            }
+            state.postSearchQuery = next;
+            if (state.hasLoadedPosts) {
+                renderPosts();
+            }
+        };
+
+        const setPageSearchQuery = (value) => {
+            const next = normaliseSearchQuery(value);
+            if (state.pageSearchQuery === next) {
+                return;
+            }
+            state.pageSearchQuery = next;
+            if (state.hasLoadedPages) {
+                renderPages();
+            }
+        };
+
+        const setCategorySearchQuery = (value) => {
+            const next = normaliseSearchQuery(value);
+            if (state.categorySearchQuery === next) {
+                return;
+            }
+            state.categorySearchQuery = next;
+            if (state.hasLoadedCategories) {
+                renderCategories();
+            }
+        };
+
         const renderCategories = () => {
             const table = tables.categories;
             if (!table) {
                 return;
             }
             table.innerHTML = '';
-            if (!state.categories.length) {
+            const categories = state.categories.filter((category) =>
+                matchesSearchQuery(
+                    getCategorySearchFields(category),
+                    state.categorySearchQuery
+                )
+            );
+            if (!categories.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
                 });
                 const cell = createElement('td', {
-                    textContent: 'No categories found',
+                    textContent: state.categorySearchQuery
+                        ? 'No categories match your search'
+                        : 'No categories found',
                 });
                 cell.colSpan = 3;
                 row.appendChild(cell);
                 table.appendChild(row);
                 return;
             }
-            state.categories.forEach((category) => {
+            categories.forEach((category) => {
                 const id = extractCategoryId(category);
                 if (!id) {
                     return;
@@ -2338,11 +2471,20 @@
                 row.dataset.id = id;
                 row.appendChild(
                     createElement('td', {
-                        textContent: category.name || 'Untitled',
+                        textContent:
+                            category.name ||
+                            category.Name ||
+                            'Untitled',
                     })
                 );
                 row.appendChild(
-                    createElement('td', { textContent: category.slug || '—' })
+                    createElement('td', {
+                        textContent:
+                            category.slug ||
+                            category.Slug ||
+                            extractCategorySlug(category) ||
+                            '—',
+                    })
                 );
                 const updated =
                     category.updated_at ||
@@ -2697,6 +2839,7 @@
             try {
                 const payload = await apiRequest(`${endpoints.posts}?limit=50`);
                 state.posts = payload?.posts || [];
+                state.hasLoadedPosts = true;
                 renderPosts();
                 renderTagSuggestions();
             } catch (error) {
@@ -2711,6 +2854,7 @@
             try {
                 const payload = await apiRequest(endpoints.pages);
                 state.pages = payload?.pages || [];
+                state.hasLoadedPages = true;
                 renderPages();
             } catch (error) {
                 handleRequestError(error);
@@ -2724,6 +2868,7 @@
             try {
                 const payload = await apiRequest(endpoints.categoriesIndex);
                 state.categories = payload?.categories || [];
+                state.hasLoadedCategories = true;
                 refreshDefaultCategoryId();
                 renderCategories();
                 renderCategoryOptions();
@@ -3197,6 +3342,29 @@
             'click',
             resetCategoryForm
         );
+
+        const attachSearchHandler = (input, callback) => {
+            if (!input || typeof callback !== 'function') {
+                return;
+            }
+            const update = () => callback(input.value);
+            input.addEventListener('input', update);
+            input.addEventListener('search', update);
+        };
+
+        attachSearchHandler(postSearchInput, setPostSearchQuery);
+        attachSearchHandler(pageSearchInput, setPageSearchQuery);
+        attachSearchHandler(categorySearchInput, setCategorySearchQuery);
+
+        if (postSearchInput?.value) {
+            setPostSearchQuery(postSearchInput.value);
+        }
+        if (pageSearchInput?.value) {
+            setPageSearchQuery(pageSearchInput.value);
+        }
+        if (categorySearchInput?.value) {
+            setCategorySearchQuery(categorySearchInput.value);
+        }
 
         postForm?.addEventListener('submit', handlePostSubmit);
         postDeleteButton?.addEventListener('click', handlePostDelete);
