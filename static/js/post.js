@@ -127,6 +127,115 @@
         });
     }
 
+    const progressElement = document.querySelector('[data-post-progress]');
+    const contentElement = document.querySelector('.post__content');
+
+    if (progressElement && contentElement) {
+        const bar = progressElement.querySelector('[data-post-progress-bar]');
+        const header = document.querySelector('.header');
+        const raf =
+            window.requestAnimationFrame ||
+            function (callback) {
+                return window.setTimeout(callback, 16);
+            };
+
+        const clamp = (value, min, max) =>
+            Math.min(Math.max(value, min), max);
+
+        const updateOffset = () => {
+            if (!header) {
+                progressElement.style.setProperty('--post-progress-offset', '0px');
+                return;
+            }
+
+            const { height } = header.getBoundingClientRect();
+            progressElement.style.setProperty(
+                '--post-progress-offset',
+                `${Math.max(0, Math.round(height))}px`
+            );
+        };
+
+        const updateProgress = () => {
+            const viewportHeight =
+                window.innerHeight || document.documentElement.clientHeight || 0;
+            const contentRect = contentElement.getBoundingClientRect();
+            const contentHeight = contentElement.scrollHeight;
+            const contentTop = window.scrollY + contentRect.top;
+            const start = contentTop;
+            const end = contentTop + contentHeight - viewportHeight;
+            const shouldHide = contentHeight <= viewportHeight;
+
+            progressElement.hidden = shouldHide;
+            progressElement.classList.toggle(
+                'post-progress--visible',
+                !shouldHide
+            );
+
+            if (shouldHide) {
+                progressElement.setAttribute('aria-valuenow', '0');
+                if (bar) {
+                    bar.style.transform = 'scaleX(0)';
+                }
+                return;
+            }
+
+            let fraction = 0;
+
+            if (end <= start) {
+                fraction = window.scrollY >= start ? 1 : 0;
+            } else {
+                fraction = (window.scrollY - start) / (end - start);
+            }
+
+            fraction = clamp(fraction, 0, 1);
+
+            if (bar) {
+                bar.style.transform = `scaleX(${fraction})`;
+            }
+
+            progressElement.setAttribute(
+                'aria-valuenow',
+                String(Math.round(fraction * 100))
+            );
+            progressElement.classList.toggle(
+                'post-progress--complete',
+                fraction >= 1
+            );
+        };
+
+        let ticking = false;
+
+        const handleScroll = () => {
+            if (ticking) {
+                return;
+            }
+
+            ticking = true;
+            raf(() => {
+                updateProgress();
+                ticking = false;
+            });
+        };
+
+        const handleResize = () => {
+            updateOffset();
+            updateProgress();
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('resize', handleResize);
+
+        if ('ResizeObserver' in window) {
+            const resizeObserver = new window.ResizeObserver(() => {
+                updateProgress();
+            });
+            resizeObserver.observe(contentElement);
+        }
+
+        updateOffset();
+        updateProgress();
+    }
+
     const modal = document.querySelector('[data-post-image-modal]');
     if (!modal) {
         return;
