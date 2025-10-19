@@ -58,7 +58,7 @@
     gap: var(--size-mid);
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
 }
 
 .admin__section-header {
@@ -84,7 +84,7 @@
 
 .admin__metric {
     border: 1px solid var(--color-border);
-    background: color-mix(in srgb, var(--color-bg) 80%, var(--color-primary-transparent) 20%);
+    background: color-mix(in srgb, var(--color-bg-top) 80%, var(--color-primary-transparent) 20%);
     padding: var(--size-base);
     display: grid;
     gap: var(--size-xs);
@@ -120,7 +120,7 @@
     width: 100%;
     min-height: 260px;
     border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 92%, transparent), color-mix(in srgb, var(--color-primary-transparent) 40%, var(--color-bg)));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-bg-top) 92%, transparent), color-mix(in srgb, var(--color-primary-transparent) 40%, var(--color-bg-top)));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -225,7 +225,7 @@
     padding: var(--size-xs) var(--size-sm);
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .admin-chart__legend-swatch {
@@ -259,7 +259,7 @@
     gap: var(--size-xs);
     padding: var(--size-sm);
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .admin-chart__summary-period {
@@ -313,7 +313,7 @@
 
 .admin__tab {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-mid);
     font-size: var(--font-size-sm);
     font-weight: 600;
@@ -330,7 +330,7 @@
 .admin__tab.is-active {
     background: var(--color-primary);
     border-color: var(--color-primary);
-    color: var(--color-bg);
+    color: var(--color-bg-top);
 }
 
 .admin__panels {
@@ -343,7 +343,7 @@
     gap: var(--size-mid);
     border: 1px solid var(--color-border);
     padding: var(--size-mid);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
 }
 
 .admin-panel[hidden] {
@@ -390,7 +390,7 @@
     width: 100%;
     padding: 0.6rem 0.9rem;
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     color: var(--color-text);
     font-size: var(--font-size-sm);
 }
@@ -413,7 +413,7 @@
 
 .admin-panel__reset {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-base);
     font-size: var(--font-size-sm);
     font-weight: 600;
@@ -464,7 +464,7 @@
     border: 1px solid var(--color-border);
     overflow-y: hidden;
     overflow-x: auto;
-    background: var(--color-bg);
+    background: var(--color-bg-top);
 }
 
 .admin-table {
@@ -479,7 +479,7 @@
 }
 
 .admin-table thead {
-    background: color-mix(in srgb, var(--color-primary-transparent) 50%, var(--color-bg));
+    background: color-mix(in srgb, var(--color-primary-transparent) 50%, var(--color-bg-top));
 }
 
 .admin-table th,
@@ -499,7 +499,7 @@
 }
 
 .admin-table tbody tr:hover {
-    background: color-mix(in srgb, var(--color-primary-transparent) 60%, var(--color-bg));
+    background: color-mix(in srgb, var(--color-primary-transparent) 60%, var(--color-bg-top));
 }
 
 .admin-table__placeholder td {
@@ -527,7 +527,7 @@
 .admin-form__legend {
     font-weight: 600;
     font-size: var(--font-size-base);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .admin-form__label {
@@ -543,7 +543,7 @@
     width: 100%;
     padding: 0.7rem 0.9rem;
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     color: var(--color-text);
     font-size: var(--font-size-base);
 }
@@ -660,7 +660,7 @@
 }
 .admin-social__button {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-sm);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
@@ -680,7 +680,7 @@
 .admin-social__button--danger:focus-visible {
     background: var(--color-error);
     border-color: var(--color-error);
-    color: var(--color-bg);
+    color: var(--color-bg-top);
 }
 .admin-social__empty {
     padding: var(--size-base);
@@ -711,7 +711,7 @@
 .admin-form__delete {
     border: 1px solid var(--color-error);
     padding: var(--size-sm) var(--size-lg);
-    background: color-mix(in srgb, var(--color-error-transparent) 50%, var(--color-bg));
+    background: color-mix(in srgb, var(--color-error-transparent) 50%, var(--color-bg-top));
     color: var(--color-error);
     font-weight: 600;
 }
@@ -719,7 +719,7 @@
 .admin-form__delete:hover,
 .admin-form__delete:focus-visible {
     background: var(--color-error);
-    color: var(--color-bg);
+    color: var(--color-bg-top);
     outline: none;
 }
 
@@ -753,7 +753,7 @@
 .section-builder__add {
     border: 1px dashed var(--color-primary);
     padding: var(--size-xs) var(--size-mid);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     color: var(--color-primary);
     font-weight: 600;
     font-size: var(--font-size-sm);
@@ -767,7 +767,7 @@
 
 .section-card {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-base);
     display: grid;
     gap: var(--size-base);
@@ -784,7 +784,7 @@
 
 .section-card__drag-handle {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-sm);
     font-size: var(--font-size-base);
     cursor: grab;
@@ -808,7 +808,7 @@
 
 .section-card__control {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-sm);
     font-size: var(--font-size-xs);
     text-transform: uppercase;
@@ -855,7 +855,7 @@
 
 .section-elements__button {
     border: 1px dashed var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-base);
     font-size: var(--font-size-xs);
     font-weight: 600;
@@ -877,7 +877,7 @@
 
 .section-element {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-base);
     display: grid;
     gap: var(--size-base);
@@ -894,7 +894,7 @@
 
 .section-element__drag-handle {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-sm);
     cursor: grab;
 }
@@ -918,7 +918,7 @@
 
 .section-element__control {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-sm);
     font-size: var(--font-size-xs);
     text-transform: uppercase;
@@ -969,7 +969,7 @@
     width: 100%;
     padding: 0.6rem 0.9rem;
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     color: var(--color-text);
     font-size: var(--font-size-sm);
 }
@@ -1005,7 +1005,7 @@
 
 .image-group-item__control {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-sm);
     font-size: var(--font-size-xs);
     text-transform: uppercase;
@@ -1024,7 +1024,7 @@
     gap: var(--size-sm);
     border: 1px solid var(--color-border);
     padding: var(--size-mid);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
 }
 
 .admin-tags__header {
@@ -1055,7 +1055,7 @@
     align-items: center;
     border: 1px solid var(--color-border);
     padding: var(--size-sm) var(--size-base);
-    background: color-mix(in srgb, var(--color-border) 15%, var(--color-bg));
+    background: color-mix(in srgb, var(--color-border) 15%, var(--color-bg-top));
 }
 
 .admin-tags__item--empty {
@@ -1097,7 +1097,7 @@
 .admin-tags__delete:hover,
 .admin-tags__delete:focus-visible {
     background: var(--color-error);
-    color: var(--color-bg);
+    color: var(--color-bg-top);
     outline: none;
 }
 
@@ -1112,7 +1112,7 @@
     padding: var(--size-base);
     display: grid;
     gap: var(--size-xs);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
 }
 
 .admin-comment-list__item--empty {
@@ -1142,7 +1142,7 @@
 
 .admin-comment-button {
     border: 1px solid var(--color-border);
-    background: var(--color-bg);
+    background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-base);
     font-size: var(--font-size-xs);
     font-weight: 600;
@@ -1158,7 +1158,7 @@
 .admin-comment-button[data-action="approve"]:hover,
 .admin-comment-button[data-action="approve"]:focus-visible {
     background: var(--color-accent);
-    color: var(--color-bg);
+    color: var(--color-bg-top);
     outline: none;
 }
 
@@ -1182,7 +1182,7 @@
 .admin-comment-button[data-action="delete"]:hover,
 .admin-comment-button[data-action="delete"]:focus-visible {
     background: var(--color-error);
-    color: var(--color-bg);
+    color: var(--color-bg-top);
     outline: none;
 }
 

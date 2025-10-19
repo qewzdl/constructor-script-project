@@ -1,6 +1,7 @@
 :root {
     /* Base colors (fallback) */
-    --color-bg: #ffffff;
+    --color-bg-bottom: #f2f2f2ff;
+    --color-bg-top: #ffffff;
     --color-text: #1a1a1a;
     --color-primary: #3b82f6;
     --color-primary-opposite: #ffffff;
@@ -13,14 +14,15 @@
     --color-error: #ef4444;
     --color-error-transparent: color-mix(in srgb, var(--color-error) 12%, transparent);
     --color-border: #cccccc;
-    --color-bg-darker: #121212;
+    --color-bg-top-darker: #121212;
     --color-text-darker: #ffffff;
     --color-secondary-darker: #94a3b8;
     --color-border-darker: #374151;
 
     /* Light mode */
-    --color-bg-light: #ffffff;
-    --color-bg-darker-light: #121212;
+    --color-bg-bottom-light: #f2f2f2ff;
+    --color-bg-top-light: #ffffff;
+    --color-bg-top-darker-light: #121212;
     --color-text-light: #1a1a1a;
     --color-primary-light: #3b82f6;
     --color-primary-opposite-light: #ffffff;
@@ -38,8 +40,9 @@
     --color-border-darker-light: #374151;
 
     /* Dark mode */
-    --color-bg-dark: #121212;
-    --color-bg-darker-dark: #000000;
+    --color-bg-bottom-dark: #0c0c0cff;
+    --color-bg-top-dark: #121212;
+    --color-bg-top-darker-dark: #000000;
     --color-text-dark: #e5e7eb;
     --color-primary-dark: #3b82f6;
     --color-primary-opposite-dark: #ffffffff;
@@ -59,12 +62,12 @@
     /* Admin chart */
     --admin-chart-posts: #2563eb;
     --admin-chart-comments: #f97316;
-    --admin-chart-surface: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg) 94%);
+    --admin-chart-surface: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-top) 94%);
     --admin-chart-grid-line: color-mix(in srgb, var(--color-border) 65%, transparent);
-    --admin-chart-point-bg: var(--color-bg);
-    --admin-chart-surface: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg) 88%);
+    --admin-chart-point-bg: var(--color-bg-top);
+    --admin-chart-surface: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg-top) 88%);
     --admin-chart-grid-line: color-mix(in srgb, var(--color-border) 45%, transparent);
-    --admin-chart-point-bg: color-mix(in srgb, var(--color-bg) 70%, transparent);
+    --admin-chart-point-bg: color-mix(in srgb, var(--color-bg-top) 70%, transparent);
 
     /* Typography */
     --font-family-base: "Outfit", "Inter", sans-serif;
@@ -97,8 +100,9 @@
 
 /* Light theme override */
 :root[data-theme="light"] {
-    --color-bg: var(--color-bg-light);
-    --color-bg-darker: var(--color-bg-darker-light);
+    --color-bg-bottom: var(--color-bg-bottom-light);
+    --color-bg-top: var(--color-bg-top-light);
+    --color-bg-top-darker: var(--color-bg-top-darker-light);
     --color-text: var(--color-text-light);
     --color-primary: var(--color-primary-light);
     --color-primary-opposite: var(--color-primary-opposite-light);
@@ -118,8 +122,9 @@
 
 /* Dark theme override */
 :root[data-theme="dark"] {
-    --color-bg: var(--color-bg-dark);
-    --color-bg-darker: var(--color-bg-darker-dark);
+    --color-bg-bottom: var(--color-bg-bottom-dark);
+    --color-bg-top: var(--color-bg-top-dark);
+    --color-bg-top-darker: var(--color-bg-top-darker-dark);
     --color-text: var(--color-text-dark);
     --color-primary: var(--color-primary-dark);
     --color-primary-opposite: var(--color-primary-opposite-dark);

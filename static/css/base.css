@@ -21,7 +21,7 @@ html {
 }
 
 body {
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-bottom);
     color: var(--color-text);
 }
 
@@ -48,7 +48,7 @@ textarea {
     padding: var(--size-sm) var(--side-padding);
     position: sticky;
     top: 0;
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     z-index: 1000;
 }
 
@@ -194,7 +194,7 @@ textarea {
         top: calc(100% + var(--size-xs));
         right: var(--side-padding);
         left: var(--side-padding);
-        background-color: var(--color-bg);
+        background-color: var(--color-bg-top);
         border: 1px solid var(--color-border);
     }
 
@@ -243,7 +243,6 @@ textarea {
     display: grid;
     gap: var(--size-max);
     padding: var(--size-max) var(--side-padding);
-    background-color: var(--color-bg);
 }
 
 .button {
@@ -268,7 +267,7 @@ textarea {
 .button--primary {
     background-color: var(--color-primary);
     border-color: var(--color-primary);
-    color: var(--color-bg);
+    color: var(--color-primary-opposite);
 }
 
 .button--primary:hover {
@@ -312,7 +311,7 @@ textarea {
     width: 100%;
     padding: 0.7rem 0.9rem;
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     color: var(--color-text);
     font-size: var(--font-size-base);
 }
@@ -326,7 +325,7 @@ textarea {
     background-color: color-mix(
         in srgb,
         var(--color-border) 30%,
-        var(--color-bg) 70%
+        var(--color-bg-top) 70%
     );
     cursor: not-allowed;
     color: color-mix(
@@ -395,7 +394,7 @@ textarea.form-field__input {
     appearance: none;
     display: grid;
     place-items: center;
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .checkbox__input:checked {
@@ -426,7 +425,7 @@ textarea.form-field__input {
     gap: var(--size-mid);
     padding: var(--size-max);
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .auth[data-page='setup'] .auth__container {
@@ -544,7 +543,7 @@ textarea.form-field__input {
     gap: var(--size-base);
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .profile-card__header {
@@ -625,7 +624,7 @@ textarea.form-field__input {
 .search__select {
     padding: 0.7rem 0.9rem;
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     color: var(--color-text);
     font-size: var(--font-size-base);
 }
@@ -648,7 +647,7 @@ textarea.form-field__input {
     width: 100%;
     padding: 0.7rem 0.9rem;
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     color: var(--color-text);
     font-size: var(--font-size-base);
     cursor: pointer;
@@ -692,7 +691,7 @@ textarea.form-field__input {
     padding: 0.35rem 0;
     list-style: none;
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     max-height: 16rem;
     overflow-y: auto;
 }
@@ -883,7 +882,7 @@ textarea.form-field__input {
     gap: var(--size-base);
     padding: var(--size-base);
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     user-select: none;
     cursor: pointer;
     overflow: hidden;
@@ -985,6 +984,7 @@ textarea.form-field__input {
     border: 1px solid var(--color-border);
     position: relative;
     overflow: hidden;
+    background-color: var(--color-bg-top);
 }
 
 .post__header > * {
@@ -995,7 +995,7 @@ textarea.form-field__input {
 .post__image-wrapper {
     overflow: hidden;
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .post__image-wrapper img {
@@ -1043,7 +1043,7 @@ textarea.form-field__input {
 .post__sidebar {
     display: grid;
     gap: var(--size-base);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     overflow-x: hidden;
 }
 
@@ -1068,7 +1068,7 @@ textarea.form-field__input {
     gap: var(--size-sm);
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .post__share-title {
@@ -1083,7 +1083,7 @@ textarea.form-field__input {
     align-items: center;
     gap: var(--size-sm);
     padding: var(--size-sm);
-    border: 1px solid var(--color-border);
+    border: 1px dashed var(--color-border);
     background-color: transparent;
     font-weight: 600;
     font-size: var(--font-size-sm);
@@ -1159,11 +1159,11 @@ textarea.form-field__input {
 .post__content,
 .page-view__body {
     display: grid;
-    gap: var(--size-max);
+    gap: var(--size-mid);
     font-size: var(--font-size-lg);
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .post__content > *,
@@ -1309,7 +1309,7 @@ textarea.form-field__input {
 .post__related-card {
     overflow: hidden;
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     display: inline-grid;
     gap: 0;
     flex: 0 0 auto;
@@ -1384,7 +1384,7 @@ textarea.form-field__input {
     gap: var(--size-base);
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
 }
 
 .comments__header-row {
@@ -1472,7 +1472,7 @@ textarea.form-field__input {
     min-height: 140px;
     padding: 1rem 1.25rem;
     border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     color: var(--color-text);
     font-size: var(--font-size-base);
     line-height: 1.6;
@@ -1533,7 +1533,7 @@ textarea.form-field__input {
     gap: var(--size-sm);
     padding: var(--size-base);
     border: 1px solid var(--color-border);
-    background-color: color-mix(in srgb, var(--color-bg) 98%, transparent);
+    background-color: color-mix(in srgb, var(--color-bg-top) 98%, transparent);
 }
 
 .comments__header {
@@ -1629,7 +1629,7 @@ textarea.form-field__input {
 .pagination__button {
     padding: 0.35rem 0.85rem;
     border: 1px solid var(--color-border);
-    background-color: var(--color-bg);
+    background-color: var(--color-bg-top);
     color: var(--color-text);
 }
 
@@ -1645,7 +1645,7 @@ textarea.form-field__input {
 
 .footer {
     grid-area: footer;
-    background-color: var(--color-bg-darker);
+    background-color: var(--color-bg-top-darker);
 }
 
 .footer__container {
