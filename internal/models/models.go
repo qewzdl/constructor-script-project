@@ -229,6 +229,7 @@ type Page struct {
 	Description string       `json:"description"`
 	FeaturedImg string       `json:"featured_img"`
 	Published   bool         `gorm:"default:false" json:"published"`
+	Content     string       `gorm:"type:text" json:"content"`
 	Sections    PostSections `gorm:"type:jsonb" json:"sections"`
 	Template    string       `gorm:"default:'page'" json:"template"`
 
@@ -241,6 +242,7 @@ type CreatePageRequest struct {
 	Description string    `json:"description"`
 	FeaturedImg string    `json:"featured_img"`
 	Published   bool      `json:"published"`
+	Content     string    `json:"content"`
 	Sections    []Section `json:"sections"`
 	Template    string    `json:"template"`
 	Order       int       `json:"order"`
@@ -251,6 +253,7 @@ type UpdatePageRequest struct {
 	Description *string    `json:"description"`
 	FeaturedImg *string    `json:"featured_img"`
 	Published   *bool      `json:"published"`
+	Content     *string    `json:"content"`
 	Sections    *[]Section `json:"sections"`
 	Template    *string    `json:"template"`
 	Order       *int       `json:"order"`

@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"fmt"
 	"html/template"
 	"strings"
 
 	"constructor-script-backend/internal/models"
 )
 
-type SectionRenderer func(h *TemplateHandler, elem models.SectionElement) string
+type SectionRenderer func(h *TemplateHandler, prefix string, elem models.SectionElement) string
 
 func (h *TemplateHandler) RegisterSectionRenderer(sectionType string, renderer SectionRenderer) {
 	if sectionType == "" || renderer == nil {
@@ -32,7 +33,7 @@ func (h *TemplateHandler) registerDefaultSectionRenderers() {
 	h.RegisterSectionRenderer("list", renderListSection)
 }
 
-func renderParagraphSection(h *TemplateHandler, elem models.SectionElement) string {
+func renderParagraphSection(h *TemplateHandler, prefix string, elem models.SectionElement) string {
 	content := sectionContent(elem)
 	text, ok := content["text"].(string)
 	if !ok || text == "" {
@@ -41,11 +42,12 @@ func renderParagraphSection(h *TemplateHandler, elem models.SectionElement) stri
 
 	var sb strings.Builder
 	sanitized := h.sanitizer.Sanitize(text)
-	sb.WriteString(`<div class="post__paragraph">` + sanitized + `</div>`)
+	paragraphClass := fmt.Sprintf("%s__paragraph", prefix)
+	sb.WriteString(`<p class="` + paragraphClass + `">` + sanitized + `</p>`)
 	return sb.String()
 }
 
-func renderImageSection(h *TemplateHandler, elem models.SectionElement) string {
+func renderImageSection(h *TemplateHandler, prefix string, elem models.SectionElement) string {
 	content := sectionContent(elem)
 	url, _ := content["url"].(string)
 	alt, _ := content["alt"].(string)
@@ -56,18 +58,21 @@ func renderImageSection(h *TemplateHandler, elem models.SectionElement) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(`<figure class="post__image">`)
-	sb.WriteString(`<img class="post__image-img" src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
+	figureClass := fmt.Sprintf("%s__image", prefix)
+	imageClass := fmt.Sprintf("%s__image-img", prefix)
+	sb.WriteString(`<figure class="` + figureClass + `">`)
+	sb.WriteString(`<img class="` + imageClass + `" src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
 	if caption != "" {
 		sanitizedCaption := h.sanitizer.Sanitize(caption)
-		sb.WriteString(`<figcaption class="post__image-caption">` + sanitizedCaption + `</figcaption>`)
+		captionClass := fmt.Sprintf("%s__image-caption", prefix)
+		sb.WriteString(`<figcaption class="` + captionClass + `">` + sanitizedCaption + `</figcaption>`)
 	}
 	sb.WriteString(`</figure>`)
 
 	return sb.String()
 }
 
-func renderImageGroupSection(h *TemplateHandler, elem models.SectionElement) string {
+func renderImageGroupSection(h *TemplateHandler, prefix string, elem models.SectionElement) string {
 	content := sectionContent(elem)
 	layout, _ := content["layout"].(string)
 	if layout == "" {
@@ -75,7 +80,8 @@ func renderImageGroupSection(h *TemplateHandler, elem models.SectionElement) str
 	}
 
 	var sb strings.Builder
-	sb.WriteString(`<div class="post__image-group post__image-group--` + template.HTMLEscapeString(layout) + `">`)
+	groupClass := fmt.Sprintf("%s__image-group", prefix)
+	sb.WriteString(`<div class="` + groupClass + ` ` + groupClass + `--` + template.HTMLEscapeString(layout) + `">`)
 
 	if images, ok := content["images"].([]interface{}); ok {
 		for _, img := range images {
@@ -91,11 +97,15 @@ func renderImageGroupSection(h *TemplateHandler, elem models.SectionElement) str
 				continue
 			}
 
-			sb.WriteString(`<figure class="post__image-group-item">`)
-			sb.WriteString(`<img class="post__image-group-img" src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
+			itemClass := fmt.Sprintf("%s__image-group-item", prefix)
+			imgClass := fmt.Sprintf("%s__image-group-img", prefix)
+			captionClass := fmt.Sprintf("%s__image-group-caption", prefix)
+
+			sb.WriteString(`<figure class="` + itemClass + `">`)
+			sb.WriteString(`<img class="` + imgClass + `" src="` + template.HTMLEscapeString(url) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
 			if caption != "" {
 				sanitizedCaption := h.sanitizer.Sanitize(caption)
-				sb.WriteString(`<figcaption class="post__image-group-caption">` + sanitizedCaption + `</figcaption>`)
+				sb.WriteString(`<figcaption class="` + captionClass + `">` + sanitizedCaption + `</figcaption>`)
 			}
 			sb.WriteString(`</figure>`)
 		}
@@ -105,7 +115,7 @@ func renderImageGroupSection(h *TemplateHandler, elem models.SectionElement) str
 	return sb.String()
 }
 
-func renderListSection(h *TemplateHandler, elem models.SectionElement) string {
+func renderListSection(h *TemplateHandler, prefix string, elem models.SectionElement) string {
 	content := sectionContent(elem)
 
 	rawItems, ok := content["items"]
@@ -154,10 +164,10 @@ func renderListSection(h *TemplateHandler, elem models.SectionElement) string {
 	}
 
 	listTag := "ul"
-	listClass := "post__list"
+	listClass := fmt.Sprintf("%s__list", prefix)
 	if ordered {
 		listTag = "ol"
-		listClass += " post__list--ordered"
+		listClass += " " + listClass + "--ordered"
 	}
 
 	var sb strings.Builder
@@ -165,7 +175,8 @@ func renderListSection(h *TemplateHandler, elem models.SectionElement) string {
 
 	for _, item := range items {
 		sanitized := h.sanitizer.Sanitize(item)
-		sb.WriteString(`<li class="post__list-item">` + sanitized + `</li>`)
+		itemClass := fmt.Sprintf("%s__list-item", prefix)
+		sb.WriteString(`<li class="` + itemClass + `">` + sanitized + `</li>`)
 	}
 
 	sb.WriteString(`</` + listTag + `>`)

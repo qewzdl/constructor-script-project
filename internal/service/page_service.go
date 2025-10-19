@@ -62,6 +62,7 @@ func (s *PageService) Create(req models.CreatePageRequest) (*models.Page, error)
 		Description: req.Description,
 		FeaturedImg: req.FeaturedImg,
 		Published:   req.Published,
+		Content:     strings.TrimSpace(req.Content),
 		Sections:    sections,
 		Template:    s.getTemplate(req.Template),
 		Order:       req.Order,
@@ -119,6 +120,9 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 	}
 	if req.Order != nil {
 		page.Order = *req.Order
+	}
+	if req.Content != nil {
+		page.Content = strings.TrimSpace(*req.Content)
 	}
 
 	if req.Sections != nil {

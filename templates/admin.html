@@ -307,6 +307,34 @@
                             <textarea name="description" rows="3" class="admin-form__input"></textarea>
                         </label>
                         <label class="admin-form__label">
+                            Page body (HTML)
+                            <textarea
+                                name="content"
+                                rows="8"
+                                class="admin-form__input"
+                                placeholder="Supports HTML snippets for flexible layouts"
+                            ></textarea>
+                            <small class="admin-form__hint">
+                                Use this area for free-form content. Leave it blank to rely solely on structured sections.
+                            </small>
+                        </label>
+                        <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
+                            <legend class="admin-form__legend">Structured sections</legend>
+                            <p class="admin-form__hint">
+                                Combine headings, paragraphs, lists, and media into reusable sections. Sections are rendered
+                                after the free-form body content.
+                            </p>
+                            <div class="section-builder" data-section-builder="page">
+                                <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
+                                <ol class="section-builder__list" data-role="section-list"></ol>
+                                <div class="section-builder__actions">
+                                    <button type="button" class="section-builder__add" data-role="section-add">
+                                        Add section
+                                    </button>
+                                </div>
+                            </div>
+                        </fieldset>
+                        <label class="admin-form__label">
                             Display order
                             <input type="number" name="order" value="0" class="admin-form__input" />
                         </label>

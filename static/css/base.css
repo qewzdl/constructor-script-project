@@ -965,14 +965,17 @@ textarea.form-field__input {
     gap: var(--size-base);
 }
 
-.post__section :nth-child(2) {
+.post__section :nth-child(2),
+.page-view__section :nth-child(2) {
     margin-top: 0 !important;
 }
-.post__section > *:last-child {
+.post__section > *:last-child,
+.page-view__section > *:last-child {
     margin-bottom: 0 !important;
 }
 
-.post__section-title {
+.post__section-title,
+.page-view__section-title {
     margin-bottom: var(--size-base);
 }
 
@@ -1153,7 +1156,8 @@ textarea.form-field__input {
     text-overflow: ellipsis;
 }
 
-.post__content {
+.post__content,
+.page-view__body {
     display: grid;
     gap: var(--size-max);
     font-size: var(--font-size-lg);
@@ -1162,57 +1166,71 @@ textarea.form-field__input {
     background-color: var(--color-bg);
 }
 
-.post__content > * {
+.post__content > *,
+.page-view__body > * {
     max-width: 100%;
 }
 
 .post__content h2,
 .post__content h3,
-.post__content h4 {
+.post__content h4,
+.page-view__body h2,
+.page-view__body h3,
+.page-view__body h4 {
     color: var(--color-text);
     font-weight: 700;
 }
 
-.post__content h2 {
+.post__content h2,
+.page-view__body h2 {
     font-size: clamp(1.5rem, 4vw, 1.75rem);
 }
-.post__content h3 {
+.post__content h3,
+.page-view__body h3 {
     font-size: clamp(1.25rem, 3vw, 1.5rem);
 }
-.post__content h4 {
+.post__content h4,
+.page-view__body h4 {
     font-size: clamp(1rem, 2.5vw, 1.25rem);
 }
 
-.post__content figcaption {
+.post__content figcaption,
+.page-view__body figcaption {
     display: none;
 }
 
-.post__content .post__image {
+.post__content .post__image,
+.page-view__body .page-view__image {
     margin: var(--size-sm) 0;
 }
 
-.post__paragraph {
+.post__paragraph,
+.page-view__paragraph {
     color: var(--color-text);
     margin: var(--size-mid) 0;
     line-height: 1.6;
     font-size: var(--font-size-base);
 }
 
-.post__list {
+.post__list,
+.page-view__list {
     margin: var(--size-mid) 0;
     padding-left: 1.75rem;
     font-size: var(--font-size-base);
 }
 
-.post__list:not(.post__list--ordered) {
+.post__list:not(.post__list--ordered),
+.page-view__list:not(.page-view__list--ordered) {
     list-style: disc;
 }
 
-.post__list--ordered {
+.post__list--ordered,
+.page-view__list--ordered {
     list-style: decimal;
 }
 
-.post__list-item {
+.post__list-item,
+.page-view__list-item {
     color: var(--color-text);
     margin: 0.5rem 0;
     line-height: 1.6;
@@ -1229,37 +1247,44 @@ textarea.form-field__input {
     height: 1.2rem;
 }
 
-.post__section-image {
+.post__section-image,
+.page-view__section-image {
     margin: var(--size-sm) 0;
 }
 
-.post__image-group {
+.post__image-group,
+.page-view__image-group {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: var(--size-sm, 8px);
     align-items: center;
 }
 
-.post__image-group img {
+.post__image-group img,
+.page-view__image-group img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     border: 1px solid var(--color-border);
 }
 
-.post__content a {
+.post__content a,
+.page-view__body a {
     color: var(--color-primary);
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 4px;
 }
 
-.post__content li {
+.post__content li,
+.page-view__body li {
     position: relative;
 }
 
 .post__content img,
-.post__content video {
+.post__content video,
+.page-view__body img,
+.page-view__body video {
     display: block;
     max-width: 100%;
 }
@@ -1909,18 +1934,18 @@ textarea.form-field__input {
     display: none;
 }
 
-.page {
+.page-view {
     display: grid;
     gap: var(--size-max);
 }
 
-.page__content {
+.page-view__content {
     display: flex;
     flex-direction: column;
     gap: var(--size-lg);
 }
 
-.page__content > * {
+.page-view__content > * {
     max-width: 800px;
 }
 
@@ -1974,7 +1999,7 @@ textarea.form-field__input {
     .search__empty,
     .search__hint,
     .profile__header,
-    article.page > * {
+    article.page-view > * {
         padding: 0 var(--side-padding-after);
     }
 

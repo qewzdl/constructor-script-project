@@ -222,10 +222,26 @@ func (h *TemplateHandler) RenderPage(c *gin.Context) {
 		return
 	}
 
-	h.renderTemplate(c, page.Template, page.Title, page.Description, gin.H{
-		"Page":    page,
-		"Content": h.renderSections(page.Sections),
-	})
+	var contentHTML template.HTML
+	if strings.TrimSpace(page.Content) != "" {
+		contentHTML = template.HTML(page.Content)
+	}
+
+	sectionsHTML := h.renderSectionsWithPrefix(page.Sections, "page-view")
+
+	data := gin.H{
+		"Page": page,
+	}
+
+	if contentHTML != "" {
+		data["Content"] = contentHTML
+	}
+
+	if sectionsHTML != "" {
+		data["Sections"] = sectionsHTML
+	}
+
+	h.renderTemplate(c, page.Template, page.Title, page.Description, data)
 }
 
 func (h *TemplateHandler) RenderBlog(c *gin.Context) {

@@ -1595,6 +1595,7 @@
                   pageForm.querySelector('[data-section-builder="page"]')
               )
             : null;
+        const pageContentField = pageForm?.querySelector('[name="content"]');
         const postContentField = postForm?.querySelector('[name="content"]');
 
         const sectionBuilder = createSectionBuilder(postForm);
@@ -1897,6 +1898,8 @@
             page?.Slug,
             page?.description,
             page?.Description,
+            page?.content,
+            page?.Content,
         ];
 
         const getCategorySearchFields = (category) => [
@@ -2733,6 +2736,9 @@
                     'The slug is generated from the title when updating';
             }
             pageForm.description.value = page.description || '';
+            if (pageContentField) {
+                pageContentField.value = page.content || page.Content || '';
+            }
             const orderInput = pageForm.querySelector('input[name="order"]');
             if (orderInput) {
                 orderInput.value = page.order ?? 0;
@@ -2772,6 +2778,9 @@
             const orderInput = pageForm.querySelector('input[name="order"]');
             if (orderInput) {
                 orderInput.value = 0;
+            }
+            if (pageContentField) {
+                pageContentField.value = '';
             }
             pageSectionBuilder?.reset();
             highlightRow(tables.pages);
@@ -3434,6 +3443,9 @@
                 return;
             }
             const description = pageForm.description.value.trim();
+            const content = pageContentField
+                ? pageContentField.value.trim()
+                : '';
             const orderInput = pageForm.querySelector('input[name="order"]');
             const orderValue = orderInput ? Number(orderInput.value) : 0;
             const publishedField = pageForm.querySelector(
@@ -3442,6 +3454,7 @@
             const payload = {
                 title,
                 description,
+                content,
                 order: Number.isNaN(orderValue) ? 0 : orderValue,
                 published: Boolean(publishedField?.checked),
             };

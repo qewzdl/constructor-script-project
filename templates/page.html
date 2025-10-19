@@ -1,12 +1,24 @@
-<article class="page" role="article">
-    <header class="page__header">
-        <h1 class="page__title">{{ .Page.Title }}</h1>
+<article class="page-view" role="article">
+    <header class="page-view__header">
+        <h1 class="page-view__title">{{ .Page.Title }}</h1>
         {{ if .Page.Description }}
-        <p class="page__description">{{ .Page.Description }}</p>
+        <p class="page-view__description">{{ .Page.Description }}</p>
         {{ end }}
     </header>
 
-    <section class="page__content">
-        {{ .Content }}
-    </section>
+    {{ if or .Content .Sections }}
+    <div class="page-view__content">
+        {{ if .Content }}
+        <div class="page-view__body">
+            {{ .Content }}
+        </div>
+        {{ end }}
+
+        {{ if .Sections }}
+        <div class="page-view__sections">
+            {{ .Sections }}
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
 </article>

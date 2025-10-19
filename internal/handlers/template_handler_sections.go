@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"html/template"
 	"strings"
 
@@ -8,6 +9,10 @@ import (
 )
 
 func (h *TemplateHandler) renderSections(sections models.PostSections) template.HTML {
+	return h.renderSectionsWithPrefix(sections, "post")
+}
+
+func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections, prefix string) template.HTML {
 	if len(sections) == 0 {
 		return ""
 	}
@@ -15,17 +20,22 @@ func (h *TemplateHandler) renderSections(sections models.PostSections) template.
 	var sb strings.Builder
 
 	for _, section := range sections {
-		sb.WriteString(`<section class="post__section" id="section-` + template.HTMLEscapeString(section.ID) + `">`)
-		sb.WriteString(`<h2 class="post__section-title">` + template.HTMLEscapeString(section.Title) + `</h2>`)
+		sectionClass := fmt.Sprintf("%s__section", prefix)
+		sectionTitleClass := fmt.Sprintf("%s__section-title", prefix)
+		sectionImageWrapperClass := fmt.Sprintf("%s__section-image", prefix)
+		sectionImageClass := fmt.Sprintf("%s__section-img", prefix)
+
+		sb.WriteString(`<section class="` + sectionClass + `" id="section-` + template.HTMLEscapeString(section.ID) + `">`)
+		sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + template.HTMLEscapeString(section.Title) + `</h2>`)
 
 		if section.Image != "" {
-			sb.WriteString(`<div class="post__section-image">`)
-			sb.WriteString(`<img class="post__section-img" src="` + template.HTMLEscapeString(section.Image) + `" alt="` + template.HTMLEscapeString(section.Title) + `" />`)
+			sb.WriteString(`<div class="` + sectionImageWrapperClass + `">`)
+			sb.WriteString(`<img class="` + sectionImageClass + `" src="` + template.HTMLEscapeString(section.Image) + `" alt="` + template.HTMLEscapeString(section.Title) + `" />`)
 			sb.WriteString(`</div>`)
 		}
 
 		for _, elem := range section.Elements {
-			sb.WriteString(h.renderSectionElement(elem))
+			sb.WriteString(h.renderSectionElement(prefix, elem))
 		}
 
 		sb.WriteString(`</section>`)
@@ -34,13 +44,13 @@ func (h *TemplateHandler) renderSections(sections models.PostSections) template.
 	return template.HTML(sb.String())
 }
 
-func (h *TemplateHandler) renderSectionElement(elem models.SectionElement) string {
+func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement) string {
 	if h.sectionRenderers == nil {
 		return ""
 	}
 
 	if renderer, ok := h.sectionRenderers[elem.Type]; ok {
-		return renderer(h, elem)
+		return renderer(h, prefix, elem)
 	}
 
 	return ""
