@@ -432,6 +432,20 @@
                             <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
                             <small class="admin-form__hint">Used to generate canonical links and social sharing metadata.</small>
                         </label>
+                        <label class="admin-form__label">
+                            Unused tag retention (hours)
+                            <input
+                                type="number"
+                                name="unused_tag_retention_hours"
+                                min="1"
+                                step="1"
+                                required
+                                class="admin-form__input"
+                            />
+                            <small class="admin-form__hint">
+                                Tags that are not attached to any posts will be removed after the specified number of hours.
+                            </small>
+                        </label>
                     </fieldset>
                     <fieldset class="admin-form__fieldset">
                         <legend class="admin-form__legend">Brand assets</legend>

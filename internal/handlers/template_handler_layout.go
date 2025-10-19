@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -41,12 +42,13 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 
 func (h *TemplateHandler) siteSettings() models.SiteSettings {
 	defaults := models.SiteSettings{
-		Name:        h.config.SiteName,
-		Description: h.config.SiteDescription,
-		URL:         h.config.SiteURL,
-		Favicon:     h.config.SiteFavicon,
-		FaviconType: models.DetectFaviconType(h.config.SiteFavicon),
-		Logo:        "/static/icons/logo.svg",
+		Name:                    h.config.SiteName,
+		Description:             h.config.SiteDescription,
+		URL:                     h.config.SiteURL,
+		Favicon:                 h.config.SiteFavicon,
+		FaviconType:             models.DetectFaviconType(h.config.SiteFavicon),
+		Logo:                    "/static/icons/logo.svg",
+		UnusedTagRetentionHours: service.DefaultUnusedTagRetentionHours,
 	}
 
 	if h.setupService == nil {

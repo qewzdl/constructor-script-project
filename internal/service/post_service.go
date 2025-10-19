@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ type PostService struct {
 	tagRepo      repository.TagRepository
 	categoryRepo repository.CategoryRepository
 	cache        *cache.Cache
+	settingRepo  repository.SettingRepository
 }
 
 func (s *PostService) invalidateTagCaches() {
@@ -49,7 +51,8 @@ func (s *PostService) scheduleUnusedTagCleanup() {
 			return
 		}
 
-		cutoff := now.Add(-48 * time.Hour)
+		retention := s.unusedTagRetentionDuration()
+		cutoff := now.Add(-retention)
 		if deleted, err := s.tagRepo.DeleteUnusedBefore(cutoff); err != nil {
 			logger.Error(err, "Failed to delete unused tags", nil)
 		} else if deleted > 0 {
@@ -58,17 +61,45 @@ func (s *PostService) scheduleUnusedTagCleanup() {
 	}()
 }
 
+func (s *PostService) unusedTagRetentionDuration() time.Duration {
+	hours := DefaultUnusedTagRetentionHours
+
+	if s.settingRepo != nil {
+		setting, err := s.settingRepo.Get(settingKeyTagRetentionHours)
+		if err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				logger.Error(err, "Failed to load unused tag retention setting", nil)
+			}
+		} else {
+			value := strings.TrimSpace(setting.Value)
+			if parsed, parseErr := strconv.Atoi(value); parseErr == nil && parsed > 0 {
+				hours = parsed
+			} else if parseErr != nil {
+				logger.Error(parseErr, "Invalid unused tag retention value", map[string]interface{}{"value": value})
+			}
+		}
+	}
+
+	if hours <= 0 {
+		hours = DefaultUnusedTagRetentionHours
+	}
+
+	return time.Duration(hours) * time.Hour
+}
+
 func NewPostService(
 	postRepo repository.PostRepository,
 	tagRepo repository.TagRepository,
 	categoryRepo repository.CategoryRepository,
 	cacheService *cache.Cache,
+	settingRepo repository.SettingRepository,
 ) *PostService {
 	return &PostService{
 		postRepo:     postRepo,
 		tagRepo:      tagRepo,
 		categoryRepo: categoryRepo,
 		cache:        cacheService,
+		settingRepo:  settingRepo,
 	}
 }
 

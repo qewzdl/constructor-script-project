@@ -2925,6 +2925,7 @@
                 ['url', site?.url],
                 ['favicon', site?.favicon],
                 ['logo', site?.logo],
+                ['unused_tag_retention_hours', site?.unused_tag_retention_hours],
             ];
 
             entries.forEach(([key, value]) => {
@@ -3025,6 +3026,17 @@
                 favicon: getValue('favicon'),
                 logo: getValue('logo'),
             };
+
+            const retentionField = settingsForm.querySelector('[name="unused_tag_retention_hours"]');
+            const retentionRaw = retentionField ? retentionField.value.trim() : '';
+            const retentionHours = Number.parseInt(retentionRaw, 10);
+
+            if (Number.isNaN(retentionHours) || retentionHours < 1) {
+                showAlert('Please provide how many hours unused tags should be retained (minimum 1 hour).', 'error');
+                return;
+            }
+
+            payload.unused_tag_retention_hours = retentionHours;
 
             if (!payload.name) {
                 showAlert('Please provide a site name.', 'error');

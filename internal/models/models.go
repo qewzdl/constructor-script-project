@@ -264,20 +264,22 @@ type Setting struct {
 }
 
 type SiteSettings struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	URL         string `json:"url"`
-	Favicon     string `json:"favicon"`
-	FaviconType string `json:"favicon_type"`
-	Logo        string `json:"logo"`
+	Name                    string `json:"name"`
+	Description             string `json:"description"`
+	URL                     string `json:"url"`
+	Favicon                 string `json:"favicon"`
+	FaviconType             string `json:"favicon_type"`
+	Logo                    string `json:"logo"`
+	UnusedTagRetentionHours int    `json:"unused_tag_retention_hours"`
 }
 
 type UpdateSiteSettingsRequest struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description"`
-	URL         string `json:"url" binding:"required"`
-	Favicon     string `json:"favicon"`
-	Logo        string `json:"logo"`
+	Name                    string `json:"name" binding:"required"`
+	Description             string `json:"description"`
+	URL                     string `json:"url" binding:"required"`
+	Favicon                 string `json:"favicon"`
+	Logo                    string `json:"logo"`
+	UnusedTagRetentionHours int    `json:"unused_tag_retention_hours" binding:"required,min=1"`
 }
 
 func DetectFaviconType(favicon string) string {

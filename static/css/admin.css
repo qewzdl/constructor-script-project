@@ -575,14 +575,13 @@
     border: none;
     padding: var(--size-sm) var(--size-lg);
     background: var(--color-primary);
-    color: var(--color-bg);
     font-weight: 600;
+    color: var(--color-text);
 }
 
 .admin-form__submit:hover,
 .admin-form__submit:focus-visible {
     background: var(--color-primary-hover);
-    transform: translateY(-1px);
     outline: none;
 }
 

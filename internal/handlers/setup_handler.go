@@ -83,16 +83,17 @@ func (h *SetupHandler) Complete(c *gin.Context) {
 func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 	logo := "/static/icons/logo.svg"
 	if h.config == nil {
-		return models.SiteSettings{Logo: logo}
+		return models.SiteSettings{Logo: logo, UnusedTagRetentionHours: service.DefaultUnusedTagRetentionHours}
 	}
 
 	return models.SiteSettings{
-		Name:        h.config.SiteName,
-		Description: h.config.SiteDescription,
-		URL:         h.config.SiteURL,
-		Favicon:     h.config.SiteFavicon,
-		FaviconType: models.DetectFaviconType(h.config.SiteFavicon),
-		Logo:        logo,
+		Name:                    h.config.SiteName,
+		Description:             h.config.SiteDescription,
+		URL:                     h.config.SiteURL,
+		Favicon:                 h.config.SiteFavicon,
+		FaviconType:             models.DetectFaviconType(h.config.SiteFavicon),
+		Logo:                    logo,
+		UnusedTagRetentionHours: service.DefaultUnusedTagRetentionHours,
 	}
 }
 
