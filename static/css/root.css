@@ -74,6 +74,7 @@
 
     /* Typography */
     --font-family-base: "Outfit", "Inter", sans-serif;
+    --font-family-admin: "Outfit", "Inter", sans-serif;
 
     /* Font sizes */
     --font-size-min: 0.5rem;
