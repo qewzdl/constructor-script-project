@@ -4,6 +4,7 @@ import (
 	"constructor-script-backend/internal/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PageRepository interface {
@@ -56,7 +57,10 @@ func (r *pageRepository) GetBySlug(slug string) (*models.Page, error) {
 
 func (r *pageRepository) GetAll() ([]models.Page, error) {
 	var pages []models.Page
-	if err := r.db.Where("published = ?", true).Order("`order` ASC, created_at DESC").Find(&pages).Error; err != nil {
+	if err := r.db.Where("published = ?", true).
+		Order(clause.OrderByColumn{Column: clause.Column{Name: "order"}}).
+		Order("created_at DESC").
+		Find(&pages).Error; err != nil {
 		return nil, err
 	}
 	return pages, nil
