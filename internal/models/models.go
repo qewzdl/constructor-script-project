@@ -130,8 +130,9 @@ type UpdateCommentRequest struct {
 }
 
 type AuthResponse struct {
-	Token string `json:"token"`
-	User  User   `json:"user"`
+	Token     string `json:"token"`
+	User      User   `json:"user"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type PostSections []Section

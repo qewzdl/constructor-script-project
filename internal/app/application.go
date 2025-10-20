@@ -328,10 +328,17 @@ func (a *Application) initRouter() error {
 	}
 
 	router := gin.New()
+	if err := router.SetTrustedProxies(nil); err != nil {
+		return fmt.Errorf("failed to configure trusted proxies: %w", err)
+	}
+
 	router.Use(gin.Recovery())
+	router.Use(middleware.RequestIDMiddleware())
 	router.Use(logger.GinLogger())
+	router.Use(middleware.SecurityHeadersMiddleware())
 	router.Use(middleware.MetricsMiddleware())
 	router.Use(middleware.RateLimitMiddleware(a.cfg))
+	router.Use(middleware.CSRFMiddleware())
 
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     a.cfg.CORSOrigins,

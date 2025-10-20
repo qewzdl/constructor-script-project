@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -12,31 +14,34 @@ func (h *TemplateHandler) currentUser(c *gin.Context) (*models.User, bool) {
 		return nil, false
 	}
 
-	clearCookie := func() {
+	clearCookies := func() {
 		secure := c.Request.TLS != nil
-		c.SetCookie(authTokenCookieName, "", -1, "/", "", secure, true)
+		c.SetSameSite(http.SameSiteStrictMode)
+		c.SetCookie(constants.AuthTokenCookieName, "", -1, "/", "", secure, true)
+		c.SetSameSite(http.SameSiteStrictMode)
+		c.SetCookie(constants.CSRFTokenCookieName, "", -1, "/", "", secure, false)
 	}
 
-	tokenString, err := c.Cookie(authTokenCookieName)
+	tokenString, err := c.Cookie(constants.AuthTokenCookieName)
 	if err != nil || tokenString == "" {
 		return nil, false
 	}
 
 	parsed, err := h.authService.ValidateToken(tokenString)
 	if err != nil || parsed == nil || !parsed.Valid {
-		clearCookie()
+		clearCookies()
 		return nil, false
 	}
 
 	claims, ok := parsed.Claims.(jwt.MapClaims)
 	if !ok {
-		clearCookie()
+		clearCookies()
 		return nil, false
 	}
 
 	userIDValue, ok := claims["user_id"]
 	if !ok {
-		clearCookie()
+		clearCookies()
 		return nil, false
 	}
 
@@ -47,13 +52,13 @@ func (h *TemplateHandler) currentUser(c *gin.Context) (*models.User, bool) {
 	case int:
 		userID = uint(value)
 	default:
-		clearCookie()
+		clearCookies()
 		return nil, false
 	}
 
 	user, err := h.authService.GetUserByID(userID)
 	if err != nil {
-		clearCookie()
+		clearCookies()
 		return nil, false
 	}
 

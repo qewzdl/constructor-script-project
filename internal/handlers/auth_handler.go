@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 	"strconv"
 
@@ -18,20 +21,40 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 }
 
 const (
-	authTokenCookieName = "auth_token"
 	authTokenTTLSeconds = 72 * 60 * 60
+	csrfTokenBytes      = 32
 )
+
+func generateCSRFToken() (string, error) {
+	token := make([]byte, csrfTokenBytes)
+	if _, err := rand.Read(token); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(token), nil
+}
 
 func (h *AuthHandler) setAuthCookie(c *gin.Context, token string, maxAge int) {
 	secure := c.Request.TLS != nil
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(authTokenCookieName, token, maxAge, "/", "", secure, true)
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(constants.AuthTokenCookieName, token, maxAge, "/", "", secure, true)
+}
+
+func (h *AuthHandler) setCSRFCookie(c *gin.Context, token string, maxAge int) {
+	secure := c.Request.TLS != nil
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(constants.CSRFTokenCookieName, token, maxAge, "/", "", secure, false)
 }
 
 func (h *AuthHandler) clearAuthCookie(c *gin.Context) {
 	secure := c.Request.TLS != nil
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(authTokenCookieName, "", -1, "/", "", secure, true)
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(constants.AuthTokenCookieName, "", -1, "/", "", secure, true)
+}
+
+func (h *AuthHandler) clearCSRFCookie(c *gin.Context) {
+	secure := c.Request.TLS != nil
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(constants.CSRFTokenCookieName, "", -1, "/", "", secure, false)
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -67,16 +90,25 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	csrfToken, err := generateCSRFToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate CSRF token"})
+		return
+	}
+
 	h.setAuthCookie(c, token, authTokenTTLSeconds)
+	h.setCSRFCookie(c, csrfToken, authTokenTTLSeconds)
 
 	c.JSON(http.StatusOK, models.AuthResponse{
-		Token: token,
-		User:  *user,
+		Token:     token,
+		User:      *user,
+		CSRFToken: csrfToken,
 	})
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {
 	h.clearAuthCookie(c)
+	h.clearCSRFCookie(c)
 	c.JSON(http.StatusOK, gin.H{"message": "logged out"})
 }
 

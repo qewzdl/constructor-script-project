@@ -1,6 +1,7 @@
 (() => {
     const STORAGE_KEY = "authToken";
     const COOKIE_NAME = "auth_token";
+    const CSRF_COOKIE_NAME = "csrf_token";
     const TOKEN_TTL_SECONDS = 72 * 60 * 60;
 
     const bodyElement = document.body;
@@ -42,10 +43,17 @@
         return null;
     };
 
-    const writeCookie = (value, maxAgeSeconds) => {
-        const maxAge = typeof maxAgeSeconds === "number" ? maxAgeSeconds : TOKEN_TTL_SECONDS;
-        document.cookie = `${COOKIE_NAME}=${encodeURIComponent(value || "")}; path=/; max-age=${maxAge}; SameSite=Strict`;
+    const secureAttribute =
+        window.location.protocol === "https:" ? "; Secure" : "";
+    const writeCookie = (name, value, maxAgeSeconds) => {
+        const maxAge =
+            typeof maxAgeSeconds === "number" ? maxAgeSeconds : TOKEN_TTL_SECONDS;
+        document.cookie = `${name}=${encodeURIComponent(
+            value || ""
+        )}; path=/; max-age=${maxAge}; SameSite=Strict${secureAttribute}`;
     };
+    const clearCookie = (name) => writeCookie(name, "", 0);
+    const getCSRFCookie = () => readCookie(CSRF_COOKIE_NAME);
 
     const Auth = {
         getToken() {
@@ -63,12 +71,13 @@
                 sessionStorage.setItem(STORAGE_KEY, token);
                 localStorage.removeItem(STORAGE_KEY);
             }
-            writeCookie(token, TOKEN_TTL_SECONDS);
+            writeCookie(COOKIE_NAME, token, TOKEN_TTL_SECONDS);
         },
         clearToken() {
             localStorage.removeItem(STORAGE_KEY);
             sessionStorage.removeItem(STORAGE_KEY);
-            writeCookie("", 0);
+            clearCookie(COOKIE_NAME);
+            clearCookie(CSRF_COOKIE_NAME);
         },
         syncFromCookie() {
             const token = this.getToken();
@@ -79,7 +88,11 @@
                 ) {
                     sessionStorage.setItem(STORAGE_KEY, token);
                 }
-                writeCookie(token, TOKEN_TTL_SECONDS);
+                writeCookie(COOKIE_NAME, token, TOKEN_TTL_SECONDS);
+                const csrfToken = getCSRFCookie();
+                if (csrfToken) {
+                    writeCookie(CSRF_COOKIE_NAME, csrfToken, TOKEN_TTL_SECONDS);
+                }
             }
             return token;
         },
@@ -141,6 +154,7 @@
     const apiRequest = async (url, options = {}) => {
         const headers = Object.assign({}, options.headers || {});
         const token = Auth.getToken();
+        const method = (options.method || "GET").toUpperCase();
 
         if (options.body && !(options.body instanceof FormData)) {
             headers["Content-Type"] = headers["Content-Type"] || "application/json";
@@ -148,6 +162,13 @@
 
         if (token) {
             headers.Authorization = `Bearer ${token}`;
+        }
+
+        if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+            const csrfToken = getCSRFCookie();
+            if (csrfToken) {
+                headers["X-CSRF-Token"] = csrfToken;
+            }
         }
 
         const response = await fetch(url, {
@@ -223,6 +244,9 @@
             }
 
             Auth.setToken(payload.token, remember);
+            if (payload.csrf_token) {
+                writeCookie(CSRF_COOKIE_NAME, payload.csrf_token, TOKEN_TTL_SECONDS);
+            }
             updateNavVisibility(true);
             setAlert(alertId, "Signed in successfully. Redirecting…", "success");
 

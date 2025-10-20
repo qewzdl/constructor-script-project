@@ -79,9 +79,19 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
+	csrfToken, err := generateCSRFToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate CSRF token"})
+		return
+	}
+
+	h.setAuthCookie(c, token, authTokenTTLSeconds)
+	h.setCSRFCookie(c, csrfToken, authTokenTTLSeconds)
+
 	c.JSON(http.StatusOK, models.AuthResponse{
-		Token: token,
-		User:  *user,
+		Token:     token,
+		User:      *user,
+		CSRFToken: csrfToken,
 	})
 }
 

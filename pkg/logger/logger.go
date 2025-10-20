@@ -96,6 +96,12 @@ func GinLogger() gin.HandlerFunc {
 			"user_agent": c.Request.UserAgent(),
 		}
 
+		if requestID, exists := c.Get("request_id"); exists {
+			if id, ok := requestID.(string); ok && id != "" {
+				fields["request_id"] = id
+			}
+		}
+
 		if errorMessage != "" {
 			fields["error"] = errorMessage
 		}

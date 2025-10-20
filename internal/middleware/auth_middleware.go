@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"constructor-script-backend/internal/constants"
 	"fmt"
 	"net/http"
 	"strings"
@@ -22,7 +23,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 			if len(bearerToken) == 2 && strings.EqualFold(bearerToken[0], "Bearer") {
 				tokenString = strings.TrimSpace(bearerToken[1])
 			} else {
-				if cookieToken, err := c.Cookie(authTokenCookieName); err == nil && strings.TrimSpace(cookieToken) != "" {
+				if cookieToken, err := c.Cookie(constants.AuthTokenCookieName); err == nil && strings.TrimSpace(cookieToken) != "" {
 					tokenString = cookieToken
 				} else {
 					c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
@@ -33,7 +34,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		}
 
 		if tokenString == "" {
-			if cookieToken, err := c.Cookie(authTokenCookieName); err == nil && strings.TrimSpace(cookieToken) != "" {
+			if cookieToken, err := c.Cookie(constants.AuthTokenCookieName); err == nil && strings.TrimSpace(cookieToken) != "" {
 				tokenString = cookieToken
 			} else {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization credentials required"})
