@@ -1002,6 +1002,11 @@ textarea.form-field__input {
     background-color: var(--color-primary);
 }
 
+body.post-image-modal-open .header,
+body.post-image-modal-open .post-progress {
+    display: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .post-progress,
     .post-progress__bar {

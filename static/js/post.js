@@ -1,4 +1,46 @@
 (function () {
+    const header = document.querySelector('.header');
+    const progressElement = document.querySelector('[data-post-progress]');
+    const previousAriaHidden = new WeakMap();
+
+    const setAriaHidden = (element, isHidden) => {
+        if (!element) {
+            return;
+        }
+
+        if (isHidden) {
+            if (!previousAriaHidden.has(element)) {
+                previousAriaHidden.set(
+                    element,
+                    element.hasAttribute('aria-hidden')
+                        ? element.getAttribute('aria-hidden')
+                        : null
+                );
+            }
+
+            element.setAttribute('aria-hidden', 'true');
+            return;
+        }
+
+        if (!previousAriaHidden.has(element)) {
+            element.removeAttribute('aria-hidden');
+            return;
+        }
+
+        const previousValue = previousAriaHidden.get(element);
+        previousAriaHidden.delete(element);
+
+        if (previousValue === null) {
+            element.removeAttribute('aria-hidden');
+        } else {
+            element.setAttribute('aria-hidden', previousValue);
+        }
+    };
+
+    const triggerProgressUpdate = () => {
+        window.dispatchEvent(new Event('scroll'));
+    };
+
     const copyButton = document.querySelector('[data-copy-link-button]');
     if (copyButton) {
         const label = copyButton.querySelector('[data-copy-link-label]');
@@ -127,12 +169,10 @@
         });
     }
 
-    const progressElement = document.querySelector('[data-post-progress]');
     const contentElement = document.querySelector('.post__content');
 
     if (progressElement && contentElement) {
         const bar = progressElement.querySelector('[data-post-progress-bar]');
-        const header = document.querySelector('.header');
         const raf =
             window.requestAnimationFrame ||
             function (callback) {
@@ -163,7 +203,9 @@
             const contentTop = window.scrollY + contentRect.top;
             const start = contentTop;
             const end = contentTop + contentHeight - viewportHeight;
-            const shouldHide = contentHeight <= viewportHeight;
+            const shouldHide =
+            contentHeight <= viewportHeight ||
+            document.body.classList.contains('post-image-modal-open');
 
             progressElement.hidden = shouldHide;
             progressElement.classList.toggle(
@@ -176,9 +218,16 @@
                 if (bar) {
                     bar.style.transform = 'scaleX(0)';
                 }
+                if (
+                    document.body.classList.contains('post-image-modal-open') &&
+                    !progressElement.hasAttribute('aria-hidden')
+                ) {
+                    setAriaHidden(progressElement, true);
+                }
                 return;
             }
 
+            setAriaHidden(progressElement, false);
             let fraction = 0;
 
             if (end <= start) {
@@ -301,6 +350,10 @@
 
         modal.removeAttribute('hidden');
         modal.classList.add('post-image-modal--active');
+        document.body.classList.add('post-image-modal-open');
+        setAriaHidden(header, true);
+        setAriaHidden(progressElement, true);
+        triggerProgressUpdate();
         previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         closeButton.focus();
@@ -309,6 +362,10 @@
     const closeModal = () => {
         modal.classList.remove('post-image-modal--active');
         modal.setAttribute('hidden', '');
+        document.body.classList.remove('post-image-modal-open');
+        setAriaHidden(header, false);
+        setAriaHidden(progressElement, false);
+        triggerProgressUpdate();
         document.body.style.overflow = previousOverflow;
         modalImage.src = '';
         modalImage.alt = '';
