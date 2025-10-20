@@ -3,6 +3,31 @@
     const COOKIE_NAME = "auth_token";
     const TOKEN_TTL_SECONDS = 72 * 60 * 60;
 
+    const bodyElement = document.body;
+    const parseBooleanAttribute = (value) => {
+        if (value === "true") {
+            return true;
+        }
+        if (value === "false") {
+            return false;
+        }
+        return null;
+    };
+
+    const initialServerAuthState = bodyElement
+        ? parseBooleanAttribute(bodyElement.dataset?.authenticated)
+        : null;
+
+    let serverAuthenticated = initialServerAuthState;
+
+    const syncServerAuthState = (value) => {
+        if (!bodyElement || typeof value !== "boolean") {
+            return;
+        }
+        bodyElement.dataset.authenticated = value ? "true" : "false";
+        serverAuthenticated = value;
+    };
+
     const readCookie = (name) => {
         if (!document.cookie) {
             return null;
@@ -60,8 +85,21 @@
         },
     };
 
-    const updateNavVisibility = () => {
-        const isAuthenticated = Boolean(Auth.getToken());
+    const updateNavVisibility = (explicitState) => {
+        const tokenPresent = Boolean(Auth.getToken());
+        let isAuthenticated;
+
+        if (typeof explicitState === "boolean") {
+            isAuthenticated = explicitState;
+            syncServerAuthState(explicitState);
+        } else if (tokenPresent) {
+            isAuthenticated = true;
+            syncServerAuthState(true);
+        } else if (typeof serverAuthenticated === "boolean") {
+            isAuthenticated = serverAuthenticated;
+        } else {
+            isAuthenticated = false;
+        }
         document.querySelectorAll('[data-auth="auth"]').forEach((element) => {
             element.hidden = !isAuthenticated;
         });
@@ -149,7 +187,7 @@
             console.warn("Failed to notify server about logout:", error);
         } finally {
             Auth.clearToken();
-            updateNavVisibility();
+            updateNavVisibility(false);
             window.location.href = "/login";
         }
     };
@@ -185,7 +223,7 @@
             }
 
             Auth.setToken(payload.token, remember);
-            updateNavVisibility();
+            updateNavVisibility(true);
             setAlert(alertId, "Signed in successfully. Redirecting…", "success");
 
             const redirectTarget = form.dataset.redirect || "/profile";
@@ -282,7 +320,7 @@
         } catch (error) {
             if (error.status === 401) {
                 Auth.clearToken();
-                updateNavVisibility();
+                updateNavVisibility(false);
                 window.location.href = "/login?redirect=/profile";
                 return;
             }
@@ -328,7 +366,7 @@
         } catch (error) {
             if (error.status === 401) {
                 Auth.clearToken();
-                updateNavVisibility();
+                updateNavVisibility(false);
                 window.location.href = "/login?redirect=/profile";
                 return;
             }
@@ -366,7 +404,7 @@
         } catch (error) {
             if (error.status === 401) {
                 Auth.clearToken();
-                updateNavVisibility();
+                updateNavVisibility(false);
                 window.location.href = "/login?redirect=/profile";
                 return;
             }
@@ -405,7 +443,7 @@
         const profilePage = document.querySelector('[data-page="profile"]');
 
         if (profilePage) {
-            if (!Auth.getToken()) {
+            if (!Auth.getToken() && serverAuthenticated !== true) {
                 window.location.href = "/login?redirect=/profile";
                 return;
             }

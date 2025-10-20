@@ -44,6 +44,7 @@ type Config struct {
 	// Rate Limiting
 	RateLimitRequests int
 	RateLimitWindow   int
+	RateLimitBurst    int
 
 	// Features
 	EnableCache       bool
@@ -96,6 +97,7 @@ func New() *Config {
 		// Rate Limiting
 		RateLimitRequests: getEnvAsInt("RATE_LIMIT_REQUESTS", 100),
 		RateLimitWindow:   getEnvAsInt("RATE_LIMIT_WINDOW", 60),
+		RateLimitBurst:    getEnvAsInt("RATE_LIMIT_BURST", 0),
 
 		// Features
 		EnableCache:       getEnvAsBool("ENABLE_CACHE", true),
@@ -115,6 +117,26 @@ func New() *Config {
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		c.DBUser, c.DBPassword, c.DBHost, c.DBPort, c.DBName, c.DBSSLMode,
 	)
+
+	if c.RateLimitRequests < 0 {
+		c.RateLimitRequests = 0
+	}
+
+	if c.RateLimitWindow <= 0 {
+		c.RateLimitWindow = 60
+	}
+
+	if c.RateLimitBurst <= 0 {
+		if c.RateLimitRequests > 0 {
+			c.RateLimitBurst = c.RateLimitRequests * 2
+		} else {
+			c.RateLimitBurst = 0
+		}
+	}
+
+	if c.RateLimitBurst > 0 && c.RateLimitRequests > 0 && c.RateLimitBurst < c.RateLimitRequests {
+		c.RateLimitBurst = c.RateLimitRequests
+	}
 
 	return c
 }

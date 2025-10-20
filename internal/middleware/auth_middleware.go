@@ -10,23 +10,38 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const authTokenCookieName = "auth_token"
+
 func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization header required"})
-			c.Abort()
-			return
+		var tokenString string
+
+		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+		if authHeader != "" {
+			bearerToken := strings.SplitN(authHeader, " ", 2)
+			if len(bearerToken) == 2 && strings.EqualFold(bearerToken[0], "Bearer") {
+				tokenString = strings.TrimSpace(bearerToken[1])
+			} else {
+				if cookieToken, err := c.Cookie(authTokenCookieName); err == nil && strings.TrimSpace(cookieToken) != "" {
+					tokenString = cookieToken
+				} else {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
+					c.Abort()
+					return
+				}
+			}
 		}
 
-		bearerToken := strings.Split(authHeader, " ")
-		if len(bearerToken) != 2 || bearerToken[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
-			c.Abort()
-			return
+		if tokenString == "" {
+			if cookieToken, err := c.Cookie(authTokenCookieName); err == nil && strings.TrimSpace(cookieToken) != "" {
+				tokenString = cookieToken
+			} else {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization credentials required"})
+				c.Abort()
+				return
+			}
 		}
 
-		tokenString := bearerToken[1]
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])

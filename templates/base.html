@@ -122,7 +122,11 @@
         {{ end }}
     </head>
 
-    <body class="layout">
+    <body
+        class="layout"
+        data-authenticated="{{ if .IsAuthenticated }}true{{ else }}false{{ end }}"
+        {{ with .CurrentUser }}data-user-role="{{ .Role }}" data-user-id="{{ .ID }}"{{ end }}
+    >
         {{ if .HideChrome }} {{ else }}
         <header class="header" role="banner">
             <nav
