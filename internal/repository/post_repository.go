@@ -19,6 +19,7 @@ type PostRepository interface {
 	IncrementViews(id uint) error
 	ExistsBySlug(slug string) (bool, error)
 	ReassignCategory(fromCategoryID, toCategoryID uint) error
+	GetAllPublished() ([]models.Post, error)
 }
 
 type postRepository struct {
@@ -156,4 +157,13 @@ func (r *postRepository) ReassignCategory(fromCategoryID, toCategoryID uint) err
 	return r.db.Model(&models.Post{}).
 		Where("category_id = ?", fromCategoryID).
 		Update("category_id", toCategoryID).Error
+}
+
+func (r *postRepository) GetAllPublished() ([]models.Post, error) {
+	var posts []models.Post
+	err := r.db.Select("id", "slug", "updated_at", "created_at").
+		Where("published = ?", true).
+		Order("updated_at DESC").
+		Find(&posts).Error
+	return posts, err
 }

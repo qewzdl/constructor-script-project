@@ -527,6 +527,14 @@ func (s *PostService) GetAll(page, limit int, categoryID *uint, tagName *string,
 	return posts, total, nil
 }
 
+func (s *PostService) ListPublishedForSitemap() ([]models.Post, error) {
+	if s.postRepo == nil {
+		return nil, errors.New("post repository not configured")
+	}
+
+	return s.postRepo.GetAllPublished()
+}
+
 func (s *PostService) GetAllAdmin(page, limit int) ([]models.Post, int64, error) {
 	offset := (page - 1) * limit
 	return s.postRepo.GetAll(offset, limit, nil, nil, nil, nil)

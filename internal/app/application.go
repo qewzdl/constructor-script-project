@@ -80,6 +80,7 @@ type handlerContainer struct {
 	Page       *handlers.PageHandler
 	Setup      *handlers.SetupHandler
 	SocialLink *handlers.SocialLinkHandler
+	SEO        *handlers.SEOHandler
 }
 
 func New(cfg *config.Config, opts Options) (*Application, error) {
@@ -291,6 +292,7 @@ func (a *Application) initHandlers() error {
 		Page:       handlers.NewPageHandler(a.services.Page),
 		Setup:      handlers.NewSetupHandler(a.services.Setup, a.cfg),
 		SocialLink: handlers.NewSocialLinkHandler(a.services.SocialLink),
+		SEO:        handlers.NewSEOHandler(a.services.Post, a.services.Page, a.services.Category, a.services.Setup, a.cfg),
 	}
 
 	templateHandler, err := handlers.NewTemplateHandler(
@@ -355,6 +357,11 @@ func (a *Application) initRouter() error {
 	router.Static("/static", "./static")
 	router.Static("/uploads", a.cfg.UploadDir)
 	router.StaticFile("/favicon.ico", "./favicon.ico")
+
+	if a.handlers.SEO != nil {
+		router.GET("/sitemap.xml", a.handlers.SEO.Sitemap)
+		router.GET("/robots.txt", a.handlers.SEO.Robots)
+	}
 
 	router.GET("/debug-templates", func(c *gin.Context) {
 		tmpl := template.New("").Funcs(utils.GetTemplateFuncs())
