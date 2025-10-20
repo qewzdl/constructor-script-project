@@ -2,6 +2,17 @@ package middleware
 
 import "github.com/gin-gonic/gin"
 
+const contentSecurityPolicy = "default-src 'self'; " +
+	"object-src 'none'; " +
+	"base-uri 'self'; " +
+	"frame-ancestors 'none'; " +
+	"form-action 'self'; " +
+	"script-src 'self' 'unsafe-inline'; " +
+	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+	"font-src 'self' https://fonts.gstatic.com data:; " +
+	"img-src 'self' data: https:; " +
+	"connect-src 'self'"
+
 func SecurityHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("X-Content-Type-Options", "nosniff")
@@ -23,7 +34,7 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
 
-		c.Header("Content-Security-Policy", "default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'")
+		c.Header("Content-Security-Policy", contentSecurityPolicy)
 
 		c.Next()
 	}
