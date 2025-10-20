@@ -11,8 +11,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const authTokenCookieName = "auth_token"
-
 func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var tokenString string
