@@ -747,6 +747,11 @@
 .admin-navigation__details {
     flex: 1;
 }
+.admin-navigation__meta {
+    font-size: var(--font-size-xs);
+    color: var(--color-secondary);
+    text-transform: capitalize;
+}
 .admin-social__name,
 .admin-navigation__label {
     font-weight: 600;
@@ -855,6 +860,9 @@
 .admin-navigation__form {
     display: grid;
     gap: var(--size-sm);
+}
+.admin-navigation__location {
+    max-width: 320px;
 }
 
 .admin-form__submit {

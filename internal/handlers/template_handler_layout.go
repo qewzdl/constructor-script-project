@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 
 	"constructor-script-backend/internal/models"
@@ -17,18 +18,22 @@ import (
 func (h *TemplateHandler) basePageData(title, description string, extra gin.H) gin.H {
 	site := h.siteSettings()
 
+	headerMenu, footerMenu := splitMenuItems(site.MenuItems)
+
 	data := gin.H{
 		"Title":       fmt.Sprintf("%s - %s", title, site.Name),
 		"Description": description,
 		"Site": gin.H{
-			"Name":        site.Name,
-			"Description": site.Description,
-			"URL":         site.URL,
-			"Favicon":     site.Favicon,
-			"FaviconType": site.FaviconType,
-			"Logo":        site.Logo,
-			"SocialLinks": site.SocialLinks,
-			"MenuItems":   site.MenuItems,
+			"Name":            site.Name,
+			"Description":     site.Description,
+			"URL":             site.URL,
+			"Favicon":         site.Favicon,
+			"FaviconType":     site.FaviconType,
+			"Logo":            site.Logo,
+			"SocialLinks":     site.SocialLinks,
+			"MenuItems":       site.MenuItems,
+			"HeaderMenuItems": headerMenu,
+			"FooterMenuItems": footerMenu,
 		},
 		"SearchQuery": "",
 		"SearchType":  "all",
@@ -66,6 +71,47 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 	}
 
 	return settings
+}
+
+func splitMenuItems(items []models.MenuItem) ([]models.MenuItem, []models.MenuItem) {
+	if len(items) == 0 {
+		return nil, nil
+	}
+
+	var header []models.MenuItem
+	var footer []models.MenuItem
+
+	for _, item := range items {
+		location := strings.TrimSpace(strings.ToLower(item.Location))
+		switch location {
+		case "footer":
+			footer = append(footer, item)
+		case "header", "":
+			header = append(header, item)
+		default:
+			header = append(header, item)
+		}
+	}
+
+	return sortMenuItems(header), sortMenuItems(footer)
+}
+
+func sortMenuItems(items []models.MenuItem) []models.MenuItem {
+	if len(items) == 0 {
+		return nil
+	}
+
+	sorted := make([]models.MenuItem, len(items))
+	copy(sorted, items)
+
+	sort.SliceStable(sorted, func(i, j int) bool {
+		if sorted[i].Order == sorted[j].Order {
+			return sorted[i].ID < sorted[j].ID
+		}
+		return sorted[i].Order < sorted[j].Order
+	})
+
+	return sorted
 }
 
 func (h *TemplateHandler) renderTemplate(c *gin.Context, templateName, title, description string, extra gin.H) {

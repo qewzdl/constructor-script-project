@@ -156,10 +156,10 @@
                 </button>
                 {{ $activeNav := .ActiveNav }}
                 {{ $activePath := .ActivePath }}
-                {{ $menuItems := .Site.MenuItems }}
+                {{ $headerMenu := .Site.HeaderMenuItems }}
                 <ul class="header__nav-list" id="primary-navigation" data-menu>
-                    {{ if gt (len $menuItems) 0 }}
-                    {{ range $menuItems }}
+                    {{ if gt (len $headerMenu) 0 }}
+                    {{ range $headerMenu }}
                     {{ $isActive := pathEquals $activePath .URL }}
                     <li class="header__nav-item">
                         <a
@@ -314,6 +314,19 @@
                     </p>
                 </section>
                 <nav class="footer__nav" aria-label="Footer navigation">
+                    {{ $footerMenu := .Site.FooterMenuItems }}
+                    {{ if gt (len $footerMenu) 0 }}
+                    <div class="footer__group">
+                        <h2 class="footer__heading">Navigation</h2>
+                        <ul class="footer__list">
+                            {{ range $footerMenu }}
+                            <li class="footer__item">
+                                <a href="{{ .URL }}" class="footer__link">{{ .Title }}</a>
+                            </li>
+                            {{ end }}
+                        </ul>
+                    </div>
+                    {{ else }}
                     <div class="footer__group">
                         <h2 class="footer__heading">Explore</h2>
                         <ul class="footer__list">
@@ -350,6 +363,7 @@
                             </li>
                         </ul>
                     </div>
+                    {{ end }}
                 </nav>
                 {{ if .Site.SocialLinks }}
                 <aside class="footer__social" aria-label="Social media links">

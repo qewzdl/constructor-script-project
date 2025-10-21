@@ -600,16 +600,33 @@
                     <div class="admin-navigation__header">
                         <h3 id="admin-navigation-title" class="admin-form__legend">Navigation menu</h3>
                         <p class="admin-form__hint">
-                            Control the primary navigation links shown in the site header. Add menu items with a label and
-                            destination URL, and arrange them in the preferred order.
+                            Control the navigation links shown in the site header and footer. Choose a location, add menu
+                            items with a label and destination URL, and arrange them in the preferred order.
                         </p>
                     </div>
                     <div class="admin-navigation__content">
                         <ul class="admin-navigation__list" data-role="menu-list" aria-live="polite">
-                            <li class="admin-navigation__empty" data-role="menu-empty">No menu items added yet.</li>
+                            <li class="admin-navigation__empty" data-role="menu-empty">
+                                No menu items added for this location yet.
+                            </li>
                         </ul>
                         <form id="admin-menu-form" class="admin-navigation__form" novalidate>
                             <input type="hidden" name="id" />
+                            <label class="admin-form__label admin-navigation__location">
+                                Menu location
+                                <select
+                                    name="location"
+                                    required
+                                    class="admin-form__input"
+                                    data-role="menu-location"
+                                >
+                                    <option value="header">Header</option>
+                                    <option value="footer">Footer</option>
+                                </select>
+                                <small class="admin-form__hint">
+                                    Select where this link should appear on your site.
+                                </small>
+                            </label>
                             <label class="admin-form__label">
                                 Label
                                 <input type="text" name="title" required class="admin-form__input" />

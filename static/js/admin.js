@@ -300,6 +300,7 @@
         const socialCancelButton = socialForm?.querySelector('[data-role="social-cancel"]');
         const menuSubmitButton = menuForm?.querySelector('[data-role="menu-submit"]');
         const menuCancelButton = menuForm?.querySelector('[data-role="menu-cancel"]');
+        const menuLocationField = menuForm?.querySelector('[data-role="menu-location"]');
         const postDeleteButton = postForm?.querySelector(
             '[data-role="post-delete"]'
         );
@@ -372,6 +373,7 @@
             tags: [],
             socialLinks: [],
             menuItems: [],
+            activeMenuLocation: 'header',
             isReorderingMenu: false,
             editingSocialLinkId: '',
             editingMenuItemId: '',
@@ -2259,26 +2261,82 @@
             return Number.isFinite(numericOrder) ? numericOrder : 0;
         };
 
+        const normaliseMenuLocation = (value) => {
+            const location =
+                typeof value === 'string' ? value.trim().toLowerCase() : '';
+            return location || 'header';
+        };
+
+        const getMenuItemLocation = (item) => {
+            if (!item || typeof item !== 'object') {
+                return 'header';
+            }
+            const locationValue = item.location ?? item.Location ?? '';
+            return normaliseMenuLocation(locationValue);
+        };
+
+        const getActiveMenuLocation = () =>
+            normaliseMenuLocation(state.activeMenuLocation);
+
+        const formatMenuLocationLabel = (value) => {
+            const location = normaliseMenuLocation(value);
+            if (location === 'footer') {
+                return 'Footer';
+            }
+            return 'Header';
+        };
+
         const renderMenuItems = () => {
             if (!menuList) {
                 return;
             }
+
+            const activeLocation = getActiveMenuLocation();
             const items = Array.isArray(state.menuItems)
-                ? state.menuItems
+                ? state.menuItems.filter(
+                      (item) => getMenuItemLocation(item) === activeLocation
+                  )
                 : [];
+
+            const sortedItems = items.slice().sort((a, b) => {
+                const orderDiff = getMenuItemOrder(a) - getMenuItemOrder(b);
+                if (orderDiff !== 0 && Number.isFinite(orderDiff)) {
+                    return orderDiff;
+                }
+                const idDiff = getMenuItemId(a) - getMenuItemId(b);
+                if (Number.isFinite(idDiff)) {
+                    return idDiff;
+                }
+                return 0;
+            });
+
             menuList
                 .querySelectorAll('[data-role="menu-item"]')
                 .forEach((item) => item.remove());
-            if (!items.length) {
+
+            if (menuEmpty) {
+                const label = formatMenuLocationLabel(activeLocation);
+                menuEmpty.textContent = `No menu items added for the ${label.toLowerCase()} menu yet.`;
+            }
+
+            if (!sortedItems.length) {
                 if (menuEmpty) {
                     menuEmpty.hidden = false;
                 }
+                if (menuLocationField) {
+                    menuLocationField.value = activeLocation;
+                }
                 return;
             }
+
             if (menuEmpty) {
                 menuEmpty.hidden = true;
             }
-            items.forEach((item, index) => {
+            if (menuLocationField) {
+                menuLocationField.value = activeLocation;
+            }
+
+            sortedItems.forEach((item, index) => {
                 if (!item) {
                     return;
                 }
@@ -2325,7 +2383,7 @@
                 moveDownButton.textContent = '▼';
 
                 const isFirst = index === 0;
-                const isLast = index === items.length - 1;
+                const isLast = index === sortedItems.length - 1;
                 moveUpButton.disabled = isFirst || state.isReorderingMenu;
                 moveDownButton.disabled = isLast || state.isReorderingMenu;
                 if (state.isReorderingMenu) {
@@ -2344,6 +2402,12 @@
                 label.className = 'admin-navigation__label';
                 label.textContent = item.title || item.Title || 'Menu item';
                 details.appendChild(label);
+
+                const itemLocation = getMenuItemLocation(item);
+                const locationMeta = document.createElement('span');
+                locationMeta.className = 'admin-navigation__meta';
+                locationMeta.textContent = `${formatMenuLocationLabel(itemLocation)} menu`;
+                details.appendChild(locationMeta);
 
                 const link = document.createElement('a');
                 link.className = 'admin-navigation__url';
@@ -2388,6 +2452,9 @@
                 return;
             }
             menuForm.reset();
+            if (menuLocationField) {
+                menuLocationField.value = getActiveMenuLocation();
+            }
             const idField = menuForm.querySelector('input[name="id"]');
             if (idField) {
                 idField.value = '';
@@ -2409,6 +2476,7 @@
             const idField = menuForm.querySelector('input[name="id"]');
             const titleField = menuForm.querySelector('input[name="title"]');
             const urlField = menuForm.querySelector('input[name="url"]');
+            const location = getMenuItemLocation(item);
 
             const idValue = item.id || item.ID || item.Id;
             if (idField) {
@@ -2420,6 +2488,12 @@
             if (urlField) {
                 urlField.value = item.url || item.URL || '';
             }
+            if (menuLocationField) {
+                menuLocationField.value = location;
+            }
+
+            state.activeMenuLocation = location;
+            renderMenuItems();
 
             state.editingMenuItemId = idField?.value || '';
             if (menuSubmitButton) {
@@ -2451,6 +2525,24 @@
                     }
                     return 0;
                 });
+                const availableLocations = new Set(
+                    items.map((entry) => getMenuItemLocation(entry))
+                );
+                if (availableLocations.size > 0) {
+                    const currentLocation = getActiveMenuLocation();
+                    if (!availableLocations.has(currentLocation)) {
+                        let fallbackLocation = 'header';
+                        if (!availableLocations.has(fallbackLocation)) {
+                            const iterator = availableLocations.values().next();
+                            if (!iterator.done) {
+                                fallbackLocation = iterator.value;
+                            }
+                        }
+                        state.activeMenuLocation = normaliseMenuLocation(
+                            fallbackLocation
+                        );
+                    }
+                }
                 state.menuItems = items;
                 renderMenuItems();
             } catch (error) {
@@ -2468,14 +2560,35 @@
                 return false;
             }
 
-            const items = Array.isArray(state.menuItems)
+            const activeLocation = getActiveMenuLocation();
+            const allItems = Array.isArray(state.menuItems)
                 ? state.menuItems.slice()
                 : [];
-            if (!items.length) {
+            if (!allItems.length) {
                 return false;
             }
 
-            const currentIndex = items.findIndex(
+            const locationItems = allItems
+                .filter(
+                    (entry) => getMenuItemLocation(entry) === activeLocation
+                )
+                .sort((a, b) => {
+                    const orderDiff = getMenuItemOrder(a) - getMenuItemOrder(b);
+                    if (orderDiff !== 0 && Number.isFinite(orderDiff)) {
+                        return orderDiff;
+                    }
+                    const idDiff = getMenuItemId(a) - getMenuItemId(b);
+                    if (Number.isFinite(idDiff)) {
+                        return idDiff;
+                    }
+                    return 0;
+                });
+
+            if (!locationItems.length) {
+                return false;
+            }
+
+            const currentIndex = locationItems.findIndex(
                 (entry) => String(getMenuItemId(entry)) === String(id)
             );
             if (currentIndex < 0) {
@@ -2483,14 +2596,14 @@
             }
 
             const targetIndex = currentIndex + step;
-            if (targetIndex < 0 || targetIndex >= items.length) {
+            if (targetIndex < 0 || targetIndex >= locationItems.length) {
                 return false;
             }
 
-            const [movedItem] = items.splice(currentIndex, 1);
-            items.splice(targetIndex, 0, movedItem);
+            const [movedItem] = locationItems.splice(currentIndex, 1);
+            locationItems.splice(targetIndex, 0, movedItem);
 
-            const orders = items
+            const orders = locationItems
                 .map((entry, position) => {
                     const entryId = getMenuItemId(entry);
                     if (!Number.isFinite(entryId) || entryId <= 0) {
@@ -2513,16 +2626,25 @@
                     method: 'PUT',
                     body: JSON.stringify({ orders }),
                 });
-                state.menuItems = items.map((entry, position) => {
+                const updatedOrders = new Map(
+                    orders.map((entry) => [String(entry.id), entry.order])
+                );
+                state.menuItems = allItems.map((entry) => {
                     if (!entry || typeof entry !== 'object') {
                         return entry;
                     }
+                    const entryId = getMenuItemId(entry);
+                    const key = String(entryId);
+                    if (!updatedOrders.has(key)) {
+                        return entry;
+                    }
+                    const orderValue = updatedOrders.get(key);
                     const updated = { ...entry };
                     if ('order' in updated || !('Order' in updated)) {
-                        updated.order = position + 1;
+                        updated.order = orderValue;
                     }
                     if ('Order' in updated) {
-                        updated.Order = position + 1;
+                        updated.Order = orderValue;
                     }
                     return updated;
                 });
@@ -2561,7 +2683,10 @@
                 return;
             }
 
-            const payload = { title, url };
+            const location = menuLocationField
+                ? normaliseMenuLocation(menuLocationField.value)
+                : getActiveMenuLocation();
+            const payload = { title, url, location };
             const isEditing = Boolean(state.editingMenuItemId);
             const endpoint = isEditing
                 ? `${endpoints.menuItems}/${state.editingMenuItemId}`
@@ -2576,6 +2701,7 @@
                     method,
                     body: JSON.stringify(payload),
                 });
+                state.activeMenuLocation = location;
                 await loadMenuItems();
                 showAlert(
                     isEditing
@@ -2593,6 +2719,15 @@
 
         const handleMenuCancelEdit = () => {
             resetMenuForm();
+        };
+
+        const handleMenuLocationChange = (event) => {
+            const selected = normaliseMenuLocation(event?.target?.value);
+            state.activeMenuLocation = selected;
+            if (state.editingMenuItemId) {
+                resetMenuForm();
+            }
+            renderMenuItems();
         };
 
         const handleMenuListClick = async (event) => {
@@ -3104,6 +3239,7 @@
         socialList?.addEventListener('click', handleSocialListClick);
         menuForm?.addEventListener('submit', handleMenuFormSubmit);
         menuCancelButton?.addEventListener('click', handleMenuCancelEdit);
+        menuLocationField?.addEventListener('change', handleMenuLocationChange);
         menuList?.addEventListener('click', handleMenuListClick);
         postTagsInput?.addEventListener('input', renderTagSuggestions);
 
