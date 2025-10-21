@@ -3593,6 +3593,32 @@
             tab.addEventListener('click', () => activateTab(tab.dataset.tab));
         });
 
+        const quickNavigationButtons = root.querySelectorAll('[data-nav-target]');
+        quickNavigationButtons.forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                const targetId = button.dataset.navTarget;
+                if (!targetId) {
+                    return;
+                }
+                activateTab(targetId);
+                const targetPanel = root.querySelector(
+                    `.admin-panel[data-panel="${targetId}"]`
+                );
+                if (targetPanel && typeof targetPanel.scrollIntoView === 'function') {
+                    targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                const actionId = button.dataset.panelAction;
+                if (actionId) {
+                    const actionButton = root.querySelector(
+                        `[data-action="${actionId}"]`
+                    );
+                    actionButton?.click();
+                }
+                button.blur();
+            });
+        });
+
         root.querySelector('[data-action="post-reset"]')?.addEventListener(
             'click',
             resetPostForm

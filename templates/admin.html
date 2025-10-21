@@ -106,9 +106,42 @@
     </section>
 
     <div class="admin__workspace">
-        <nav class="admin__navigation" aria-label="Admin sections">
-            <div class="admin__nav" data-role="admin-nav"></div>
-        </nav>
+        <aside class="admin__sidebar">
+            <nav class="admin__navigation" aria-label="Admin sections">
+                <div class="admin__navigation-card">
+                    <div class="admin__nav" data-role="admin-nav"></div>
+                </div>
+            </nav>
+            <section class="admin__shortcuts" aria-labelledby="admin-shortcuts-title">
+                <ul class="admin__shortcuts-list">
+                    <li>
+                        <button
+                            type="button"
+                            class="admin__shortcut"
+                            data-nav-target="posts"
+                            data-panel-action="post-reset"
+                        >
+                            Create new post
+                        </button>
+                    </li>
+                    <li>
+                        <button
+                            type="button"
+                            class="admin__shortcut"
+                            data-nav-target="pages"
+                            data-panel-action="page-reset"
+                        >
+                            Create new page
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="admin__shortcut" data-nav-target="settings">
+                            Update site identity
+                        </button>
+                    </li>
+                </ul>
+            </section>
+        </aside>
 
         <div class="admin__panels">
             <section
@@ -145,7 +178,7 @@
                     <button type="button" class="admin-panel__reset" data-action="post-reset">New post</button>
                 </div>
             </header>
-            <div class="admin-panel__body">
+            <div class="admin-panel__body admin-panel__body--split">
                 <div class="admin-panel__list" aria-live="polite">
                     <table class="admin-table">
                         <thead>
@@ -164,90 +197,92 @@
                         </tbody>
                     </table>
                 </div>
-                <form id="admin-post-form" class="admin-form" novalidate>
-                    <fieldset class="admin-form__fieldset">
-                        <legend class="admin-form__legend">Post details</legend>
-                        <label class="admin-form__label">
-                            Title
-                            <input type="text" name="title" required class="admin-form__input" />
-                        </label>
-                        <label class="admin-form__label">
-                            Description
-                            <textarea name="description" rows="2" class="admin-form__input"></textarea>
-                        </label>
-                        <label class="admin-form__label">
-                            Featured image URL
-                            <input
-                                type="url"
-                                name="featured_img"
-                                class="admin-form__input"
-                                placeholder="https://example.com/image.jpg"
-                            />
-                            <small class="admin-form__hint">
-                                Optional cover image displayed on listings and the post page.
-                            </small>
-                        </label>
-                        <input type="hidden" name="content" />
-                        <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
-                            <legend class="admin-form__legend">Structured sections</legend>
-                            <p class="admin-form__hint">
-                                Build rich layouts by combining reusable sections. Use the controls to reorder sections and
-                                adjust their content before publishing.
-                            </p>
-                            <div class="section-builder" data-section-builder="post">
-                                <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
-                                <ol class="section-builder__list" data-role="section-list"></ol>
-                                <div class="section-builder__actions">
-                                    <button type="button" class="section-builder__add" data-role="section-add">
-                                        Add section
-                                    </button>
+                <div class="admin-panel__details">
+                    <form id="admin-post-form" class="admin-form" novalidate>
+                        <fieldset class="admin-form__fieldset">
+                            <legend class="admin-form__legend">Post details</legend>
+                            <label class="admin-form__label">
+                                Title
+                                <input type="text" name="title" required class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__label">
+                                Description
+                                <textarea name="description" rows="2" class="admin-form__input"></textarea>
+                            </label>
+                            <label class="admin-form__label">
+                                Featured image URL
+                                <input
+                                    type="url"
+                                    name="featured_img"
+                                    class="admin-form__input"
+                                    placeholder="https://example.com/image.jpg"
+                                />
+                                <small class="admin-form__hint">
+                                    Optional cover image displayed on listings and the post page.
+                                </small>
+                            </label>
+                            <input type="hidden" name="content" />
+                            <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
+                                <legend class="admin-form__legend">Structured sections</legend>
+                                <p class="admin-form__hint">
+                                    Build rich layouts by combining reusable sections. Use the controls to reorder sections and
+                                    adjust their content before publishing.
+                                </p>
+                                <div class="section-builder" data-section-builder="post">
+                                    <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
+                                    <ol class="section-builder__list" data-role="section-list"></ol>
+                                    <div class="section-builder__actions">
+                                        <button type="button" class="section-builder__add" data-role="section-add">
+                                            Add section
+                                        </button>
+                                    </div>
                                 </div>
+                            </fieldset>
+                            <label class="admin-form__label">
+                                Category
+                                <select name="category_id" class="admin-form__input" id="admin-post-category"></select>
+                            </label>
+                            <label class="admin-form__label">
+                                Tags
+                                <input
+                                    type="text"
+                                    name="tags"
+                                    class="admin-form__input"
+                                    id="admin-post-tags"
+                                    placeholder="e.g. go, backend, database"
+                                    list="admin-post-tags-list"
+                                    autocomplete="off"
+                                />
+                                <small class="admin-form__hint">Separate tags with commas. Existing tags appear as suggestions.</small>
+                                <datalist id="admin-post-tags-list"></datalist>
+                            </label>
+                            <label class="admin-form__checkbox">
+                                <input type="checkbox" name="published" />
+                                <span>Mark as published</span>
+                            </label>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="post-submit">
+                                    Create post
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="post-delete" hidden>
+                                    Delete post
+                                </button>
                             </div>
                         </fieldset>
-                        <label class="admin-form__label">
-                            Category
-                            <select name="category_id" class="admin-form__input" id="admin-post-category"></select>
-                        </label>
-                        <label class="admin-form__label">
-                            Tags
-                            <input
-                                type="text"
-                                name="tags"
-                                class="admin-form__input"
-                                id="admin-post-tags"
-                                placeholder="e.g. go, backend, database"
-                                list="admin-post-tags-list"
-                                autocomplete="off"
-                            />
-                            <small class="admin-form__hint">Separate tags with commas. Existing tags appear as suggestions.</small>
-                            <datalist id="admin-post-tags-list"></datalist>
-                        </label>
-                        <label class="admin-form__checkbox">
-                            <input type="checkbox" name="published" />
-                            <span>Mark as published</span>
-                        </label>
-                    </fieldset>
-                    <div class="admin-form__actions">
-                        <button type="submit" class="admin-form__submit" data-role="post-submit">
-                            Create post
-                        </button>
-                        <button type="button" class="admin-form__delete" data-role="post-delete" hidden>
-                            Delete post
-                        </button>
-                    </div>
-                </form>
-                <section class="admin-tags" aria-labelledby="admin-tags-title">
-                    <header class="admin-tags__header">
-                        <h3 id="admin-tags-title" class="admin-tags__title">Tags</h3>
-                        <p class="admin-tags__description">
-                            Remove unused tags to keep the suggestions list tidy. Deleting a tag also detaches it from
-                            any posts.
-                        </p>
-                    </header>
-                    <ul class="admin-tags__list" id="admin-tags-list">
-                        <li class="admin-tags__item admin-tags__item--empty">No tags available.</li>
-                    </ul>
-                </section>
+                    </form>
+                    <section class="admin-panel__aside admin-tags" aria-labelledby="admin-tags-title">
+                        <header class="admin-tags__header">
+                            <h3 id="admin-tags-title" class="admin-tags__title">Tags</h3>
+                            <p class="admin-tags__description">
+                                Remove unused tags to keep the suggestions list tidy. Deleting a tag also detaches it from
+                                any posts.
+                            </p>
+                        </header>
+                        <ul class="admin-tags__list" id="admin-tags-list">
+                            <li class="admin-tags__item admin-tags__item--empty">No tags available.</li>
+                        </ul>
+                    </section>
+                </div>
             </div>
         </section>
 
@@ -286,7 +321,7 @@
                     <button type="button" class="admin-panel__reset" data-action="page-reset">New page</button>
                 </div>
             </header>
-            <div class="admin-panel__body">
+            <div class="admin-panel__body admin-panel__body--split">
                 <div class="admin-panel__list" aria-live="polite">
                     <table class="admin-table">
                         <thead>
@@ -304,67 +339,69 @@
                         </tbody>
                     </table>
                 </div>
-                <form id="admin-page-form" class="admin-form" novalidate>
-                    <fieldset class="admin-form__fieldset">
-                        <legend class="admin-form__legend">Page details</legend>
-                        <label class="admin-form__label">
-                            Title
-                            <input type="text" name="title" required class="admin-form__input" />
-                        </label>
-                        <label class="admin-form__label">
-                            Custom slug
-                            <input type="text" name="slug" class="admin-form__input" placeholder="optional" />
-                        </label>
-                        <label class="admin-form__label">
-                            Description
-                            <textarea name="description" rows="3" class="admin-form__input"></textarea>
-                        </label>
-                        <label class="admin-form__label">
-                            Page body (HTML)
-                            <textarea
-                                name="content"
-                                rows="8"
-                                class="admin-form__input"
-                                placeholder="Supports HTML snippets for flexible layouts"
-                            ></textarea>
-                            <small class="admin-form__hint">
-                                Use this area for free-form content. Leave it blank to rely solely on structured sections.
-                            </small>
-                        </label>
-                        <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
-                            <legend class="admin-form__legend">Structured sections</legend>
-                            <p class="admin-form__hint">
-                                Combine headings, paragraphs, lists, and media into reusable sections. Sections are rendered
-                                after the free-form body content.
-                            </p>
-                            <div class="section-builder" data-section-builder="page">
-                                <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
-                                <ol class="section-builder__list" data-role="section-list"></ol>
-                                <div class="section-builder__actions">
-                                    <button type="button" class="section-builder__add" data-role="section-add">
-                                        Add section
-                                    </button>
+                <div class="admin-panel__details">
+                    <form id="admin-page-form" class="admin-form" novalidate>
+                        <fieldset class="admin-form__fieldset">
+                            <legend class="admin-form__legend">Page details</legend>
+                            <label class="admin-form__label">
+                                Title
+                                <input type="text" name="title" required class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__label">
+                                Custom slug
+                                <input type="text" name="slug" class="admin-form__input" placeholder="optional" />
+                            </label>
+                            <label class="admin-form__label">
+                                Description
+                                <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                            </label>
+                            <label class="admin-form__label">
+                                Page body (HTML)
+                                <textarea
+                                    name="content"
+                                    rows="8"
+                                    class="admin-form__input"
+                                    placeholder="Supports HTML snippets for flexible layouts"
+                                ></textarea>
+                                <small class="admin-form__hint">
+                                    Use this area for free-form content. Leave it blank to rely solely on structured sections.
+                                </small>
+                            </label>
+                            <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
+                                <legend class="admin-form__legend">Structured sections</legend>
+                                <p class="admin-form__hint">
+                                    Combine headings, paragraphs, lists, and media into reusable sections. Sections are rendered
+                                    after the free-form body content.
+                                </p>
+                                <div class="section-builder" data-section-builder="page">
+                                    <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
+                                    <ol class="section-builder__list" data-role="section-list"></ol>
+                                    <div class="section-builder__actions">
+                                        <button type="button" class="section-builder__add" data-role="section-add">
+                                            Add section
+                                        </button>
+                                    </div>
                                 </div>
+                            </fieldset>
+                            <label class="admin-form__label">
+                                Display order
+                                <input type="number" name="order" value="0" class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__checkbox">
+                                <input type="checkbox" name="published" />
+                                <span>Visible to visitors</span>
+                            </label>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="page-submit">
+                                    Create page
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="page-delete" hidden>
+                                    Delete page
+                                </button>
                             </div>
                         </fieldset>
-                        <label class="admin-form__label">
-                            Display order
-                            <input type="number" name="order" value="0" class="admin-form__input" />
-                        </label>
-                        <label class="admin-form__checkbox">
-                            <input type="checkbox" name="published" />
-                            <span>Visible to visitors</span>
-                        </label>
-                    </fieldset>
-                    <div class="admin-form__actions">
-                        <button type="submit" class="admin-form__submit" data-role="page-submit">
-                            Create page
-                        </button>
-                        <button type="button" class="admin-form__delete" data-role="page-delete" hidden>
-                            Delete page
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </section>
 
@@ -403,7 +440,7 @@
                     <button type="button" class="admin-panel__reset" data-action="category-reset">New category</button>
                 </div>
             </header>
-            <div class="admin-panel__body">
+            <div class="admin-panel__body admin-panel__body--split">
                 <div class="admin-panel__list" aria-live="polite">
                     <table class="admin-table">
                         <thead>
@@ -420,27 +457,29 @@
                         </tbody>
                     </table>
                 </div>
-                <form id="admin-category-form" class="admin-form" novalidate>
-                    <fieldset class="admin-form__fieldset">
-                        <legend class="admin-form__legend">Category details</legend>
-                        <label class="admin-form__label">
-                            Name
-                            <input type="text" name="name" required class="admin-form__input" />
-                        </label>
-                        <label class="admin-form__label">
-                            Description
-                            <textarea name="description" rows="3" class="admin-form__input"></textarea>
-                        </label>
-                    </fieldset>
-                    <div class="admin-form__actions">
-                        <button type="submit" class="admin-form__submit" data-role="category-submit">
-                            Create category
-                        </button>
-                        <button type="button" class="admin-form__delete" data-role="category-delete" hidden>
-                            Delete category
-                        </button>
-                    </div>
-                </form>
+                <div class="admin-panel__details">
+                    <form id="admin-category-form" class="admin-form" novalidate>
+                        <fieldset class="admin-form__fieldset">
+                            <legend class="admin-form__legend">Category details</legend>
+                            <label class="admin-form__label">
+                                Name
+                                <input type="text" name="name" required class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__label">
+                                Description
+                                <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                            </label>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="category-submit">
+                                    Create category
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="category-delete" hidden>
+                                    Delete category
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
             </div>
         </section>
 
@@ -524,6 +563,11 @@
                                 Tags that are not attached to any posts will be removed after the specified number of hours.
                             </small>
                         </label>
+                        <div class="admin-form__actions">
+                            <button type="submit" class="admin-form__submit" data-role="settings-submit">
+                                Save changes
+                            </button>
+                        </div>
                     </fieldset>
                     <fieldset class="admin-form__fieldset">
                         <legend class="admin-form__legend">Brand assets</legend>
@@ -583,11 +627,6 @@
                             </div>
                         </label>
                     </fieldset>
-                    <div class="admin-form__actions">
-                        <button type="submit" class="admin-form__submit" data-role="settings-submit">
-                            Save changes
-                        </button>
-                    </div>
                 </form>
                 <section class="admin-social" aria-labelledby="admin-social-title">
                     <div class="admin-social__header">
