@@ -649,151 +649,223 @@
                         </label>
                     </fieldset>
                 </form>
-                <section class="admin-theme" aria-labelledby="admin-themes-title">
-                    <div class="admin-theme__header">
-                        <h3 id="admin-themes-title" class="admin-form__legend">Themes</h3>
-                        <p class="admin-form__hint">
+            </div>
+            </section>
+            <section
+                id="admin-panel-themes"
+                class="admin-panel"
+                data-panel="themes"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Themes"
+                data-nav-order="2"
+                role="tabpanel"
+                aria-labelledby="admin-tab-themes"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Themes</h2>
+                        <p class="admin-panel__description">
                             Switch the active theme to apply a different global layout, stylesheet, and default content structure.
                         </p>
                     </div>
-                    <ul class="admin-theme__list" data-role="theme-list" aria-live="polite">
-                        <li class="admin-theme__empty" data-role="theme-empty">No themes available yet.</li>
-                    </ul>
-                </section>
-                <section class="admin-social" aria-labelledby="admin-social-title">
-                    <div class="admin-social__header">
-                        <h3 id="admin-social-title" class="admin-form__legend">Social profiles</h3>
-                        <p class="admin-form__hint">
+                </header>
+                <div class="admin-panel__body admin-panel__body--single">
+                    <section class="admin-theme" aria-labelledby="admin-themes-title">
+                        <div class="admin-theme__header">
+                            <h3 id="admin-themes-title" class="admin-form__legend">Themes</h3>
+                            <p class="admin-form__hint">
+                                Switch the active theme to apply a different global layout, stylesheet, and default content structure.
+                            </p>
+                        </div>
+                        <ul class="admin-theme__list" data-role="theme-list" aria-live="polite">
+                            <li class="admin-theme__empty" data-role="theme-empty">No themes available yet.</li>
+                        </ul>
+                    </section>
+                </div>
+            </section>
+            <section
+                id="admin-panel-social"
+                class="admin-panel"
+                data-panel="social"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Social profiles"
+                data-nav-order="3"
+                role="tabpanel"
+                aria-labelledby="admin-tab-social"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Social profiles</h2>
+                        <p class="admin-panel__description">
                             Manage the social networks displayed in the site footer. Add a name, destination URL, and an optional icon for each profile.
                         </p>
                     </div>
-                    <div class="admin-social__content">
-                        <ul class="admin-social__list" data-role="social-list" aria-live="polite">
-                            <li class="admin-social__empty" data-role="social-empty">No social profiles added yet.</li>
-                        </ul>
-                        <form id="admin-social-form" class="admin-social__form" novalidate>
-                            <input type="hidden" name="id" />
-                            <label class="admin-form__label">
-                                Name
-                                <input type="text" name="name" required class="admin-form__input" />
-                            </label>
-                            <label class="admin-form__label">
-                                Profile URL
-                                <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
-                            </label>
-                            <label class="admin-form__label">
-                                Icon URL
-                                <input type="text" name="icon" class="admin-form__input" placeholder="/static/icons/social/twitter.svg" />
-                                <small class="admin-form__hint">
-                                    Provide an SVG or PNG icon. Leave blank to display the network initials.
-                                </small>
-                            </label>
-                            <div class="admin-form__actions admin-form__actions--inline">
-                                <button type="submit" class="admin-form__submit" data-role="social-submit">
-                                    Save social link
-                                </button>
-                                <button type="button" class="admin-form__cancel" data-role="social-cancel" hidden>
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </section>
-                <section class="admin-navigation" aria-labelledby="admin-navigation-title">
-                    <div class="admin-navigation__header">
-                        <h3 id="admin-navigation-title" class="admin-form__legend">Navigation menu</h3>
-                        <p class="admin-form__hint">
-                            Control the navigation links shown in the site header and footer. Choose a location, add menu
-                            items with a label and destination URL, and arrange them in the preferred order.
-                        </p>
-                    </div>
-                    <div class="admin-navigation__content">
-                        <ul class="admin-navigation__list" data-role="menu-list" aria-live="polite">
-                            <li class="admin-navigation__empty" data-role="menu-empty">
-                                No menu items added for this location yet.
-                            </li>
-                        </ul>
-                        <form id="admin-menu-form" class="admin-navigation__form" novalidate>
-                            <input type="hidden" name="id" />
-                            <fieldset class="admin-navigation__step">
-                                <legend class="admin-navigation__step-title">1. Choose menu location</legend>
-                                <p class="admin-navigation__step-description">
-                                    Pick where this menu item should appear on your site.
-                                </p>
-                                <label class="admin-form__label admin-navigation__location">
-                                    Menu location
-                                    <select
-                                        name="location"
-                                        required
-                                        class="admin-form__input"
-                                        data-role="menu-location"
-                                    >
-                                        <option value="header">Header</option>
-                                        <option value="footer:explore">Footer – Explore</option>
-                                        <option value="footer:account">Footer – Account</option>
-                                        <option value="footer:legal">Footer – Legal</option>
-                                        <option value="footer">Footer (general)</option>
-                                        <option value="__custom_footer__">Create new footer section…</option>
-                                    </select>
-                                    <small class="admin-form__hint">
-                                        Select the navigation area to update.
-                                    </small>
-                                </label>
-                            </fieldset>
-                            <fieldset class="admin-navigation__step">
-                                <legend class="admin-navigation__step-title">2. Create a footer section</legend>
-                                <p class="admin-navigation__step-description">
-                                    Need a new footer column? Choose "Create new footer section…" above and name it here.
-                                </p>
-                                <p class="admin-navigation__step-note" data-role="menu-custom-location-hint">
-                                    Select "Create new footer section…" to enable this field.
-                                </p>
-                                <div class="admin-navigation__custom" data-role="menu-custom-location" hidden>
-                                    <label class="admin-form__label">
-                                        Footer section name
-                                        <input
-                                            type="text"
-                                            class="admin-form__input"
-                                            data-role="menu-location-name"
-                                            placeholder="Resources"
-                                            autocomplete="off"
-                                        />
-                                        <small class="admin-form__hint">
-                                            We'll create a new footer group using this name and organise
-                                            links under it.
-                                        </small>
-                                    </label>
-                                </div>
-                            </fieldset>
-                            <fieldset class="admin-navigation__step">
-                                <legend class="admin-navigation__step-title">3. Add menu item</legend>
-                                <p class="admin-navigation__step-description">
-                                    Give the link a label and destination URL for the selected location.
-                                </p>
+                </header>
+                <div class="admin-panel__body">
+                    <section class="admin-social" aria-labelledby="admin-social-title">
+                        <div class="admin-social__header">
+                            <h3 id="admin-social-title" class="admin-form__legend">Social profiles</h3>
+                            <p class="admin-form__hint">
+                                Manage the social networks displayed in the site footer. Add a name, destination URL, and an optional icon for each profile.
+                            </p>
+                        </div>
+                        <div class="admin-social__content">
+                            <ul class="admin-social__list" data-role="social-list" aria-live="polite">
+                                <li class="admin-social__empty" data-role="social-empty">No social profiles added yet.</li>
+                            </ul>
+                            <form id="admin-social-form" class="admin-social__form" novalidate>
+                                <input type="hidden" name="id" />
                                 <label class="admin-form__label">
-                                    Label
-                                    <input type="text" name="title" required class="admin-form__input" />
+                                    Name
+                                    <input type="text" name="name" required class="admin-form__input" />
                                 </label>
                                 <label class="admin-form__label">
-                                    Destination URL
-                                    <input type="url" name="url" required class="admin-form__input" placeholder="/blog" />
+                                    Profile URL
+                                    <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
+                                </label>
+                                <label class="admin-form__label">
+                                    Icon URL
+                                    <input type="text" name="icon" class="admin-form__input" placeholder="/static/icons/social/twitter.svg" />
                                     <small class="admin-form__hint">
-                                        Accepts relative or absolute URLs. Relative paths are recommended for internal pages.
+                                        Provide an SVG or PNG icon. Leave blank to display the network initials.
                                     </small>
                                 </label>
                                 <div class="admin-form__actions admin-form__actions--inline">
-                                    <button type="submit" class="admin-form__submit" data-role="menu-submit">
-                                        Save menu item
+                                    <button type="submit" class="admin-form__submit" data-role="social-submit">
+                                        Save social link
                                     </button>
-                                    <button type="button" class="admin-form__cancel" data-role="menu-cancel" hidden>
+                                    <button type="button" class="admin-form__cancel" data-role="social-cancel" hidden>
                                         Cancel
                                     </button>
                                 </div>
-                            </fieldset>
-                        </form>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+            </section>
+            <section
+                id="admin-panel-navigation"
+                class="admin-panel"
+                data-panel="navigation"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Navigation menu"
+                data-nav-order="4"
+                role="tabpanel"
+                aria-labelledby="admin-tab-navigation"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Navigation menu</h2>
+                        <p class="admin-panel__description">
+                            Control the navigation links shown in the site header and footer. Choose a location, add menu items with a label and destination URL, and arrange them in the preferred order.
+                        </p>
                     </div>
-                </section>
-            </div>
+                </header>
+                <div class="admin-panel__body">
+                    <section class="admin-navigation" aria-labelledby="admin-navigation-title">
+                        <div class="admin-navigation__header">
+                            <h3 id="admin-navigation-title" class="admin-form__legend">Navigation menu</h3>
+                            <p class="admin-form__hint">
+                                Control the navigation links shown in the site header and footer. Choose a location, add menu
+                                items with a label and destination URL, and arrange them in the preferred order.
+                            </p>
+                        </div>
+                        <div class="admin-navigation__content">
+                            <ul class="admin-navigation__list" data-role="menu-list" aria-live="polite">
+                                <li class="admin-navigation__empty" data-role="menu-empty">
+                                    No menu items added for this location yet.
+                                </li>
+                            </ul>
+                            <form id="admin-menu-form" class="admin-navigation__form" novalidate>
+                                <input type="hidden" name="id" />
+                                <fieldset class="admin-navigation__step">
+                                    <legend class="admin-navigation__step-title">1. Choose menu location</legend>
+                                    <p class="admin-navigation__step-description">
+                                        Pick where this menu item should appear on your site.
+                                    </p>
+                                    <label class="admin-form__label admin-navigation__location">
+                                        Menu location
+                                        <select
+                                            name="location"
+                                            required
+                                            class="admin-form__input"
+                                            data-role="menu-location"
+                                        >
+                                            <option value="header">Header</option>
+                                            <option value="footer:explore">Footer – Explore</option>
+                                            <option value="footer:account">Footer – Account</option>
+                                            <option value="footer:legal">Footer – Legal</option>
+                                            <option value="footer">Footer (general)</option>
+                                            <option value="__custom_footer__">Create new footer section…</option>
+                                        </select>
+                                        <small class="admin-form__hint">
+                                            Select the navigation area to update.
+                                        </small>
+                                    </label>
+                                </fieldset>
+                                <fieldset class="admin-navigation__step">
+                                    <legend class="admin-navigation__step-title">2. Create a footer section</legend>
+                                    <p class="admin-navigation__step-description">
+                                        Need a new footer column? Choose "Create new footer section…" above and name it here.
+                                    </p>
+                                    <p class="admin-navigation__step-note" data-role="menu-custom-location-hint">
+                                        Select "Create new footer section…" to enable this field.
+                                    </p>
+                                    <div class="admin-navigation__custom" data-role="menu-custom-location" hidden>
+                                        <label class="admin-form__label">
+                                            Footer section name
+                                            <input
+                                                type="text"
+                                                class="admin-form__input"
+                                                data-role="menu-location-name"
+                                                placeholder="Resources"
+                                                autocomplete="off"
+                                            />
+                                            <small class="admin-form__hint">
+                                                We'll create a new footer group using this name and organise
+                                                links under it.
+                                            </small>
+                                        </label>
+                                    </div>
+                                </fieldset>
+                                <fieldset class="admin-navigation__step">
+                                    <legend class="admin-navigation__step-title">3. Add menu item</legend>
+                                    <p class="admin-navigation__step-description">
+                                        Give the link a label and destination URL for the selected location.
+                                    </p>
+                                    <label class="admin-form__label">
+                                        Label
+                                        <input type="text" name="title" required class="admin-form__input" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Destination URL
+                                        <input type="url" name="url" required class="admin-form__input" placeholder="/blog" />
+                                        <small class="admin-form__hint">
+                                            Accepts relative or absolute URLs. Relative paths are recommended for internal pages.
+                                        </small>
+                                    </label>
+                                    <div class="admin-form__actions admin-form__actions--inline">
+                                        <button type="submit" class="admin-form__submit" data-role="menu-submit">
+                                            Save menu item
+                                        </button>
+                                        <button type="button" class="admin-form__cancel" data-role="menu-cancel" hidden>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </fieldset>
+                            </form>
+                        </div>
+                    </section>
+                </div>
             </section>
         </div>
     </div>
