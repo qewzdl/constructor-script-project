@@ -407,3 +407,12 @@ type UpdateMenuItemRequest struct {
 	Location *string `json:"location"`
 	Order    *int    `json:"order"`
 }
+
+type MenuOrder struct {
+	ID    uint `json:"id"`
+	Order int  `json:"order"`
+}
+
+type ReorderMenuItemsRequest struct {
+	Orders []MenuOrder `json:"orders"`
+}

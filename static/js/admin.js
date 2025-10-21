@@ -372,6 +372,7 @@
             tags: [],
             socialLinks: [],
             menuItems: [],
+            isReorderingMenu: false,
             editingSocialLinkId: '',
             editingMenuItemId: '',
             defaultCategoryId: '',
@@ -2239,6 +2240,25 @@
             }
         };
 
+        const getMenuItemId = (item) => {
+            if (!item) {
+                return NaN;
+            }
+            const idValue =
+                item.id ?? item.ID ?? item.Id ?? item.menu_item_id ?? item.MenuItemId;
+            const numericId = Number(idValue);
+            return Number.isFinite(numericId) ? numericId : NaN;
+        };
+
+        const getMenuItemOrder = (item) => {
+            if (!item) {
+                return 0;
+            }
+            const orderValue = item.order ?? item.Order ?? 0;
+            const numericOrder = Number(orderValue);
+            return Number.isFinite(numericOrder) ? numericOrder : 0;
+        };
+
         const renderMenuItems = () => {
             if (!menuList) {
                 return;
@@ -2258,7 +2278,7 @@
             if (menuEmpty) {
                 menuEmpty.hidden = true;
             }
-            items.forEach((item) => {
+            items.forEach((item, index) => {
                 if (!item) {
                     return;
                 }
@@ -2269,6 +2289,53 @@
                 if (idValue !== undefined) {
                     li.dataset.id = String(idValue);
                 }
+
+                const orderValue = getMenuItemOrder(item);
+                const displayOrder = orderValue > 0 ? orderValue : index + 1;
+                li.dataset.order = String(displayOrder);
+
+                const orderControls = document.createElement('div');
+                orderControls.className = 'admin-navigation__order';
+
+                const orderNumber = document.createElement('span');
+                orderNumber.className = 'admin-navigation__order-number';
+                orderNumber.textContent = String(displayOrder);
+                const orderLabel = `Position ${displayOrder}`;
+                orderNumber.title = orderLabel;
+                orderNumber.setAttribute('aria-label', orderLabel);
+                orderControls.appendChild(orderNumber);
+
+                const orderButtons = document.createElement('div');
+                orderButtons.className = 'admin-navigation__order-buttons';
+
+                const moveUpButton = document.createElement('button');
+                moveUpButton.type = 'button';
+                moveUpButton.className = 'admin-navigation__reorder-button';
+                moveUpButton.dataset.action = 'move-up';
+                moveUpButton.title = 'Move item up';
+                moveUpButton.setAttribute('aria-label', 'Move menu item up');
+                moveUpButton.textContent = '▲';
+
+                const moveDownButton = document.createElement('button');
+                moveDownButton.type = 'button';
+                moveDownButton.className = 'admin-navigation__reorder-button';
+                moveDownButton.dataset.action = 'move-down';
+                moveDownButton.title = 'Move item down';
+                moveDownButton.setAttribute('aria-label', 'Move menu item down');
+                moveDownButton.textContent = '▼';
+
+                const isFirst = index === 0;
+                const isLast = index === items.length - 1;
+                moveUpButton.disabled = isFirst || state.isReorderingMenu;
+                moveDownButton.disabled = isLast || state.isReorderingMenu;
+                if (state.isReorderingMenu) {
+                    moveUpButton.setAttribute('aria-disabled', 'true');
+                    moveDownButton.setAttribute('aria-disabled', 'true');
+                }
+
+                orderButtons.appendChild(moveUpButton);
+                orderButtons.appendChild(moveDownButton);
+                orderControls.appendChild(orderButtons);
 
                 const details = document.createElement('div');
                 details.className = 'admin-navigation__details';
@@ -2309,6 +2376,7 @@
                 deleteButton.textContent = 'Delete';
                 actions.appendChild(deleteButton);
 
+                li.appendChild(orderControls);
                 li.appendChild(details);
                 li.appendChild(actions);
                 menuList.appendChild(li);
@@ -2369,11 +2437,104 @@
             }
             try {
                 const payload = await apiRequest(endpoints.menuItems);
-                state.menuItems = payload?.menu_items || [];
+                const items = Array.isArray(payload?.menu_items)
+                    ? payload.menu_items.slice()
+                    : [];
+                items.sort((a, b) => {
+                    const orderDiff = getMenuItemOrder(a) - getMenuItemOrder(b);
+                    if (orderDiff !== 0 && Number.isFinite(orderDiff)) {
+                        return orderDiff;
+                    }
+                    const idDiff = getMenuItemId(a) - getMenuItemId(b);
+                    if (Number.isFinite(idDiff)) {
+                        return idDiff;
+                    }
+                    return 0;
+                });
+                state.menuItems = items;
                 renderMenuItems();
             } catch (error) {
                 handleRequestError(error);
             }
+        };
+
+        const moveMenuItem = async (id, direction) => {
+            if (state.isReorderingMenu || !endpoints.menuItems) {
+                return false;
+            }
+
+            const step = Number(direction);
+            if (!Number.isFinite(step) || step === 0) {
+                return false;
+            }
+
+            const items = Array.isArray(state.menuItems)
+                ? state.menuItems.slice()
+                : [];
+            if (!items.length) {
+                return false;
+            }
+
+            const currentIndex = items.findIndex(
+                (entry) => String(getMenuItemId(entry)) === String(id)
+            );
+            if (currentIndex < 0) {
+                return false;
+            }
+
+            const targetIndex = currentIndex + step;
+            if (targetIndex < 0 || targetIndex >= items.length) {
+                return false;
+            }
+
+            const [movedItem] = items.splice(currentIndex, 1);
+            items.splice(targetIndex, 0, movedItem);
+
+            const orders = items
+                .map((entry, position) => {
+                    const entryId = getMenuItemId(entry);
+                    if (!Number.isFinite(entryId) || entryId <= 0) {
+                        return null;
+                    }
+                    return { id: entryId, order: position + 1 };
+                })
+                .filter(Boolean);
+
+            if (!orders.length) {
+                return false;
+            }
+
+            state.isReorderingMenu = true;
+            renderMenuItems();
+
+            let success = false;
+            try {
+                await apiRequest(`${endpoints.menuItems}/reorder`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ orders }),
+                });
+                state.menuItems = items.map((entry, position) => {
+                    if (!entry || typeof entry !== 'object') {
+                        return entry;
+                    }
+                    const updated = { ...entry };
+                    if ('order' in updated || !('Order' in updated)) {
+                        updated.order = position + 1;
+                    }
+                    if ('Order' in updated) {
+                        updated.Order = position + 1;
+                    }
+                    return updated;
+                });
+                success = true;
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                state.isReorderingMenu = false;
+                renderMenuItems();
+            }
+
+            return success;
         };
 
         const handleMenuFormSubmit = async (event) => {
@@ -2447,6 +2608,18 @@
 
             const id = listItem.dataset.id;
             if (!id) {
+                return;
+            }
+
+            if (
+                button.dataset.action === 'move-up' ||
+                button.dataset.action === 'move-down'
+            ) {
+                const direction = button.dataset.action === 'move-up' ? -1 : 1;
+                const updated = await moveMenuItem(id, direction);
+                if (updated) {
+                    showAlert('Menu order updated.', 'success');
+                }
                 return;
             }
 

@@ -744,6 +744,9 @@
     display: grid;
     gap: var(--size-2xs);
 }
+.admin-navigation__details {
+    flex: 1;
+}
 .admin-social__name,
 .admin-navigation__label {
     font-weight: 600;
@@ -765,6 +768,50 @@
 .admin-navigation__actions {
     display: flex;
     gap: var(--size-xs);
+}
+.admin-navigation__order {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: var(--size-xs);
+    padding: var(--size-sm);
+    min-width: 72px;
+}
+.admin-navigation__order-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    padding: var(--size-xs);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    font-weight: 600;
+    font-size: var(--font-size-xs);
+    color: var(--color-secondary);
+    background: var(--color-bg-top);
+}
+.admin-navigation__order-buttons {
+    display: grid;
+    gap: var(--size-xs);
+}
+.admin-navigation__reorder-button {
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    padding: var(--size-xs);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    line-height: 1;
+}
+.admin-navigation__reorder-button:hover,
+.admin-navigation__reorder-button:focus-visible {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    outline: none;
+}
+.admin-navigation__reorder-button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 .admin-social__button,
 .admin-navigation__button {

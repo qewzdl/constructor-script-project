@@ -500,6 +500,7 @@ func (a *Application) initRouter() error {
 
 			admin.GET("/menu-items", a.handlers.Menu.List)
 			admin.POST("/menu-items", a.handlers.Menu.Create)
+			admin.PUT("/menu-items/reorder", a.handlers.Menu.Reorder)
 			admin.PUT("/menu-items/:id", a.handlers.Menu.Update)
 			admin.DELETE("/menu-items/:id", a.handlers.Menu.Delete)
 

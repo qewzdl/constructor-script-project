@@ -129,20 +129,28 @@ func (s *MenuService) Delete(id uint) error {
 	return s.repo.Delete(id)
 }
 
-func (s *MenuService) Reorder(orders map[uint]int) error {
+func (s *MenuService) Reorder(orders []models.MenuOrder) error {
 	if s == nil || s.repo == nil {
 		return errors.New("menu repository not configured")
 	}
 
-	for id, order := range orders {
-		item, err := s.repo.GetByID(id)
+	if len(orders) == 0 {
+		return nil
+	}
+
+	for _, entry := range orders {
+		if entry.ID == 0 {
+			continue
+		}
+
+		item, err := s.repo.GetByID(entry.ID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				continue
 			}
 			return err
 		}
-		item.Order = order
+		item.Order = entry.Order
 		if err := s.repo.Update(item); err != nil {
 			return err
 		}

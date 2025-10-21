@@ -92,6 +92,32 @@ func (h *MenuHandler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"menu_item": item})
 }
 
+func (h *MenuHandler) Reorder(c *gin.Context) {
+	if h.service == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Service not configured"})
+		return
+	}
+
+	var req models.ReorderMenuItemsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(req.Orders) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No menu order provided"})
+		return
+	}
+
+	if err := h.service.Reorder(req.Orders); err != nil {
+		logger.Error(err, "Failed to reorder menu items", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reorder menu items"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Menu order updated"})
+}
+
 func (h *MenuHandler) Delete(c *gin.Context) {
 	if h.service == nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Service not configured"})
