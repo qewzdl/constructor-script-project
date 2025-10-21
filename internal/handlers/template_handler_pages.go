@@ -646,6 +646,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"FaviconUpload":   "/api/v1/admin/settings/favicon",
 			"LogoUpload":      "/api/v1/admin/settings/logo",
 			"SocialLinks":     "/api/v1/admin/social-links",
+			"MenuItems":       "/api/v1/admin/menu-items",
 		},
 		"NoIndex": true,
 	})

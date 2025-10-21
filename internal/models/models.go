@@ -276,6 +276,7 @@ type SiteSettings struct {
 	Logo                    string       `json:"logo"`
 	UnusedTagRetentionHours int          `json:"unused_tag_retention_hours"`
 	SocialLinks             []SocialLink `json:"social_links"`
+	MenuItems               []MenuItem   `json:"menu_items"`
 }
 
 type UpdateSiteSettingsRequest struct {
@@ -357,4 +358,52 @@ type UpdateSocialLinkRequest struct {
 	URL   string `json:"url" binding:"required"`
 	Icon  string `json:"icon"`
 	Order *int   `json:"order"`
+}
+
+type MenuItem struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Title    string `gorm:"not null" json:"title"`
+	Label    string `gorm:"column:label;not null" json:"-"`
+	URL      string `gorm:"not null" json:"url"`
+	Location string `gorm:"type:varchar(32);not null;default:'header'" json:"location"`
+	Order    int    `gorm:"default:0" json:"order"`
+}
+
+func (m *MenuItem) EnsureTextFields() {
+	if m == nil {
+		return
+	}
+	m.Title = strings.TrimSpace(m.Title)
+	m.Label = strings.TrimSpace(m.Label)
+	if m.Title == "" && m.Label != "" {
+		m.Title = m.Label
+	}
+	if m.Label == "" && m.Title != "" {
+		m.Label = m.Title
+	}
+}
+
+func NormalizeMenuItems(items []MenuItem) []MenuItem {
+	for i := range items {
+		items[i].EnsureTextFields()
+	}
+	return items
+}
+
+type CreateMenuItemRequest struct {
+	Title    string `json:"title" binding:"required"`
+	URL      string `json:"url" binding:"required"`
+	Location string `json:"location"`
+	Order    *int   `json:"order"`
+}
+
+type UpdateMenuItemRequest struct {
+	Title    string  `json:"title" binding:"required"`
+	URL      string  `json:"url" binding:"required"`
+	Location *string `json:"location"`
+	Order    *int    `json:"order"`
 }

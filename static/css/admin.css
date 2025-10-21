@@ -701,7 +701,8 @@
     outline: none;
 }
 
-.admin-social {
+.admin-social,
+.admin-navigation {
     margin-top: var(--size-xl);
     padding: var(--size-lg);
     background: var(--color-surface);
@@ -710,22 +711,26 @@
     display: grid;
     gap: var(--size-lg);
 }
-.admin-social__header {
+.admin-social__header,
+.admin-navigation__header {
     display: grid;
     gap: var(--size-xs);
 }
-.admin-social__content {
+.admin-social__content,
+.admin-navigation__content {
     display: grid;
     gap: var(--size-lg);
 }
-.admin-social__list {
+.admin-social__list,
+.admin-navigation__list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
     gap: var(--size-base);
 }
-.admin-social__item {
+.admin-social__item,
+.admin-navigation__item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -734,28 +739,35 @@
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border-subtle);
 }
-.admin-social__details {
+.admin-social__details,
+.admin-navigation__details {
     display: grid;
     gap: var(--size-2xs);
 }
-.admin-social__name {
+.admin-social__name,
+.admin-navigation__label {
     font-weight: 600;
 }
-.admin-social__url {
+.admin-social__url,
+.admin-navigation__url {
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
     word-break: break-all;
 }
 .admin-social__url:hover,
-.admin-social__url:focus-visible {
+.admin-social__url:focus-visible,
+.admin-navigation__url:hover,
+.admin-navigation__url:focus-visible {
     color: var(--color-primary);
     outline: none;
 }
-.admin-social__actions {
+.admin-social__actions,
+.admin-navigation__actions {
     display: flex;
     gap: var(--size-xs);
 }
-.admin-social__button {
+.admin-social__button,
+.admin-navigation__button {
     border: 1px solid var(--color-border);
     background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-sm);
@@ -764,29 +776,36 @@
     cursor: pointer;
 }
 .admin-social__button:hover,
-.admin-social__button:focus-visible {
+.admin-social__button:focus-visible,
+.admin-navigation__button:hover,
+.admin-navigation__button:focus-visible {
     border-color: var(--color-primary);
     color: var(--color-primary);
     outline: none;
 }
-.admin-social__button--danger {
+.admin-social__button--danger,
+.admin-navigation__button--danger {
     border-color: var(--color-error);
     color: var(--color-error);
 }
 .admin-social__button--danger:hover,
-.admin-social__button--danger:focus-visible {
+.admin-social__button--danger:focus-visible,
+.admin-navigation__button--danger:hover,
+.admin-navigation__button--danger:focus-visible {
     background: var(--color-error);
     border-color: var(--color-error);
     color: var(--color-bg-top);
 }
-.admin-social__empty {
+.admin-social__empty,
+.admin-navigation__empty {
     padding: var(--size-base);
     text-align: center;
     color: var(--color-secondary);
     border: 1px dashed var(--color-border);
     border-radius: var(--radius-md);
 }
-.admin-social__form {
+.admin-social__form,
+.admin-navigation__form {
     display: grid;
     gap: var(--size-sm);
 }

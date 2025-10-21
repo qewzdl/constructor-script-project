@@ -155,7 +155,22 @@
                     <span class="header__menu-icon" aria-hidden="true"></span>
                 </button>
                 {{ $activeNav := .ActiveNav }}
+                {{ $activePath := .ActivePath }}
+                {{ $menuItems := .Site.MenuItems }}
                 <ul class="header__nav-list" id="primary-navigation" data-menu>
+                    {{ if gt (len $menuItems) 0 }}
+                    {{ range $menuItems }}
+                    {{ $isActive := pathEquals $activePath .URL }}
+                    <li class="header__nav-item">
+                        <a
+                            href="{{ .URL }}"
+                            class="header__nav-link{{ if $isActive }} header__nav-link--active{{ end }}"
+                            {{ if $isActive }}aria-current="page"{{ end }}
+                            >{{ .Title }}</a
+                        >
+                    </li>
+                    {{ end }}
+                    {{ else }}
                     <li class="header__nav-item">
                         <a
                             href="/"
@@ -180,6 +195,7 @@
                             >Search</a
                         >
                     </li>
+                    {{ end }}
                     {{ with .CurrentUser }} {{ if and $.IsAuthenticated (eq
                     .Role "admin") }}
                     <li class="header__nav-item" data-auth="auth">

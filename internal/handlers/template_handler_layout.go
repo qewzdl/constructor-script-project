@@ -28,6 +28,7 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 			"FaviconType": site.FaviconType,
 			"Logo":        site.Logo,
 			"SocialLinks": site.SocialLinks,
+			"MenuItems":   site.MenuItems,
 		},
 		"SearchQuery": "",
 		"SearchType":  "all",
@@ -52,6 +53,15 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 			logger.Error(err, "Failed to load social links", nil)
 		} else {
 			settings.SocialLinks = links
+		}
+	}
+
+	if h.menuService != nil {
+		items, err := h.menuService.ListPublic()
+		if err != nil {
+			logger.Error(err, "Failed to load menu items", nil)
+		} else {
+			settings.MenuItems = items
 		}
 	}
 
@@ -193,11 +203,17 @@ func (h *TemplateHandler) applySEOMetadata(c *gin.Context, data gin.H) {
 }
 
 func (h *TemplateHandler) setNavigationState(c *gin.Context, data gin.H) {
+	path := c.Request.URL.Path
+	cleanedPath := strings.TrimSuffix(path, "/")
+	if cleanedPath == "" {
+		cleanedPath = "/"
+	}
+	data["ActivePath"] = cleanedPath
+
 	if _, exists := data["ActiveNav"]; exists {
 		return
 	}
 
-	path := c.Request.URL.Path
 	active := ""
 
 	switch {

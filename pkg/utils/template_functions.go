@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"html/template"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,6 +41,22 @@ func GetTemplateFuncs() template.FuncMap {
 		},
 		"stripHTML": func(s string) string {
 			return strings.ReplaceAll(strings.ReplaceAll(s, "<", ""), ">", "")
+		},
+		"pathEquals": func(current, value string) bool {
+			current = normalizePath(current)
+			value = strings.TrimSpace(value)
+			if value == "" {
+				return false
+			}
+			if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
+				if parsed, err := url.Parse(value); err == nil {
+					if parsed.Path != "" {
+						value = parsed.Path
+					}
+				}
+			}
+			value = normalizePath(value)
+			return current != "" && current == value
 		},
 
 		"formatDate": func(t time.Time, format string) string {
@@ -148,4 +165,30 @@ func formatNumber(n int, word string) string {
 
 func intToString(n int) string {
 	return fmt.Sprintf("%d", n)
+}
+
+func normalizePath(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "/"
+	}
+	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
+		if parsed, err := url.Parse(trimmed); err == nil {
+			if parsed.Path != "" {
+				trimmed = parsed.Path
+			} else {
+				trimmed = "/"
+			}
+		}
+	}
+	if !strings.HasPrefix(trimmed, "/") {
+		trimmed = "/" + trimmed
+	}
+	if len(trimmed) > 1 {
+		trimmed = strings.TrimSuffix(trimmed, "/")
+		if trimmed == "" {
+			trimmed = "/"
+		}
+	}
+	return trimmed
 }

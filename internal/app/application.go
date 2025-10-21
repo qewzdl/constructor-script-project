@@ -56,6 +56,7 @@ type repositoryContainer struct {
 	Page       repository.PageRepository
 	Setting    repository.SettingRepository
 	SocialLink repository.SocialLinkRepository
+	Menu       repository.MenuRepository
 }
 
 type serviceContainer struct {
@@ -68,6 +69,7 @@ type serviceContainer struct {
 	Page       *service.PageService
 	Setup      *service.SetupService
 	SocialLink *service.SocialLinkService
+	Menu       *service.MenuService
 }
 
 type handlerContainer struct {
@@ -80,6 +82,7 @@ type handlerContainer struct {
 	Page       *handlers.PageHandler
 	Setup      *handlers.SetupHandler
 	SocialLink *handlers.SocialLinkHandler
+	Menu       *handlers.MenuHandler
 	SEO        *handlers.SEOHandler
 }
 
@@ -216,6 +219,7 @@ func (a *Application) runMigrations() error {
 		&models.Comment{},
 		&models.Setting{},
 		&models.SocialLink{},
+		&models.MenuItem{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
@@ -271,6 +275,7 @@ func (a *Application) initRepositories() {
 		Page:       repository.NewPageRepository(a.db),
 		Setting:    repository.NewSettingRepository(a.db),
 		SocialLink: repository.NewSocialLinkRepository(a.db),
+		Menu:       repository.NewMenuRepository(a.db),
 	}
 }
 
@@ -287,6 +292,7 @@ func (a *Application) initServices() {
 		Page:       service.NewPageService(a.repositories.Page, a.cache),
 		Setup:      service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService),
 		SocialLink: service.NewSocialLinkService(a.repositories.SocialLink),
+		Menu:       service.NewMenuService(a.repositories.Menu),
 	}
 }
 
@@ -301,6 +307,7 @@ func (a *Application) initHandlers() error {
 		Page:       handlers.NewPageHandler(a.services.Page),
 		Setup:      handlers.NewSetupHandler(a.services.Setup, a.cfg),
 		SocialLink: handlers.NewSocialLinkHandler(a.services.SocialLink),
+		Menu:       handlers.NewMenuHandler(a.services.Menu),
 		SEO:        handlers.NewSEOHandler(a.services.Post, a.services.Page, a.services.Category, a.services.Setup, a.cfg),
 	}
 
@@ -313,6 +320,7 @@ func (a *Application) initHandlers() error {
 		a.services.Setup,
 		a.services.Category,
 		a.services.SocialLink,
+		a.services.Menu,
 		a.cfg,
 		a.options.TemplatesDir,
 	)
@@ -489,6 +497,11 @@ func (a *Application) initRouter() error {
 			admin.POST("/social-links", a.handlers.SocialLink.Create)
 			admin.PUT("/social-links/:id", a.handlers.SocialLink.Update)
 			admin.DELETE("/social-links/:id", a.handlers.SocialLink.Delete)
+
+			admin.GET("/menu-items", a.handlers.Menu.List)
+			admin.POST("/menu-items", a.handlers.Menu.Create)
+			admin.PUT("/menu-items/:id", a.handlers.Menu.Update)
+			admin.DELETE("/menu-items/:id", a.handlers.Menu.Delete)
 
 			admin.GET("/stats", handlers.GetStatistics(a.db))
 

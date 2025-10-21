@@ -21,6 +21,7 @@ type TemplateHandler struct {
 	searchService     *service.SearchService
 	setupService      *service.SetupService
 	socialLinkService *service.SocialLinkService
+	menuService       *service.MenuService
 	templates         *template.Template
 	config            *config.Config
 	sanitizer         *bluemonday.Policy
@@ -36,6 +37,7 @@ func NewTemplateHandler(
 	setupService *service.SetupService,
 	categoryService *service.CategoryService,
 	socialLinkService *service.SocialLinkService,
+	menuService *service.MenuService,
 	cfg *config.Config,
 	templatesDir string,
 ) (*TemplateHandler, error) {
@@ -62,6 +64,7 @@ func NewTemplateHandler(
 		searchService:     searchService,
 		setupService:      setupService,
 		socialLinkService: socialLinkService,
+		menuService:       menuService,
 		templates:         templates,
 		config:            cfg,
 		sanitizer:         policy,

@@ -140,6 +140,7 @@
             faviconUpload: root.dataset.endpointFaviconUpload,
             logoUpload: root.dataset.endpointLogoUpload,
             socialLinks: root.dataset.endpointSocialLinks,
+            menuItems: root.dataset.endpointMenuItems,
         };
 
         const alertElement = document.getElementById('admin-alert');
@@ -282,6 +283,9 @@
         const socialList = root.querySelector('[data-role="social-list"]');
         const socialEmpty = root.querySelector('[data-role="social-empty"]');
         const socialForm = document.getElementById('admin-social-form');
+        const menuList = root.querySelector('[data-role="menu-list"]');
+        const menuEmpty = root.querySelector('[data-role="menu-empty"]');
+        const menuForm = document.getElementById('admin-menu-form');
         const faviconUrlInput = settingsForm?.querySelector('input[name="favicon"]');
         const faviconUploadInput = settingsForm?.querySelector('[data-role="favicon-file"]');
         const faviconUploadButton = settingsForm?.querySelector('[data-role="favicon-upload"]');
@@ -294,6 +298,8 @@
         const logoPreviewImage = settingsForm?.querySelector('[data-role="logo-preview-image"]');
         const socialSubmitButton = socialForm?.querySelector('[data-role="social-submit"]');
         const socialCancelButton = socialForm?.querySelector('[data-role="social-cancel"]');
+        const menuSubmitButton = menuForm?.querySelector('[data-role="menu-submit"]');
+        const menuCancelButton = menuForm?.querySelector('[data-role="menu-cancel"]');
         const postDeleteButton = postForm?.querySelector(
             '[data-role="post-delete"]'
         );
@@ -365,7 +371,9 @@
             comments: [],
             tags: [],
             socialLinks: [],
+            menuItems: [],
             editingSocialLinkId: '',
+            editingMenuItemId: '',
             defaultCategoryId: '',
             site: null,
             postSearchQuery: '',
@@ -2231,6 +2239,250 @@
             }
         };
 
+        const renderMenuItems = () => {
+            if (!menuList) {
+                return;
+            }
+            const items = Array.isArray(state.menuItems)
+                ? state.menuItems
+                : [];
+            menuList
+                .querySelectorAll('[data-role="menu-item"]')
+                .forEach((item) => item.remove());
+            if (!items.length) {
+                if (menuEmpty) {
+                    menuEmpty.hidden = false;
+                }
+                return;
+            }
+            if (menuEmpty) {
+                menuEmpty.hidden = true;
+            }
+            items.forEach((item) => {
+                if (!item) {
+                    return;
+                }
+                const li = document.createElement('li');
+                li.className = 'admin-navigation__item';
+                li.dataset.role = 'menu-item';
+                const idValue = item.id || item.ID || item.Id;
+                if (idValue !== undefined) {
+                    li.dataset.id = String(idValue);
+                }
+
+                const details = document.createElement('div');
+                details.className = 'admin-navigation__details';
+
+                const label = document.createElement('span');
+                label.className = 'admin-navigation__label';
+                label.textContent = item.title || item.Title || 'Menu item';
+                details.appendChild(label);
+
+                const link = document.createElement('a');
+                link.className = 'admin-navigation__url';
+                const href = item.url || item.URL || '#';
+                const resolvedHref =
+                    typeof buildAbsoluteUrl === 'function'
+                        ? buildAbsoluteUrl(href, state.site)
+                        : href;
+                link.href = resolvedHref || href;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = href;
+                details.appendChild(link);
+
+                const actions = document.createElement('div');
+                actions.className = 'admin-navigation__actions';
+
+                const editButton = document.createElement('button');
+                editButton.type = 'button';
+                editButton.className = 'admin-navigation__button';
+                editButton.dataset.action = 'edit';
+                editButton.textContent = 'Edit';
+                actions.appendChild(editButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className =
+                    'admin-navigation__button admin-navigation__button--danger';
+                deleteButton.dataset.action = 'delete';
+                deleteButton.textContent = 'Delete';
+                actions.appendChild(deleteButton);
+
+                li.appendChild(details);
+                li.appendChild(actions);
+                menuList.appendChild(li);
+            });
+        };
+
+        const resetMenuForm = () => {
+            if (!menuForm) {
+                return;
+            }
+            menuForm.reset();
+            const idField = menuForm.querySelector('input[name="id"]');
+            if (idField) {
+                idField.value = '';
+            }
+            state.editingMenuItemId = '';
+            if (menuSubmitButton) {
+                menuSubmitButton.textContent = 'Save menu item';
+            }
+            if (menuCancelButton) {
+                menuCancelButton.hidden = true;
+                menuCancelButton.disabled = false;
+            }
+        };
+
+        const startEditMenuItem = (item) => {
+            if (!menuForm || !item) {
+                return;
+            }
+            const idField = menuForm.querySelector('input[name="id"]');
+            const titleField = menuForm.querySelector('input[name="title"]');
+            const urlField = menuForm.querySelector('input[name="url"]');
+
+            const idValue = item.id || item.ID || item.Id;
+            if (idField) {
+                idField.value = idValue ? String(idValue) : '';
+            }
+            if (titleField) {
+                titleField.value = item.title || item.Title || '';
+            }
+            if (urlField) {
+                urlField.value = item.url || item.URL || '';
+            }
+
+            state.editingMenuItemId = idField?.value || '';
+            if (menuSubmitButton) {
+                menuSubmitButton.textContent = 'Update menu item';
+            }
+            if (menuCancelButton) {
+                menuCancelButton.hidden = false;
+            }
+            bringFormIntoView(menuForm);
+        };
+
+        const loadMenuItems = async () => {
+            if (!endpoints.menuItems) {
+                return;
+            }
+            try {
+                const payload = await apiRequest(endpoints.menuItems);
+                state.menuItems = payload?.menu_items || [];
+                renderMenuItems();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleMenuFormSubmit = async (event) => {
+            event.preventDefault();
+            if (!menuForm || !endpoints.menuItems) {
+                return;
+            }
+
+            const titleField = menuForm.querySelector('input[name="title"]');
+            const urlField = menuForm.querySelector('input[name="url"]');
+
+            const title = titleField ? titleField.value.trim() : '';
+            const url = urlField ? urlField.value.trim() : '';
+
+            if (!title) {
+                showAlert('Please provide the menu label.', 'error');
+                focusFirstField(menuForm);
+                return;
+            }
+
+            if (!url) {
+                showAlert('Please provide the destination URL.', 'error');
+                focusFirstField(menuForm);
+                return;
+            }
+
+            const payload = { title, url };
+            const isEditing = Boolean(state.editingMenuItemId);
+            const endpoint = isEditing
+                ? `${endpoints.menuItems}/${state.editingMenuItemId}`
+                : endpoints.menuItems;
+            const method = isEditing ? 'PUT' : 'POST';
+
+            disableForm(menuForm, true);
+            clearAlert();
+
+            try {
+                await apiRequest(endpoint, {
+                    method,
+                    body: JSON.stringify(payload),
+                });
+                await loadMenuItems();
+                showAlert(
+                    isEditing
+                        ? 'Menu item updated successfully.'
+                        : 'Menu item created successfully.',
+                    'success'
+                );
+                resetMenuForm();
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(menuForm, false);
+            }
+        };
+
+        const handleMenuCancelEdit = () => {
+            resetMenuForm();
+        };
+
+        const handleMenuListClick = async (event) => {
+            const button = event.target?.closest('[data-action]');
+            if (!button || !menuList || !endpoints.menuItems) {
+                return;
+            }
+
+            const listItem = button.closest('[data-role="menu-item"]');
+            if (!listItem) {
+                return;
+            }
+
+            const id = listItem.dataset.id;
+            if (!id) {
+                return;
+            }
+
+            if (button.dataset.action === 'edit') {
+                const item = state.menuItems.find(
+                    (entry) => String(entry?.id || entry?.ID || entry?.Id) === id
+                );
+                if (item) {
+                    startEditMenuItem(item);
+                }
+                return;
+            }
+
+            if (button.dataset.action === 'delete') {
+                if (!window.confirm('Delete this menu item?')) {
+                    return;
+                }
+                disableForm(menuForm, true);
+                clearAlert();
+                try {
+                    await apiRequest(`${endpoints.menuItems}/${id}`, {
+                        method: 'DELETE',
+                    });
+                    showAlert('Menu item deleted.', 'success');
+                    if (state.editingMenuItemId === id) {
+                        resetMenuForm();
+                    }
+                    await loadMenuItems();
+                } catch (error) {
+                    handleRequestError(error);
+                } finally {
+                    disableForm(menuForm, false);
+                }
+            }
+        };
+
         const approveComment = async (id, button) => {
             if (!endpoints.comments) {
                 return;
@@ -2677,6 +2929,9 @@
         socialForm?.addEventListener('submit', handleSocialFormSubmit);
         socialCancelButton?.addEventListener('click', handleSocialCancelEdit);
         socialList?.addEventListener('click', handleSocialListClick);
+        menuForm?.addEventListener('submit', handleMenuFormSubmit);
+        menuCancelButton?.addEventListener('click', handleMenuCancelEdit);
+        menuList?.addEventListener('click', handleMenuListClick);
         postTagsInput?.addEventListener('input', renderTagSuggestions);
 
         clearAlert();
@@ -2691,6 +2946,7 @@
         loadComments();
         loadSiteSettings();
         loadSocialLinks();
+        loadMenuItems();
     };
 
     if (document.readyState === 'loading') {
