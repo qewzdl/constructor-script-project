@@ -144,6 +144,7 @@
             siteSettings: root.dataset.endpointSiteSettings,
             faviconUpload: root.dataset.endpointFaviconUpload,
             logoUpload: root.dataset.endpointLogoUpload,
+            themes: root.dataset.endpointThemes,
             socialLinks: root.dataset.endpointSocialLinks,
             menuItems: root.dataset.endpointMenuItems,
         };
@@ -302,6 +303,8 @@
         const logoUploadButton = settingsForm?.querySelector('[data-role="logo-upload"]');
         const logoPreviewContainer = settingsForm?.querySelector('[data-role="logo-preview"]');
         const logoPreviewImage = settingsForm?.querySelector('[data-role="logo-preview-image"]');
+        const themeList = root.querySelector('[data-role="theme-list"]');
+        const themeEmptyState = root.querySelector('[data-role="theme-empty"]');
         const socialSubmitButton = socialForm?.querySelector('[data-role="social-submit"]');
         const socialCancelButton = socialForm?.querySelector('[data-role="social-cancel"]');
         const menuSubmitButton = menuForm?.querySelector('[data-role="menu-submit"]');
@@ -395,6 +398,7 @@
             categories: [],
             comments: [],
             tags: [],
+            themes: [],
             socialLinks: [],
             menuItems: [],
             activeMenuLocation: 'header',
@@ -1829,6 +1833,170 @@
 
             updateFaviconPreview(site?.favicon || site?.Favicon || '');
             updateLogoPreview(site?.logo || site?.Logo || '');
+        };
+
+        const createThemeItem = (theme) => {
+            const item = document.createElement('li');
+            item.className = 'admin-theme__item';
+            item.dataset.themeItem = 'true';
+
+            const slug = normaliseString(theme?.slug ?? theme?.Slug ?? '');
+            if (slug) {
+                item.dataset.themeSlug = slug;
+            }
+            item.dataset.active = theme?.active ? 'true' : 'false';
+
+            const title = document.createElement('div');
+            title.className = 'admin-theme__title';
+
+            const name = document.createElement('span');
+            const themeName = normaliseString(theme?.name ?? theme?.Name ?? slug) || 'Theme';
+            name.textContent = themeName;
+            title.appendChild(name);
+
+            if (theme?.active) {
+                const badge = document.createElement('span');
+                badge.className = 'admin-theme__badge';
+                badge.textContent = 'Active';
+                title.appendChild(badge);
+            }
+
+            item.appendChild(title);
+
+            const description = normaliseString(theme?.description ?? theme?.Description ?? '');
+            if (description) {
+                const descEl = document.createElement('p');
+                descEl.className = 'admin-theme__description';
+                descEl.textContent = description;
+                item.appendChild(descEl);
+            }
+
+            const metaEntries = [];
+            const version = normaliseString(theme?.version ?? theme?.Version ?? '');
+            if (version) {
+                metaEntries.push(`Version ${version}`);
+            }
+            const author = normaliseString(theme?.author ?? theme?.Author ?? '');
+            if (author) {
+                metaEntries.push(`By ${author}`);
+            }
+
+            if (metaEntries.length) {
+                const metaEl = document.createElement('p');
+                metaEl.className = 'admin-theme__meta';
+                metaEntries.forEach((entry) => {
+                    const span = document.createElement('span');
+                    span.textContent = entry;
+                    metaEl.appendChild(span);
+                });
+                item.appendChild(metaEl);
+            }
+
+            const actions = document.createElement('div');
+            actions.className = 'admin-theme__actions';
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'admin-form__submit';
+            button.dataset.role = 'theme-activate';
+            if (slug) {
+                button.dataset.themeSlug = slug;
+            }
+            button.dataset.themeName = themeName;
+
+            if (theme?.active) {
+                button.disabled = true;
+                button.textContent = 'Current theme';
+            } else {
+                button.textContent = 'Activate theme';
+            }
+
+            actions.appendChild(button);
+            item.appendChild(actions);
+
+            return item;
+        };
+
+        const renderThemeList = () => {
+            if (!themeList) {
+                return;
+            }
+
+            themeList.querySelectorAll('[data-theme-item]').forEach((node) => node.remove());
+
+            const themes = Array.isArray(state.themes) ? state.themes : [];
+            if (!themes.length) {
+                if (themeEmptyState) {
+                    themeEmptyState.hidden = false;
+                }
+                return;
+            }
+
+            if (themeEmptyState) {
+                themeEmptyState.hidden = true;
+            }
+
+            const fragment = document.createDocumentFragment();
+            themes.forEach((theme) => {
+                fragment.appendChild(createThemeItem(theme));
+            });
+            themeList.appendChild(fragment);
+        };
+
+        const loadThemes = async () => {
+            if (!endpoints.themes) {
+                return;
+            }
+            try {
+                const payload = await apiRequest(endpoints.themes);
+                const themes = Array.isArray(payload?.themes) ? payload.themes : [];
+                state.themes = themes;
+                renderThemeList();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleThemeListClick = async (event) => {
+            const button = event.target?.closest('[data-role="theme-activate"]');
+            if (!button || !themeList?.contains(button)) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const slug = normaliseString(button.dataset.themeSlug ?? '');
+            if (!slug) {
+                return;
+            }
+
+            if (!endpoints.themes) {
+                showAlert('Theme activation is not available in this environment.', 'error');
+                return;
+            }
+
+            const name = button.dataset.themeName || slug;
+            const base = endpoints.themes.endsWith('/')
+                ? endpoints.themes.slice(0, -1)
+                : endpoints.themes;
+            const url = `${base}/${encodeURIComponent(slug)}/activate`;
+
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Activating…';
+            showAlert(`Activating "${name}"…`, 'info');
+
+            try {
+                await apiRequest(url, { method: 'PUT' });
+                showAlert(`Theme "${name}" activated. Reloading to apply changes…`, 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 800);
+            } catch (error) {
+                button.disabled = false;
+                button.textContent = originalText || 'Activate theme';
+                handleRequestError(error);
+            }
         };
 
         const loadSiteSettings = async () => {
@@ -3666,6 +3834,7 @@
         faviconUploadInput?.addEventListener('change', handleFaviconFileChange);
         logoUploadButton?.addEventListener('click', handleLogoUploadClick);
         logoUploadInput?.addEventListener('change', handleLogoFileChange);
+        themeList?.addEventListener('click', handleThemeListClick);
         socialForm?.addEventListener('submit', handleSocialFormSubmit);
         socialCancelButton?.addEventListener('click', handleSocialCancelEdit);
         socialList?.addEventListener('click', handleSocialListClick);
@@ -3686,6 +3855,7 @@
         loadPages();
         loadComments();
         loadSiteSettings();
+        loadThemes();
         loadSocialLinks();
         loadMenuItems();
     };

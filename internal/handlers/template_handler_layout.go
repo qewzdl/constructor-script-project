@@ -289,7 +289,7 @@ func (h *TemplateHandler) renderWithLayout(c *gin.Context, layout, content strin
 		c.Header("X-Robots-Tag", "noindex, nofollow")
 	}
 
-	tmpl, err := h.templates.Clone()
+	tmpl, err := h.templateClone()
 	if err != nil {
 		logger.Error(err, "Failed to clone templates", nil)
 		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Template error")
@@ -312,7 +312,21 @@ func (h *TemplateHandler) renderWithLayout(c *gin.Context, layout, content strin
 
 	data["Content"] = template.HTML(buf)
 
-	c.HTML(http.StatusOK, layout, data)
+	layoutTmpl := tmpl.Lookup(layout)
+	if layoutTmpl == nil {
+		logger.Error(nil, "Layout template not found", map[string]interface{}{"template": layout})
+		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Template not found")
+		return
+	}
+
+	output, err := h.executeTemplate(layoutTmpl, data)
+	if err != nil {
+		logger.Error(err, "Failed to render layout", map[string]interface{}{"template": layout})
+		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to render layout")
+		return
+	}
+
+	c.Data(http.StatusOK, "text/html; charset=utf-8", output)
 }
 
 func (h *TemplateHandler) applySEOMetadata(c *gin.Context, data gin.H) {

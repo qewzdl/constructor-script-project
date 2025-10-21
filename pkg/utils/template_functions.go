@@ -10,7 +10,9 @@ import (
 	"time"
 )
 
-func GetTemplateFuncs() template.FuncMap {
+type AssetModTimeFunc func(path string) (time.Time, error)
+
+func GetTemplateFuncs(assetModTime AssetModTimeFunc) template.FuncMap {
 	return template.FuncMap{
 		"add": func(a, b int) int { return a + b },
 		"sub": func(a, b int) int { return a - b },
@@ -136,13 +138,22 @@ func GetTemplateFuncs() template.FuncMap {
 			if strings.HasPrefix(lowerPath, "http://") || strings.HasPrefix(lowerPath, "https://") || strings.HasPrefix(path, "//") {
 				return path
 			}
-			trimmed := strings.TrimPrefix(path, "/")
-			fsPath := filepath.FromSlash(trimmed)
-			info, err := os.Stat(fsPath)
-			if err != nil {
+			version := int64(0)
+			if assetModTime != nil {
+				if modTime, err := assetModTime(path); err == nil {
+					version = modTime.Unix()
+				}
+			}
+			if version == 0 {
+				trimmed := strings.TrimPrefix(path, "/")
+				fsPath := filepath.FromSlash(trimmed)
+				if info, err := os.Stat(fsPath); err == nil {
+					version = info.ModTime().Unix()
+				}
+			}
+			if version == 0 {
 				return path
 			}
-			version := info.ModTime().Unix()
 			separator := "?"
 			if strings.Contains(path, "?") {
 				separator = "&"

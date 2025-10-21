@@ -645,6 +645,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"SiteSettings":    "/api/v1/admin/settings/site",
 			"FaviconUpload":   "/api/v1/admin/settings/favicon",
 			"LogoUpload":      "/api/v1/admin/settings/logo",
+			"Themes":          "/api/v1/admin/themes",
 			"SocialLinks":     "/api/v1/admin/social-links",
 			"MenuItems":       "/api/v1/admin/menu-items",
 		},
@@ -686,5 +687,31 @@ func (h *TemplateHandler) renderError(c *gin.Context, status int, title, msg str
 			"FaviconType": models.DetectFaviconType(h.config.SiteFavicon),
 		},
 	}
-	c.HTML(status, "error.html", data)
+
+	tmpl, err := h.templateClone()
+	if err != nil {
+		logger.Error(err, "Failed to load error template", nil)
+		c.JSON(status, gin.H{"error": msg})
+		return
+	}
+
+	errorTmpl := tmpl.Lookup("error.html")
+	if errorTmpl == nil {
+		logger.Error(nil, "Error template missing", nil)
+		c.JSON(status, gin.H{"error": msg})
+		return
+	}
+
+	output, err := h.executeTemplate(errorTmpl, data)
+	if err != nil {
+		logger.Error(err, "Failed to render error template", nil)
+		c.JSON(status, gin.H{"error": msg})
+		return
+	}
+
+	c.Data(status, "text/html; charset=utf-8", output)
+}
+
+func (h *TemplateHandler) RenderErrorPage(c *gin.Context, status int, title, msg string) {
+	h.renderError(c, status, title, msg)
 }

@@ -279,6 +279,16 @@ type SiteSettings struct {
 	MenuItems               []MenuItem   `json:"menu_items"`
 }
 
+type ThemeInfo struct {
+	Slug         string `json:"slug"`
+	Name         string `json:"name"`
+	Description  string `json:"description,omitempty"`
+	Version      string `json:"version,omitempty"`
+	Author       string `json:"author,omitempty"`
+	PreviewImage string `json:"preview_image,omitempty"`
+	Active       bool   `json:"active"`
+}
+
 type UpdateSiteSettingsRequest struct {
 	Name                    string `json:"name" binding:"required"`
 	Description             string `json:"description"`

@@ -835,6 +835,98 @@
     outline: none;
 }
 
+.admin-theme {
+    margin-top: var(--size-xl);
+    padding-top: var(--size-lg);
+    border-top: 1px solid var(--color-border);
+    display: grid;
+    gap: var(--size-md);
+}
+
+.admin-theme__header {
+    display: grid;
+    gap: var(--size-xs);
+}
+
+.admin-theme__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--size-md);
+}
+
+@media (min-width: 768px) {
+    .admin-theme__list {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+}
+
+.admin-theme__item {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--size-lg);
+    background: var(--color-bg-top);
+    display: grid;
+    gap: var(--size-sm);
+    position: relative;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.admin-theme__item[data-active="true"] {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.admin-theme__title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--size-sm);
+}
+
+.admin-theme__description {
+    color: var(--color-secondary);
+    line-height: 1.6;
+}
+
+.admin-theme__meta {
+    font-size: var(--font-size-sm);
+    color: var(--color-secondary);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-md);
+}
+
+.admin-theme__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    background: var(--color-primary-transparent);
+    color: var(--color-primary);
+}
+
+.admin-theme__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--size-sm);
+    margin-top: var(--size-sm);
+}
+
+.admin-theme__empty {
+    padding: var(--size-lg);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    text-align: center;
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+
 .admin-social,
 .admin-navigation {
     margin-top: var(--size-xl);

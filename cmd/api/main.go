@@ -27,7 +27,7 @@ func main() {
 	cfg := config.New()
 	validator.Init()
 
-	application, err := app.New(cfg, app.Options{TemplatesDir: "./templates"})
+	application, err := app.New(cfg, app.Options{ThemesDir: "./themes", DefaultTheme: "default"})
 	if err != nil {
 		logger.Error(err, "Failed to initialize application", nil)
 		log.Fatal(err)

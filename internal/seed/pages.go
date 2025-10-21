@@ -2,10 +2,8 @@ package seed
 
 import (
 	"bytes"
-	"embed"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/fs"
 	"sort"
 
@@ -17,14 +15,15 @@ import (
 	"constructor-script-backend/pkg/utils"
 )
 
-//go:embed data/pages/*.json
-var defaultPagesFS embed.FS
+// EnsureDefaultPages loads page definitions from the provided filesystem and ensures they exist in the database.
+func EnsureDefaultPages(pageService *service.PageService, dataFS fs.FS) {
+	if pageService == nil || dataFS == nil {
+		return
+	}
 
-// EnsureDefaultPages loads embedded page definitions and makes sure they exist in the database.
-func EnsureDefaultPages(pageService *service.PageService) {
-	entries, err := fs.ReadDir(defaultPagesFS, "data/pages")
+	entries, err := fs.ReadDir(dataFS, ".")
 	if err != nil {
-		logger.Error(err, "Failed to read embedded page definitions", nil)
+		logger.Error(err, "Failed to read page definitions", nil)
 		return
 	}
 
@@ -38,15 +37,15 @@ func EnsureDefaultPages(pageService *service.PageService) {
 		}
 
 		name := entry.Name()
-		data, err := defaultPagesFS.ReadFile(fmt.Sprintf("data/pages/%s", name))
+		data, err := fs.ReadFile(dataFS, name)
 		if err != nil {
-			logger.Error(err, "Failed to read embedded page file", map[string]interface{}{"file": name})
+			logger.Error(err, "Failed to read page definition", map[string]interface{}{"file": name})
 			continue
 		}
 
 		definitions, err := parsePageDefinitions(data)
 		if err != nil {
-			logger.Error(err, "Failed to parse embedded page file", map[string]interface{}{"file": name})
+			logger.Error(err, "Failed to parse page definition", map[string]interface{}{"file": name})
 			continue
 		}
 

@@ -2,9 +2,7 @@ package seed
 
 import (
 	"bytes"
-	"embed"
 	"encoding/json"
-	"fmt"
 	"io/fs"
 	"sort"
 	"strings"
@@ -14,18 +12,15 @@ import (
 	"constructor-script-backend/pkg/logger"
 )
 
-//go:embed data/menu/*.json
-var defaultMenuFS embed.FS
-
-// EnsureDefaultMenu loads embedded menu definitions and ensures they exist in the database.
-func EnsureDefaultMenu(menuService *service.MenuService) {
-	if menuService == nil {
+// EnsureDefaultMenu loads menu definitions and ensures they exist in the database.
+func EnsureDefaultMenu(menuService *service.MenuService, dataFS fs.FS) {
+	if menuService == nil || dataFS == nil {
 		return
 	}
 
-	entries, err := fs.ReadDir(defaultMenuFS, "data/menu")
+	entries, err := fs.ReadDir(dataFS, ".")
 	if err != nil {
-		logger.Error(err, "Failed to read embedded menu definitions", nil)
+		logger.Error(err, "Failed to read menu definitions", nil)
 		return
 	}
 
@@ -53,15 +48,15 @@ func EnsureDefaultMenu(menuService *service.MenuService) {
 		}
 
 		name := entry.Name()
-		data, err := defaultMenuFS.ReadFile(fmt.Sprintf("data/menu/%s", name))
+		data, err := fs.ReadFile(dataFS, name)
 		if err != nil {
-			logger.Error(err, "Failed to read embedded menu file", map[string]interface{}{"file": name})
+			logger.Error(err, "Failed to read menu definition", map[string]interface{}{"file": name})
 			continue
 		}
 
 		definitions, err := parseMenuDefinitions(data)
 		if err != nil {
-			logger.Error(err, "Failed to parse embedded menu file", map[string]interface{}{"file": name})
+			logger.Error(err, "Failed to parse menu definition", map[string]interface{}{"file": name})
 			continue
 		}
 
