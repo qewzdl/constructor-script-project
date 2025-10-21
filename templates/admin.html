@@ -104,25 +104,39 @@
         </div>
     </section>
 
-    <div class="admin__tabs" role="tablist" aria-label="Admin sections">
-        <button type="button" class="admin__tab is-active" role="tab" aria-selected="true" data-tab="posts">
-            Posts
-        </button>
-        <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="pages">
-            Pages
-        </button>
-        <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="categories">
-            Categories
-        </button>
-        <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="comments">
-            Comments
-        </button>
-        <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="settings">
-            Site settings
-        </button>
-    </div>
+    <div class="admin__workspace">
+        <nav class="admin__navigation" aria-label="Admin sections">
+            <div
+                class="admin__tabs"
+                role="tablist"
+                aria-label="Admin sections"
+                aria-orientation="vertical"
+            >
+                <button
+                    type="button"
+                    class="admin__tab is-active"
+                    role="tab"
+                    aria-selected="true"
+                    data-tab="posts"
+                >
+                    Posts
+                </button>
+                <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="pages">
+                    Pages
+                </button>
+                <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="categories">
+                    Categories
+                </button>
+                <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="comments">
+                    Comments
+                </button>
+                <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="settings">
+                    Site settings
+                </button>
+            </div>
+        </nav>
 
-    <div class="admin__panels">
+        <div class="admin__panels">
         <section class="admin-panel is-active" data-panel="posts" role="tabpanel" aria-labelledby="posts">
             <header class="admin-panel__header">
                 <div>
@@ -583,5 +597,6 @@
                 </section>
             </div>
         </section>
+        </div>
     </div>
 </section>
