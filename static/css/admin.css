@@ -312,6 +312,27 @@
     align-self: start;
 }
 
+.admin__nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-mid);
+}
+
+.admin__nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-xs);
+}
+
+.admin__nav-title {
+    font-size: var(--font-size-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--color-tertiary);
+    margin: 0;
+}
+
 .admin__tabs {
     display: flex;
     flex-direction: column;

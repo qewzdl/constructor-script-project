@@ -107,38 +107,22 @@
 
     <div class="admin__workspace">
         <nav class="admin__navigation" aria-label="Admin sections">
-            <div
-                class="admin__tabs"
-                role="tablist"
-                aria-label="Admin sections"
-                aria-orientation="vertical"
-            >
-                <button
-                    type="button"
-                    class="admin__tab is-active"
-                    role="tab"
-                    aria-selected="true"
-                    data-tab="posts"
-                >
-                    Posts
-                </button>
-                <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="pages">
-                    Pages
-                </button>
-                <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="categories">
-                    Categories
-                </button>
-                <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="comments">
-                    Comments
-                </button>
-                <button type="button" class="admin__tab" role="tab" aria-selected="false" data-tab="settings">
-                    Site settings
-                </button>
-            </div>
+            <div class="admin__nav" data-role="admin-nav"></div>
         </nav>
 
         <div class="admin__panels">
-        <section class="admin-panel is-active" data-panel="posts" role="tabpanel" aria-labelledby="posts">
+            <section
+                id="admin-panel-posts"
+                class="admin-panel is-active"
+                data-panel="posts"
+                data-nav-group="content"
+                data-nav-group-label="Content"
+                data-nav-group-order="1"
+                data-nav-label="Posts"
+                data-nav-order="1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-posts"
+            >
             <header class="admin-panel__header">
                 <div>
                     <h2 class="admin-panel__title">Blog posts</h2>
@@ -267,7 +251,19 @@
             </div>
         </section>
 
-        <section class="admin-panel" data-panel="pages" role="tabpanel" aria-labelledby="pages" hidden>
+            <section
+                id="admin-panel-pages"
+                class="admin-panel"
+                data-panel="pages"
+                data-nav-group="content"
+                data-nav-group-label="Content"
+                data-nav-group-order="1"
+                data-nav-label="Pages"
+                data-nav-order="2"
+                role="tabpanel"
+                aria-labelledby="admin-tab-pages"
+                hidden
+            >
             <header class="admin-panel__header">
                 <div>
                     <h2 class="admin-panel__title">Static pages</h2>
@@ -372,7 +368,19 @@
             </div>
         </section>
 
-        <section class="admin-panel" data-panel="categories" role="tabpanel" aria-labelledby="categories" hidden>
+            <section
+                id="admin-panel-categories"
+                class="admin-panel"
+                data-panel="categories"
+                data-nav-group="content"
+                data-nav-group-label="Content"
+                data-nav-group-order="1"
+                data-nav-label="Categories"
+                data-nav-order="3"
+                role="tabpanel"
+                aria-labelledby="admin-tab-categories"
+                hidden
+            >
             <header class="admin-panel__header">
                 <div>
                     <h2 class="admin-panel__title">Categories</h2>
@@ -436,7 +444,19 @@
             </div>
         </section>
 
-        <section class="admin-panel" data-panel="comments" role="tabpanel" aria-labelledby="comments" hidden>
+            <section
+                id="admin-panel-comments"
+                class="admin-panel"
+                data-panel="comments"
+                data-nav-group="community"
+                data-nav-group-label="Community"
+                data-nav-group-order="2"
+                data-nav-label="Comments"
+                data-nav-order="1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-comments"
+                hidden
+            >
             <header class="admin-panel__header">
                 <div>
                     <h2 class="admin-panel__title">Recent comments</h2>
@@ -452,7 +472,19 @@
             </div>
         </section>
 
-        <section class="admin-panel" data-panel="settings" role="tabpanel" aria-labelledby="settings" hidden>
+            <section
+                id="admin-panel-settings"
+                class="admin-panel"
+                data-panel="settings"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Site settings"
+                data-nav-order="1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-settings"
+                hidden
+            >
             <header class="admin-panel__header">
                 <div>
                     <h2 class="admin-panel__title">Site identity</h2>
@@ -691,7 +723,7 @@
                     </div>
                 </section>
             </div>
-        </section>
+            </section>
         </div>
     </div>
 </section>

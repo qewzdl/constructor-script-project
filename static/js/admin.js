@@ -43,6 +43,11 @@
         return parts.join('\n\n');
     };
 
+    const parseOrder = (value, fallback = 0) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    };
+
     const initialiseAdminDashboard = () => {
         const root = document.querySelector('[data-page="admin"]');
         if (!root) {
@@ -267,6 +272,7 @@
             },
         ];
 
+        const navigationContainer = root.querySelector('[data-role="admin-nav"]');
         const tables = {
             posts: root.querySelector('#admin-posts-table'),
             pages: root.querySelector('#admin-pages-table'),
@@ -3440,6 +3446,124 @@
             }
         };
 
+        const buildNavigation = () => {
+            if (!navigationContainer) {
+                return [];
+            }
+
+            const panels = Array.from(root.querySelectorAll('.admin-panel'));
+            if (panels.length === 0) {
+                navigationContainer.innerHTML = '';
+                return [];
+            }
+
+            const groups = new Map();
+
+            panels.forEach((panel, index) => {
+                const panelKey = panel.dataset.panel;
+                if (!panelKey) {
+                    return;
+                }
+
+                const navLabel = panel.dataset.navLabel || panelKey;
+                const navOrder = parseOrder(panel.dataset.navOrder, index);
+                const groupKey = panel.dataset.navGroup || 'general';
+                const groupLabel = panel.dataset.navGroupLabel || 'General';
+                const groupOrder = parseOrder(panel.dataset.navGroupOrder, 0);
+                const panelElementId = panel.getAttribute('id') || `admin-panel-${panelKey}`;
+                panel.id = panelElementId;
+                const isActive =
+                    panel.classList.contains('is-active') &&
+                    !panel.hasAttribute('hidden');
+
+                if (!groups.has(groupKey)) {
+                    groups.set(groupKey, {
+                        key: groupKey,
+                        label: groupLabel,
+                        order: groupOrder,
+                        panels: [],
+                    });
+                }
+
+                const group = groups.get(groupKey);
+                group.label = groupLabel;
+                group.order = groupOrder;
+                group.panels.push({
+                    id: panelKey,
+                    label: navLabel,
+                    order: navOrder,
+                    isActive,
+                    elementId: panelElementId,
+                    panel,
+                });
+            });
+
+            const sortedGroups = Array.from(groups.values()).sort((a, b) => {
+                if (a.order !== b.order) {
+                    return a.order - b.order;
+                }
+                return (a.label || '').localeCompare(b.label || '');
+            });
+
+            navigationContainer.innerHTML = '';
+            const tabs = [];
+
+            sortedGroups.forEach((group, index) => {
+                group.panels.sort((a, b) => {
+                    if (a.order !== b.order) {
+                        return a.order - b.order;
+                    }
+                    return a.label.localeCompare(b.label);
+                });
+
+                const groupElement = createElement('div', {
+                    className: 'admin__nav-group',
+                });
+
+                const identifier =
+                    typeof group.key === 'string' && group.key
+                        ? group.key.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+                        : `group-${index + 1}`;
+                const headingId = `admin-nav-group-${identifier || index + 1}`;
+                const heading = createElement('h3', {
+                    className: 'admin__nav-title',
+                    textContent: group.label || 'Sections',
+                });
+                heading.id = headingId;
+                groupElement.appendChild(heading);
+
+                const tabList = createElement('div', {
+                    className: 'admin__tabs',
+                });
+                tabList.setAttribute('role', 'tablist');
+                tabList.setAttribute('aria-labelledby', headingId);
+                tabList.setAttribute('aria-orientation', 'vertical');
+
+                group.panels.forEach((panelMeta) => {
+                    const tab = createElement('button', {
+                        className: 'admin__tab',
+                        textContent: panelMeta.label,
+                    });
+                    const tabId = `admin-tab-${panelMeta.id}`;
+                    tab.type = 'button';
+                    tab.dataset.tab = panelMeta.id;
+                    tab.id = tabId;
+                    tab.setAttribute('role', 'tab');
+                    tab.setAttribute('aria-controls', panelMeta.elementId);
+                    tab.setAttribute('aria-selected', String(Boolean(panelMeta.isActive)));
+                    tab.classList.toggle('is-active', panelMeta.isActive);
+                    panelMeta.panel.setAttribute('aria-labelledby', tabId);
+                    tabList.appendChild(tab);
+                    tabs.push(tab);
+                });
+
+                groupElement.appendChild(tabList);
+                navigationContainer.appendChild(groupElement);
+            });
+
+            return tabs;
+        };
+
         const activateTab = (targetId) => {
             root.querySelectorAll('.admin__tab').forEach((tab) => {
                 const isActive = tab.dataset.tab === targetId;
@@ -3453,7 +3577,19 @@
             });
         };
 
-        root.querySelectorAll('.admin__tab').forEach((tab) => {
+        const navigationTabs = buildNavigation() || [];
+
+        if (
+            navigationTabs.length > 0 &&
+            !navigationTabs.some((tab) => tab.classList.contains('is-active'))
+        ) {
+            const defaultTab = navigationTabs[0].dataset.tab;
+            if (defaultTab) {
+                activateTab(defaultTab);
+            }
+        }
+
+        navigationTabs.forEach((tab) => {
             tab.addEventListener('click', () => activateTab(tab.dataset.tab));
         });
 
