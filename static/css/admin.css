@@ -859,10 +859,43 @@
 .admin-social__form,
 .admin-navigation__form {
     display: grid;
-    gap: var(--size-sm);
+    gap: var(--size-base);
 }
 .admin-navigation__location {
     max-width: 320px;
+}
+
+.admin-navigation__step {
+    margin: 0;
+    padding: var(--size-base);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-elevated);
+    display: grid;
+    gap: var(--size-sm);
+    min-inline-size: 0;
+}
+
+.admin-navigation__step-title {
+    font-weight: 600;
+    font-size: var(--font-size-base);
+    margin: 0;
+    padding: 0 var(--size-2xs);
+}
+
+.admin-navigation__step-description {
+    margin: 0;
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.admin-navigation__step-note {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-secondary);
+    background: color-mix(in srgb, var(--color-border-subtle) 25%, transparent);
+    border-radius: var(--radius-sm);
+    padding: var(--size-xs) var(--size-sm);
 }
 
 .admin-form__submit {

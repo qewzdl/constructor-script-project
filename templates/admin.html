@@ -612,60 +612,81 @@
                         </ul>
                         <form id="admin-menu-form" class="admin-navigation__form" novalidate>
                             <input type="hidden" name="id" />
-                            <label class="admin-form__label admin-navigation__location">
-                                Menu location
-                                <select
-                                    name="location"
-                                    required
-                                    class="admin-form__input"
-                                    data-role="menu-location"
-                                >
-                                    <option value="header">Header</option>
-                                    <option value="footer:explore">Footer – Explore</option>
-                                    <option value="footer:account">Footer – Account</option>
-                                    <option value="footer:legal">Footer – Legal</option>
-                                    <option value="footer">Footer (general)</option>
-                                    <option value="__custom_footer__">Create new footer section…</option>
-                                </select>
-                                <small class="admin-form__hint">
-                                    Select where this link should appear on your site.
-                                </small>
-                            </label>
-                            <div class="admin-navigation__custom" data-role="menu-custom-location" hidden>
-                                <label class="admin-form__label">
-                                    Footer section name
-                                    <input
-                                        type="text"
+                            <fieldset class="admin-navigation__step">
+                                <legend class="admin-navigation__step-title">1. Choose menu location</legend>
+                                <p class="admin-navigation__step-description">
+                                    Pick where this menu item should appear on your site.
+                                </p>
+                                <label class="admin-form__label admin-navigation__location">
+                                    Menu location
+                                    <select
+                                        name="location"
+                                        required
                                         class="admin-form__input"
-                                        data-role="menu-location-name"
-                                        placeholder="Resources"
-                                        autocomplete="off"
-                                    />
+                                        data-role="menu-location"
+                                    >
+                                        <option value="header">Header</option>
+                                        <option value="footer:explore">Footer – Explore</option>
+                                        <option value="footer:account">Footer – Account</option>
+                                        <option value="footer:legal">Footer – Legal</option>
+                                        <option value="footer">Footer (general)</option>
+                                        <option value="__custom_footer__">Create new footer section…</option>
+                                    </select>
                                     <small class="admin-form__hint">
-                                        We'll create a new footer group using this name and organise
-                                        links under it.
+                                        Select the navigation area to update.
                                     </small>
                                 </label>
-                            </div>
-                            <label class="admin-form__label">
-                                Label
-                                <input type="text" name="title" required class="admin-form__input" />
-                            </label>
-                            <label class="admin-form__label">
-                                Destination URL
-                                <input type="url" name="url" required class="admin-form__input" placeholder="/blog" />
-                                <small class="admin-form__hint">
-                                    Accepts relative or absolute URLs. Relative paths are recommended for internal pages.
-                                </small>
-                            </label>
-                            <div class="admin-form__actions admin-form__actions--inline">
-                                <button type="submit" class="admin-form__submit" data-role="menu-submit">
-                                    Save menu item
-                                </button>
-                                <button type="button" class="admin-form__cancel" data-role="menu-cancel" hidden>
-                                    Cancel
-                                </button>
-                            </div>
+                            </fieldset>
+                            <fieldset class="admin-navigation__step">
+                                <legend class="admin-navigation__step-title">2. Create a footer section</legend>
+                                <p class="admin-navigation__step-description">
+                                    Need a new footer column? Choose "Create new footer section…" above and name it here.
+                                </p>
+                                <p class="admin-navigation__step-note" data-role="menu-custom-location-hint">
+                                    Select "Create new footer section…" to enable this field.
+                                </p>
+                                <div class="admin-navigation__custom" data-role="menu-custom-location" hidden>
+                                    <label class="admin-form__label">
+                                        Footer section name
+                                        <input
+                                            type="text"
+                                            class="admin-form__input"
+                                            data-role="menu-location-name"
+                                            placeholder="Resources"
+                                            autocomplete="off"
+                                        />
+                                        <small class="admin-form__hint">
+                                            We'll create a new footer group using this name and organise
+                                            links under it.
+                                        </small>
+                                    </label>
+                                </div>
+                            </fieldset>
+                            <fieldset class="admin-navigation__step">
+                                <legend class="admin-navigation__step-title">3. Add menu item</legend>
+                                <p class="admin-navigation__step-description">
+                                    Give the link a label and destination URL for the selected location.
+                                </p>
+                                <label class="admin-form__label">
+                                    Label
+                                    <input type="text" name="title" required class="admin-form__input" />
+                                </label>
+                                <label class="admin-form__label">
+                                    Destination URL
+                                    <input type="url" name="url" required class="admin-form__input" placeholder="/blog" />
+                                    <small class="admin-form__hint">
+                                        Accepts relative or absolute URLs. Relative paths are recommended for internal pages.
+                                    </small>
+                                </label>
+                                <div class="admin-form__actions admin-form__actions--inline">
+                                    <button type="submit" class="admin-form__submit" data-role="menu-submit">
+                                        Save menu item
+                                    </button>
+                                    <button type="button" class="admin-form__cancel" data-role="menu-cancel" hidden>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </fieldset>
                         </form>
                     </div>
                 </section>

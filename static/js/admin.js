@@ -307,6 +307,9 @@
         const menuCustomLocationInput = menuForm?.querySelector(
             '[data-role="menu-location-name"]'
         );
+        const menuCustomLocationHint = menuForm?.querySelector(
+            '[data-role="menu-custom-location-hint"]'
+        );
 
         const CUSTOM_FOOTER_OPTION = '__custom_footer__';
         const defaultMenuLocationValues = [
@@ -2478,11 +2481,13 @@
         };
 
         const toggleCustomFooterLocation = (visible) => {
-            if (!menuCustomLocationContainer) {
-                return;
-            }
             const shouldShow = Boolean(visible);
-            menuCustomLocationContainer.hidden = !shouldShow;
+            if (menuCustomLocationContainer) {
+                menuCustomLocationContainer.hidden = !shouldShow;
+            }
+            if (menuCustomLocationHint) {
+                menuCustomLocationHint.hidden = shouldShow;
+            }
             if (!shouldShow && menuCustomLocationInput) {
                 menuCustomLocationInput.value = '';
             }
