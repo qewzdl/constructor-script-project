@@ -301,6 +301,21 @@
         const menuSubmitButton = menuForm?.querySelector('[data-role="menu-submit"]');
         const menuCancelButton = menuForm?.querySelector('[data-role="menu-cancel"]');
         const menuLocationField = menuForm?.querySelector('[data-role="menu-location"]');
+        const menuCustomLocationContainer = menuForm?.querySelector(
+            '[data-role="menu-custom-location"]'
+        );
+        const menuCustomLocationInput = menuForm?.querySelector(
+            '[data-role="menu-location-name"]'
+        );
+
+        const CUSTOM_FOOTER_OPTION = '__custom_footer__';
+        const defaultMenuLocationValues = [
+            'header',
+            'footer:explore',
+            'footer:account',
+            'footer:legal',
+            'footer',
+        ];
         const postDeleteButton = postForm?.querySelector(
             '[data-role="post-delete"]'
         );
@@ -374,6 +389,7 @@
             socialLinks: [],
             menuItems: [],
             activeMenuLocation: 'header',
+            menuLocations: new Set(defaultMenuLocationValues),
             isReorderingMenu: false,
             editingSocialLinkId: '',
             editingMenuItemId: '',
@@ -2287,8 +2303,13 @@
             return normaliseMenuLocation(locationValue);
         };
 
-        const getActiveMenuLocation = () =>
-            normaliseMenuLocation(state.activeMenuLocation);
+        const getActiveMenuLocation = () => {
+            const location = normaliseMenuLocation(state.activeMenuLocation);
+            if (location === CUSTOM_FOOTER_OPTION) {
+                return 'header';
+            }
+            return location;
+        };
 
         const menuLocationLabels = {
             header: 'Header',
@@ -2323,6 +2344,154 @@
             }
             return location === 'footer' ? 'Footer' : 'Header';
         };
+
+        const slugifyFooterSectionName = (value) => {
+            if (typeof value !== 'string') {
+                return '';
+            }
+            const trimmed = value.trim();
+            if (!trimmed) {
+                return '';
+            }
+            let normalised = trimmed;
+            if (typeof trimmed.normalize === 'function') {
+                normalised = trimmed
+                    .normalize('NFKD')
+                    .replace(/\p{M}+/gu, '')
+                    .toLowerCase();
+            } else {
+                normalised = trimmed.toLowerCase();
+            }
+            let sanitized;
+            try {
+                sanitized = normalised.replace(/[^\p{L}\p{N}]+/gu, ' ');
+            } catch (error) {
+                sanitized = normalised.replace(/[^a-z0-9]+/gi, ' ');
+            }
+            return sanitized
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean)
+                .join('-');
+        };
+
+        const ensureMenuLocationsInitialised = () => {
+            if (!(state.menuLocations instanceof Set)) {
+                state.menuLocations = new Set(defaultMenuLocationValues);
+            }
+        };
+
+        const updateMenuLocationOptions = () => {
+            if (!menuLocationField) {
+                return;
+            }
+            ensureMenuLocationsInitialised();
+
+            const previousValue = menuLocationField.value;
+            const previousNormalised =
+                previousValue && previousValue !== CUSTOM_FOOTER_OPTION
+                    ? normaliseMenuLocation(previousValue)
+                    : previousValue;
+
+            const fragment = document.createDocumentFragment();
+            const seen = new Set();
+
+            const appendOption = (value) => {
+                if (!value || seen.has(value)) {
+                    return;
+                }
+                seen.add(value);
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = formatMenuLocationLabel(value);
+                fragment.appendChild(option);
+            };
+
+            defaultMenuLocationValues.forEach((value) => {
+                if (state.menuLocations.has(value)) {
+                    appendOption(value);
+                }
+            });
+
+            const extras = Array.from(state.menuLocations).filter(
+                (value) => !seen.has(value)
+            );
+            extras.sort((a, b) => {
+                const labelA = formatMenuLocationLabel(a).toLowerCase();
+                const labelB = formatMenuLocationLabel(b).toLowerCase();
+                if (labelA === labelB) {
+                    return a.localeCompare(b);
+                }
+                return labelA.localeCompare(labelB);
+            });
+            extras.forEach(appendOption);
+
+            const customOption = document.createElement('option');
+            customOption.value = CUSTOM_FOOTER_OPTION;
+            customOption.textContent = 'Create new footer section…';
+            fragment.appendChild(customOption);
+
+            menuLocationField.innerHTML = '';
+            menuLocationField.appendChild(fragment);
+
+            if (
+                previousValue === CUSTOM_FOOTER_OPTION ||
+                previousNormalised === CUSTOM_FOOTER_OPTION
+            ) {
+                menuLocationField.value = CUSTOM_FOOTER_OPTION;
+                return;
+            }
+
+            if (
+                previousNormalised &&
+                previousNormalised !== CUSTOM_FOOTER_OPTION &&
+                state.menuLocations.has(previousNormalised)
+            ) {
+                menuLocationField.value = previousNormalised;
+                return;
+            }
+
+            const activeLocation = getActiveMenuLocation();
+            if (state.menuLocations.has(activeLocation)) {
+                menuLocationField.value = activeLocation;
+                return;
+            }
+
+            const fallback = defaultMenuLocationValues.find((value) =>
+                state.menuLocations.has(value)
+            );
+            if (fallback) {
+                menuLocationField.value = fallback;
+            }
+        };
+
+        const ensureMenuLocation = (location) => {
+            const normalised = normaliseMenuLocation(location);
+            if (!normalised || normalised === CUSTOM_FOOTER_OPTION) {
+                return;
+            }
+            ensureMenuLocationsInitialised();
+            if (!state.menuLocations.has(normalised)) {
+                state.menuLocations.add(normalised);
+                updateMenuLocationOptions();
+            }
+        };
+
+        const toggleCustomFooterLocation = (visible) => {
+            if (!menuCustomLocationContainer) {
+                return;
+            }
+            const shouldShow = Boolean(visible);
+            menuCustomLocationContainer.hidden = !shouldShow;
+            if (!shouldShow && menuCustomLocationInput) {
+                menuCustomLocationInput.value = '';
+            }
+            if (shouldShow) {
+                menuCustomLocationInput?.focus();
+            }
+        };
+
+        updateMenuLocationOptions();
 
         const renderMenuItems = () => {
             if (!menuList) {
@@ -2361,7 +2530,10 @@
                 if (menuEmpty) {
                     menuEmpty.hidden = false;
                 }
-                if (menuLocationField) {
+                if (
+                    menuLocationField &&
+                    menuLocationField.value !== CUSTOM_FOOTER_OPTION
+                ) {
                     menuLocationField.value = activeLocation;
                 }
                 return;
@@ -2370,7 +2542,10 @@
             if (menuEmpty) {
                 menuEmpty.hidden = true;
             }
-            if (menuLocationField) {
+            if (
+                menuLocationField &&
+                menuLocationField.value !== CUSTOM_FOOTER_OPTION
+            ) {
                 menuLocationField.value = activeLocation;
             }
 
@@ -2490,7 +2665,9 @@
                 return;
             }
             menuForm.reset();
+            toggleCustomFooterLocation(false);
             if (menuLocationField) {
+                updateMenuLocationOptions();
                 menuLocationField.value = getActiveMenuLocation();
             }
             const idField = menuForm.querySelector('input[name="id"]');
@@ -2526,7 +2703,10 @@
             if (urlField) {
                 urlField.value = item.url || item.URL || '';
             }
+            ensureMenuLocation(location);
             if (menuLocationField) {
+                toggleCustomFooterLocation(false);
+                updateMenuLocationOptions();
                 menuLocationField.value = location;
             }
 
@@ -2563,24 +2743,37 @@
                     }
                     return 0;
                 });
-                const availableLocations = new Set(
-                    items.map((entry) => getMenuItemLocation(entry))
-                );
-                if (availableLocations.size > 0) {
-                    const currentLocation = getActiveMenuLocation();
-                    if (!availableLocations.has(currentLocation)) {
-                        let fallbackLocation = 'header';
-                        if (!availableLocations.has(fallbackLocation)) {
-                            const iterator = availableLocations.values().next();
-                            if (!iterator.done) {
-                                fallbackLocation = iterator.value;
-                            }
-                        }
-                        state.activeMenuLocation = normaliseMenuLocation(
-                            fallbackLocation
-                        );
+                const availableLocations = new Set(defaultMenuLocationValues);
+                items.forEach((entry) => {
+                    const location = getMenuItemLocation(entry);
+                    if (location) {
+                        availableLocations.add(location);
                     }
+                });
+
+                state.menuLocations = availableLocations;
+
+                const currentLocation = getActiveMenuLocation();
+                if (!availableLocations.has(currentLocation)) {
+                    let fallbackLocation = 'header';
+                    if (!availableLocations.has(fallbackLocation)) {
+                        const iterator = availableLocations.values();
+                        let next = iterator.next();
+                        while (!next.done) {
+                            const candidate = next.value;
+                            if (candidate) {
+                                fallbackLocation = candidate;
+                                break;
+                            }
+                            next = iterator.next();
+                        }
+                    }
+                    state.activeMenuLocation = normaliseMenuLocation(
+                        fallbackLocation
+                    );
                 }
+
+                updateMenuLocationOptions();
                 state.menuItems = items;
                 renderMenuItems();
             } catch (error) {
@@ -2721,9 +2914,36 @@
                 return;
             }
 
-            const location = menuLocationField
-                ? normaliseMenuLocation(menuLocationField.value)
-                : getActiveMenuLocation();
+            let location = getActiveMenuLocation();
+            if (menuLocationField) {
+                const selectedLocation = menuLocationField.value;
+                if (selectedLocation === CUSTOM_FOOTER_OPTION) {
+                    const customName = menuCustomLocationInput
+                        ? menuCustomLocationInput.value.trim()
+                        : '';
+                    if (!customName) {
+                        showAlert(
+                            'Please provide a name for the new footer section.',
+                            'error'
+                        );
+                        menuCustomLocationInput?.focus();
+                        return;
+                    }
+                    const slug = slugifyFooterSectionName(customName);
+                    if (!slug) {
+                        showAlert(
+                            'Footer section names must include letters or numbers.',
+                            'error'
+                        );
+                        menuCustomLocationInput?.focus();
+                        return;
+                    }
+                    location = normaliseMenuLocation(`footer:${slug}`);
+                } else {
+                    location = normaliseMenuLocation(selectedLocation);
+                }
+            }
+
             const payload = { title, url, location };
             const isEditing = Boolean(state.editingMenuItemId);
             const endpoint = isEditing
@@ -2740,6 +2960,7 @@
                     body: JSON.stringify(payload),
                 });
                 state.activeMenuLocation = location;
+                ensureMenuLocation(location);
                 await loadMenuItems();
                 showAlert(
                     isEditing
@@ -2760,7 +2981,13 @@
         };
 
         const handleMenuLocationChange = (event) => {
-            const selected = normaliseMenuLocation(event?.target?.value);
+            const rawValue = event?.target?.value || '';
+            if (rawValue === CUSTOM_FOOTER_OPTION) {
+                toggleCustomFooterLocation(true);
+                return;
+            }
+            toggleCustomFooterLocation(false);
+            const selected = normaliseMenuLocation(rawValue);
             state.activeMenuLocation = selected;
             if (state.editingMenuItemId) {
                 resetMenuForm();

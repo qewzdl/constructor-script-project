@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"strings"
+	"unicode"
 
 	"gorm.io/gorm"
 
@@ -164,5 +165,41 @@ func normalizeMenuLocation(location string) string {
 	if cleaned == "" {
 		return defaultMenuLocation
 	}
+	if cleaned == "footer" {
+		return cleaned
+	}
+
+	if strings.HasPrefix(cleaned, "footer") {
+		suffix := strings.TrimPrefix(cleaned, "footer")
+		suffix = strings.TrimLeft(suffix, ":_- ")
+		if suffix == "" {
+			return "footer"
+		}
+
+		var parts []string
+		var builder strings.Builder
+		for _, r := range suffix {
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+				builder.WriteRune(unicode.ToLower(r))
+				continue
+			}
+
+			if builder.Len() > 0 {
+				parts = append(parts, builder.String())
+				builder.Reset()
+			}
+		}
+
+		if builder.Len() > 0 {
+			parts = append(parts, builder.String())
+		}
+
+		if len(parts) == 0 {
+			return "footer"
+		}
+
+		return "footer:" + strings.Join(parts, "-")
+	}
+
 	return cleaned
 }

@@ -125,6 +125,7 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 
 	seed.EnsureDefaultCategory(app.services.Category)
 	seed.EnsureDefaultPages(app.services.Page)
+	seed.EnsureDefaultMenu(app.services.Menu)
 
 	if err := app.initHandlers(); err != nil {
 		return nil, err

@@ -1,0 +1,62 @@
+[
+    {
+        "title": "Home",
+        "url": "/",
+        "location": "header",
+        "order": 0
+    },
+    {
+        "title": "Blog",
+        "url": "/blog",
+        "location": "header",
+        "order": 1
+    },
+    {
+        "title": "Search",
+        "url": "/search",
+        "location": "header",
+        "order": 2
+    },
+    {
+        "title": "Home",
+        "url": "/",
+        "location": "footer:explore",
+        "order": 0
+    },
+    {
+        "title": "Blog",
+        "url": "/blog",
+        "location": "footer:explore",
+        "order": 1
+    },
+    {
+        "title": "Search",
+        "url": "/search",
+        "location": "footer:explore",
+        "order": 2
+    },
+    {
+        "title": "Terms of Use",
+        "url": "/page/terms",
+        "location": "footer:legal",
+        "order": 0
+    },
+    {
+        "title": "Privacy Policy",
+        "url": "/page/privacy",
+        "location": "footer:legal",
+        "order": 1
+    },
+    {
+        "title": "Log in",
+        "url": "/login",
+        "location": "footer:account",
+        "order": 0
+    },
+    {
+        "title": "Register",
+        "url": "/register",
+        "location": "footer:account",
+        "order": 1
+    }
+]
