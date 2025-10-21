@@ -13,6 +13,7 @@
     data-endpoint-tags-admin="{{ index .AdminEndpoints "TagsAdmin" }}"
     data-endpoint-site-settings="{{ index .AdminEndpoints "SiteSettings" }}"
     data-endpoint-favicon-upload="{{ index .AdminEndpoints "FaviconUpload" }}"
+    data-endpoint-logo-upload="{{ index .AdminEndpoints "LogoUpload" }}"
     data-endpoint-social-links="{{ index .AdminEndpoints "SocialLinks" }}"
 >
     <header class="admin__header">
@@ -508,8 +509,31 @@
                             </div>
                         </label>
                         <label class="admin-form__label">
-                            Logo URL
+                            Logo
                             <input type="url" name="logo" class="admin-form__input" placeholder="/static/icons/logo.svg" />
+                            <div class="admin-form__upload-actions">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    data-role="logo-file"
+                                    hidden
+                                />
+                                <button type="button" class="admin-form__upload-button" data-role="logo-upload">
+                                    Upload logo
+                                </button>
+                            </div>
+                            <small class="admin-form__hint">
+                                Accepts relative or absolute URLs. Leave blank to use the default logo. Uploads support common image formats such as SVG, PNG, JPG and WEBP.
+                            </small>
+                            <div class="admin-form__logo-preview" data-role="logo-preview" hidden>
+                                <span class="admin-form__hint admin-form__hint--label">Current logo:</span>
+                                <img
+                                    src=""
+                                    alt="Current logo"
+                                    class="admin-form__logo-image"
+                                    data-role="logo-preview-image"
+                                />
+                            </div>
                         </label>
                     </fieldset>
                     <div class="admin-form__actions">

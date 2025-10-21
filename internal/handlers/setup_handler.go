@@ -182,3 +182,42 @@ func (h *SetupHandler) UploadFavicon(c *gin.Context) {
 		"site":         settings,
 	})
 }
+
+func (h *SetupHandler) UploadLogo(c *gin.Context) {
+	if h.setupService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Setup service not available"})
+		return
+	}
+
+	file, err := c.FormFile("logo")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No logo uploaded"})
+		return
+	}
+
+	url, replaceErr := h.setupService.ReplaceLogo(file)
+	if replaceErr != nil {
+		var invalidErr *service.InvalidLogoError
+		if errors.As(replaceErr, &invalidErr) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": invalidErr.Error()})
+			return
+		}
+
+		logger.Error(replaceErr, "Failed to upload logo", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload logo"})
+		return
+	}
+
+	settings, err := h.setupService.GetSiteSettings(h.defaultSiteSettings())
+	if err != nil {
+		logger.Error(err, "Failed to load site settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load site settings"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Logo updated successfully",
+		"logo":    url,
+		"site":    settings,
+	})
+}

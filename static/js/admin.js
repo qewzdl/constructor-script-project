@@ -138,6 +138,7 @@
             tagsAdmin: root.dataset.endpointTagsAdmin,
             siteSettings: root.dataset.endpointSiteSettings,
             faviconUpload: root.dataset.endpointFaviconUpload,
+            logoUpload: root.dataset.endpointLogoUpload,
             socialLinks: root.dataset.endpointSocialLinks,
         };
 
@@ -286,6 +287,11 @@
         const faviconUploadButton = settingsForm?.querySelector('[data-role="favicon-upload"]');
         const faviconPreviewContainer = settingsForm?.querySelector('[data-role="favicon-preview"]');
         const faviconPreviewImage = settingsForm?.querySelector('[data-role="favicon-preview-image"]');
+        const logoUrlInput = settingsForm?.querySelector('input[name="logo"]');
+        const logoUploadInput = settingsForm?.querySelector('[data-role="logo-file"]');
+        const logoUploadButton = settingsForm?.querySelector('[data-role="logo-upload"]');
+        const logoPreviewContainer = settingsForm?.querySelector('[data-role="logo-preview"]');
+        const logoPreviewImage = settingsForm?.querySelector('[data-role="logo-preview-image"]');
         const socialSubmitButton = socialForm?.querySelector('[data-role="social-submit"]');
         const socialCancelButton = socialForm?.querySelector('[data-role="social-cancel"]');
         const postDeleteButton = postForm?.querySelector(
@@ -333,6 +339,11 @@
         if (faviconUploadButton && !endpoints.faviconUpload) {
             faviconUploadButton.disabled = true;
             faviconUploadButton.title = 'Favicon uploads are not available.';
+        }
+
+        if (logoUploadButton && !endpoints.logoUpload) {
+            logoUploadButton.disabled = true;
+            logoUploadButton.title = 'Logo uploads are not available.';
         }
 
         const sectionBuilder = createSectionBuilder(postForm);
@@ -383,6 +394,26 @@
                     : value;
             faviconPreviewImage.src = absoluteUrl || value;
             faviconPreviewContainer.hidden = false;
+        };
+
+        const updateLogoPreview = (url) => {
+            if (!logoPreviewContainer || !logoPreviewImage) {
+                return;
+            }
+
+            const value = typeof url === 'string' ? url.trim() : '';
+            if (!value) {
+                logoPreviewImage.src = '';
+                logoPreviewContainer.hidden = true;
+                return;
+            }
+
+            const absoluteUrl =
+                typeof buildAbsoluteUrl === 'function'
+                    ? buildAbsoluteUrl(value, state.site)
+                    : value;
+            logoPreviewImage.src = absoluteUrl || value;
+            logoPreviewContainer.hidden = false;
         };
 
         const getPostPublicPath = (post) => {
@@ -1761,6 +1792,7 @@
             });
 
             updateFaviconPreview(site?.favicon || site?.Favicon || '');
+            updateLogoPreview(site?.logo || site?.Logo || '');
         };
 
         const loadSiteSettings = async () => {
@@ -1855,6 +1887,91 @@
 
                 updateFaviconPreview(faviconUrl);
                 showAlert('Favicon uploaded successfully.', 'success');
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.removeAttribute('data-loading');
+                    if (typeof originalLabel === 'string') {
+                        button.textContent = originalLabel;
+                    }
+                }
+                if (input) {
+                    input.value = '';
+                }
+            }
+        };
+
+        const handleLogoUploadClick = () => {
+            if (!logoUploadInput) {
+                return;
+            }
+            if (!endpoints.logoUpload) {
+                showAlert('Logo uploads are not available in this environment.', 'error');
+                return;
+            }
+            logoUploadInput.click();
+        };
+
+        const handleLogoFileChange = async (event) => {
+            const input = event?.target;
+            if (!input || !input.files || !input.files.length) {
+                return;
+            }
+
+            if (!endpoints.logoUpload) {
+                showAlert('Logo uploads are not available in this environment.', 'error');
+                input.value = '';
+                return;
+            }
+
+            const file = input.files[0];
+            const button = logoUploadButton;
+            const originalLabel = button?.textContent;
+
+            if (button) {
+                button.disabled = true;
+                button.setAttribute('data-loading', 'true');
+                if (typeof originalLabel === 'string') {
+                    button.textContent = 'Uploading…';
+                }
+            }
+
+            clearAlert();
+
+            const formData = new FormData();
+            formData.append('logo', file);
+
+            try {
+                const response = await apiRequest(endpoints.logoUpload, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const site = response?.site;
+                if (site) {
+                    state.site = site;
+                } else if (!state.site) {
+                    state.site = {};
+                }
+
+                const logoUrl =
+                    response?.logo ||
+                    site?.logo ||
+                    state.site?.logo ||
+                    '';
+
+                if (state.site) {
+                    state.site.logo = logoUrl;
+                }
+
+                if (logoUrlInput) {
+                    logoUrlInput.value = logoUrl || '';
+                }
+
+                updateLogoPreview(logoUrl);
+                showAlert('Logo uploaded successfully.', 'success');
             } catch (error) {
                 handleRequestError(error);
             } finally {
@@ -2555,6 +2672,8 @@
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
         faviconUploadButton?.addEventListener('click', handleFaviconUploadClick);
         faviconUploadInput?.addEventListener('change', handleFaviconFileChange);
+        logoUploadButton?.addEventListener('click', handleLogoUploadClick);
+        logoUploadInput?.addEventListener('change', handleLogoFileChange);
         socialForm?.addEventListener('submit', handleSocialFormSubmit);
         socialCancelButton?.addEventListener('click', handleSocialCancelEdit);
         socialList?.addEventListener('click', handleSocialListClick);

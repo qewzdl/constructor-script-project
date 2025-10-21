@@ -615,6 +615,25 @@
     object-fit: contain;
 }
 
+.admin-form__logo-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--size-sm);
+    margin-top: var(--size-xs);
+}
+
+.admin-form__logo-image {
+    max-width: 160px;
+    max-height: 64px;
+    width: auto;
+    height: auto;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    object-fit: contain;
+    padding: var(--size-xxs);
+}
+
 .admin-form__checkbox {
     display: inline-flex;
     align-items: center;

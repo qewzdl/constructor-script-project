@@ -483,6 +483,7 @@ func (a *Application) initRouter() error {
 			admin.GET("/settings/site", a.handlers.Setup.GetSiteSettings)
 			admin.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
 			admin.POST("/settings/favicon", a.handlers.Setup.UploadFavicon)
+			admin.POST("/settings/logo", a.handlers.Setup.UploadLogo)
 
 			admin.GET("/social-links", a.handlers.SocialLink.List)
 			admin.POST("/social-links", a.handlers.SocialLink.Create)
