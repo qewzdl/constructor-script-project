@@ -2262,9 +2262,21 @@
         };
 
         const normaliseMenuLocation = (value) => {
-            const location =
-                typeof value === 'string' ? value.trim().toLowerCase() : '';
-            return location || 'header';
+            const raw = typeof value === 'string' ? value.trim().toLowerCase() : '';
+            if (!raw) {
+                return 'header';
+            }
+            if (raw === 'footer') {
+                return raw;
+            }
+            if (raw.startsWith('footer')) {
+                const suffix = raw
+                    .slice('footer'.length)
+                    .replace(/^[\s:._-]+/, '')
+                    .replace(/[\s._]+/g, '-');
+                return suffix ? `footer:${suffix}` : 'footer';
+            }
+            return raw;
         };
 
         const getMenuItemLocation = (item) => {
@@ -2278,12 +2290,38 @@
         const getActiveMenuLocation = () =>
             normaliseMenuLocation(state.activeMenuLocation);
 
+        const menuLocationLabels = {
+            header: 'Header',
+            footer: 'Footer',
+            'footer:explore': 'Footer – Explore',
+            'footer:account': 'Footer – Account',
+            'footer:legal': 'Footer – Legal',
+        };
+
         const formatMenuLocationLabel = (value) => {
             const location = normaliseMenuLocation(value);
-            if (location === 'footer') {
+            if (Object.prototype.hasOwnProperty.call(menuLocationLabels, location)) {
+                return menuLocationLabels[location];
+            }
+            if (location.startsWith('footer:')) {
+                const suffix = location.slice('footer:'.length);
+                const words = suffix
+                    .split(/[-_\s/]+/)
+                    .filter(Boolean)
+                    .map((word) => {
+                        if (!word.length) {
+                            return word;
+                        }
+                        const first = word.charAt(0).toUpperCase();
+                        const rest = word.slice(1).toLowerCase();
+                        return `${first}${rest}`;
+                    });
+                if (words.length) {
+                    return `Footer – ${words.join(' ')}`;
+                }
                 return 'Footer';
             }
-            return 'Header';
+            return location === 'footer' ? 'Footer' : 'Header';
         };
 
         const renderMenuItems = () => {

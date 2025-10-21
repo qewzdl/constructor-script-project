@@ -8,12 +8,19 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"unicode"
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
+
+type FooterMenuGroup struct {
+	Key   string
+	Title string
+	Items []models.MenuItem
+}
 
 func (h *TemplateHandler) basePageData(title, description string, extra gin.H) gin.H {
 	site := h.siteSettings()
@@ -73,27 +80,60 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 	return settings
 }
 
-func splitMenuItems(items []models.MenuItem) ([]models.MenuItem, []models.MenuItem) {
+func splitMenuItems(items []models.MenuItem) ([]models.MenuItem, []FooterMenuGroup) {
 	if len(items) == 0 {
 		return nil, nil
 	}
 
 	var header []models.MenuItem
-	var footer []models.MenuItem
+	groups := make(map[string]*FooterMenuGroup)
 
 	for _, item := range items {
-		location := strings.TrimSpace(strings.ToLower(item.Location))
-		switch location {
-		case "footer":
-			footer = append(footer, item)
-		case "header", "":
+		location := normalizeLocation(item.Location)
+
+		switch {
+		case isFooterLocation(location):
+			key := footerGroupKey(location)
+			group, ok := groups[key]
+			if !ok {
+				group = &FooterMenuGroup{
+					Key:   key,
+					Title: footerGroupTitle(key),
+				}
+				groups[key] = group
+			}
+			group.Items = append(group.Items, item)
+		case location == "header" || location == "":
 			header = append(header, item)
 		default:
 			header = append(header, item)
 		}
 	}
 
-	return sortMenuItems(header), sortMenuItems(footer)
+	header = sortMenuItems(header)
+
+	if len(groups) == 0 {
+		return header, nil
+	}
+
+	for _, group := range groups {
+		group.Items = sortMenuItems(group.Items)
+	}
+
+	orderedKeys := orderedFooterGroupKeys(groups)
+
+	footer := make([]FooterMenuGroup, 0, len(orderedKeys))
+	for _, key := range orderedKeys {
+		if group, ok := groups[key]; ok && len(group.Items) > 0 {
+			footer = append(footer, *group)
+		}
+	}
+
+	if len(footer) == 0 {
+		return header, nil
+	}
+
+	return header, footer
 }
 
 func sortMenuItems(items []models.MenuItem) []models.MenuItem {
@@ -112,6 +152,124 @@ func sortMenuItems(items []models.MenuItem) []models.MenuItem {
 	})
 
 	return sorted
+}
+
+func normalizeLocation(location string) string {
+	return strings.TrimSpace(strings.ToLower(location))
+}
+
+func isFooterLocation(location string) bool {
+	return strings.HasPrefix(location, "footer")
+}
+
+func footerGroupKey(location string) string {
+	cleaned := normalizeLocation(location)
+	if cleaned == "" {
+		return "footer"
+	}
+
+	if cleaned == "footer" {
+		return cleaned
+	}
+
+	suffix := strings.TrimPrefix(cleaned, "footer")
+	suffix = strings.TrimLeft(suffix, ":_- ")
+	if suffix == "" {
+		return "footer"
+	}
+
+	return "footer:" + suffix
+}
+
+var footerMenuLabels = map[string]string{
+	"footer":         "Footer",
+	"footer:explore": "Explore",
+	"footer:account": "Account",
+	"footer:legal":   "Legal",
+}
+
+var footerMenuOrder = []string{
+	"footer:explore",
+	"footer:account",
+	"footer:legal",
+	"footer",
+}
+
+func footerGroupTitle(key string) string {
+	if label, ok := footerMenuLabels[key]; ok {
+		return label
+	}
+
+	if strings.HasPrefix(key, "footer:") {
+		return formatFooterLabel(strings.TrimPrefix(key, "footer:"))
+	}
+
+	return "Footer"
+}
+
+func formatFooterLabel(value string) string {
+	parts := strings.FieldsFunc(value, func(r rune) bool {
+		switch r {
+		case '-', '_', ' ', ':', '/':
+			return true
+		}
+		return false
+	})
+
+	if len(parts) == 0 {
+		return "Footer"
+	}
+
+	for i, part := range parts {
+		if part == "" {
+			continue
+		}
+		runes := []rune(part)
+		runes[0] = unicode.ToUpper(runes[0])
+		for j := 1; j < len(runes); j++ {
+			runes[j] = unicode.ToLower(runes[j])
+		}
+		parts[i] = string(runes)
+	}
+
+	return strings.Join(parts, " ")
+}
+
+func orderedFooterGroupKeys(groups map[string]*FooterMenuGroup) []string {
+	if len(groups) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]bool, len(groups))
+	ordered := make([]string, 0, len(groups))
+
+	for _, key := range footerMenuOrder {
+		if _, ok := groups[key]; ok {
+			ordered = append(ordered, key)
+			seen[key] = true
+		}
+	}
+
+	var extras []string
+	for key := range groups {
+		if seen[key] {
+			continue
+		}
+		extras = append(extras, key)
+	}
+
+	sort.SliceStable(extras, func(i, j int) bool {
+		left := groups[extras[i]].Title
+		right := groups[extras[j]].Title
+		if left == right {
+			return extras[i] < extras[j]
+		}
+		return left < right
+	})
+
+	ordered = append(ordered, extras...)
+
+	return ordered
 }
 
 func (h *TemplateHandler) renderTemplate(c *gin.Context, templateName, title, description string, extra gin.H) {

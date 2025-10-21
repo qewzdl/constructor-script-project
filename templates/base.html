@@ -158,7 +158,6 @@
                 {{ $activePath := .ActivePath }}
                 {{ $headerMenu := .Site.HeaderMenuItems }}
                 <ul class="header__nav-list" id="primary-navigation" data-menu>
-                    {{ if gt (len $headerMenu) 0 }}
                     {{ range $headerMenu }}
                     {{ $isActive := pathEquals $activePath .URL }}
                     <li class="header__nav-item">
@@ -167,32 +166,6 @@
                             class="header__nav-link{{ if $isActive }} header__nav-link--active{{ end }}"
                             {{ if $isActive }}aria-current="page"{{ end }}
                             >{{ .Title }}</a
-                        >
-                    </li>
-                    {{ end }}
-                    {{ else }}
-                    <li class="header__nav-item">
-                        <a
-                            href="/"
-                            class="header__nav-link{{ if eq $activeNav "home" }} header__nav-link--active{{ end }}"
-                            {{ if eq $activeNav "home" }}aria-current="page"{{ end }}
-                            >Home</a
-                        >
-                    </li>
-                    <li class="header__nav-item">
-                        <a
-                            href="/blog"
-                            class="header__nav-link{{ if eq $activeNav "blog" }} header__nav-link--active{{ end }}"
-                            {{ if eq $activeNav "blog" }}aria-current="page"{{ end }}
-                            >Blog</a
-                        >
-                    </li>
-                    <li class="header__nav-item">
-                        <a
-                            href="/search"
-                            class="header__nav-link{{ if eq $activeNav "search" }} header__nav-link--active{{ end }}"
-                            {{ if eq $activeNav "search" }}aria-current="page"{{ end }}
-                            >Search</a
                         >
                     </li>
                     {{ end }}
@@ -316,53 +289,18 @@
                 <nav class="footer__nav" aria-label="Footer navigation">
                     {{ $footerMenu := .Site.FooterMenuItems }}
                     {{ if gt (len $footerMenu) 0 }}
+                    {{ range $footerMenu }}
                     <div class="footer__group">
-                        <h2 class="footer__heading">Navigation</h2>
+                        <h2 class="footer__heading">{{ .Title }}</h2>
                         <ul class="footer__list">
-                            {{ range $footerMenu }}
+                            {{ range .Items }}
                             <li class="footer__item">
                                 <a href="{{ .URL }}" class="footer__link">{{ .Title }}</a>
                             </li>
                             {{ end }}
                         </ul>
                     </div>
-                    {{ else }}
-                    <div class="footer__group">
-                        <h2 class="footer__heading">Explore</h2>
-                        <ul class="footer__list">
-                            <li class="footer__item">
-                                <a href="/" class="footer__link">Home</a>
-                            </li>
-                            <li class="footer__item">
-                                <a href="/blog" class="footer__link">Blog</a>
-                            </li>
-                            <li class="footer__item">
-                                <a href="/search" class="footer__link">Search</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="footer__group">
-                        <h2 class="footer__heading">Account</h2>
-                        <ul class="footer__list">
-                            <li class="footer__item">
-                                <a href="/login" class="footer__link">Sign in</a>
-                            </li>
-                            <li class="footer__item">
-                                <a href="/register" class="footer__link">Create account</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="footer__group">
-                        <h2 class="footer__heading">Legal</h2>
-                        <ul class="footer__list">
-                            <li class="footer__item">
-                                <a href="/page/terms" class="footer__link">Terms</a>
-                            </li>
-                            <li class="footer__item">
-                                <a href="/page/privacy" class="footer__link">Privacy</a>
-                            </li>
-                        </ul>
-                    </div>
+                    {{ end }}
                     {{ end }}
                 </nav>
                 {{ if .Site.SocialLinks }}
