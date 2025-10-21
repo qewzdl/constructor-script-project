@@ -290,7 +290,7 @@ textarea {
 
 .form-grid {
     display: grid;
-    var(--common-gap);
+    gap: var(--size-sm);
 }
 
 .form-field {
