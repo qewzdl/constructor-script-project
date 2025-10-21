@@ -83,11 +83,23 @@ func (s *ThemeService) Activate(slug string) (models.ThemeInfo, error) {
 
 	themeCandidate, ok := s.manager.Resolve(cleaned)
 	if !ok {
-		return models.ThemeInfo{}, fmt.Errorf("%w: %s", ErrThemeNotFound, cleaned)
-	}
-
-	if err := s.manager.Activate(cleaned); err != nil {
-		return models.ThemeInfo{}, err
+		if s.defaultTheme != "" && cleaned != s.defaultTheme {
+			if fallback, ok := s.manager.Resolve(s.defaultTheme); ok {
+				if err := s.manager.Activate(s.defaultTheme); err != nil {
+					return models.ThemeInfo{}, err
+				}
+				cleaned = s.defaultTheme
+				themeCandidate = fallback
+				ok = true
+			}
+		}
+		if !ok {
+			return models.ThemeInfo{}, fmt.Errorf("%w: %s", ErrThemeNotFound, cleaned)
+		}
+	} else {
+		if err := s.manager.Activate(cleaned); err != nil {
+			return models.ThemeInfo{}, err
+		}
 	}
 
 	if s.settingRepo != nil {
