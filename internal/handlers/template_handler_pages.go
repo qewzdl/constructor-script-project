@@ -643,6 +643,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"Tags":            "/api/v1/tags",
 			"TagsAdmin":       "/api/v1/admin/tags",
 			"SiteSettings":    "/api/v1/admin/settings/site",
+			"FaviconUpload":   "/api/v1/admin/settings/favicon",
 			"SocialLinks":     "/api/v1/admin/social-links",
 		},
 		"NoIndex": true,

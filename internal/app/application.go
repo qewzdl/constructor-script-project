@@ -275,15 +275,17 @@ func (a *Application) initRepositories() {
 }
 
 func (a *Application) initServices() {
+	uploadService := service.NewUploadService(a.cfg.UploadDir)
+
 	a.services = serviceContainer{
 		Auth:       service.NewAuthService(a.repositories.User, a.cfg.JWTSecret),
 		Category:   service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache),
 		Post:       service.NewPostService(a.repositories.Post, a.repositories.Tag, a.repositories.Category, a.cache, a.repositories.Setting),
 		Comment:    service.NewCommentService(a.repositories.Comment),
 		Search:     service.NewSearchService(a.repositories.Search),
-		Upload:     service.NewUploadService(a.cfg.UploadDir),
+		Upload:     uploadService,
 		Page:       service.NewPageService(a.repositories.Page, a.cache),
-		Setup:      service.NewSetupService(a.repositories.User, a.repositories.Setting),
+		Setup:      service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService),
 		SocialLink: service.NewSocialLinkService(a.repositories.SocialLink),
 	}
 }
@@ -480,6 +482,7 @@ func (a *Application) initRouter() error {
 
 			admin.GET("/settings/site", a.handlers.Setup.GetSiteSettings)
 			admin.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
+			admin.POST("/settings/favicon", a.handlers.Setup.UploadFavicon)
 
 			admin.GET("/social-links", a.handlers.SocialLink.List)
 			admin.POST("/social-links", a.handlers.SocialLink.Create)

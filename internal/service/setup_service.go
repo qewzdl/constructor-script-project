@@ -2,6 +2,8 @@ package service
 
 import (
 	"errors"
+	"mime/multipart"
+	"os"
 	"strconv"
 	"strings"
 
@@ -17,15 +19,29 @@ var (
 	ErrSetupAlreadyCompleted = errors.New("setup already completed")
 )
 
-type SetupService struct {
-	userRepo    repository.UserRepository
-	settingRepo repository.SettingRepository
+type InvalidFaviconError struct {
+	Reason string
 }
 
-func NewSetupService(userRepo repository.UserRepository, settingRepo repository.SettingRepository) *SetupService {
+func (e *InvalidFaviconError) Error() string {
+	if e == nil {
+		return ""
+	}
+
+	return e.Reason
+}
+
+type SetupService struct {
+	userRepo      repository.UserRepository
+	settingRepo   repository.SettingRepository
+	uploadService *UploadService
+}
+
+func NewSetupService(userRepo repository.UserRepository, settingRepo repository.SettingRepository, uploadService *UploadService) *SetupService {
 	return &SetupService{
-		userRepo:    userRepo,
-		settingRepo: settingRepo,
+		userRepo:      userRepo,
+		settingRepo:   settingRepo,
+		uploadService: uploadService,
 	}
 }
 
@@ -187,6 +203,61 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 	}
 
 	return result, err
+}
+
+func (s *SetupService) ReplaceFavicon(file *multipart.FileHeader) (string, string, error) {
+	if s.settingRepo == nil {
+		return "", "", errors.New("setting repository not configured")
+	}
+
+	if s.uploadService == nil {
+		return "", "", errors.New("upload service not configured")
+	}
+
+	if file == nil {
+		return "", "", &InvalidFaviconError{Reason: "no favicon provided"}
+	}
+
+	if err := s.uploadService.ValidateImage(file); err != nil {
+		return "", "", &InvalidFaviconError{Reason: err.Error()}
+	}
+
+	existingValue := ""
+	hadExisting := false
+
+	if value, err := s.getSettingValue(settingKeySiteFavicon); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", "", err
+		}
+	} else {
+		existingValue = strings.TrimSpace(value)
+		hadExisting = true
+	}
+
+	newURL, err := s.uploadService.UploadImage(file)
+	if err != nil {
+		return "", "", err
+	}
+
+	if err := s.settingRepo.Set(settingKeySiteFavicon, newURL); err != nil {
+		s.uploadService.DeleteImage(newURL)
+		return "", "", err
+	}
+
+	if existingValue != "" && s.uploadService.IsManagedURL(existingValue) {
+		if err := s.uploadService.DeleteImage(existingValue); err != nil && !errors.Is(err, os.ErrNotExist) {
+			if hadExisting {
+				s.settingRepo.Set(settingKeySiteFavicon, existingValue)
+			} else {
+				s.settingRepo.Delete(settingKeySiteFavicon)
+			}
+			s.uploadService.DeleteImage(newURL)
+			return "", "", err
+		}
+	}
+
+	faviconType := models.DetectFaviconType(newURL)
+	return newURL, faviconType, nil
 }
 
 func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest) error {

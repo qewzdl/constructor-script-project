@@ -567,6 +567,54 @@
     line-height: 1.5;
 }
 
+.admin-form__hint--label {
+    font-weight: 600;
+}
+
+.admin-form__upload-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--size-sm);
+}
+
+.admin-form__upload-button {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-weight: 600;
+    padding: var(--size-xs) var(--size-md);
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-form__upload-button:hover,
+.admin-form__upload-button:focus-visible {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    outline: none;
+}
+
+.admin-form__upload-button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.admin-form__favicon-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--size-sm);
+    margin-top: var(--size-xs);
+}
+
+.admin-form__favicon-image {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    object-fit: contain;
+}
+
 .admin-form__checkbox {
     display: inline-flex;
     align-items: center;

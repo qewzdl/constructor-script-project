@@ -142,3 +142,43 @@ func (h *SetupHandler) UpdateSiteSettings(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Site settings updated", "site": settings})
 }
+
+func (h *SetupHandler) UploadFavicon(c *gin.Context) {
+	if h.setupService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Setup service not available"})
+		return
+	}
+
+	file, err := c.FormFile("favicon")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No favicon uploaded"})
+		return
+	}
+
+	url, faviconType, replaceErr := h.setupService.ReplaceFavicon(file)
+	if replaceErr != nil {
+		var invalidErr *service.InvalidFaviconError
+		if errors.As(replaceErr, &invalidErr) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": invalidErr.Error()})
+			return
+		}
+
+		logger.Error(replaceErr, "Failed to upload favicon", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload favicon"})
+		return
+	}
+
+	settings, err := h.setupService.GetSiteSettings(h.defaultSiteSettings())
+	if err != nil {
+		logger.Error(err, "Failed to load site settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load site settings"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "Favicon updated successfully",
+		"favicon":      url,
+		"favicon_type": faviconType,
+		"site":         settings,
+	})
+}

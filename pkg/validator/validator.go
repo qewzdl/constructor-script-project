@@ -93,7 +93,7 @@ func SanitizeFilename(filename string) string {
 }
 
 func ValidateImageExtension(filename string) bool {
-	allowedExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
+	allowedExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".ico"}
 	filename = strings.ToLower(filename)
 
 	for _, ext := range allowedExtensions {

@@ -137,6 +137,7 @@
             tags: root.dataset.endpointTags,
             tagsAdmin: root.dataset.endpointTagsAdmin,
             siteSettings: root.dataset.endpointSiteSettings,
+            faviconUpload: root.dataset.endpointFaviconUpload,
             socialLinks: root.dataset.endpointSocialLinks,
         };
 
@@ -280,6 +281,11 @@
         const socialList = root.querySelector('[data-role="social-list"]');
         const socialEmpty = root.querySelector('[data-role="social-empty"]');
         const socialForm = document.getElementById('admin-social-form');
+        const faviconUrlInput = settingsForm?.querySelector('input[name="favicon"]');
+        const faviconUploadInput = settingsForm?.querySelector('[data-role="favicon-file"]');
+        const faviconUploadButton = settingsForm?.querySelector('[data-role="favicon-upload"]');
+        const faviconPreviewContainer = settingsForm?.querySelector('[data-role="favicon-preview"]');
+        const faviconPreviewImage = settingsForm?.querySelector('[data-role="favicon-preview-image"]');
         const socialSubmitButton = socialForm?.querySelector('[data-role="social-submit"]');
         const socialCancelButton = socialForm?.querySelector('[data-role="social-cancel"]');
         const postDeleteButton = postForm?.querySelector(
@@ -324,6 +330,11 @@
         const pageContentField = pageForm?.querySelector('[name="content"]');
         const postContentField = postForm?.querySelector('[name="content"]');
 
+        if (faviconUploadButton && !endpoints.faviconUpload) {
+            faviconUploadButton.disabled = true;
+            faviconUploadButton.title = 'Favicon uploads are not available.';
+        }
+
         const sectionBuilder = createSectionBuilder(postForm);
         if (sectionBuilder) {
             sectionBuilder.onChange((sections) => {
@@ -352,6 +363,26 @@
             hasLoadedPosts: false,
             hasLoadedPages: false,
             hasLoadedCategories: false,
+        };
+
+        const updateFaviconPreview = (url) => {
+            if (!faviconPreviewContainer || !faviconPreviewImage) {
+                return;
+            }
+
+            const value = typeof url === 'string' ? url.trim() : '';
+            if (!value) {
+                faviconPreviewImage.src = '';
+                faviconPreviewContainer.hidden = true;
+                return;
+            }
+
+            const absoluteUrl =
+                typeof buildAbsoluteUrl === 'function'
+                    ? buildAbsoluteUrl(value, state.site)
+                    : value;
+            faviconPreviewImage.src = absoluteUrl || value;
+            faviconPreviewContainer.hidden = false;
         };
 
         const getPostPublicPath = (post) => {
@@ -1728,6 +1759,8 @@
                 }
                 field.value = value || '';
             });
+
+            updateFaviconPreview(site?.favicon || site?.Favicon || '');
         };
 
         const loadSiteSettings = async () => {
@@ -1740,6 +1773,101 @@
                 populateSiteSettingsForm(state.site);
             } catch (error) {
                 handleRequestError(error);
+            }
+        };
+
+        const handleFaviconUploadClick = () => {
+            if (!faviconUploadInput) {
+                return;
+            }
+            if (!endpoints.faviconUpload) {
+                showAlert('Favicon uploads are not available in this environment.', 'error');
+                return;
+            }
+            faviconUploadInput.click();
+        };
+
+        const handleFaviconFileChange = async (event) => {
+            const input = event?.target;
+            if (!input || !input.files || !input.files.length) {
+                return;
+            }
+
+            if (!endpoints.faviconUpload) {
+                showAlert('Favicon uploads are not available in this environment.', 'error');
+                input.value = '';
+                return;
+            }
+
+            const file = input.files[0];
+            const button = faviconUploadButton;
+            const originalLabel = button?.textContent;
+
+            if (button) {
+                button.disabled = true;
+                button.setAttribute('data-loading', 'true');
+                if (typeof originalLabel === 'string') {
+                    button.textContent = 'Uploading…';
+                }
+            }
+
+            clearAlert();
+
+            const formData = new FormData();
+            formData.append('favicon', file);
+
+            try {
+                const response = await apiRequest(endpoints.faviconUpload, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const site = response?.site;
+                if (site) {
+                    state.site = site;
+                } else if (!state.site) {
+                    state.site = {};
+                }
+
+                const faviconUrl =
+                    response?.favicon ||
+                    site?.favicon ||
+                    state.site?.favicon ||
+                    '';
+
+                const faviconType =
+                    response?.favicon_type ||
+                    response?.faviconType ||
+                    site?.favicon_type ||
+                    state.site?.favicon_type ||
+                    '';
+
+                if (state.site) {
+                    state.site.favicon = faviconUrl;
+                    if (faviconType) {
+                        state.site.favicon_type = faviconType;
+                    }
+                }
+
+                if (faviconUrlInput) {
+                    faviconUrlInput.value = faviconUrl || '';
+                }
+
+                updateFaviconPreview(faviconUrl);
+                showAlert('Favicon uploaded successfully.', 'success');
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.removeAttribute('data-loading');
+                    if (typeof originalLabel === 'string') {
+                        button.textContent = originalLabel;
+                    }
+                }
+                if (input) {
+                    input.value = '';
+                }
             }
         };
 
@@ -2425,6 +2553,8 @@
         categoryForm?.addEventListener('submit', handleCategorySubmit);
         categoryDeleteButton?.addEventListener('click', handleCategoryDelete);
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
+        faviconUploadButton?.addEventListener('click', handleFaviconUploadClick);
+        faviconUploadInput?.addEventListener('change', handleFaviconFileChange);
         socialForm?.addEventListener('submit', handleSocialFormSubmit);
         socialCancelButton?.addEventListener('click', handleSocialCancelEdit);
         socialList?.addEventListener('click', handleSocialListClick);

@@ -12,6 +12,7 @@
     data-endpoint-tags="{{ index .AdminEndpoints "Tags" }}"
     data-endpoint-tags-admin="{{ index .AdminEndpoints "TagsAdmin" }}"
     data-endpoint-site-settings="{{ index .AdminEndpoints "SiteSettings" }}"
+    data-endpoint-favicon-upload="{{ index .AdminEndpoints "FaviconUpload" }}"
     data-endpoint-social-links="{{ index .AdminEndpoints "SocialLinks" }}"
 >
     <header class="admin__header">
@@ -479,9 +480,32 @@
                     <fieldset class="admin-form__fieldset">
                         <legend class="admin-form__legend">Brand assets</legend>
                         <label class="admin-form__label">
-                            Favicon URL
+                            Favicon
                             <input type="url" name="favicon" class="admin-form__input" placeholder="/favicon.ico" />
-                            <small class="admin-form__hint">Accepts relative or absolute URLs. Leave blank to use the default icon.</small>
+                            <div class="admin-form__upload-actions">
+                                <input
+                                    type="file"
+                                    accept=".ico,.png,.jpg,.jpeg,.gif,.webp"
+                                    data-role="favicon-file"
+                                    hidden
+                                />
+                                <button type="button" class="admin-form__upload-button" data-role="favicon-upload">
+                                    Upload favicon
+                                </button>
+                            </div>
+                            <small class="admin-form__hint">
+                                Accepts relative or absolute URLs. Leave blank to use the default icon. Uploads support ICO,
+                                PNG, JPG, GIF or WEBP files.
+                            </small>
+                            <div class="admin-form__favicon-preview" data-role="favicon-preview" hidden>
+                                <span class="admin-form__hint admin-form__hint--label">Current favicon:</span>
+                                <img
+                                    src=""
+                                    alt="Current favicon"
+                                    class="admin-form__favicon-image"
+                                    data-role="favicon-preview-image"
+                                />
+                            </div>
                         </label>
                         <label class="admin-form__label">
                             Logo URL

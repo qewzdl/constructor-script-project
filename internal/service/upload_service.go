@@ -29,7 +29,7 @@ func NewUploadService(uploadDir string) *UploadService {
 	return &UploadService{
 		uploadDir:    uploadDir,
 		maxSize:      10 * 1024 * 1024,
-		allowedTypes: []string{".jpg", ".jpeg", ".png", ".gif", ".webp"},
+		allowedTypes: []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".ico"},
 	}
 }
 
@@ -90,11 +90,28 @@ func (s *UploadService) DeleteImage(url string) error {
 	filename := filepath.Base(url)
 	filePath := filepath.Join(s.uploadDir, filename)
 
-	if !strings.HasPrefix(filePath, s.uploadDir) {
+	uploadDirAbs, err := filepath.Abs(s.uploadDir)
+	if err != nil {
+		return err
+	}
+
+	filePathAbs, err := filepath.Abs(filePath)
+	if err != nil {
+		return err
+	}
+
+	if !strings.HasPrefix(filePathAbs, uploadDirAbs) {
 		return errors.New("invalid file path")
 	}
 
-	return os.Remove(filePath)
+	if err := os.Remove(filePathAbs); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (s *UploadService) isAllowedType(ext string) bool {
@@ -127,4 +144,13 @@ func (s *UploadService) ValidateImage(file *multipart.FileHeader) error {
 	}
 
 	return nil
+}
+
+func (s *UploadService) IsManagedURL(url string) bool {
+	if url == "" {
+		return false
+	}
+
+	trimmed := strings.TrimSpace(url)
+	return strings.HasPrefix(trimmed, "/uploads/")
 }
