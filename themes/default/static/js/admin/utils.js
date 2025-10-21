@@ -108,9 +108,10 @@
         }
     };
 
-    const monthFormatter = (() => {
+    const periodFormatter = (() => {
         try {
             return new Intl.DateTimeFormat(undefined, {
+                day: 'numeric',
                 month: 'short',
                 year: 'numeric',
             });
@@ -119,7 +120,7 @@
         }
     })();
 
-    const formatMonthLabel = (value) => {
+    const formatPeriodLabel = (value) => {
         if (!value) {
             return '';
         }
@@ -127,16 +128,17 @@
         if (Number.isNaN(date.getTime())) {
             return typeof value === 'string' ? value : '';
         }
-        if (monthFormatter) {
+        if (periodFormatter) {
             try {
-                return monthFormatter.format(date);
+                return periodFormatter.format(date);
             } catch (error) {
                 // Ignore and fall back to ISO-like formatting.
             }
         }
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
-        return `${year}-${month}`;
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     window.AdminUtils = {
@@ -150,6 +152,6 @@
         createImageState,
         createSvgElement,
         formatNumber,
-        formatMonthLabel,
+        formatPeriodLabel,
     };
 })();

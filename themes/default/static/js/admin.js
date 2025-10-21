@@ -15,7 +15,7 @@
         buildAbsoluteUrl,
         createSvgElement,
         formatNumber,
-        formatMonthLabel,
+        formatPeriodLabel,
         normaliseString,
     } = utils;
 
@@ -1149,7 +1149,7 @@
 
                 const period = document.createElement('span');
                 period.className = 'admin-chart__summary-period';
-                period.textContent = formatMonthLabel(point.period) || '—';
+                period.textContent = formatPeriodLabel(point.period) || '—';
                 item.appendChild(period);
 
                 chartSeries.forEach((series) => {
