@@ -17,6 +17,8 @@
     data-endpoint-themes="{{ index .AdminEndpoints "Themes" }}"
     data-endpoint-social-links="{{ index .AdminEndpoints "SocialLinks" }}"
     data-endpoint-menu-items="{{ index .AdminEndpoints "MenuItems" }}"
+    data-endpoint-users="{{ index .AdminEndpoints "Users" }}"
+    data-current-user-id="{{ if .CurrentUser }}{{ .CurrentUser.ID }}{{ end }}"
 >
     <header class="admin__header">
         <div class="admin__intro">
@@ -505,6 +507,107 @@
         </section>
 
             <section
+                id="admin-panel-users"
+                class="admin-panel"
+                data-panel="users"
+                data-nav-group="community"
+                data-nav-group-label="Community"
+                data-nav-group-order="2"
+                data-nav-label="Users"
+                data-nav-order="1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-users"
+                hidden
+            >
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">User accounts</h2>
+                    <p class="admin-panel__description">
+                        Review who has access to the community and adjust roles or account status as needed.
+                    </p>
+                </div>
+                <div class="admin-panel__actions">
+                    <label class="admin-search" for="admin-users-search">
+                        <span class="admin-search__label">Search users</span>
+                        <input
+                            id="admin-users-search"
+                            type="search"
+                            class="admin-search__input"
+                            placeholder="Search by name or email…"
+                            autocomplete="off"
+                            data-role="user-search"
+                        />
+                    </label>
+                    <button type="button" class="admin-panel__reset" data-action="user-reset">
+                        Clear selection
+                    </button>
+                </div>
+            </header>
+            <div class="admin-panel__body admin-panel__body--split">
+                <div class="admin-panel__list" aria-live="polite">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Username</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-users-table">
+                            <tr class="admin-table__placeholder">
+                                <td colspan="5">Loading users…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="admin-panel__details">
+                    <form id="admin-user-form" class="admin-form" novalidate>
+                        <fieldset class="admin-form__fieldset">
+                            <legend class="admin-form__legend">Account overview</legend>
+                            <p class="admin-form__hint" data-role="user-hint">
+                                Select a user from the list to view their account details.
+                            </p>
+                            <label class="admin-form__label">
+                                Username
+                                <input type="text" name="username" class="admin-form__input" readonly />
+                            </label>
+                            <label class="admin-form__label">
+                                Email
+                                <input type="email" name="email" class="admin-form__input" readonly />
+                            </label>
+                            <label class="admin-form__label">
+                                Role
+                                <select name="role" class="admin-form__input" data-role="user-role" required>
+                                    <option value="admin">Administrator</option>
+                                    <option value="user">User</option>
+                                </select>
+                            </label>
+                            <label class="admin-form__label">
+                                Status
+                                <select name="status" class="admin-form__input" data-role="user-status" required>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="suspended">Suspended</option>
+                                    <option value="pending">Pending</option>
+                                </select>
+                            </label>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="user-submit" disabled>
+                                    Update user
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="user-delete" hidden>
+                                    Delete user
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+            <section
                 id="admin-panel-comments"
                 class="admin-panel"
                 data-panel="comments"
@@ -512,7 +615,7 @@
                 data-nav-group-label="Community"
                 data-nav-group-order="2"
                 data-nav-label="Comments"
-                data-nav-order="1"
+                data-nav-order="2"
                 role="tabpanel"
                 aria-labelledby="admin-tab-comments"
                 hidden

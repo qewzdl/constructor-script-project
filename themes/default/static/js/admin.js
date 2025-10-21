@@ -147,7 +147,16 @@
             themes: root.dataset.endpointThemes,
             socialLinks: root.dataset.endpointSocialLinks,
             menuItems: root.dataset.endpointMenuItems,
+            users: root.dataset.endpointUsers,
         };
+
+        const currentUserIdValue = Number.parseInt(
+            root.dataset.currentUserId || '',
+            10
+        );
+        const currentUserId = Number.isFinite(currentUserIdValue)
+            ? String(currentUserIdValue)
+            : '';
 
         const alertElement = document.getElementById('admin-alert');
         const showAlert = (message, type = 'info') => {
@@ -278,14 +287,17 @@
             posts: root.querySelector('#admin-posts-table'),
             pages: root.querySelector('#admin-pages-table'),
             categories: root.querySelector('#admin-categories-table'),
+            users: root.querySelector('#admin-users-table'),
         };
         const postSearchInput = root.querySelector('[data-role="post-search"]');
         const pageSearchInput = root.querySelector('[data-role="page-search"]');
         const categorySearchInput = root.querySelector('[data-role="category-search"]');
+        const userSearchInput = root.querySelector('[data-role="user-search"]');
         const commentsList = root.querySelector('#admin-comments-list');
         const postForm = root.querySelector('#admin-post-form');
         const pageForm = root.querySelector('#admin-page-form');
         const categoryForm = root.querySelector('#admin-category-form');
+        const userForm = root.querySelector('#admin-user-form');
         const settingsForm = root.querySelector('#admin-settings-form');
         const socialList = root.querySelector('[data-role="social-list"]');
         const socialEmpty = root.querySelector('[data-role="social-empty"]');
@@ -355,6 +367,13 @@
         );
         const tagList = document.getElementById('admin-tags-list');
         const postTagsList = document.getElementById('admin-post-tags-list');
+        const userUsernameField = userForm?.querySelector('input[name="username"]');
+        const userEmailField = userForm?.querySelector('input[name="email"]');
+        const userRoleField = userForm?.querySelector('[data-role="user-role"]');
+        const userStatusField = userForm?.querySelector('[data-role="user-status"]');
+        const userSubmitButton = userForm?.querySelector('[data-role="user-submit"]');
+        const userDeleteButton = userForm?.querySelector('[data-role="user-delete"]');
+        const userHint = userForm?.querySelector('[data-role="user-hint"]');
         const DEFAULT_CATEGORY_SLUG = 'uncategorized';
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
         const postSectionBuilder = postForm
@@ -397,6 +416,7 @@
             pages: [],
             categories: [],
             comments: [],
+            users: [],
             tags: [],
             themes: [],
             socialLinks: [],
@@ -411,9 +431,11 @@
             postSearchQuery: '',
             pageSearchQuery: '',
             categorySearchQuery: '',
+            userSearchQuery: '',
             hasLoadedPosts: false,
             hasLoadedPages: false,
             hasLoadedCategories: false,
+            hasLoadedUsers: false,
         };
 
         const updateFaviconPreview = (url) => {
@@ -1325,6 +1347,273 @@
             }
         };
 
+        const extractUserId = (user) => {
+            if (!user) {
+                return '';
+            }
+            if (typeof user.id !== 'undefined' && user.id !== null) {
+                return String(user.id);
+            }
+            if (typeof user.ID !== 'undefined' && user.ID !== null) {
+                return String(user.ID);
+            }
+            return '';
+        };
+
+        const getUserSearchFields = (user) => [
+            user?.id,
+            user?.ID,
+            user?.username,
+            user?.Username,
+            user?.email,
+            user?.Email,
+            user?.role,
+            user?.Role,
+            user?.status,
+            user?.Status,
+        ];
+
+        const formatUserLabel = (value) => {
+            const text = normaliseString(value).trim();
+            if (!text) {
+                return '—';
+            }
+            return text.charAt(0).toUpperCase() + text.slice(1);
+        };
+
+        const ensureSelectOption = (select, value) => {
+            if (!select || typeof value !== 'string') {
+                return;
+            }
+            const trimmed = value.trim();
+            if (!trimmed) {
+                return;
+            }
+            const exists = Array.from(select.options).some(
+                (option) => option.value === trimmed
+            );
+            if (!exists) {
+                const option = createElement('option', {
+                    textContent: formatUserLabel(trimmed),
+                });
+                option.value = trimmed;
+                select.appendChild(option);
+            }
+        };
+
+        const setUserFormEnabled = (enabled) => {
+            if (!userForm) {
+                return;
+            }
+            userForm.classList.toggle('is-disabled', !enabled);
+            [userRoleField, userStatusField, userSubmitButton].forEach(
+                (field) => {
+                    if (field) {
+                        field.disabled = !enabled;
+                    }
+                }
+            );
+        };
+
+        const updateUserHint = (user) => {
+            if (!userHint) {
+                return;
+            }
+            if (!user) {
+                userHint.textContent =
+                    'Select a user from the list to view their account details.';
+                return;
+            }
+            const joined =
+                user.created_at ||
+                user.createdAt ||
+                user.CreatedAt ||
+                user.created ||
+                user.Created;
+            const updated =
+                user.updated_at ||
+                user.updatedAt ||
+                user.UpdatedAt ||
+                user.updated ||
+                user.Updated;
+            const details = [];
+            if (joined) {
+                details.push(`Joined ${formatDate(joined)}`);
+            }
+            if (updated && updated !== joined) {
+                details.push(`Updated ${formatDate(updated)}`);
+            }
+            userHint.textContent = details.length
+                ? details.join(' · ')
+                : 'Account details ready for review.';
+        };
+
+        const resetUserForm = () => {
+            if (!userForm) {
+                return;
+            }
+            delete userForm.dataset.id;
+            if (userUsernameField) {
+                userUsernameField.value = '';
+            }
+            if (userEmailField) {
+                userEmailField.value = '';
+            }
+            if (userRoleField && userRoleField.options.length > 0) {
+                userRoleField.value = userRoleField.options[0].value;
+            }
+            if (userStatusField && userStatusField.options.length > 0) {
+                userStatusField.value = userStatusField.options[0].value;
+            }
+            if (userSubmitButton) {
+                userSubmitButton.textContent = 'Update user';
+                userSubmitButton.disabled = true;
+            }
+            if (userDeleteButton) {
+                userDeleteButton.hidden = true;
+                userDeleteButton.disabled = true;
+            }
+            updateUserHint(null);
+            setUserFormEnabled(false);
+            highlightRow(tables.users);
+        };
+
+        const selectUser = (id) => {
+            if (!userForm) {
+                return;
+            }
+            const targetId = String(id || '').trim();
+            if (!targetId) {
+                resetUserForm();
+                return;
+            }
+            const user = state.users.find(
+                (entry) => extractUserId(entry) === targetId
+            );
+            if (!user) {
+                resetUserForm();
+                return;
+            }
+            userForm.dataset.id = targetId;
+            if (userUsernameField) {
+                userUsernameField.value =
+                    user.username || user.Username || '';
+            }
+            if (userEmailField) {
+                userEmailField.value = user.email || user.Email || '';
+            }
+            const roleValue = normaliseString(user.role || user.Role || '')
+                .trim() || 'user';
+            ensureSelectOption(userRoleField, roleValue);
+            if (userRoleField) {
+                userRoleField.value = roleValue;
+            }
+            const statusValue = normaliseString(
+                user.status || user.Status || ''
+            ).trim();
+            ensureSelectOption(userStatusField, statusValue);
+            if (userStatusField) {
+                userStatusField.value = statusValue || userStatusField.value;
+            }
+            setUserFormEnabled(true);
+            if (userSubmitButton) {
+                userSubmitButton.disabled = false;
+                userSubmitButton.textContent = 'Update user';
+            }
+            if (userDeleteButton) {
+                const isSelf = currentUserId && targetId === currentUserId;
+                userDeleteButton.hidden = Boolean(isSelf);
+                userDeleteButton.disabled = Boolean(isSelf);
+            }
+            updateUserHint(user);
+            highlightRow(tables.users, targetId);
+            bringFormIntoView(userForm);
+        };
+
+        const renderUsers = () => {
+            const table = tables.users;
+            if (!table) {
+                return;
+            }
+            table.innerHTML = '';
+            const users = state.users.filter((user) =>
+                matchesSearchQuery(
+                    getUserSearchFields(user),
+                    state.userSearchQuery
+                )
+            );
+            if (!users.length) {
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: state.userSearchQuery
+                        ? 'No users match your search'
+                        : 'No users found',
+                });
+                cell.colSpan = 5;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            users.forEach((user) => {
+                const id = extractUserId(user);
+                if (!id) {
+                    return;
+                }
+                const row = createElement('tr');
+                row.dataset.id = id;
+                row.appendChild(
+                    createElement('td', {
+                        textContent:
+                            user.username || user.Username || '(unknown)',
+                    })
+                );
+                row.appendChild(
+                    createElement('td', {
+                        textContent: user.email || user.Email || '—',
+                    })
+                );
+                const roleValue = normaliseString(
+                    user.role || user.Role || ''
+                ).trim();
+                row.appendChild(
+                    createElement('td', {
+                        textContent: formatUserLabel(roleValue),
+                    })
+                );
+                const statusValue = normaliseString(
+                    user.status || user.Status || ''
+                ).trim();
+                row.appendChild(
+                    createElement('td', {
+                        textContent: formatUserLabel(statusValue),
+                    })
+                );
+                const created =
+                    user.created_at ||
+                    user.createdAt ||
+                    user.CreatedAt;
+                row.appendChild(
+                    createElement('td', { textContent: formatDate(created) })
+                );
+                row.addEventListener('click', () => selectUser(id));
+                table.appendChild(row);
+            });
+            highlightRow(table, userForm?.dataset.id);
+        };
+
+        const setUserSearchQuery = (value) => {
+            const next = normaliseSearchQuery(value);
+            if (state.userSearchQuery === next) {
+                return;
+            }
+            state.userSearchQuery = next;
+            if (state.hasLoadedUsers) {
+                renderUsers();
+            }
+        };
+
         const renderCategories = () => {
             const table = tables.categories;
             if (!table) {
@@ -1790,6 +2079,69 @@
                 });
                 state.comments = comments.slice(0, 15);
                 renderComments();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const buildUserEndpoint = (id, action = '') => {
+            if (!endpoints.users) {
+                return '';
+            }
+            const base = endpoints.users.endsWith('/')
+                ? endpoints.users.slice(0, -1)
+                : endpoints.users;
+            if (!id) {
+                return base;
+            }
+            const encodedId = encodeURIComponent(String(id));
+            const suffix = action ? `/${action.replace(/^\/+/, '')}` : '';
+            return `${base}/${encodedId}${suffix}`;
+        };
+
+        const loadUsers = async () => {
+            if (!endpoints.users) {
+                return;
+            }
+            const selectedId = userForm?.dataset.id || '';
+            try {
+                const payload = await apiRequest(endpoints.users);
+                const users = Array.isArray(payload?.users)
+                    ? payload.users.slice()
+                    : [];
+                users.sort((a, b) => {
+                    const aDate = new Date(
+                        a?.created_at || a?.createdAt || a?.CreatedAt || 0
+                    ).getTime();
+                    const bDate = new Date(
+                        b?.created_at || b?.createdAt || b?.CreatedAt || 0
+                    ).getTime();
+                    if (Number.isFinite(aDate) && Number.isFinite(bDate) && aDate !== bDate) {
+                        return bDate - aDate;
+                    }
+                    const nameA = normaliseString(
+                        a?.username || a?.Username || ''
+                    ).toLowerCase();
+                    const nameB = normaliseString(
+                        b?.username || b?.Username || ''
+                    ).toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+                state.users = users;
+                state.hasLoadedUsers = true;
+                renderUsers();
+                if (selectedId) {
+                    const exists = users.some(
+                        (user) => extractUserId(user) === selectedId
+                    );
+                    if (exists) {
+                        selectUser(selectedId);
+                    } else {
+                        resetUserForm();
+                    }
+                } else {
+                    resetUserForm();
+                }
             } catch (error) {
                 handleRequestError(error);
             }
@@ -3293,6 +3645,118 @@
             }
         };
 
+        const handleUserSubmit = async (event) => {
+            event.preventDefault();
+            if (!userForm || !endpoints.users) {
+                return;
+            }
+            const id = userForm.dataset.id;
+            if (!id) {
+                showAlert('Select a user to update first.', 'info');
+                return;
+            }
+            const user = state.users.find(
+                (entry) => extractUserId(entry) === id
+            );
+            const roleValue = userRoleField?.value?.trim() || '';
+            const statusValue = userStatusField?.value?.trim() || '';
+            const updates = [];
+            if (roleValue) {
+                const currentRole = normaliseString(user?.role || user?.Role || '');
+                if (currentRole !== normaliseString(roleValue)) {
+                    updates.push(
+                        apiRequest(buildUserEndpoint(id, 'role'), {
+                            method: 'PUT',
+                            body: JSON.stringify({ role: roleValue }),
+                        })
+                    );
+                }
+            }
+            if (statusValue) {
+                const currentStatus = normaliseString(
+                    user?.status || user?.Status || ''
+                );
+                if (currentStatus !== normaliseString(statusValue)) {
+                    updates.push(
+                        apiRequest(buildUserEndpoint(id, 'status'), {
+                            method: 'PUT',
+                            body: JSON.stringify({ status: statusValue }),
+                        })
+                    );
+                }
+            }
+            if (!updates.length) {
+                showAlert('No changes to save for this user.', 'info');
+                return;
+            }
+            setUserFormEnabled(false);
+            if (userSubmitButton) {
+                userSubmitButton.disabled = true;
+                userSubmitButton.textContent = 'Saving…';
+            }
+            clearAlert();
+            try {
+                await Promise.all(updates);
+                showAlert('User updated successfully.', 'success');
+                await loadUsers();
+                selectUser(id);
+                await loadStats();
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                const hasSelection = Boolean(userForm?.dataset.id);
+                setUserFormEnabled(hasSelection);
+                if (userSubmitButton) {
+                    userSubmitButton.textContent = 'Update user';
+                    userSubmitButton.disabled = !hasSelection;
+                }
+                if (userDeleteButton) {
+                    const isSelf =
+                        currentUserId && userForm?.dataset.id === currentUserId;
+                    userDeleteButton.hidden = !hasSelection || Boolean(isSelf);
+                    userDeleteButton.disabled = !hasSelection || Boolean(isSelf);
+                }
+            }
+        };
+
+        const handleUserDelete = async () => {
+            if (!userForm || !endpoints.users) {
+                return;
+            }
+            const id = userForm.dataset.id;
+            if (!id) {
+                return;
+            }
+            if (currentUserId && id === currentUserId) {
+                showAlert('You cannot delete your own account from the admin dashboard.', 'error');
+                return;
+            }
+            if (!window.confirm('Delete this user permanently? This action cannot be undone.')) {
+                return;
+            }
+            setUserFormEnabled(false);
+            if (userDeleteButton) {
+                userDeleteButton.disabled = true;
+            }
+            clearAlert();
+            try {
+                await apiRequest(buildUserEndpoint(id), {
+                    method: 'DELETE',
+                });
+                showAlert('User deleted successfully.', 'success');
+                await loadUsers();
+                await loadStats();
+            } catch (error) {
+                handleRequestError(error);
+                if (userForm.dataset.id === id) {
+                    setUserFormEnabled(true);
+                    if (userDeleteButton) {
+                        userDeleteButton.disabled = false;
+                    }
+                }
+            }
+        };
+
         const handleSiteSettingsSubmit = async (event) => {
             event.preventDefault();
             if (!settingsForm || !endpoints.siteSettings) {
@@ -3799,6 +4263,12 @@
             'click',
             resetCategoryForm
         );
+        root.querySelector('[data-action="user-reset"]')?.addEventListener(
+            'click',
+            resetUserForm
+        );
+
+        resetUserForm();
 
         const attachSearchHandler = (input, callback) => {
             if (!input || typeof callback !== 'function') {
@@ -3812,6 +4282,7 @@
         attachSearchHandler(postSearchInput, setPostSearchQuery);
         attachSearchHandler(pageSearchInput, setPageSearchQuery);
         attachSearchHandler(categorySearchInput, setCategorySearchQuery);
+        attachSearchHandler(userSearchInput, setUserSearchQuery);
 
         if (postSearchInput?.value) {
             setPostSearchQuery(postSearchInput.value);
@@ -3822,6 +4293,9 @@
         if (categorySearchInput?.value) {
             setCategorySearchQuery(categorySearchInput.value);
         }
+        if (userSearchInput?.value) {
+            setUserSearchQuery(userSearchInput.value);
+        }
 
         postForm?.addEventListener('submit', handlePostSubmit);
         postDeleteButton?.addEventListener('click', handlePostDelete);
@@ -3829,6 +4303,8 @@
         pageDeleteButton?.addEventListener('click', handlePageDelete);
         categoryForm?.addEventListener('submit', handleCategorySubmit);
         categoryDeleteButton?.addEventListener('click', handleCategoryDelete);
+        userForm?.addEventListener('submit', handleUserSubmit);
+        userDeleteButton?.addEventListener('click', handleUserDelete);
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
         faviconUploadButton?.addEventListener('click', handleFaviconUploadClick);
         faviconUploadInput?.addEventListener('change', handleFaviconFileChange);
@@ -3854,6 +4330,7 @@
         });
         loadPages();
         loadComments();
+        loadUsers();
         loadSiteSettings();
         loadThemes();
         loadSocialLinks();

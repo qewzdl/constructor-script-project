@@ -648,6 +648,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"Themes":          "/api/v1/admin/themes",
 			"SocialLinks":     "/api/v1/admin/social-links",
 			"MenuItems":       "/api/v1/admin/menu-items",
+			"Users":           "/api/v1/admin/users",
 		},
 		"NoIndex": true,
 	})
