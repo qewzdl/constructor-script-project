@@ -3,6 +3,7 @@ package middleware
 import (
 	"constructor-script-backend/internal/config"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -79,6 +80,11 @@ func init() {
 
 func RateLimitMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if shouldBypassRateLimit(c.Request) {
+			c.Next()
+			return
+		}
+
 		limiter := getVisitor(c.ClientIP(), cfg)
 		if limiter == nil {
 			c.Next()
@@ -93,4 +99,37 @@ func RateLimitMiddleware(cfg *config.Config) gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func shouldBypassRateLimit(r *http.Request) bool {
+	if r == nil || r.URL == nil {
+		return false
+	}
+
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+
+	path := r.URL.Path
+	if path == "" {
+		return false
+	}
+
+	staticPrefixes := []string{
+		"/static/",
+		"/uploads/",
+	}
+
+	for _, prefix := range staticPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+
+	switch path {
+	case "/favicon.ico":
+		return true
+	}
+
+	return false
 }
