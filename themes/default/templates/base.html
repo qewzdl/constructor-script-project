@@ -77,6 +77,13 @@
         <!-- Load Outfit font family with multiple weights -->
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
 
+        {{ $ads := .Advertising }}
+        {{ if and $ads ( $ads.Enabled ) }}
+        {{ range $ads.HeadSnippets }}
+        {{ . }}
+        {{ end }}
+        {{ end }}
+
         <!-- Open Graph and Twitter Card metadata for social media sharing -->
         <meta property="og:site_name" content="{{ .Site.Name }}" />
         {{ if .Title }}
@@ -127,6 +134,12 @@
         data-authenticated="{{ if .IsAuthenticated }}true{{ else }}false{{ end }}"
         {{ with .CurrentUser }}data-user-role="{{ .Role }}" data-user-id="{{ .ID }}"{{ end }}
     >
+        {{ $ads := .Advertising }}
+        {{ if and $ads ( $ads.Enabled ) }}
+        {{ range index $ads.Placements "layout_top" }}
+        {{ . }}
+        {{ end }}
+        {{ end }}
         {{ if .HideChrome }} {{ else }}
         <header class="header" role="banner">
             <nav
@@ -269,10 +282,21 @@
         </header>
         {{ end }}
 
+        {{ if and $ads ( $ads.Enabled ) }}
+        {{ range index $ads.Placements "main_top" }}
+        {{ . }}
+        {{ end }}
+        {{ end }}
+
         <main id="main-content" class="main" role="main">{{ .Content }}</main>
 
         {{ if .HideChrome }} {{ else }}
         <footer class="footer" role="contentinfo">
+            {{ if and $ads ( $ads.Enabled ) }}
+            {{ range index $ads.Placements "footer" }}
+            {{ . }}
+            {{ end }}
+            {{ end }}
             <div class="footer__container">
                 <section class="footer__info">
                     <a
@@ -379,5 +403,10 @@
         {{ if .Scripts }} {{ range .Scripts }}
         <script src="{{ asset . }}" defer></script>
         {{ end }} {{ end }}
+        {{ if and $ads ( $ads.Enabled ) }}
+        {{ range index $ads.Placements "layout_bottom" }}
+        {{ . }}
+        {{ end }}
+        {{ end }}
     </body>
 </html>

@@ -162,6 +162,10 @@ type ImageContent struct {
 	Caption string `json:"caption"`
 }
 
+// ContentSecurityPolicyDirectives contains additional CSP directive values keyed by directive name.
+// Each directive maps to a slice of allowed source expressions that will be merged into the base policy.
+type ContentSecurityPolicyDirectives map[string][]string
+
 type ImageGroupContent struct {
 	Images []ImageContent `json:"images"`
 	Layout string         `json:"layout"`
@@ -296,6 +300,53 @@ type UpdateSiteSettingsRequest struct {
 	Favicon                 string `json:"favicon"`
 	Logo                    string `json:"logo"`
 	UnusedTagRetentionHours int    `json:"unused_tag_retention_hours" binding:"required,min=1"`
+}
+
+type AdvertisingSettings struct {
+	Enabled   bool               `json:"enabled"`
+	Provider  string             `json:"provider"`
+	GoogleAds *GoogleAdsSettings `json:"google_ads,omitempty"`
+}
+
+type GoogleAdsSettings struct {
+	PublisherID string          `json:"publisher_id"`
+	AutoAds     bool            `json:"auto_ads"`
+	Slots       []GoogleAdsSlot `json:"slots"`
+}
+
+type GoogleAdsSlot struct {
+	Placement           string `json:"placement"`
+	SlotID              string `json:"slot_id"`
+	Format              string `json:"format"`
+	FullWidthResponsive bool   `json:"full_width_responsive"`
+}
+
+type AdvertisingProviderMetadata struct {
+	Key             string                 `json:"key"`
+	Name            string                 `json:"name"`
+	Description     string                 `json:"description"`
+	SupportsAutoAds bool                   `json:"supports_auto_ads"`
+	Placements      []AdvertisingPlacement `json:"placements"`
+	Formats         []AdvertisingFormat    `json:"formats"`
+}
+
+type AdvertisingPlacement struct {
+	Key         string `json:"key"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+	Recommended bool   `json:"recommended,omitempty"`
+}
+
+type AdvertisingFormat struct {
+	Key         string `json:"key"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+}
+
+type UpdateAdvertisingSettingsRequest struct {
+	Enabled   bool               `json:"enabled"`
+	Provider  string             `json:"provider"`
+	GoogleAds *GoogleAdsSettings `json:"google_ads"`
 }
 
 func DetectFaviconType(favicon string) string {

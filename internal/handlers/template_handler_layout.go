@@ -22,10 +22,22 @@ type FooterMenuGroup struct {
 	Items []models.MenuItem
 }
 
+type advertisingTemplateData struct {
+	Enabled      bool
+	HeadSnippets []template.HTML
+	Placements   map[string][]template.HTML
+}
+
+func (d advertisingTemplateData) hasPlacements() bool {
+	return len(d.Placements) > 0
+}
+
 func (h *TemplateHandler) basePageData(title, description string, extra gin.H) gin.H {
 	site := h.siteSettings()
 
 	headerMenu, footerMenu := splitMenuItems(site.MenuItems)
+
+	advertising := h.advertisingTemplateData()
 
 	data := gin.H{
 		"Title":       fmt.Sprintf("%s - %s", title, site.Name),
@@ -44,6 +56,7 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 		},
 		"SearchQuery": "",
 		"SearchType":  "all",
+		"Advertising": advertising,
 	}
 
 	for k, v := range extra {
@@ -78,6 +91,62 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 	}
 
 	return settings
+}
+
+func (h *TemplateHandler) advertisingTemplateData() advertisingTemplateData {
+	result := advertisingTemplateData{
+		Placements: make(map[string][]template.HTML),
+	}
+
+	if h.advertisingService == nil {
+		return result
+	}
+
+	rendered, err := h.advertisingService.RenderActive()
+	if err != nil {
+		logger.Error(err, "Failed to render advertising", nil)
+		return result
+	}
+
+	if !rendered.Enabled {
+		return result
+	}
+
+	if len(rendered.HeadSnippets) > 0 {
+		head := make([]template.HTML, 0, len(rendered.HeadSnippets))
+		for _, snippet := range rendered.HeadSnippets {
+			trimmed := strings.TrimSpace(snippet)
+			if trimmed == "" {
+				continue
+			}
+			head = append(head, template.HTML(trimmed))
+		}
+		if len(head) > 0 {
+			result.HeadSnippets = head
+		}
+	}
+
+	if len(rendered.Placements) > 0 {
+		for key, snippets := range rendered.Placements {
+			if len(snippets) == 0 {
+				continue
+			}
+			cleaned := make([]template.HTML, 0, len(snippets))
+			for _, snippet := range snippets {
+				trimmed := strings.TrimSpace(snippet)
+				if trimmed == "" {
+					continue
+				}
+				cleaned = append(cleaned, template.HTML(trimmed))
+			}
+			if len(cleaned) > 0 {
+				result.Placements[key] = cleaned
+			}
+		}
+	}
+
+	result.Enabled = len(result.HeadSnippets) > 0 || result.hasPlacements()
+	return result
 }
 
 func splitMenuItems(items []models.MenuItem) ([]models.MenuItem, []FooterMenuGroup) {

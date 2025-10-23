@@ -777,6 +777,31 @@
     cursor: not-allowed;
 }
 
+.admin-form__link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-xxs);
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--color-primary);
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.admin-form__link-button:hover,
+.admin-form__link-button:focus-visible {
+    text-decoration: none;
+}
+
+.admin-form__link-button:disabled {
+    color: var(--color-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
+    text-decoration: none;
+}
+
 .admin-form__favicon-preview {
     display: flex;
     align-items: center;
@@ -817,6 +842,48 @@
     align-items: center;
     gap: var(--size-xs);
     font-size: var(--font-size-sm);
+}
+
+.admin-ads__slots {
+    display: grid;
+    gap: var(--size-sm);
+    margin-block: var(--size-sm);
+}
+
+.admin-ads__slots-empty {
+    margin: 0;
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.admin-ads__slot {
+    display: grid;
+    gap: var(--size-sm);
+    padding: var(--size-base);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-top);
+}
+
+.admin-ads__slot-fields {
+    display: grid;
+    gap: var(--size-sm);
+}
+
+@media (min-width: 640px) {
+    .admin-ads__slot-fields {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--size-base);
+    }
+}
+
+.admin-ads__slot-checkbox {
+    align-items: center;
+    gap: var(--size-xs);
+}
+
+.admin-ads__slot-remove {
+    justify-self: start;
 }
 
 .admin-form__checkbox input {

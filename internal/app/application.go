@@ -62,32 +62,34 @@ type repositoryContainer struct {
 }
 
 type serviceContainer struct {
-	Auth       *service.AuthService
-	Category   *service.CategoryService
-	Post       *service.PostService
-	Comment    *service.CommentService
-	Search     *service.SearchService
-	Upload     *service.UploadService
-	Page       *service.PageService
-	Setup      *service.SetupService
-	SocialLink *service.SocialLinkService
-	Menu       *service.MenuService
-	Theme      *service.ThemeService
+	Auth        *service.AuthService
+	Category    *service.CategoryService
+	Post        *service.PostService
+	Comment     *service.CommentService
+	Search      *service.SearchService
+	Upload      *service.UploadService
+	Page        *service.PageService
+	Setup       *service.SetupService
+	SocialLink  *service.SocialLinkService
+	Menu        *service.MenuService
+	Theme       *service.ThemeService
+	Advertising *service.AdvertisingService
 }
 
 type handlerContainer struct {
-	Auth       *handlers.AuthHandler
-	Category   *handlers.CategoryHandler
-	Post       *handlers.PostHandler
-	Comment    *handlers.CommentHandler
-	Search     *handlers.SearchHandler
-	Upload     *handlers.UploadHandler
-	Page       *handlers.PageHandler
-	Setup      *handlers.SetupHandler
-	SocialLink *handlers.SocialLinkHandler
-	Menu       *handlers.MenuHandler
-	SEO        *handlers.SEOHandler
-	Theme      *handlers.ThemeHandler
+	Auth        *handlers.AuthHandler
+	Category    *handlers.CategoryHandler
+	Post        *handlers.PostHandler
+	Comment     *handlers.CommentHandler
+	Search      *handlers.SearchHandler
+	Upload      *handlers.UploadHandler
+	Page        *handlers.PageHandler
+	Setup       *handlers.SetupHandler
+	SocialLink  *handlers.SocialLinkHandler
+	Menu        *handlers.MenuHandler
+	SEO         *handlers.SEOHandler
+	Theme       *handlers.ThemeHandler
+	Advertising *handlers.AdvertisingHandler
 }
 
 func New(cfg *config.Config, opts Options) (*Application, error) {
@@ -351,6 +353,7 @@ func (a *Application) initServices() {
 	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService)
 	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
 	menuService := service.NewMenuService(a.repositories.Menu)
+	advertisingService := service.NewAdvertisingService(a.repositories.Setting)
 
 	themeService := service.NewThemeService(
 		a.repositories.Setting,
@@ -359,33 +362,35 @@ func (a *Application) initServices() {
 	)
 
 	a.services = serviceContainer{
-		Auth:       authService,
-		Category:   categoryService,
-		Post:       postService,
-		Comment:    commentService,
-		Search:     searchService,
-		Upload:     uploadService,
-		Page:       pageService,
-		Setup:      setupService,
-		SocialLink: socialLinkService,
-		Menu:       menuService,
-		Theme:      themeService,
+		Auth:        authService,
+		Category:    categoryService,
+		Post:        postService,
+		Comment:     commentService,
+		Search:      searchService,
+		Upload:      uploadService,
+		Page:        pageService,
+		Setup:       setupService,
+		SocialLink:  socialLinkService,
+		Menu:        menuService,
+		Theme:       themeService,
+		Advertising: advertisingService,
 	}
 }
 
 func (a *Application) initHandlers() error {
 	a.handlers = handlerContainer{
-		Auth:       handlers.NewAuthHandler(a.services.Auth),
-		Category:   handlers.NewCategoryHandler(a.services.Category),
-		Post:       handlers.NewPostHandler(a.services.Post),
-		Comment:    handlers.NewCommentHandler(a.services.Comment),
-		Search:     handlers.NewSearchHandler(a.services.Search),
-		Upload:     handlers.NewUploadHandler(a.services.Upload),
-		Page:       handlers.NewPageHandler(a.services.Page),
-		Setup:      handlers.NewSetupHandler(a.services.Setup, a.cfg),
-		SocialLink: handlers.NewSocialLinkHandler(a.services.SocialLink),
-		Menu:       handlers.NewMenuHandler(a.services.Menu),
-		SEO:        handlers.NewSEOHandler(a.services.Post, a.services.Page, a.services.Category, a.services.Setup, a.cfg),
+		Auth:        handlers.NewAuthHandler(a.services.Auth),
+		Category:    handlers.NewCategoryHandler(a.services.Category),
+		Post:        handlers.NewPostHandler(a.services.Post),
+		Comment:     handlers.NewCommentHandler(a.services.Comment),
+		Search:      handlers.NewSearchHandler(a.services.Search),
+		Upload:      handlers.NewUploadHandler(a.services.Upload),
+		Page:        handlers.NewPageHandler(a.services.Page),
+		Setup:       handlers.NewSetupHandler(a.services.Setup, a.cfg),
+		SocialLink:  handlers.NewSocialLinkHandler(a.services.SocialLink),
+		Menu:        handlers.NewMenuHandler(a.services.Menu),
+		SEO:         handlers.NewSEOHandler(a.services.Post, a.services.Page, a.services.Category, a.services.Setup, a.cfg),
+		Advertising: handlers.NewAdvertisingHandler(a.services.Advertising),
 	}
 
 	templateHandler, err := handlers.NewTemplateHandler(
@@ -398,6 +403,7 @@ func (a *Application) initHandlers() error {
 		a.services.Category,
 		a.services.SocialLink,
 		a.services.Menu,
+		a.services.Advertising,
 		a.cfg,
 		a.themeManager,
 	)
@@ -424,7 +430,7 @@ func (a *Application) initRouter() error {
 	router.Use(gin.Recovery())
 	router.Use(middleware.RequestIDMiddleware())
 	router.Use(logger.GinLogger())
-	router.Use(middleware.SecurityHeadersMiddleware())
+	router.Use(middleware.SecurityHeadersMiddleware(a.services.Advertising))
 	router.Use(middleware.MetricsMiddleware())
 	router.Use(middleware.RateLimitMiddleware(a.cfg))
 	router.Use(middleware.CSRFMiddleware())
@@ -591,6 +597,8 @@ func (a *Application) initRouter() error {
 			admin.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
 			admin.POST("/settings/favicon", a.handlers.Setup.UploadFavicon)
 			admin.POST("/settings/logo", a.handlers.Setup.UploadLogo)
+			admin.GET("/settings/advertising", a.handlers.Advertising.Get)
+			admin.PUT("/settings/advertising", a.handlers.Advertising.Update)
 
 			admin.GET("/themes", a.handlers.Theme.List)
 			admin.PUT("/themes/:slug/activate", a.handlers.Theme.Activate)

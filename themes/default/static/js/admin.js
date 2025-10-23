@@ -173,6 +173,7 @@
             socialLinks: root.dataset.endpointSocialLinks,
             menuItems: root.dataset.endpointMenuItems,
             users: root.dataset.endpointUsers,
+            advertising: root.dataset.endpointAdvertisingSettings,
         };
 
         const currentUserIdValue = Number.parseInt(
@@ -427,6 +428,16 @@
         const logoUploadButton = settingsForm?.querySelector('[data-role="logo-upload"]');
         const logoPreviewContainer = settingsForm?.querySelector('[data-role="logo-preview"]');
         const logoPreviewImage = settingsForm?.querySelector('[data-role="logo-preview-image"]');
+        const advertisingForm = root.querySelector('#admin-ads-form');
+        const advertisingProviderSelect = advertisingForm?.querySelector('[data-role="ads-provider"]');
+        const advertisingEnabledToggle = advertisingForm?.querySelector('[data-role="ads-enabled"]');
+        const advertisingSlotsContainer = advertisingForm?.querySelector('[data-role="ads-slots"]');
+        const advertisingSlotAddButton = advertisingForm?.querySelector('[data-role="ads-slot-add"]');
+        const advertisingPublisherInput = advertisingForm?.querySelector('[data-role="ads-google-publisher"]');
+        const advertisingAutoToggle = advertisingForm?.querySelector('[data-role="ads-google-auto"]');
+        const advertisingProviderFieldsets = advertisingForm
+            ? Array.from(advertisingForm.querySelectorAll('[data-role="ads-provider-fields"]'))
+            : [];
         const themeList = root.querySelector('[data-role="theme-list"]');
         const themeEmptyState = root.querySelector('[data-role="theme-empty"]');
         const socialSubmitButton = socialForm?.querySelector('[data-role="social-submit"]');
@@ -540,6 +551,10 @@
             editingMenuItemId: '',
             defaultCategoryId: '',
             site: null,
+            advertising: {
+                settings: null,
+                providers: [],
+            },
             postSearchQuery: '',
             pageSearchQuery: '',
             categorySearchQuery: '',
@@ -2297,6 +2312,542 @@
 
             updateFaviconPreview(site?.favicon || site?.Favicon || '');
             updateLogoPreview(site?.logo || site?.Logo || '');
+        };
+
+        const trimString = (value) => (typeof value === 'string' ? value.trim() : '');
+        const lowerTrimString = (value) => trimString(value).toLowerCase();
+
+        const defaultAdvertisingSettings = () => ({
+            enabled: false,
+            provider: '',
+            google_ads: {
+                publisher_id: '',
+                auto_ads: true,
+                slots: [],
+            },
+        });
+
+        const normalizeAdvertisingSettings = (raw) => {
+            const defaults = defaultAdvertisingSettings();
+            if (!raw || typeof raw !== 'object') {
+                return { ...defaults };
+            }
+
+            const providerValue = raw.provider ?? raw.Provider ?? defaults.provider;
+            const enabledValue = raw.enabled ?? raw.Enabled ?? defaults.enabled;
+            const googleRaw = raw.google_ads ?? raw.GoogleAds;
+
+            const settings = {
+                enabled: Boolean(enabledValue),
+                provider: lowerTrimString(providerValue),
+                google_ads: { ...defaults.google_ads },
+            };
+
+            if (googleRaw && typeof googleRaw === 'object') {
+                const slotsRaw = googleRaw.slots ?? googleRaw.Slots;
+                const slots = Array.isArray(slotsRaw)
+                    ? slotsRaw.map((slot) => ({
+                          placement: lowerTrimString(slot?.placement ?? slot?.Placement ?? ''),
+                          slot_id: trimString(slot?.slot_id ?? slot?.SlotID ?? ''),
+                          format: lowerTrimString(slot?.format ?? slot?.Format ?? ''),
+                          full_width_responsive: Boolean(
+                              slot?.full_width_responsive ?? slot?.FullWidthResponsive
+                          ),
+                      }))
+                    : [];
+
+                settings.google_ads = {
+                    publisher_id: trimString(
+                        googleRaw?.publisher_id ?? googleRaw?.PublisherID ?? defaults.google_ads.publisher_id
+                    ),
+                    auto_ads: Boolean(
+                        googleRaw?.auto_ads ?? googleRaw?.AutoAds ?? defaults.google_ads.auto_ads
+                    ),
+                    slots,
+                };
+            }
+
+            return settings;
+        };
+
+        const ensureAdvertisingSettings = () => {
+            if (!state.advertising.settings || typeof state.advertising.settings !== 'object') {
+                state.advertising.settings = defaultAdvertisingSettings();
+            }
+
+            const settings = state.advertising.settings;
+            settings.enabled = Boolean(settings.enabled);
+            settings.provider = lowerTrimString(settings.provider);
+
+            if (!settings.google_ads || typeof settings.google_ads !== 'object') {
+                settings.google_ads = { ...defaultAdvertisingSettings().google_ads };
+            } else {
+                settings.google_ads.publisher_id = trimString(settings.google_ads.publisher_id);
+                settings.google_ads.auto_ads = Boolean(settings.google_ads.auto_ads);
+                if (!Array.isArray(settings.google_ads.slots)) {
+                    settings.google_ads.slots = [];
+                } else {
+                    settings.google_ads.slots = settings.google_ads.slots.map((slot) => ({
+                        placement: lowerTrimString(slot?.placement),
+                        slot_id: trimString(slot?.slot_id),
+                        format: lowerTrimString(slot?.format) || 'auto',
+                        full_width_responsive: Boolean(slot?.full_width_responsive),
+                    }));
+                }
+            }
+
+            return settings;
+        };
+
+        const getAdvertisingProviderMeta = (key) => {
+            const providers = Array.isArray(state.advertising.providers)
+                ? state.advertising.providers
+                : [];
+            const normalisedKey = lowerTrimString(key);
+            return (
+                providers.find(
+                    (provider) =>
+                        lowerTrimString(provider?.key ?? provider?.Key ?? '') === normalisedKey
+                ) || null
+            );
+        };
+
+        const updateAdvertisingProviderOptions = () => {
+            if (!advertisingProviderSelect) {
+                return;
+            }
+
+            const providers = Array.isArray(state.advertising.providers)
+                ? state.advertising.providers
+                : [];
+
+            advertisingProviderSelect.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = providers.length
+                ? 'Select provider'
+                : 'No providers available';
+            advertisingProviderSelect.appendChild(placeholder);
+
+            providers.forEach((provider) => {
+                const key = lowerTrimString(provider?.key ?? provider?.Key ?? '');
+                if (!key) {
+                    return;
+                }
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = provider?.name ?? provider?.Name ?? key;
+                advertisingProviderSelect.appendChild(option);
+            });
+        };
+
+        const updateAdvertisingProviderVisibility = (providerKey) => {
+            const normalisedKey = lowerTrimString(providerKey);
+            advertisingProviderFieldsets.forEach((fieldset) => {
+                if (!fieldset || !fieldset.dataset) {
+                    return;
+                }
+                const fieldKey = lowerTrimString(fieldset.dataset.provider || '');
+                fieldset.hidden = fieldKey !== normalisedKey;
+            });
+        };
+
+        const renderAdvertisingSlots = () => {
+            if (!advertisingSlotsContainer) {
+                return;
+            }
+
+            advertisingSlotsContainer.innerHTML = '';
+
+            const settings = ensureAdvertisingSettings();
+            const providerMeta = getAdvertisingProviderMeta(settings.provider);
+            const googleSettings = settings.google_ads || defaultAdvertisingSettings().google_ads;
+            const slots = Array.isArray(googleSettings.slots) ? googleSettings.slots : [];
+
+            if (!providerMeta || settings.provider !== 'google_ads') {
+                const message = document.createElement('p');
+                message.className = 'admin-ads__slots-empty';
+                message.textContent = settings.provider
+                    ? 'Manual placements are not available for this provider.'
+                    : 'Select a provider to manage manual placements.';
+                advertisingSlotsContainer.appendChild(message);
+                return;
+            }
+
+            if (slots.length === 0) {
+                const message = document.createElement('p');
+                message.className = 'admin-ads__slots-empty';
+                message.textContent = 'No manual placements configured.';
+                advertisingSlotsContainer.appendChild(message);
+                return;
+            }
+
+            const placements = Array.isArray(providerMeta.placements)
+                ? providerMeta.placements
+                : [];
+            const formats = Array.isArray(providerMeta.formats) ? providerMeta.formats : [];
+
+            slots.forEach((slot, index) => {
+                const row = document.createElement('div');
+                row.className = 'admin-ads__slot';
+                row.dataset.index = String(index);
+
+                const fields = document.createElement('div');
+                fields.className = 'admin-ads__slot-fields';
+
+                const placementLabel = document.createElement('label');
+                placementLabel.className = 'admin-form__label';
+                placementLabel.textContent = 'Placement';
+                const placementSelect = document.createElement('select');
+                placementSelect.className = 'admin-form__input';
+                placementSelect.dataset.role = 'ads-slot-placement';
+                placementSelect.dataset.index = String(index);
+
+                const seenPlacements = new Set();
+                placements.forEach((placement) => {
+                    const key = lowerTrimString(placement?.key ?? placement?.Key ?? '');
+                    if (!key || seenPlacements.has(key)) {
+                        return;
+                    }
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = placement?.label ?? placement?.Label ?? key;
+                    placementSelect.appendChild(option);
+                    seenPlacements.add(key);
+                });
+
+                const currentPlacement = lowerTrimString(slot?.placement ?? '');
+                if (currentPlacement && !seenPlacements.has(currentPlacement)) {
+                    const option = document.createElement('option');
+                    option.value = currentPlacement;
+                    option.textContent = currentPlacement;
+                    placementSelect.appendChild(option);
+                }
+
+                if (placementSelect.options.length > 0) {
+                    placementSelect.value = currentPlacement || placementSelect.options[0].value;
+                }
+
+                placementLabel.appendChild(placementSelect);
+
+                const slotLabel = document.createElement('label');
+                slotLabel.className = 'admin-form__label';
+                slotLabel.textContent = 'Ad unit ID';
+                const slotInput = document.createElement('input');
+                slotInput.className = 'admin-form__input';
+                slotInput.type = 'text';
+                slotInput.placeholder = 'e.g. 1234567890';
+                slotInput.dataset.role = 'ads-slot-id';
+                slotInput.dataset.index = String(index);
+                slotInput.value = trimString(slot?.slot_id ?? '');
+                slotLabel.appendChild(slotInput);
+
+                const formatLabel = document.createElement('label');
+                formatLabel.className = 'admin-form__label';
+                formatLabel.textContent = 'Format';
+                const formatSelect = document.createElement('select');
+                formatSelect.className = 'admin-form__input';
+                formatSelect.dataset.role = 'ads-slot-format';
+                formatSelect.dataset.index = String(index);
+
+                const seenFormats = new Set();
+                formats.forEach((format) => {
+                    const key = lowerTrimString(format?.key ?? format?.Key ?? '');
+                    if (!key || seenFormats.has(key)) {
+                        return;
+                    }
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = format?.label ?? format?.Label ?? key;
+                    formatSelect.appendChild(option);
+                    seenFormats.add(key);
+                });
+
+                const currentFormat = lowerTrimString(slot?.format ?? '') || 'auto';
+                if (!seenFormats.has(currentFormat)) {
+                    const option = document.createElement('option');
+                    option.value = currentFormat;
+                    option.textContent = currentFormat;
+                    formatSelect.appendChild(option);
+                }
+                formatSelect.value = currentFormat;
+                formatLabel.appendChild(formatSelect);
+
+                const responsiveLabel = document.createElement('label');
+                responsiveLabel.className = 'admin-form__checkbox admin-ads__slot-checkbox';
+                const responsiveInput = document.createElement('input');
+                responsiveInput.type = 'checkbox';
+                responsiveInput.dataset.role = 'ads-slot-responsive';
+                responsiveInput.dataset.index = String(index);
+                responsiveInput.checked = Boolean(slot?.full_width_responsive);
+                responsiveLabel.appendChild(responsiveInput);
+                const responsiveText = document.createElement('span');
+                responsiveText.textContent = 'Full-width responsive';
+                responsiveLabel.appendChild(responsiveText);
+
+                fields.appendChild(placementLabel);
+                fields.appendChild(slotLabel);
+                fields.appendChild(formatLabel);
+                fields.appendChild(responsiveLabel);
+                row.appendChild(fields);
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'admin-form__link-button admin-ads__slot-remove';
+                removeButton.dataset.role = 'ads-slot-remove';
+                removeButton.dataset.index = String(index);
+                removeButton.textContent = 'Remove placement';
+                row.appendChild(removeButton);
+
+                advertisingSlotsContainer.appendChild(row);
+            });
+        };
+
+        const populateAdvertisingForm = () => {
+            if (!advertisingForm || !endpoints.advertising) {
+                return;
+            }
+
+            const settings = ensureAdvertisingSettings();
+            updateAdvertisingProviderOptions();
+
+            const providers = Array.isArray(state.advertising.providers)
+                ? state.advertising.providers
+                : [];
+            let providerKey = settings.provider;
+            const providerMeta = getAdvertisingProviderMeta(providerKey);
+            if (!providerMeta && providers.length > 0) {
+                providerKey = lowerTrimString(providers[0]?.key ?? providers[0]?.Key ?? '');
+                settings.provider = providerKey;
+            }
+
+            if (advertisingEnabledToggle) {
+                advertisingEnabledToggle.checked = Boolean(settings.enabled);
+            }
+
+            if (advertisingProviderSelect) {
+                advertisingProviderSelect.value = providerKey;
+            }
+
+            updateAdvertisingProviderVisibility(providerKey);
+
+            if (providerKey === 'google_ads') {
+                const google = ensureAdvertisingSettings().google_ads;
+                if (advertisingPublisherInput) {
+                    advertisingPublisherInput.value = trimString(google.publisher_id);
+                }
+                if (advertisingAutoToggle) {
+                    advertisingAutoToggle.checked = Boolean(google.auto_ads);
+                }
+            } else {
+                if (advertisingPublisherInput) {
+                    advertisingPublisherInput.value = '';
+                }
+                if (advertisingAutoToggle) {
+                    advertisingAutoToggle.checked = false;
+                }
+            }
+
+            renderAdvertisingSlots();
+        };
+
+        const loadAdvertisingSettings = async () => {
+            if (!advertisingForm || !endpoints.advertising) {
+                return;
+            }
+
+            try {
+                disableForm(advertisingForm, true);
+                const response = await apiRequest(endpoints.advertising, { method: 'GET' });
+                if (response && Array.isArray(response.providers)) {
+                    state.advertising.providers = response.providers;
+                } else {
+                    state.advertising.providers = [];
+                }
+
+                state.advertising.settings = normalizeAdvertisingSettings(response?.settings);
+                ensureAdvertisingSettings();
+                populateAdvertisingForm();
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(advertisingForm, false);
+            }
+        };
+
+        const handleAdvertisingSubmit = async (event) => {
+            event.preventDefault();
+
+            if (!advertisingForm || !endpoints.advertising) {
+                return;
+            }
+
+            const settings = ensureAdvertisingSettings();
+            const payload = {
+                enabled: Boolean(settings.enabled),
+                provider: settings.provider,
+            };
+
+            if (settings.provider === 'google_ads') {
+                const google = settings.google_ads || defaultAdvertisingSettings().google_ads;
+                payload.google_ads = {
+                    publisher_id: trimString(google.publisher_id),
+                    auto_ads: Boolean(google.auto_ads),
+                    slots: Array.isArray(google.slots)
+                        ? google.slots.map((slot) => ({
+                              placement: lowerTrimString(slot?.placement ?? ''),
+                              slot_id: trimString(slot?.slot_id ?? ''),
+                              format: lowerTrimString(slot?.format ?? ''),
+                              full_width_responsive: Boolean(slot?.full_width_responsive),
+                          }))
+                        : [],
+                };
+            }
+
+            try {
+                disableForm(advertisingForm, true);
+                const response = await apiRequest(endpoints.advertising, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload),
+                });
+
+                if (response && Array.isArray(response.providers)) {
+                    state.advertising.providers = response.providers;
+                }
+
+                state.advertising.settings = normalizeAdvertisingSettings(response?.settings ?? payload);
+                ensureAdvertisingSettings();
+                populateAdvertisingForm();
+                showAlert('Advertising settings updated.', 'success');
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(advertisingForm, false);
+            }
+        };
+
+        const handleAdvertisingProviderChange = (event) => {
+            const value = lowerTrimString(event?.target?.value ?? '');
+            const settings = ensureAdvertisingSettings();
+            settings.provider = value;
+            populateAdvertisingForm();
+        };
+
+        const handleAdvertisingEnabledChange = (event) => {
+            const settings = ensureAdvertisingSettings();
+            settings.enabled = Boolean(event?.target?.checked);
+        };
+
+        const handleAdvertisingPublisherInput = (event) => {
+            const settings = ensureAdvertisingSettings();
+            if (!settings.google_ads) {
+                settings.google_ads = { ...defaultAdvertisingSettings().google_ads };
+            }
+            settings.google_ads.publisher_id = trimString(event?.target?.value ?? '');
+        };
+
+        const handleAdvertisingAutoChange = (event) => {
+            const settings = ensureAdvertisingSettings();
+            if (!settings.google_ads) {
+                settings.google_ads = { ...defaultAdvertisingSettings().google_ads };
+            }
+            settings.google_ads.auto_ads = Boolean(event?.target?.checked);
+        };
+
+        const handleAdvertisingSlotChange = (event) => {
+            const target = event?.target;
+            if (!target || !target.dataset) {
+                return;
+            }
+            const indexValue = Number.parseInt(target.dataset.index || '', 10);
+            if (!Number.isFinite(indexValue)) {
+                return;
+            }
+
+            const settings = ensureAdvertisingSettings();
+            const slots = settings.google_ads?.slots;
+            if (!Array.isArray(slots) || !slots[indexValue]) {
+                return;
+            }
+
+            const slot = slots[indexValue];
+            switch (target.dataset.role) {
+                case 'ads-slot-placement':
+                    slot.placement = lowerTrimString(target.value);
+                    break;
+                case 'ads-slot-id':
+                    slot.slot_id = trimString(target.value);
+                    break;
+                case 'ads-slot-format':
+                    slot.format = lowerTrimString(target.value);
+                    break;
+                case 'ads-slot-responsive':
+                    slot.full_width_responsive = Boolean(target.checked);
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        const handleAdvertisingSlotClick = (event) => {
+            const target = event?.target;
+            if (!target || target.dataset?.role !== 'ads-slot-remove') {
+                return;
+            }
+
+            event.preventDefault();
+
+            const indexValue = Number.parseInt(target.dataset.index || '', 10);
+            if (!Number.isFinite(indexValue)) {
+                return;
+            }
+
+            const settings = ensureAdvertisingSettings();
+            const slots = settings.google_ads?.slots;
+            if (!Array.isArray(slots) || indexValue < 0 || indexValue >= slots.length) {
+                return;
+            }
+
+            slots.splice(indexValue, 1);
+            renderAdvertisingSlots();
+        };
+
+        const handleAdvertisingAddSlot = (event) => {
+            if (event) {
+                event.preventDefault();
+            }
+
+            const settings = ensureAdvertisingSettings();
+            if (settings.provider !== 'google_ads') {
+                showAlert('Select Google AdSense to add manual placements.', 'info');
+                return;
+            }
+
+            const providerMeta = getAdvertisingProviderMeta('google_ads');
+            const placements = Array.isArray(providerMeta?.placements)
+                ? providerMeta.placements
+                : [];
+            const formats = Array.isArray(providerMeta?.formats) ? providerMeta.formats : [];
+            const defaultPlacement = lowerTrimString(
+                placements[0]?.key ?? placements[0]?.Key ?? 'layout_top'
+            );
+            const defaultFormat = lowerTrimString(
+                formats[0]?.key ?? formats[0]?.Key ?? 'auto'
+            ) || 'auto';
+
+            if (!Array.isArray(settings.google_ads?.slots)) {
+                settings.google_ads.slots = [];
+            }
+
+            settings.google_ads.slots.push({
+                placement: defaultPlacement,
+                slot_id: '',
+                format: defaultFormat,
+                full_width_responsive: true,
+            });
+
+            renderAdvertisingSlots();
         };
 
         const createThemeItem = (theme) => {
@@ -4445,6 +4996,15 @@
         userForm?.addEventListener('submit', handleUserSubmit);
         userDeleteButton?.addEventListener('click', handleUserDelete);
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
+        advertisingForm?.addEventListener('submit', handleAdvertisingSubmit);
+        advertisingProviderSelect?.addEventListener('change', handleAdvertisingProviderChange);
+        advertisingEnabledToggle?.addEventListener('change', handleAdvertisingEnabledChange);
+        advertisingPublisherInput?.addEventListener('input', handleAdvertisingPublisherInput);
+        advertisingAutoToggle?.addEventListener('change', handleAdvertisingAutoChange);
+        advertisingSlotAddButton?.addEventListener('click', handleAdvertisingAddSlot);
+        advertisingSlotsContainer?.addEventListener('input', handleAdvertisingSlotChange);
+        advertisingSlotsContainer?.addEventListener('change', handleAdvertisingSlotChange);
+        advertisingSlotsContainer?.addEventListener('click', handleAdvertisingSlotClick);
         faviconUploadButton?.addEventListener('click', handleFaviconUploadClick);
         faviconUploadInput?.addEventListener('change', handleFaviconFileChange);
         logoUploadButton?.addEventListener('click', handleLogoUploadClick);
@@ -4471,6 +5031,7 @@
         loadComments();
         loadUsers();
         loadSiteSettings();
+        loadAdvertisingSettings();
         loadThemes();
         loadSocialLinks();
         loadMenuItems();

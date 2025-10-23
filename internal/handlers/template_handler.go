@@ -16,22 +16,23 @@ import (
 )
 
 type TemplateHandler struct {
-	postService       *service.PostService
-	categoryService   *service.CategoryService
-	pageService       *service.PageService
-	authService       *service.AuthService
-	commentService    *service.CommentService
-	searchService     *service.SearchService
-	setupService      *service.SetupService
-	socialLinkService *service.SocialLinkService
-	menuService       *service.MenuService
-	templates         *template.Template
-	templatesMu       sync.RWMutex
-	currentTheme      string
-	themeManager      *theme.Manager
-	config            *config.Config
-	sanitizer         *bluemonday.Policy
-	sectionRenderers  map[string]SectionRenderer
+	postService        *service.PostService
+	categoryService    *service.CategoryService
+	pageService        *service.PageService
+	authService        *service.AuthService
+	commentService     *service.CommentService
+	searchService      *service.SearchService
+	setupService       *service.SetupService
+	socialLinkService  *service.SocialLinkService
+	menuService        *service.MenuService
+	advertisingService *service.AdvertisingService
+	templates          *template.Template
+	templatesMu        sync.RWMutex
+	currentTheme       string
+	themeManager       *theme.Manager
+	config             *config.Config
+	sanitizer          *bluemonday.Policy
+	sectionRenderers   map[string]SectionRenderer
 }
 
 func NewTemplateHandler(
@@ -44,6 +45,7 @@ func NewTemplateHandler(
 	categoryService *service.CategoryService,
 	socialLinkService *service.SocialLinkService,
 	menuService *service.MenuService,
+	advertisingService *service.AdvertisingService,
 	cfg *config.Config,
 	themeManager *theme.Manager,
 ) (*TemplateHandler, error) {
@@ -52,18 +54,19 @@ func NewTemplateHandler(
 	policy.AllowAttrs("style").OnElements("span", "div", "p")
 
 	handler := &TemplateHandler{
-		postService:       postService,
-		categoryService:   categoryService,
-		pageService:       pageService,
-		authService:       authService,
-		commentService:    commentService,
-		searchService:     searchService,
-		setupService:      setupService,
-		socialLinkService: socialLinkService,
-		menuService:       menuService,
-		themeManager:      themeManager,
-		config:            cfg,
-		sanitizer:         policy,
+		postService:        postService,
+		categoryService:    categoryService,
+		pageService:        pageService,
+		authService:        authService,
+		commentService:     commentService,
+		searchService:      searchService,
+		setupService:       setupService,
+		socialLinkService:  socialLinkService,
+		menuService:        menuService,
+		advertisingService: advertisingService,
+		themeManager:       themeManager,
+		config:             cfg,
+		sanitizer:          policy,
 	}
 
 	handler.registerDefaultSectionRenderers()

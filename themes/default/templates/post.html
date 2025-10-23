@@ -123,6 +123,12 @@
         {{ if .TOC }}
         {{ .TOC }}
         {{ end }}
+        {{ $ads := $.Advertising }}
+        {{ if and $ads ( $ads.Enabled ) }}
+        {{ range index $ads.Placements "post_sidebar" }}
+        {{ . }}
+        {{ end }}
+        {{ end }}
         <section class="post__share" aria-label="Share this post">
             <h2 class="post__share-title">Share</h2>
             <button
@@ -147,7 +153,18 @@
     </aside>
 
     <section class="post__content">
+        {{ $ads := $.Advertising }}
+        {{ if and $ads ( $ads.Enabled ) }}
+        {{ range index $ads.Placements "post_content_top" }}
+        {{ . }}
+        {{ end }}
+        {{ end }}
         {{ .Content }}
+        {{ if and $ads ( $ads.Enabled ) }}
+        {{ range index $ads.Placements "post_content_bottom" }}
+        {{ . }}
+        {{ end }}
+        {{ end }}
     </section>
 </article>
 

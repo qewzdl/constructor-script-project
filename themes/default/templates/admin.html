@@ -18,6 +18,7 @@
     data-endpoint-social-links="{{ index .AdminEndpoints "SocialLinks" }}"
     data-endpoint-menu-items="{{ index .AdminEndpoints "MenuItems" }}"
     data-endpoint-users="{{ index .AdminEndpoints "Users" }}"
+    data-endpoint-advertising-settings="{{ index .AdminEndpoints "Advertising" }}"
     data-current-user-id="{{ if .CurrentUser }}{{ .CurrentUser.ID }}{{ end }}"
 >
     <header class="admin__header">
@@ -775,6 +776,82 @@
                     </fieldset>
                 </form>
             </div>
+            </section>
+            <section
+                id="admin-panel-advertising"
+                class="admin-panel"
+                data-panel="advertising"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Monetization"
+                data-nav-order="2"
+                role="tabpanel"
+                aria-labelledby="admin-tab-advertising"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Advertising</h2>
+                        <p class="admin-panel__description">
+                            Configure Google AdSense placements and control how advertisements appear across the site.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body">
+                    <form id="admin-ads-form" class="admin-form" novalidate>
+                        <fieldset class="admin-form__fieldset">
+                            <legend class="admin-form__legend">General settings</legend>
+                            <label class="admin-form__checkbox">
+                                <input type="checkbox" name="enabled" data-role="ads-enabled" />
+                                <span>Enable advertising</span>
+                            </label>
+                            <label class="admin-form__label">
+                                Provider
+                                <select name="provider" class="admin-form__input" data-role="ads-provider"></select>
+                            </label>
+                            <small class="admin-form__hint">
+                                Select the advertising provider to manage. New providers can be added without changing templates.
+                            </small>
+                        </fieldset>
+                        <fieldset class="admin-form__fieldset" data-role="ads-provider-fields" data-provider="google_ads">
+                            <legend class="admin-form__legend">Google AdSense</legend>
+                            <label class="admin-form__label">
+                                Publisher ID
+                                <input
+                                    type="text"
+                                    name="google_ads.publisher_id"
+                                    class="admin-form__input"
+                                    data-role="ads-google-publisher"
+                                    placeholder="ca-pub-0000000000000000"
+                                    autocomplete="off"
+                                />
+                            </label>
+                            <small class="admin-form__hint">
+                                Use the publisher ID from your AdSense account (format: ca-pub-XXXXXXXXXXXXXXXX).
+                            </small>
+                            <label class="admin-form__checkbox">
+                                <input type="checkbox" name="google_ads.auto_ads" data-role="ads-google-auto" />
+                                <span>Enable Auto Ads</span>
+                            </label>
+                            <p class="admin-form__hint">
+                                Auto Ads allow Google to automatically place ads across your pages. You can still define manual slots.
+                            </p>
+                            <div class="admin-ads__slots" data-role="ads-slots" aria-live="polite"></div>
+                            <button type="button" class="admin-form__link-button" data-role="ads-slot-add">
+                                Add placement
+                            </button>
+                            <small class="admin-form__hint">
+                                Each placement maps an AdSense ad unit to a specific location such as the header, sidebar, or footer.
+                            </small>
+                        </fieldset>
+                        <div class="admin-form__actions">
+                            <button type="submit" class="admin-form__submit" data-role="ads-submit">
+                                Save changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </section>
             <section
                 id="admin-panel-themes"
