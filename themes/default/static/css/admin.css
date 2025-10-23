@@ -44,10 +44,25 @@
 }
 
 .admin__alert {
+    position: fixed;
+    inset-block-end: var(--size-mid);
+    inset-inline-end: var(--size-mid);
+    max-width: min(360px, calc(100% - (var(--size-mid) * 2)));
     padding: var(--size-base) var(--size-mid);
     border: 1px solid var(--color-primary);
     background: var(--color-primary-transparent);
     font-weight: 500;
+    transform: translateY(calc(100% + var(--size-mid)));
+    opacity: 0;
+    transition: transform 180ms ease, opacity 180ms ease;
+    z-index: 40;
+    pointer-events: none;
+}
+
+.admin__alert.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .admin__alert[hidden] {

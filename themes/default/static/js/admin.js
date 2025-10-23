@@ -159,7 +159,27 @@
             : '';
 
         const alertElement = document.getElementById('admin-alert');
-        const showAlert = (message, type = 'info') => {
+        const ALERT_AUTO_HIDE_MS = 5000;
+        const ALERT_TRANSITION_FALLBACK_MS = 360;
+        let alertAutoHideTimeoutId = null;
+        let alertDismissFallbackTimeoutId = null;
+        let pendingHideHandler = null;
+
+        const cancelPendingHide = () => {
+            if (!alertElement) {
+                return;
+            }
+            if (pendingHideHandler) {
+                alertElement.removeEventListener('transitionend', pendingHideHandler);
+                pendingHideHandler = null;
+            }
+            if (alertDismissFallbackTimeoutId) {
+                window.clearTimeout(alertDismissFallbackTimeoutId);
+                alertDismissFallbackTimeoutId = null;
+            }
+        };
+
+        const updateAlertContent = (message, type = 'info') => {
             if (!alertElement) {
                 return;
             }
@@ -167,11 +187,78 @@
                 setAlert(alertElement, message, type);
                 return;
             }
-            alertElement.textContent = message || '';
-            alertElement.hidden = !message;
+
+            alertElement.classList.remove('is-error', 'is-success', 'is-info');
+
+            if (!message) {
+                alertElement.hidden = true;
+                alertElement.textContent = '';
+                return;
+            }
+
+            const statusClass =
+                type === 'error' ? 'is-error' : type === 'success' ? 'is-success' : 'is-info';
+            alertElement.classList.add(statusClass);
+            alertElement.hidden = false;
+            alertElement.textContent = message;
         };
 
-        const clearAlert = () => showAlert('');
+        const clearAlertContent = () => updateAlertContent('');
+
+        const hideAlert = () => {
+            if (!alertElement) {
+                return;
+            }
+
+            window.clearTimeout(alertAutoHideTimeoutId);
+            alertAutoHideTimeoutId = null;
+            cancelPendingHide();
+            alertElement.classList.remove('is-visible');
+
+            if (alertElement.hidden) {
+                clearAlertContent();
+                return;
+            }
+
+            pendingHideHandler = (event) => {
+                if (event.target !== alertElement) {
+                    return;
+                }
+                cancelPendingHide();
+                clearAlertContent();
+            };
+
+            alertElement.addEventListener('transitionend', pendingHideHandler);
+            alertDismissFallbackTimeoutId = window.setTimeout(() => {
+                cancelPendingHide();
+                clearAlertContent();
+            }, ALERT_TRANSITION_FALLBACK_MS);
+        };
+
+        const showAlert = (message, type = 'info') => {
+            if (!alertElement) {
+                return;
+            }
+
+            window.clearTimeout(alertAutoHideTimeoutId);
+            alertAutoHideTimeoutId = null;
+            cancelPendingHide();
+
+            if (!message) {
+                hideAlert();
+                return;
+            }
+
+            updateAlertContent(message, type);
+            // Force reflow so transitions apply consistently.
+            void alertElement.offsetWidth;
+            alertElement.classList.add('is-visible');
+            alertAutoHideTimeoutId = window.setTimeout(() => {
+                hideAlert();
+            }, ALERT_AUTO_HIDE_MS);
+        };
+
+        const clearAlert = () => hideAlert();
 
         const handleRequestError = (error) => {
             if (!error) {
