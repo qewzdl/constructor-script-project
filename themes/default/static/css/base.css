@@ -1095,6 +1095,8 @@ body.post-image-modal-open .post-progress {
     display: grid;
     gap: var(--common-gap);
     overflow-x: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .post__sidebar a {
@@ -1111,6 +1113,30 @@ body.post-image-modal-open .post-progress {
     font-size: var(--font-size-lg);
     font-weight: 600;
     margin-bottom: var(--size-base);
+}
+
+.ad-slot {
+    height: auto;
+    width: 100%;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-top);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+    text-align: center;
+}
+
+.adsbygoogle {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.adsbygoogle * {
+    width: 100% !important;
+    height: auto;
 }
 
 .post__share {
@@ -1201,12 +1227,6 @@ body.post-image-modal-open .post-progress {
     white-space: nowrap;
     text-overflow: ellipsis;
 } 
-
-.post__sidebar {
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
 .post__content,
 .page-view__body {
     display: grid;
