@@ -54,6 +54,31 @@
             return;
         }
 
+        const ACTIVE_TAB_STORAGE_KEY = 'constructor.admin.activeTab';
+        const getStoredActiveTab = () => {
+            try {
+                const storage = window.localStorage;
+                return storage ? storage.getItem(ACTIVE_TAB_STORAGE_KEY) || '' : '';
+            } catch (error) {
+                return '';
+            }
+        };
+        const setStoredActiveTab = (tabId) => {
+            try {
+                const storage = window.localStorage;
+                if (!storage) {
+                    return;
+                }
+                if (tabId) {
+                    storage.setItem(ACTIVE_TAB_STORAGE_KEY, tabId);
+                } else {
+                    storage.removeItem(ACTIVE_TAB_STORAGE_KEY);
+                }
+            } catch (error) {
+                /* Ignore storage errors (private browsing, storage disabled, etc.) */
+            }
+        };
+
         const app = window.App || {};
         const auth = app.auth;
         const fallbackApiRequest = async (url, options = {}) => {
@@ -4284,6 +4309,17 @@
         };
 
         const activateTab = (targetId) => {
+            if (!targetId) {
+                setStoredActiveTab('');
+                return;
+            }
+            const targetPanel = root.querySelector(
+                `.admin-panel[data-panel="${targetId}"]`
+            );
+            if (!targetPanel) {
+                setStoredActiveTab('');
+                return;
+            }
             root.querySelectorAll('.admin__tab').forEach((tab) => {
                 const isActive = tab.dataset.tab === targetId;
                 tab.classList.toggle('is-active', isActive);
@@ -4294,13 +4330,29 @@
                 panel.toggleAttribute('hidden', !isActive);
                 panel.classList.toggle('is-active', isActive);
             });
+            setStoredActiveTab(targetId);
         };
 
         const navigationTabs = buildNavigation() || [];
 
+        let initialTabActivated = false;
+        const storedActiveTab = getStoredActiveTab();
+        if (storedActiveTab) {
+            const hasStoredTab = navigationTabs.some(
+                (tab) => tab.dataset.tab === storedActiveTab
+            );
+            if (hasStoredTab) {
+                activateTab(storedActiveTab);
+                initialTabActivated = true;
+            } else {
+                setStoredActiveTab('');
+            }
+        }
+
         if (
             navigationTabs.length > 0 &&
-            !navigationTabs.some((tab) => tab.classList.contains('is-active'))
+            !navigationTabs.some((tab) => tab.classList.contains('is-active')) &&
+            !initialTabActivated
         ) {
             const defaultTab = navigationTabs[0].dataset.tab;
             if (defaultTab) {
