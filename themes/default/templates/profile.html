@@ -88,6 +88,13 @@
                     data-action="{{ .PasswordChangeAction }}"
                     novalidate
                 >
+                    <input
+                        type="text"
+                        name="username"
+                        value="{{ if .CurrentUser }}{{ .CurrentUser.Username }}{{ end }}"
+                        autocomplete="username"
+                        hidden
+                    />
                     <div class="form-field">
                         <label class="form-field__label" for="current-password">Current password</label>
                         <input
