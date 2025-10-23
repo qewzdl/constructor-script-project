@@ -19,11 +19,40 @@ var baseContentSecurityPolicy = map[string][]string{
 	"base-uri":        {"'self'"},
 	"frame-ancestors": {"'none'"},
 	"form-action":     {"'self'"},
-	"script-src":      {"'self'", "'unsafe-inline'"},
-	"style-src":       {"'self'", "'unsafe-inline'", "https://fonts.googleapis.com"},
-	"font-src":        {"'self'", "https://fonts.gstatic.com", "data:"},
-	"img-src":         {"'self'", "data:", "https:"},
-	"connect-src":     {"'self'"},
+	"script-src": {
+		"'self'",
+		"'unsafe-inline'",
+		"https://pagead2.googlesyndication.com",
+		"https://securepubads.g.doubleclick.net",
+		"https://www.googletagservices.com",
+		"https://ep2.adtrafficquality.google",
+	},
+	"style-src": {
+		"'self'",
+		"'unsafe-inline'",
+		"https://fonts.googleapis.com",
+	},
+	"font-src": {"'self'", "https://fonts.gstatic.com", "data:"},
+	"img-src": {
+		"'self'",
+		"data:",
+		"https:",
+		"https://pagead2.googlesyndication.com",
+		"https://tpc.googlesyndication.com",
+	},
+	"connect-src": {
+		"'self'",
+		"https://pagead2.googlesyndication.com",
+		"https://googleads.g.doubleclick.net",
+		"https://ep2.adtrafficquality.google",
+	},
+	"frame-src": {
+		"https://adservice.google.com",
+		"https://googleads.g.doubleclick.net",
+		"https://tpc.googlesyndication.com",
+		"https://ep2.adtrafficquality.google",
+		"https://www.google.com",
+	},
 }
 
 var cspDirectiveOrder = []string{
