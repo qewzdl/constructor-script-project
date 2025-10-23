@@ -135,11 +135,6 @@
         {{ with .CurrentUser }}data-user-role="{{ .Role }}" data-user-id="{{ .ID }}"{{ end }}
     >
         {{ $ads := .Advertising }}
-        {{ if and $ads ( $ads.Enabled ) }}
-        {{ range index $ads.Placements "layout_top" }}
-        {{ . }}
-        {{ end }}
-        {{ end }}
         {{ if .HideChrome }} {{ else }}
         <header class="header" role="banner">
             <nav
@@ -282,11 +277,6 @@
         </header>
         {{ end }}
 
-        {{ if and $ads ( $ads.Enabled ) }}
-        {{ range index $ads.Placements "main_top" }}
-        {{ . }}
-        {{ end }}
-        {{ end }}
 
         <main id="main-content" class="main" role="main">{{ .Content }}</main>
 

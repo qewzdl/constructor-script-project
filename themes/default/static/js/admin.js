@@ -2830,7 +2830,7 @@
                 : [];
             const formats = Array.isArray(providerMeta?.formats) ? providerMeta.formats : [];
             const defaultPlacement = lowerTrimString(
-                placements[0]?.key ?? placements[0]?.Key ?? 'layout_top'
+                placements[0]?.key ?? placements[0]?.Key ?? 'post_content_top'
             );
             const defaultFormat = lowerTrimString(
                 formats[0]?.key ?? formats[0]?.Key ?? 'auto'

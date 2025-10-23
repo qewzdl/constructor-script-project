@@ -34,8 +34,6 @@ var (
 	}
 
 	googleAdsPlacements = []models.AdvertisingPlacement{
-		{Key: "layout_top", Label: "Top of page", Description: "Displayed immediately after the opening <body> tag.", Recommended: true},
-		{Key: "main_top", Label: "Above main content", Description: "Shown before the primary page content."},
 		{Key: "post_content_top", Label: "Post content (top)", Description: "Appears before the article body on post pages."},
 		{Key: "post_content_bottom", Label: "Post content (bottom)", Description: "Appears after the article body on post pages."},
 		{Key: "post_sidebar", Label: "Post sidebar", Description: "Displayed inside the article sidebar."},

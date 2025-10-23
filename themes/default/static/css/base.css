@@ -1118,7 +1118,6 @@ body.post-image-modal-open .post-progress {
 .ad-slot {
     height: auto;
     width: 100%;
-    border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
     display: flex;
     align-items: center;
@@ -1126,6 +1125,15 @@ body.post-image-modal-open .post-progress {
     color: var(--color-secondary);
     font-size: var(--font-size-sm);
     text-align: center;
+    position: relative;
+}
+
+.ad-slot::before {
+    content: 'Advertisement';
+    display: block;
+    position: absolute;
+    font-size: var(--font-size-xs);
+    color: var(--color-secondary);
 }
 
 .adsbygoogle {
