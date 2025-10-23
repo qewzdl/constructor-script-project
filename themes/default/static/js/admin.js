@@ -2453,6 +2453,37 @@
             });
         };
 
+        const activateAdvertisingProvider = (providerKey) => {
+            const targetKey = lowerTrimString(providerKey);
+            if (!targetKey) {
+                return false;
+            }
+
+            const providers = Array.isArray(state.advertising.providers)
+                ? state.advertising.providers
+                : [];
+            const hasProvider = providers.some((provider) => {
+                const key = lowerTrimString(provider?.key ?? provider?.Key ?? '');
+                return key === targetKey;
+            });
+            if (!hasProvider) {
+                return false;
+            }
+
+            const settings = ensureAdvertisingSettings();
+            if (settings.provider !== targetKey) {
+                settings.provider = targetKey;
+            }
+
+            if (advertisingProviderSelect) {
+                advertisingProviderSelect.value = targetKey;
+            }
+
+            updateAdvertisingProviderVisibility(targetKey);
+
+            return true;
+        };
+
         const renderAdvertisingSlots = () => {
             if (!advertisingSlotsContainer) {
                 return;
@@ -2632,6 +2663,10 @@
 
             updateAdvertisingProviderVisibility(providerKey);
 
+            if (advertisingSlotAddButton) {
+                advertisingSlotAddButton.disabled = providerKey !== 'google_ads';
+            }
+
             if (providerKey === 'google_ads') {
                 const google = ensureAdvertisingSettings().google_ads;
                 if (advertisingPublisherInput) {
@@ -2791,14 +2826,14 @@
         };
 
         const handleAdvertisingSlotClick = (event) => {
-            const target = event?.target;
-            if (!target || target.dataset?.role !== 'ads-slot-remove') {
+            const button = event?.target?.closest('[data-role="ads-slot-remove"]');
+            if (!button) {
                 return;
             }
 
             event.preventDefault();
 
-            const indexValue = Number.parseInt(target.dataset.index || '', 10);
+            const indexValue = Number.parseInt(button.dataset.index || '', 10);
             if (!Number.isFinite(indexValue)) {
                 return;
             }
@@ -2819,6 +2854,19 @@
             }
 
             const settings = ensureAdvertisingSettings();
+            if (settings.provider !== 'google_ads') {
+                const providerActivated = activateAdvertisingProvider('google_ads');
+                if (!providerActivated) {
+                    showAlert('Select Google AdSense to add manual placements.', 'info');
+                    return;
+                }
+                settings.provider = 'google_ads';
+            }
+
+            if (advertisingSlotAddButton) {
+                advertisingSlotAddButton.disabled = false;
+            }
+
             if (settings.provider !== 'google_ads') {
                 showAlert('Select Google AdSense to add manual placements.', 'info');
                 return;
