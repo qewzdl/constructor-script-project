@@ -358,7 +358,7 @@
 .admin__navigation-card {
     display: grid;
     gap: var(--size-sm);
-    padding: var(--size-mid);
+    padding: var(--size-base);
     border: 1px solid var(--color-border);
     background: var(--color-bg-top);
 }
@@ -366,13 +366,13 @@
 .admin__nav {
     display: flex;
     flex-direction: column;
-    gap: var(--size-mid);
+    gap: var(--size-base);
 }
 
 .admin__shortcuts {
     display: grid;
     gap: var(--size-sm);
-    padding: var(--size-mid);
+    padding: var(--size-base);
     border: 1px solid var(--color-border);
     background: var(--color-bg-top);
 }
@@ -433,7 +433,7 @@
 .admin__nav-group {
     display: flex;
     flex-direction: column;
-    gap: var(--size-xs);
+    gap: var(--size-sm);
 }
 
 .admin__nav-title {

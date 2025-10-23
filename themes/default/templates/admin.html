@@ -38,96 +38,6 @@
 
     <div class="admin__alert" id="admin-alert" role="status" aria-live="assertive" hidden></div>
 
-    <section class="admin__section" aria-labelledby="admin-metrics-title">
-        <div class="admin__section-header">
-            <h2 id="admin-metrics-title" class="admin__section-title">At a glance</h2>
-            <p class="admin__section-description">
-                Keep track of totals alongside how many items were created in the last day and week.
-            </p>
-        </div>
-        <div class="admin__metrics" id="admin-metrics">
-            <article class="admin__metric" data-metric="total_posts">
-                <p class="admin__metric-label">Posts</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="published_posts">
-                <p class="admin__metric-label">Published posts</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="total_users">
-                <p class="admin__metric-label">Users</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="total_categories">
-                <p class="admin__metric-label">Categories</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="total_comments">
-                <p class="admin__metric-label">Comments</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="total_tags">
-                <p class="admin__metric-label">Tags</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="total_views">
-                <p class="admin__metric-label">Total views</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="posts_last_24_hours">
-                <p class="admin__metric-label">Posts (24 hours)</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="posts_last_7_days">
-                <p class="admin__metric-label">Posts (7 days)</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="comments_last_24_hours">
-                <p class="admin__metric-label">Comments (24 hours)</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="comments_last_7_days">
-                <p class="admin__metric-label">Comments (7 days)</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-            <article class="admin__metric" data-metric="users_last_7_days">
-                <p class="admin__metric-label">New users (7 days)</p>
-                <p class="admin__metric-value">—</p>
-            </article>
-        </div>
-    </section>
-
-    <section class="admin__section admin__section--analytics" aria-labelledby="admin-analytics-title">
-        <div class="admin__section-header">
-            <h2 id="admin-analytics-title" class="admin__section-title">Publishing trend</h2>
-            <p class="admin__section-description">
-                Review daily posts and comments over the last month to understand how activity is evolving.
-            </p>
-        </div>
-        <div
-            class="admin__chart"
-            data-role="metrics-chart"
-            role="img"
-            aria-labelledby="admin-analytics-title admin-analytics-caption"
-        >
-            <div class="admin-chart__viewport">
-                <svg class="admin-chart__svg" viewBox="0 0 600 260" preserveAspectRatio="none" focusable="false"></svg>
-            </div>
-            <div class="admin-chart__footer">
-                <ul class="admin-chart__legend" data-role="chart-legend"></ul>
-                <ol
-                    class="admin-chart__summary"
-                    id="admin-analytics-caption"
-                    data-role="chart-summary"
-                    aria-live="polite"
-                ></ol>
-            </div>
-            <p class="admin-chart__empty" data-role="chart-empty" hidden>
-                Not enough recent activity to display a trend yet.
-            </p>
-        </div>
-    </section>
-
     <div class="admin__workspace">
         <aside class="admin__sidebar">
             <nav class="admin__navigation" aria-label="Admin sections">
@@ -168,8 +78,119 @@
 
         <div class="admin__panels">
             <section
-                id="admin-panel-posts"
+                id="admin-panel-metrics"
                 class="admin-panel is-active"
+                data-panel="metrics"
+                data-nav-group="overview"
+                data-nav-group-label="Overview"
+                data-nav-group-order="0"
+                data-nav-label="Metrics"
+                data-nav-order="1"
+                role="tabpanel"
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Site metrics</h2>
+                        <p class="admin-panel__description">
+                            Review key totals and recent activity trends to monitor site health.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--single">
+                    <section class="admin__section" aria-labelledby="admin-metrics-title">
+                        <div class="admin__section-header">
+                            <h3 id="admin-metrics-title" class="admin__section-title">At a glance</h3>
+                            <p class="admin__section-description">
+                                Keep track of totals alongside how many items were created in the last day and week.
+                            </p>
+                        </div>
+                        <div class="admin__metrics" id="admin-metrics">
+                            <article class="admin__metric" data-metric="total_posts">
+                                <p class="admin__metric-label">Posts</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="published_posts">
+                                <p class="admin__metric-label">Published posts</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_users">
+                                <p class="admin__metric-label">Users</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_categories">
+                                <p class="admin__metric-label">Categories</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_comments">
+                                <p class="admin__metric-label">Comments</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_tags">
+                                <p class="admin__metric-label">Tags</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_views">
+                                <p class="admin__metric-label">Total views</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="posts_last_24_hours">
+                                <p class="admin__metric-label">Posts (24 hours)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="posts_last_7_days">
+                                <p class="admin__metric-label">Posts (7 days)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="comments_last_24_hours">
+                                <p class="admin__metric-label">Comments (24 hours)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="comments_last_7_days">
+                                <p class="admin__metric-label">Comments (7 days)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="users_last_7_days">
+                                <p class="admin__metric-label">New users (7 days)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                        </div>
+                    </section>
+                    <section class="admin__section admin__section--analytics" aria-labelledby="admin-analytics-title">
+                        <div class="admin__section-header">
+                            <h3 id="admin-analytics-title" class="admin__section-title">Publishing trend</h3>
+                            <p class="admin__section-description">
+                                Review daily posts and comments over the last month to understand how activity is evolving.
+                            </p>
+                        </div>
+                        <div
+                            class="admin__chart"
+                            data-role="metrics-chart"
+                            role="img"
+                            aria-labelledby="admin-analytics-title admin-analytics-caption"
+                        >
+                            <div class="admin-chart__viewport">
+                                <svg class="admin-chart__svg" viewBox="0 0 600 260" preserveAspectRatio="none" focusable="false"></svg>
+                            </div>
+                            <div class="admin-chart__footer">
+                                <ul class="admin-chart__legend" data-role="chart-legend"></ul>
+                                <ol
+                                    class="admin-chart__summary"
+                                    id="admin-analytics-caption"
+                                    data-role="chart-summary"
+                                    aria-live="polite"
+                                ></ol>
+                            </div>
+                            <p class="admin-chart__empty" data-role="chart-empty" hidden>
+                                Not enough recent activity to display a trend yet.
+                            </p>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <section
+                id="admin-panel-posts"
+                class="admin-panel"
                 data-panel="posts"
                 data-nav-group="content"
                 data-nav-group-label="Content"
@@ -178,6 +199,7 @@
                 data-nav-order="1"
                 role="tabpanel"
                 aria-labelledby="admin-tab-posts"
+                hidden
             >
             <header class="admin-panel__header">
                 <div>
