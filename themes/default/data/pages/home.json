@@ -1,0 +1,65 @@
+{
+    "title": "Home",
+    "slug": "home",
+    "description": "A welcoming landing page that introduces Constructor Script and points visitors to recent updates and resources.",
+    "published": true,
+    "template": "page",
+    "sections": [
+        {
+            "title": "Build your site with Constructor Script",
+            "type": "hero"
+        },
+        {
+            "title": "Launch quickly",
+            "type": "standard",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Constructor Script gives you a modern editorial workflow and a polished default theme so you can publish in minutes instead of weeks."
+                    }
+                },
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Use flexible page sections, prebuilt templates, and smart defaults to shape landing pages, documentation, or marketing sites with ease."
+                    }
+                }
+            ]
+        },
+        {
+            "title": "Everything you need",
+            "type": "standard",
+            "elements": [
+                {
+                    "type": "list",
+                    "content": {
+                        "ordered": false,
+                        "items": [
+                            "Intuitive admin dashboard for writers and editors",
+                            "Theme-aware sections for showcasing your content",
+                            "Fast, secure Go backend with a focus on reliability"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "title": "Latest from the blog",
+            "type": "posts_list",
+            "limit": 3
+        },
+        {
+            "title": "Stay connected",
+            "type": "standard",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Subscribe to updates, follow us on social channels, and join the community shaping the future of Constructor Script."
+                    }
+                }
+            ]
+        }
+    ]
+}

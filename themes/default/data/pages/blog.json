@@ -1,0 +1,59 @@
+{
+    "title": "Blog",
+    "slug": "blog",
+    "description": "Articles, tutorials, and release notes that help you get more from Constructor Script.",
+    "published": true,
+    "template": "page",
+    "sections": [
+        {
+            "title": "Insights from the Constructor Script team",
+            "type": "hero"
+        },
+        {
+            "title": "What you'll find",
+            "type": "standard",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Explore engineering deep dives, product updates, and stories from the community building with Constructor Script."
+                    }
+                }
+            ]
+        },
+        {
+            "title": "Topics we cover",
+            "type": "standard",
+            "elements": [
+                {
+                    "type": "list",
+                    "content": {
+                        "ordered": false,
+                        "items": [
+                            "Guides for launching and scaling content-driven sites",
+                            "Best practices for Go, performance, and deployment",
+                            "Interviews and highlights from creators using Constructor Script"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "title": "Recent posts",
+            "type": "posts_list",
+            "limit": 6
+        },
+        {
+            "title": "Join the conversation",
+            "type": "standard",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Have a topic you want us to cover? Reach out and let us know what would help you build faster."
+                    }
+                }
+            ]
+        }
+    ]
+}
