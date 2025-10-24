@@ -13,6 +13,44 @@
         createImageState,
     } = utils;
 
+    const parseInteger = (value) => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return Math.trunc(value);
+        }
+        if (typeof value === 'string' && value.trim()) {
+            const parsed = Number.parseInt(value, 10);
+            return Number.isFinite(parsed) ? parsed : NaN;
+        }
+        return NaN;
+    };
+
+    const clampLimit = (value, definition) => {
+        if (!definition || typeof definition !== 'object') {
+            return value > 0 && Number.isFinite(value)
+                ? Math.max(1, Math.round(value))
+                : 0;
+        }
+        const rawMin = parseInteger(definition.min);
+        const rawMax = parseInteger(definition.max);
+        const rawDefault = parseInteger(definition.default);
+        const min = Number.isFinite(rawMin) && rawMin > 0 ? rawMin : 1;
+        const max = Number.isFinite(rawMax) && rawMax >= min ? rawMax : Infinity;
+        const fallback = Number.isFinite(rawDefault) && rawDefault > 0
+            ? Math.min(Math.max(rawDefault, min), max)
+            : min;
+        let limit = Number.isFinite(value) ? Math.round(value) : 0;
+        if (limit <= 0) {
+            limit = fallback;
+        }
+        if (limit < min) {
+            limit = min;
+        }
+        if (Number.isFinite(max) && limit > max) {
+            limit = max;
+        }
+        return limit;
+    };
+
     const createElementState = (definitions, element = {}) => {
         const type =
             normaliseString(element.type ?? element.Type ?? '').toLowerCase() ||
@@ -51,6 +89,11 @@
         const elementsSource = supportsElements
             ? ensureArray(section.elements ?? section.Elements)
             : [];
+        const limitDefinition = sectionDefinitions[type]?.settings?.limit;
+        const rawLimit = section.limit ?? section.Limit;
+        const limitValue = limitDefinition
+            ? clampLimit(parseInteger(rawLimit), limitDefinition)
+            : 0;
         return {
             clientId: randomId(),
             id: normaliseString(section.id ?? section.ID ?? ''),
@@ -62,6 +105,7 @@
                       createElementState(elementDefinitions, element)
                   )
                 : [],
+            limit: limitValue,
         };
     };
 
@@ -142,6 +186,19 @@
 
                     if (image) {
                         payload.image = image;
+                    }
+
+                    const limitDefinition =
+                        sectionDefs[section.type]?.settings?.limit;
+                    if (limitDefinition) {
+                        const limit = clampLimit(
+                            parseInteger(section.limit),
+                            limitDefinition
+                        );
+                        section.limit = limit;
+                        if (limit > 0) {
+                            payload.limit = limit;
+                        }
                     }
 
                     return payload;
@@ -264,6 +321,14 @@
                 section.title = value;
             } else if (field === 'section-image') {
                 section.image = value;
+            } else if (field === 'section-limit') {
+                const limitDefinition = sectionDefs[section.type]?.settings?.limit;
+                if (limitDefinition) {
+                    section.limit = clampLimit(
+                        parseInteger(value),
+                        limitDefinition
+                    );
+                }
             } else if (field === 'section-type') {
                 const nextType = normaliseString(value);
                 const ensuredType = sectionDefs[nextType]
@@ -275,6 +340,15 @@
                 section.type = ensuredType;
                 if (!supportsElements(section.type)) {
                     section.elements = [];
+                }
+                const limitDefinition = sectionDefs[section.type]?.settings?.limit;
+                if (limitDefinition) {
+                    section.limit = clampLimit(
+                        parseInteger(section.limit),
+                        limitDefinition
+                    );
+                } else {
+                    section.limit = 0;
                 }
             }
         };

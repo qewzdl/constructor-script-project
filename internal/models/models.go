@@ -142,6 +142,7 @@ type Section struct {
 	Type     string           `json:"type"`
 	Title    string           `json:"title"`
 	Image    string           `json:"image"`
+	Limit    int              `json:"limit"`
 	Order    int              `json:"order"`
 	Elements []SectionElement `json:"elements"`
 }

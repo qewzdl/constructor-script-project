@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/cache"
@@ -312,6 +313,16 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 			}
 		case "hero":
 			section.Elements = nil
+		case "posts_list":
+			section.Elements = nil
+			limit := section.Limit
+			if limit <= 0 {
+				limit = constants.DefaultPostListSectionLimit
+			}
+			if limit > constants.MaxPostListSectionLimit {
+				limit = constants.MaxPostListSectionLimit
+			}
+			section.Limit = limit
 		default:
 			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
 		}

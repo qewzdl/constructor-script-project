@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"strings"
 
+	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/pkg/logger"
 )
 
 func (h *TemplateHandler) renderSections(sections models.PostSections) template.HTML {
@@ -40,7 +43,16 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sb.WriteString(`</div>`)
 		}
 
-		if sectionType != "hero" {
+		skipElements := false
+		switch sectionType {
+		case "hero":
+			skipElements = true
+		case "posts_list":
+			skipElements = true
+			sb.WriteString(h.renderPostsListSection(prefix, section))
+		}
+
+		if !skipElements {
 			for _, elem := range section.Elements {
 				sb.WriteString(h.renderSectionElement(prefix, elem))
 			}
@@ -50,6 +62,83 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 	}
 
 	return template.HTML(sb.String())
+}
+
+func (h *TemplateHandler) renderPostsListSection(prefix string, section models.Section) string {
+	listClass := fmt.Sprintf("%s__post-list", prefix)
+	emptyClass := fmt.Sprintf("%s__post-list-empty", prefix)
+	cardClass := fmt.Sprintf("%s__post-card post-card", prefix)
+
+	limit := section.Limit
+	if limit <= 0 {
+		limit = constants.DefaultPostListSectionLimit
+	}
+	if limit > constants.MaxPostListSectionLimit {
+		limit = constants.MaxPostListSectionLimit
+	}
+
+	if h.postService == nil {
+		return `<p class="` + emptyClass + `">Posts are not available right now.</p>`
+	}
+
+	posts, err := h.postService.GetRecentPosts(limit)
+	if err != nil {
+		logger.Error(err, "Failed to load posts for section", map[string]interface{}{"section_id": section.ID})
+		return `<p class="` + emptyClass + `">Unable to load posts at the moment. Please try again later.</p>`
+	}
+
+	if len(posts) == 0 {
+		return `<p class="` + emptyClass + `">No posts available yet. Check back soon!</p>`
+	}
+
+	tmpl, err := h.templateClone()
+	if err != nil {
+		logger.Error(err, "Failed to clone templates for post list section", map[string]interface{}{"section_id": section.ID})
+		return `<p class="` + emptyClass + `">Unable to display posts at the moment.</p>`
+	}
+
+	var sb strings.Builder
+	sb.WriteString(`<div class="` + listClass + `">`)
+	rendered := 0
+	for i := range posts {
+		post := posts[i]
+		titleID := fmt.Sprintf("%s-post-%d", prefix, i+1)
+		card, renderErr := h.renderPostCard(tmpl, &post, cardClass, titleID)
+		if renderErr != nil {
+			logger.Error(renderErr, "Failed to render post card", map[string]interface{}{"post_id": post.ID, "section_id": section.ID})
+			continue
+		}
+		sb.WriteString(card)
+		rendered++
+	}
+	sb.WriteString(`</div>`)
+
+	if rendered == 0 {
+		return `<p class="` + emptyClass + `">Unable to display posts at the moment.</p>`
+	}
+
+	return sb.String()
+}
+
+func (h *TemplateHandler) renderPostCard(tmpl *template.Template, post *models.Post, wrapperClass, titleID string) (string, error) {
+	if tmpl == nil || post == nil {
+		return "", fmt.Errorf("template or post is nil")
+	}
+
+	var buf bytes.Buffer
+	data := map[string]interface{}{
+		"Post":         post,
+		"WrapperClass": wrapperClass,
+		"TitleID":      titleID,
+		"Heading":      "h3",
+		"LazyLoad":     true,
+	}
+
+	if err := tmpl.ExecuteTemplate(&buf, "components/post-card", data); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
 
 func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement) string {

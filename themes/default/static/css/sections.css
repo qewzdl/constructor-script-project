@@ -42,3 +42,16 @@
     text-align: center;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
 }
+
+.post__post-list,
+.page-view__post-list {
+    display: grid;
+    gap: var(--common-gap);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.post__post-list-empty,
+.page-view__post-list-empty {
+    color: var(--color-secondary);
+    font-size: var(--font-size-base);
+}

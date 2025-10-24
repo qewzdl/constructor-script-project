@@ -177,6 +177,47 @@
                 imageField.append(imageInput);
                 sectionItem.append(imageField);
 
+                const limitDefinition = sectionDefinition.settings?.limit;
+                if (limitDefinition) {
+                    const limitField = createElement('label', {
+                        className: 'admin-builder__field',
+                    });
+                    limitField.append(
+                        createElement('span', {
+                            className: 'admin-builder__label',
+                            textContent:
+                                limitDefinition.label ||
+                                'Number of posts to display',
+                        })
+                    );
+                    const limitInput = createElement('input', {
+                        className: 'admin-builder__input',
+                    });
+                    limitInput.type = 'number';
+                    if (Number.isFinite(limitDefinition.min)) {
+                        limitInput.min = String(limitDefinition.min);
+                    }
+                    if (Number.isFinite(limitDefinition.max)) {
+                        limitInput.max = String(limitDefinition.max);
+                    }
+                    limitInput.step = '1';
+                    const defaultLimit = Number.isFinite(limitDefinition.default)
+                        ? limitDefinition.default
+                        : Number.parseInt(limitDefinition.default, 10);
+                    const limitValue =
+                        Number.isFinite(section.limit) && section.limit > 0
+                            ? section.limit
+                            : Number.isFinite(defaultLimit) && defaultLimit > 0
+                              ? defaultLimit
+                              : NaN;
+                    limitInput.value = Number.isFinite(limitValue)
+                        ? String(Math.round(limitValue))
+                        : '';
+                    limitInput.dataset.field = 'section-limit';
+                    limitField.append(limitInput);
+                    sectionItem.append(limitField);
+                }
+
                 const elementsContainer = createElement('div', {
                     className: 'admin-builder__section-elements',
                 });

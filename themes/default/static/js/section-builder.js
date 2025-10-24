@@ -36,6 +36,18 @@
         return value.charAt(0).toUpperCase() + value.slice(1);
     };
 
+    const clampPostListLimit = (value) => {
+        const parsed = Number.parseInt(value, 10);
+        let limit = Number.isFinite(parsed) ? parsed : 0;
+        if (limit <= 0) {
+            limit = 6;
+        }
+        if (limit > 24) {
+            limit = 24;
+        }
+        return limit;
+    };
+
     const createSectionTypeRegistry = () => {
         const definitions = new Map();
         let defaultType = '';
@@ -124,6 +136,21 @@
         validate: (section) => {
             if (!section.title || !section.title.trim()) {
                 return 'requires a title.';
+            }
+            return null;
+        },
+    });
+
+    sectionTypeRegistry.register('posts_list', {
+        label: 'Posts list',
+        order: 20,
+        supportsElements: false,
+        description:
+            'Automatically displays the most recent blog posts without adding manual elements.',
+        validate: (section) => {
+            const limit = clampPostListLimit(section?.limit ?? section?.Limit);
+            if (!limit) {
+                return 'requires a valid post limit.';
             }
             return null;
         },
@@ -250,6 +277,9 @@
             title: section.title || section.Title || '',
             image: section.image || section.Image || '',
             elements,
+            limit: type === 'posts_list'
+                ? clampPostListLimit(section.limit ?? section.Limit)
+                : section.limit || section.Limit || 0,
         };
     };
 
@@ -261,6 +291,10 @@
             title: '',
             image: '',
             elements: [],
+            limit:
+                ensuredType === 'posts_list'
+                    ? clampPostListLimit(6)
+                    : 0,
         };
     };
 
@@ -397,7 +431,7 @@
                       })
                       .filter(Boolean)
                 : [];
-            return {
+            const payload = {
                 id: section.id || generateId(),
                 type,
                 title: (section.title || '').trim(),
@@ -405,6 +439,12 @@
                 order: index + 1,
                 elements,
             };
+            if (type === 'posts_list') {
+                payload.limit = clampPostListLimit(
+                    section.limit ?? section.Limit ?? payload.limit
+                );
+            }
+            return payload;
         });
     };
 

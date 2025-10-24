@@ -25,6 +25,10 @@
                 definition.supportsElements === undefined
                     ? true
                     : Boolean(definition.supportsElements),
+            settings:
+                definition.settings && typeof definition.settings === 'object'
+                    ? definition.settings
+                    : undefined,
         };
 
         definitions.set(normalised, entry);
@@ -70,6 +74,21 @@
         supportsElements: false,
         description:
             'Prominent introduction block without additional content elements.',
+    });
+
+    ensureRegistered('posts_list', {
+        label: 'Posts list',
+        order: 20,
+        supportsElements: false,
+        description: 'Automatically displays the most recent blog posts.',
+        settings: {
+            limit: {
+                label: 'Number of posts to display',
+                min: 1,
+                max: 24,
+                default: 6,
+            },
+        },
     });
 
     window.AdminSectionRegistry = {
