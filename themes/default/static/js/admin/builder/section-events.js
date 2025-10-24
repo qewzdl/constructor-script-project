@@ -118,10 +118,12 @@
 
         listElement.addEventListener('click', handleClick);
         listElement.addEventListener('input', handleInput);
+        listElement.addEventListener('change', handleInput);
 
         const destroy = () => {
             listElement.removeEventListener('click', handleClick);
             listElement.removeEventListener('input', handleInput);
+            listElement.removeEventListener('change', handleInput);
         };
 
         return { destroy };

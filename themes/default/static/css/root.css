@@ -21,6 +21,7 @@
     --color-text-darker: #ffffff;
     --color-secondary-darker: #94a3b8;
     --color-border-darker: #374151;
+    ----hero-image-brightness: 1.0;
 
     /* Light mode */
     --color-bg-bottom-light: #f2f2f2ff;
@@ -41,6 +42,7 @@
     --color-text-darker-light: #ffffff;
     --color-secondary-darker-light: #94a3b8;
     --color-border-darker-light: #374151;
+    --hero-image-brightness-light: 1.0;
 
     /* Dark mode */
     --color-bg-bottom-dark: #0c0c0cff;
@@ -61,6 +63,7 @@
     --color-text-darker-dark: #ffffff;
     --color-secondary-darker-dark: #94a3b8;
     --color-border-darker-dark: #374151;
+    --hero-image-brightness-dark: 0.75;
 
     /* Admin chart */
     --admin-chart-posts: #2563eb;
@@ -123,6 +126,7 @@
     --color-text-darker: var(--color-text-darker-light);
     --color-secondary-darker: var(--color-secondary-darker-light);
     --color-border-darker: var(--color-border-darker-light);
+    --hero-image-brightness: var(--hero-image-brightness-light);
 }
 
 /* Dark theme override */
@@ -145,6 +149,7 @@
     --color-text-darker: var(--color-text-darker-dark);
     --color-secondary-darker: var(--color-secondary-darker-dark);
     --color-border-darker: var(--color-border-darker-dark);
+    --hero-image-brightness: var(--hero-image-brightness-dark);
 }
 
 /* Responsive */
@@ -173,5 +178,6 @@
         color var(--theme-transition-duration) ease,
         border-color var(--theme-transition-duration) ease,
         fill var(--theme-transition-duration) ease,
-        stroke var(--theme-transition-duration) ease;
+        stroke var(--theme-transition-duration) ease,
+        filter var(--theme-transition-duration) ease;
 }

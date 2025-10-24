@@ -36,6 +36,99 @@
         return value.charAt(0).toUpperCase() + value.slice(1);
     };
 
+    const createSectionTypeRegistry = () => {
+        const definitions = new Map();
+        let defaultType = '';
+
+        const normaliseType = (type) =>
+            typeof type === 'string' ? type.trim().toLowerCase() : '';
+
+        const register = (type, definition = {}) => {
+            const normalised = normaliseType(type);
+            if (!normalised) {
+                return;
+            }
+
+            const entry = {
+                type: normalised,
+                label:
+                    typeof definition.label === 'string' && definition.label.trim()
+                        ? definition.label.trim()
+                        : capitalise(normalised),
+                order: Number.isFinite(definition.order) ? definition.order : 0,
+                description:
+                    typeof definition.description === 'string'
+                        ? definition.description.trim()
+                        : '',
+                supportsElements:
+                    definition.supportsElements === undefined
+                        ? true
+                        : Boolean(definition.supportsElements),
+                validate:
+                    typeof definition.validate === 'function'
+                        ? definition.validate
+                        : null,
+            };
+
+            definitions.set(normalised, entry);
+
+            if (!defaultType) {
+                defaultType = normalised;
+            }
+        };
+
+        const ensure = (type) => {
+            const normalised = normaliseType(type);
+            if (definitions.has(normalised)) {
+                return normalised;
+            }
+            return defaultType || 'standard';
+        };
+
+        const get = (type) => definitions.get(normaliseType(type));
+
+        const list = () =>
+            Array.from(definitions.values()).sort((a, b) => a.order - b.order);
+
+        return {
+            register,
+            ensure,
+            get,
+            list,
+            getDefault: () => defaultType || 'standard',
+        };
+    };
+
+    const sectionTypeRegistry = createSectionTypeRegistry();
+
+    sectionTypeRegistry.register('standard', {
+        label: 'Standard section',
+        order: 0,
+        supportsElements: true,
+        description:
+            'Flexible content area that supports paragraphs, images, lists, and more.',
+        validate: (section) => {
+            if (!Array.isArray(section.elements) || !section.elements.length) {
+                return 'must include at least one content block.';
+            }
+            return null;
+        },
+    });
+
+    sectionTypeRegistry.register('hero', {
+        label: 'Hero section',
+        order: 10,
+        supportsElements: false,
+        description:
+            'Large introductory section with a headline and optional image. Does not allow additional content blocks.',
+        validate: (section) => {
+            if (!section.title || !section.title.trim()) {
+                return 'requires a title.';
+            }
+            return null;
+        },
+    });
+
     const createElement = (tag, options = {}) => {
         const element = document.createElement(tag);
         if (options.className) {
@@ -131,32 +224,45 @@
     };
 
     const normaliseSection = (section) => {
+        const defaultType = sectionTypeRegistry.getDefault();
         if (!section || typeof section !== 'object') {
+            const ensuredType = sectionTypeRegistry.ensure(defaultType);
             return {
                 id: generateId(),
+                type: ensuredType,
                 title: '',
                 image: '',
                 elements: [],
             };
         }
+
+        const type = sectionTypeRegistry.ensure(section.type || section.Type || defaultType);
+        const definition = sectionTypeRegistry.get(type);
         const elementsSource = section.elements || section.Elements || [];
-        const elements = Array.isArray(elementsSource)
+        const allowElements = definition?.supportsElements !== false;
+        const elements = allowElements && Array.isArray(elementsSource)
             ? elementsSource.map((item) => normaliseElement(item))
             : [];
+
         return {
             id: section.id || section.ID || generateId(),
+            type,
             title: section.title || section.Title || '',
             image: section.image || section.Image || '',
             elements,
         };
     };
 
-    const createEmptySection = () => ({
-        id: generateId(),
-        title: '',
-        image: '',
-        elements: [],
-    });
+    const createEmptySection = (type = sectionTypeRegistry.getDefault()) => {
+        const ensuredType = sectionTypeRegistry.ensure(type);
+        return {
+            id: generateId(),
+            type: ensuredType,
+            title: '',
+            image: '',
+            elements: [],
+        };
+    };
 
     const createElementByType = (type) => {
         if (type === 'image') {
@@ -272,7 +378,10 @@
             return [];
         }
         return sections.map((section, index) => {
-            const elements = Array.isArray(section.elements)
+            const type = sectionTypeRegistry.ensure(section.type);
+            const definition = sectionTypeRegistry.get(type);
+            const allowElements = definition?.supportsElements !== false;
+            const elements = allowElements && Array.isArray(section.elements)
                 ? section.elements
                       .map((element, elementIndex) => {
                           const content = serialiseElementContent(element);
@@ -290,6 +399,7 @@
                 : [];
             return {
                 id: section.id || generateId(),
+                type,
                 title: (section.title || '').trim(),
                 image: (section.image || '').trim(),
                 order: index + 1,
@@ -302,42 +412,54 @@
         if (!Array.isArray(sections) || !sections.length) {
             return null;
         }
+
         for (let i = 0; i < sections.length; i += 1) {
-            const section = sections[i];
+            const section = sections[i] || {};
+            const type = sectionTypeRegistry.ensure(section.type);
+            const definition = sectionTypeRegistry.get(type);
             const title = section?.title || '';
             if (!title.trim()) {
                 return `Section ${i + 1} requires a title.`;
             }
+
+            if (definition?.validate) {
+                const message = definition.validate(section, i);
+                if (typeof message === 'string' && message.trim()) {
+                    return `Section ${i + 1} ${message.trim()}`;
+                }
+            }
+
+            const allowElements = definition?.supportsElements !== false;
+            if (!allowElements) {
+                continue;
+            }
+
             if (!Array.isArray(section.elements) || !section.elements.length) {
                 return `Section ${i + 1} must include at least one element.`;
             }
+
             for (let j = 0; j < section.elements.length; j += 1) {
                 const element = section.elements[j];
                 if (!element || !element.type) {
                     return `Section ${i + 1}, element ${j + 1} is invalid.`;
                 }
+
                 if (element.type === 'paragraph') {
                     const text = element.content?.text || '';
                     if (!text.trim()) {
-                        return `Section ${i + 1}, paragraph ${
-                            j + 1
-                        } requires content.`;
+                        return `Section ${i + 1}, paragraph ${j + 1} must include text.`;
                     }
                 } else if (element.type === 'image') {
                     const url = element.content?.url || '';
                     if (!url.trim()) {
-                        return `Section ${i + 1}, image ${
-                            j + 1
-                        } requires an image URL.`;
+                        return `Section ${i + 1}, image ${j + 1} requires an image URL.`;
                     }
                 } else if (element.type === 'image_group') {
                     const images = Array.isArray(element.content?.images)
                         ? element.content.images
                         : [];
                     if (!images.length) {
-                        return `Section ${i + 1}, image group ${
-                            j + 1
-                        } requires at least one image.`;
+                        return `Section ${i + 1}, image group ${j + 1} must include at least one image.`;
                     }
                     const missingIndex = images.findIndex(
                         (image) => !(image?.url || '').trim()
@@ -355,13 +477,12 @@
                         (item || '').toString().trim()
                     );
                     if (!hasItems) {
-                        return `Section ${i + 1}, list ${
-                            j + 1
-                        } requires at least one item.`;
+                        return `Section ${i + 1}, list ${j + 1} must include at least one item.`;
                     }
                 }
             }
         }
+
         return null;
     };
 
@@ -382,6 +503,28 @@
         const state = {
             sections: [],
         };
+
+        let selectedSectionType = sectionTypeRegistry.getDefault();
+        if (addButton && addButton.parentElement) {
+            const typePicker = createElement('select', {
+                className: 'section-builder__type-picker',
+                attrs: { 'aria-label': 'Section type' },
+            });
+            sectionTypeRegistry.list().forEach((typeDefinition) => {
+                const option = createElement('option', {
+                    textContent: typeDefinition.label,
+                    value: typeDefinition.type,
+                });
+                if (typeDefinition.type === selectedSectionType) {
+                    option.selected = true;
+                }
+                typePicker.appendChild(option);
+            });
+            typePicker.addEventListener('change', (event) => {
+                selectedSectionType = sectionTypeRegistry.ensure(event.target.value);
+            });
+            addButton.parentElement.insertBefore(typePicker, addButton);
+        }
 
         let draggingIndex = null;
 
@@ -629,9 +772,56 @@
                 endDrag();
             });
 
-            const body = createElement('div', {
-                className: 'section-card__body',
+        const body = createElement('div', {
+            className: 'section-card__body',
+        });
+        const definition = sectionTypeRegistry.get(section.type);
+        const allowElements = definition?.supportsElements !== false;
+
+        const typeId = `${section.id}-type`;
+        const typeField = createElement('div', {
+            className: 'section-field',
+        });
+        const typeLabel = createElement('label', {
+            textContent: 'Section type',
+            attrs: { for: typeId },
+        });
+        const typeSelect = createElement('select', {
+            attrs: { id: typeId, name: typeId },
+        });
+        sectionTypeRegistry.list().forEach((typeDefinition) => {
+            const option = createElement('option', {
+                textContent: typeDefinition.label,
+                value: typeDefinition.type,
             });
+            if (typeDefinition.type === section.type) {
+                option.selected = true;
+            }
+            typeSelect.appendChild(option);
+        });
+        typeSelect.addEventListener('change', (event) => {
+            const nextType = sectionTypeRegistry.ensure(event.target.value);
+            if (nextType === section.type) {
+                return;
+            }
+            section.type = nextType;
+            const nextDefinition = sectionTypeRegistry.get(nextType);
+            if (nextDefinition?.supportsElements === false) {
+                section.elements = [];
+            }
+            render();
+        });
+        typeField.appendChild(typeLabel);
+        typeField.appendChild(typeSelect);
+        body.appendChild(typeField);
+        if (definition?.description) {
+            body.appendChild(
+                createElement('p', {
+                    className: 'section-field__description',
+                    textContent: definition.description,
+                })
+            );
+        }
             const titleId = `${section.id}-title`;
             const titleField = createElement('div', {
                 className: 'section-field',
@@ -673,119 +863,131 @@
             const elementsWrapper = createElement('div', {
                 className: 'section-elements',
             });
-            const elementList = createElement('div', {
-                className: 'section-element-list',
-            });
 
-            let elementDraggingIndex = null;
-
-            const clearElementDropIndicators = () => {
-                elementList
-                    .querySelectorAll(
-                        '.section-element--drop-before, .section-element--drop-after'
-                    )
-                    .forEach((card) => {
-                        card.classList.remove(
-                            'section-element--drop-before',
-                            'section-element--drop-after'
-                        );
-                        delete card.dataset.dropPosition;
-                    });
-            };
-
-            const endElementDrag = () => {
-                elementList.classList.remove('section-element-list--dragging');
-                clearElementDropIndicators();
-                elementDraggingIndex = null;
-                elementList
-                    .querySelectorAll('.section-element')
-                    .forEach((card) => {
-                        card.classList.remove('section-element--dragging');
-                        card.draggable = false;
-                    });
-            };
-
-            const elementHelpers = {
-                clearDropIndicators: clearElementDropIndicators,
-                endDrag: endElementDrag,
-                getDraggingIndex: () => elementDraggingIndex,
-                startDrag: (dragIndex, card) => {
-                    elementDraggingIndex = dragIndex;
-                    elementList.classList.add('section-element-list--dragging');
-                    card.classList.add('section-element--dragging');
-                },
-            };
-
-            if (!section.elements.length) {
-                elementList.appendChild(
+            if (!allowElements) {
+                elementsWrapper.appendChild(
                     createElement('p', {
                         className: 'section-elements__empty',
-                        textContent: 'No elements added yet.',
+                        textContent:
+                            'This section type does not support additional content blocks.',
                     })
                 );
             } else {
-                section.elements.forEach((element, elementIndex) => {
-                    elementList.appendChild(
-                        createElementCard(
-                            section,
-                            index,
-                            element,
-                            elementIndex,
-                            elementHelpers
-                        )
-                    );
+                const elementList = createElement('div', {
+                    className: 'section-element-list',
                 });
+
+                let elementDraggingIndex = null;
+
+                const clearElementDropIndicators = () => {
+                    elementList
+                        .querySelectorAll(
+                            '.section-element--drop-before, .section-element--drop-after'
+                        )
+                        .forEach((card) => {
+                            card.classList.remove(
+                                'section-element--drop-before',
+                                'section-element--drop-after'
+                            );
+                            delete card.dataset.dropPosition;
+                        });
+                };
+
+                const endElementDrag = () => {
+                    elementList.classList.remove('section-element-list--dragging');
+                    clearElementDropIndicators();
+                    elementDraggingIndex = null;
+                    elementList
+                        .querySelectorAll('.section-element')
+                        .forEach((card) => {
+                            card.classList.remove('section-element--dragging');
+                            card.draggable = false;
+                        });
+                };
+
+                const elementHelpers = {
+                    clearDropIndicators: clearElementDropIndicators,
+                    endDrag: endElementDrag,
+                    getDraggingIndex: () => elementDraggingIndex,
+                    startDrag: (dragIndex, card) => {
+                        elementDraggingIndex = dragIndex;
+                        elementList.classList.add('section-element-list--dragging');
+                        card.classList.add('section-element--dragging');
+                    },
+                };
+
+                if (!section.elements.length) {
+                    elementList.appendChild(
+                        createElement('p', {
+                            className: 'section-elements__empty',
+                            textContent: 'No elements added yet.',
+                        })
+                    );
+                } else {
+                    section.elements.forEach((element, elementIndex) => {
+                        elementList.appendChild(
+                            createElementCard(
+                                section,
+                                index,
+                                element,
+                                elementIndex,
+                                elementHelpers
+                            )
+                        );
+                    });
+                }
+                elementsWrapper.appendChild(elementList);
+
+                const elementActions = createElement('div', {
+                    className: 'section-elements__actions',
+                });
+                const addParagraph = createElement('button', {
+                    className: 'section-elements__button',
+                    textContent: 'Add paragraph',
+                    type: 'button',
+                });
+                addParagraph.addEventListener('click', () => {
+                    section.elements.push(createElementByType('paragraph'));
+                    render();
+                });
+                elementActions.appendChild(addParagraph);
+
+                const addImage = createElement('button', {
+                    className: 'section-elements__button',
+                    textContent: 'Add image',
+                    type: 'button',
+                });
+                addImage.addEventListener('click', () => {
+                    section.elements.push(createElementByType('image'));
+                    render();
+                });
+                elementActions.appendChild(addImage);
+
+                const addGallery = createElement('button', {
+                    className: 'section-elements__button',
+                    textContent: 'Add image group',
+                    type: 'button',
+                });
+                addGallery.addEventListener('click', () => {
+                    section.elements.push(createElementByType('image_group'));
+                    render();
+                });
+                elementActions.appendChild(addGallery);
+
+                const addList = createElement('button', {
+                    className: 'section-elements__button',
+                    textContent: 'Add list',
+                    type: 'button',
+                });
+                addList.addEventListener('click', () => {
+                    section.elements.push(createElementByType('list'));
+                    render();
+                });
+                elementActions.appendChild(addList);
+
+                elementsWrapper.appendChild(elementActions);
             }
-            elementsWrapper.appendChild(elementList);
 
-            const elementActions = createElement('div', {
-                className: 'section-elements__actions',
-            });
-            const addParagraph = createElement('button', {
-                className: 'section-elements__button',
-                textContent: 'Add paragraph',
-                type: 'button',
-            });
-            addParagraph.addEventListener('click', () => {
-                section.elements.push(createElementByType('paragraph'));
-                render();
-            });
-            elementActions.appendChild(addParagraph);
-
-            const addImage = createElement('button', {
-                className: 'section-elements__button',
-                textContent: 'Add image',
-                type: 'button',
-            });
-            addImage.addEventListener('click', () => {
-                section.elements.push(createElementByType('image'));
-                render();
-            });
-            elementActions.appendChild(addImage);
-
-            const addGallery = createElement('button', {
-                className: 'section-elements__button',
-                textContent: 'Add image group',
-                type: 'button',
-            });
-            addGallery.addEventListener('click', () => {
-                section.elements.push(createElementByType('image_group'));
-                render();
-            });
-            elementActions.appendChild(addGallery);
-
-            const addList = createElement('button', {
-                className: 'section-elements__button',
-                textContent: 'Add list',
-                type: 'button',
-            });
-            addList.addEventListener('click', () => {
-                section.elements.push(createElementByType('list'));
-                render();
-            });
-            elementActions.appendChild(addList);
-
-            elementsWrapper.appendChild(elementActions);
             body.appendChild(elementsWrapper);
 
             item.appendChild(body);
@@ -1288,7 +1490,7 @@
         };
 
         addButton?.addEventListener('click', () => {
-            state.sections.push(createEmptySection());
+            state.sections.push(createEmptySection(selectedSectionType));
             render();
             window.requestAnimationFrame(() => {
                 list.lastElementChild?.scrollIntoView({

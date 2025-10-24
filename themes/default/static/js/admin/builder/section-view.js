@@ -1,7 +1,8 @@
 (() => {
     const utils = window.AdminUtils;
     const registry = window.AdminElementRegistry;
-    if (!utils || !registry) {
+    const sectionRegistry = window.AdminSectionRegistry;
+    if (!utils || !registry || !sectionRegistry) {
         return;
     }
 
@@ -37,6 +38,8 @@
         emptyState,
         definitions,
         orderedTypes,
+        sectionDefinitions,
+        orderedSectionTypes,
     }) => {
         const focusField = (selector) => {
             if (!selector) {
@@ -71,12 +74,19 @@
                 emptyState.hidden = true;
             }
 
+            const sectionTypeOrder = Array.isArray(orderedSectionTypes)
+                ? orderedSectionTypes
+                : Object.keys(sectionDefinitions || {});
+
             sections.forEach((section, index) => {
                 const sectionItem = createElement('li', {
                     className: 'admin-builder__section',
                 });
                 sectionItem.dataset.sectionClient = section.clientId;
                 sectionItem.dataset.sectionIndex = String(index);
+
+                const sectionDefinition = sectionDefinitions?.[section.type] || {};
+                const allowElements = sectionDefinition.supportsElements !== false;
 
                 const sectionHeader = createElement('div', {
                     className: 'admin-builder__section-header',
@@ -93,6 +103,41 @@
                 removeButton.dataset.action = 'section-remove';
                 sectionHeader.append(sectionTitle, removeButton);
                 sectionItem.append(sectionHeader);
+
+                const typeField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                typeField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Section type',
+                    })
+                );
+                const typeSelect = createElement('select', {
+                    className: 'admin-builder__input',
+                });
+                typeSelect.dataset.field = 'section-type';
+                sectionTypeOrder.forEach((type) => {
+                    const definition = sectionDefinitions?.[type] || {};
+                    const option = createElement('option', {
+                        textContent: definition.label || type,
+                    });
+                    option.value = type;
+                    if (type === section.type) {
+                        option.selected = true;
+                    }
+                    typeSelect.append(option);
+                });
+                typeField.append(typeSelect);
+                if (sectionDefinition.description) {
+                    typeField.append(
+                        createElement('span', {
+                            className: 'admin-builder__hint',
+                            textContent: sectionDefinition.description,
+                        })
+                    );
+                }
+                sectionItem.append(typeField);
 
                 const titleField = createElement('label', {
                     className: 'admin-builder__field',
@@ -136,7 +181,15 @@
                     className: 'admin-builder__section-elements',
                 });
 
-                if (!section.elements.length) {
+                if (!allowElements) {
+                    elementsContainer.append(
+                        createElement('p', {
+                            className: 'admin-builder__element-empty',
+                            textContent:
+                                'This section type does not support additional content blocks.',
+                        })
+                    );
+                } else if (!section.elements.length) {
                     elementsContainer.append(
                         createElement('p', {
                             className: 'admin-builder__element-empty',
@@ -183,27 +236,30 @@
 
                 sectionItem.append(elementsContainer);
 
-                const sectionActions = createElement('div', {
-                    className: 'admin-builder__section-actions',
-                });
-
-                orderedTypes.forEach((type) => {
-                    const definition = definitions[type];
-                    if (!definition || !definition.addLabel) {
-                        return;
-                    }
-                    const button = createElement('button', {
-                        className:
-                            'admin-builder__button admin-builder__button--ghost',
-                        textContent: definition.addLabel,
+                if (allowElements) {
+                    const sectionActions = createElement('div', {
+                        className: 'admin-builder__section-actions',
                     });
-                    button.type = 'button';
-                    button.dataset.action = 'element-add';
-                    button.dataset.elementType = type;
-                    sectionActions.append(button);
-                });
 
-                sectionItem.append(sectionActions);
+                    orderedTypes.forEach((type) => {
+                        const elementDefinition = definitions[type];
+                        if (!elementDefinition || !elementDefinition.addLabel) {
+                            return;
+                        }
+                        const button = createElement('button', {
+                            className:
+                                'admin-builder__button admin-builder__button--ghost',
+                            textContent: elementDefinition.addLabel,
+                        });
+                        button.type = 'button';
+                        button.dataset.action = 'element-add';
+                        button.dataset.elementType = type;
+                        sectionActions.append(button);
+                    });
+
+                    sectionItem.append(sectionActions);
+                }
+
                 listElement.append(sectionItem);
             });
         };

@@ -625,6 +625,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"/static/js/admin/elements/image.js",
 			"/static/js/admin/elements/image-group.js",
 			"/static/js/admin/elements/list.js",
+			"/static/js/admin/sections/registry.js",
 			"/static/js/admin/builder/section-state.js",
 			"/static/js/admin/builder/section-view.js",
 			"/static/js/admin/builder/section-events.js",

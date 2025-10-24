@@ -295,6 +295,27 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 	prepared := make(models.PostSections, 0, len(sections))
 
 	for i, section := range sections {
+		sectionType := strings.TrimSpace(section.Type)
+		sectionType = strings.ToLower(sectionType)
+		if sectionType == "" {
+			sectionType = "standard"
+		}
+
+		switch sectionType {
+		case "standard":
+			if len(section.Elements) > 0 {
+				preparedElements, err := s.prepareSectionElements(section.Elements)
+				if err != nil {
+					return nil, fmt.Errorf("section %d: %w", i, err)
+				}
+				section.Elements = preparedElements
+			}
+		case "hero":
+			section.Elements = nil
+		default:
+			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
+		}
+
 		if section.Title == "" {
 			return nil, fmt.Errorf("section %d: title is required", i)
 		}
@@ -307,13 +328,7 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 			section.Order = i + 1
 		}
 
-		if len(section.Elements) > 0 {
-			preparedElements, err := s.prepareSectionElements(section.Elements)
-			if err != nil {
-				return nil, fmt.Errorf("section %d: %w", i, err)
-			}
-			section.Elements = preparedElements
-		}
+		section.Type = sectionType
 
 		prepared = append(prepared, section)
 	}

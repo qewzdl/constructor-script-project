@@ -1,11 +1,19 @@
 (() => {
     const utils = window.AdminUtils;
     const registry = window.AdminElementRegistry;
+    const sectionRegistry = window.AdminSectionRegistry;
     const stateModule = window.AdminSectionState;
     const viewModule = window.AdminSectionView;
     const eventsModule = window.AdminSectionEvents;
 
-    if (!utils || !registry || !stateModule || !viewModule || !eventsModule) {
+    if (
+        !utils ||
+        !registry ||
+        !sectionRegistry ||
+        !stateModule ||
+        !viewModule ||
+        !eventsModule
+    ) {
         return;
     }
     const createSectionBuilder = (form) => {
@@ -30,12 +38,45 @@
 
         const definitions = registry.getDefinitions();
         const orderedTypes = registry.getOrderedTypes();
-        const state = stateModule.createManager(definitions);
+        const sectionDefinitions = sectionRegistry.getDefinitions();
+        const orderedSectionTypes = sectionRegistry.getOrderedTypes();
+        let selectedSectionType = sectionRegistry.getDefaultType?.()
+            || orderedSectionTypes?.[0]
+            || 'standard';
+        if (addSectionButton.parentElement) {
+            const typePicker = utils.createElement('select', {
+                className: 'admin-builder__type-picker',
+            });
+            typePicker.setAttribute('aria-label', 'Section type');
+            const sectionTypeOrder = Array.isArray(orderedSectionTypes)
+                ? orderedSectionTypes
+                : Object.keys(sectionDefinitions || {});
+            sectionTypeOrder.forEach((type) => {
+                const definition = sectionDefinitions?.[type] || {};
+                const option = utils.createElement('option', {
+                    textContent: definition.label || type,
+                });
+                option.value = type;
+                if (type === selectedSectionType) {
+                    option.selected = true;
+                }
+                typePicker.append(option);
+            });
+            typePicker.addEventListener('change', (event) => {
+                if (event.target && event.target.value) {
+                    selectedSectionType = event.target.value;
+                }
+            });
+            addSectionButton.parentElement.insertBefore(typePicker, addSectionButton);
+        }
+        const state = stateModule.createManager(definitions, sectionDefinitions);
         const view = viewModule.createView({
             listElement: sectionList,
             emptyState,
             definitions,
             orderedTypes,
+            sectionDefinitions,
+            orderedSectionTypes,
         });
 
         const render = () => {
@@ -59,7 +100,7 @@
         };
 
         const addSection = () => {
-            const section = state.addSection();
+            const section = state.addSection(selectedSectionType);
             render();
             emitChange();
             view.focusField(
@@ -121,6 +162,10 @@
 
         const updateSectionField = (sectionClientId, field, value) => {
             state.updateSectionField(sectionClientId, field, value);
+            if (field === 'section-type') {
+                render();
+                emitChange();
+            }
         };
 
         const updateElementField = (
@@ -150,7 +195,10 @@
             onElementAdd: addElementToSection,
             onGroupImageAdd: addGroupImage,
             onGroupImageRemove: removeGroupImage,
-            onSectionFieldChange: updateSectionField,
+            onSectionFieldChange: (sectionClientId, field, value) => {
+                updateSectionField(sectionClientId, field, value);
+                emitChange();
+            },
             onElementFieldChange: (
                 sectionClientId,
                 elementClientId,

@@ -1,7 +1,8 @@
 (() => {
     const utils = window.AdminUtils;
     const registry = window.AdminElementRegistry;
-    if (!utils || !registry) {
+    const sectionRegistry = window.AdminSectionRegistry;
+    if (!utils || !registry || !sectionRegistry) {
         return;
     }
 
@@ -33,16 +34,34 @@
         };
     };
 
-    const createSectionState = (definitions, section = {}) => {
-        const elementsSource = ensureArray(section.elements ?? section.Elements);
+    const createSectionState = (
+        elementDefinitions,
+        sectionDefinitions,
+        defaultType,
+        section = {}
+    ) => {
+        const requestedType = normaliseString(
+            section.type ?? section.Type ?? defaultType
+        );
+        const type = sectionDefinitions[requestedType]
+            ? requestedType
+            : defaultType;
+        const supportsElements =
+            sectionDefinitions[type]?.supportsElements !== false;
+        const elementsSource = supportsElements
+            ? ensureArray(section.elements ?? section.Elements)
+            : [];
         return {
             clientId: randomId(),
             id: normaliseString(section.id ?? section.ID ?? ''),
+            type,
             title: normaliseString(section.title ?? section.Title ?? ''),
             image: normaliseString(section.image ?? section.Image ?? ''),
-            elements: elementsSource.map((element) =>
-                createElementState(definitions, element)
-            ),
+            elements: supportsElements
+                ? elementsSource.map((element) =>
+                      createElementState(elementDefinitions, element)
+                  )
+                : [],
         };
     };
 
@@ -73,17 +92,26 @@
         };
     };
 
-    const createStateManager = (definitions) => {
+    const createStateManager = (definitions, sectionDefinitions) => {
         let sections = [];
         const listeners = new Set();
+        const sectionDefs = sectionDefinitions || {};
+        const defaultSectionType = normaliseString(
+            sectionRegistry.getDefaultType?.() ?? 'standard'
+        );
 
         const findSection = (sectionClientId) =>
             sections.find((section) => section.clientId === sectionClientId) ||
             null;
 
+        const supportsElements = (type) =>
+            sectionDefs[type]?.supportsElements !== false;
+
         const findElement = (section, elementClientId) =>
             section?.elements?.find((element) => element.clientId === elementClientId) ||
             null;
+
+        const nilSlice = [];
 
         const getSections = () =>
             sections
@@ -96,7 +124,9 @@
 
                     const image = section.image.trim();
                     const title = section.title.trim();
-                    const hasContent = Boolean(title || image || elements.length > 0);
+                    const hasContent = supportsElements(section.type)
+                        ? Boolean(title || image || elements.length > 0)
+                        : Boolean(title || image);
 
                     if (!hasContent) {
                         return null;
@@ -104,9 +134,10 @@
 
                     const payload = {
                         id: section.id || '',
+                        type: section.type,
                         title,
                         order: index + 1,
-                        elements,
+                        elements: supportsElements(section.type) ? elements : nilSlice,
                     };
 
                     if (image) {
@@ -130,7 +161,12 @@
 
         const setSections = (nextSections) => {
             sections = ensureArray(nextSections).map((section) =>
-                createSectionState(definitions, section)
+                createSectionState(
+                    definitions,
+                    sectionDefs,
+                    defaultSectionType,
+                    section
+                )
             );
             return sections;
         };
@@ -140,8 +176,13 @@
             return sections;
         };
 
-        const addSection = () => {
-            const section = createSectionState(definitions, {});
+        const addSection = (type) => {
+            const section = createSectionState(
+                definitions,
+                sectionDefs,
+                defaultSectionType,
+                { type }
+            );
             section.elements = [];
             sections.push(section);
             return section;
@@ -157,6 +198,9 @@
         const addElementToSection = (sectionClientId, type) => {
             const section = findSection(sectionClientId);
             if (!section) {
+                return null;
+            }
+            if (!supportsElements(section.type)) {
                 return null;
             }
             const definition = definitions[type];
@@ -220,6 +264,18 @@
                 section.title = value;
             } else if (field === 'section-image') {
                 section.image = value;
+            } else if (field === 'section-type') {
+                const nextType = normaliseString(value);
+                const ensuredType = sectionDefs[nextType]
+                    ? nextType
+                    : defaultSectionType;
+                if (ensuredType === section.type) {
+                    return;
+                }
+                section.type = ensuredType;
+                if (!supportsElements(section.type)) {
+                    section.elements = [];
+                }
             }
         };
 
@@ -282,7 +338,10 @@
     };
 
     window.AdminSectionState = {
-        createManager: (definitions) =>
-            createStateManager(definitions || registry.getDefinitions()),
+        createManager: (definitions, sectionDefinitions) =>
+            createStateManager(
+                definitions || registry.getDefinitions(),
+                sectionDefinitions || sectionRegistry.getDefinitions()
+            ),
     };
 })();
