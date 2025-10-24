@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -19,6 +20,61 @@ import (
 type PageService struct {
 	pageRepo repository.PageRepository
 	cache    *cache.Cache
+}
+
+func normalizePagePath(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", nil
+	}
+
+	trimmed = strings.ReplaceAll(trimmed, "\\", "/")
+	if !strings.HasPrefix(trimmed, "/") {
+		trimmed = "/" + trimmed
+	}
+
+	cleaned := path.Clean(trimmed)
+	if cleaned == "." {
+		cleaned = "/"
+	}
+	if !strings.HasPrefix(cleaned, "/") {
+		cleaned = "/" + cleaned
+	}
+	if cleaned != "/" && strings.HasSuffix(cleaned, "/") {
+		cleaned = strings.TrimSuffix(cleaned, "/")
+	}
+	if strings.ContainsAny(cleaned, " \t\n\r") {
+		return "", errors.New("page path cannot contain spaces")
+	}
+
+	return cleaned, nil
+}
+
+func defaultPathFromSlug(slug string) string {
+	slug = strings.TrimSpace(slug)
+	if slug == "" {
+		return "/"
+	}
+	if slug == "home" {
+		return "/"
+	}
+	return "/" + slug
+}
+
+func (s *PageService) cachePage(page *models.Page) {
+	if s == nil || s.cache == nil || page == nil {
+		return
+	}
+
+	s.cache.Set(fmt.Sprintf("page:%d", page.ID), page, 1*time.Hour)
+
+	if page.Slug != "" {
+		s.cache.Set(fmt.Sprintf("page:slug:%s", page.Slug), page, 1*time.Hour)
+	}
+
+	if page.Path != "" {
+		s.cache.Set(fmt.Sprintf("page:path:%s", page.Path), page, 1*time.Hour)
+	}
 }
 
 func NewPageService(pageRepo repository.PageRepository, cacheService *cache.Cache) *PageService {
@@ -44,12 +100,28 @@ func (s *PageService) Create(req models.CreatePageRequest) (*models.Page, error)
 		return nil, errors.New("page slug is required")
 	}
 
+	normalizedPath, err := normalizePagePath(req.Path)
+	if err != nil {
+		return nil, err
+	}
+	if normalizedPath == "" {
+		normalizedPath = defaultPathFromSlug(slug)
+	}
+
 	exists, err := s.pageRepo.ExistsBySlug(slug)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check page existence: %w", err)
 	}
 	if exists {
 		return nil, errors.New("page with this title already exists")
+	}
+
+	existsByPath, err := s.pageRepo.ExistsByPath(normalizedPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check page path existence: %w", err)
+	}
+	if existsByPath {
+		return nil, errors.New("page with this path already exists")
 	}
 
 	sections, err := s.prepareSections(req.Sections)
@@ -60,6 +132,7 @@ func (s *PageService) Create(req models.CreatePageRequest) (*models.Page, error)
 	page := &models.Page{
 		Title:       strings.TrimSpace(req.Title),
 		Slug:        slug,
+		Path:        normalizedPath,
 		Description: req.Description,
 		FeaturedImg: req.FeaturedImg,
 		Published:   req.Published,
@@ -103,16 +176,43 @@ func (s *PageService) ApplyDefinition(req models.CreatePageRequest) (*models.Pag
 	}
 	req.Slug = slug
 
-	if existing, err := s.pageRepo.GetBySlugAny(slug); err == nil {
+	normalizedPath, err := normalizePagePath(req.Path)
+	if err != nil {
+		return nil, err
+	}
+	if normalizedPath == "" {
+		normalizedPath = defaultPathFromSlug(slug)
+	}
+	req.Path = normalizedPath
+
+	var existing *models.Page
+	if normalizedPath != "" {
+		if pageByPath, err := s.pageRepo.GetByPathAny(normalizedPath); err == nil {
+			existing = pageByPath
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("failed to look up existing page by path: %w", err)
+		}
+	}
+
+	if existing == nil {
+		if pageBySlug, err := s.pageRepo.GetBySlugAny(slug); err == nil {
+			existing = pageBySlug
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("failed to look up existing page: %w", err)
+		}
+	}
+
+	if existing != nil {
 		if err := s.pageRepo.Delete(existing.ID); err != nil {
 			return nil, fmt.Errorf("failed to remove existing page: %w", err)
 		}
 		if s.cache != nil {
 			s.cache.InvalidatePage(existing.ID)
 			s.cache.Delete("pages:all")
+			if existing.Path != "" {
+				s.cache.Delete(fmt.Sprintf("page:path:%s", existing.Path))
+			}
 		}
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("failed to look up existing page: %w", err)
 	}
 
 	return s.Create(req)
@@ -125,8 +225,10 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 	}
 
 	originalSlug := page.Slug
+	originalPath := page.Path
 	originalPublished := page.Published
 	slugChanged := false
+	pathChanged := false
 
 	if req.Title != nil {
 		title := strings.TrimSpace(*req.Title)
@@ -144,6 +246,19 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 			slugChanged = true
 		}
 		page.Slug = slug
+	}
+	if req.Path != nil {
+		normalizedPath, err := normalizePagePath(*req.Path)
+		if err != nil {
+			return nil, err
+		}
+		if normalizedPath == "" {
+			normalizedPath = defaultPathFromSlug(page.Slug)
+		}
+		if normalizedPath != page.Path {
+			pathChanged = true
+		}
+		page.Path = normalizedPath
 	}
 	if req.Description != nil {
 		page.Description = *req.Description
@@ -176,6 +291,7 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 	}
 
 	shouldValidateSlug := slugChanged || (!originalPublished && page.Published)
+	shouldValidatePath := pathChanged || (!originalPublished && page.Published)
 
 	if shouldValidateSlug {
 		exists, err := s.pageRepo.ExistsBySlugExceptID(page.Slug, page.ID)
@@ -188,6 +304,17 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 		}
 	}
 
+	if shouldValidatePath {
+		exists, err := s.pageRepo.ExistsByPathExceptID(page.Path, page.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check page path existence: %w", err)
+		}
+
+		if exists {
+			return nil, errors.New("page with this path already exists")
+		}
+	}
+
 	if err := s.pageRepo.Update(page); err != nil {
 		return nil, err
 	}
@@ -195,12 +322,23 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 	if s.cache != nil {
 		s.cache.InvalidatePage(id)
 		s.cache.Delete("pages:all")
+		if originalPath != "" {
+			s.cache.Delete(fmt.Sprintf("page:path:%s", originalPath))
+		}
+		if page.Path != "" {
+			s.cache.Delete(fmt.Sprintf("page:path:%s", page.Path))
+		}
 	}
 
 	return s.pageRepo.GetByID(page.ID)
 }
 
 func (s *PageService) Delete(id uint) error {
+	page, err := s.pageRepo.GetByID(id)
+	if err != nil {
+		return err
+	}
+
 	if err := s.pageRepo.Delete(id); err != nil {
 		return err
 	}
@@ -208,6 +346,9 @@ func (s *PageService) Delete(id uint) error {
 	if s.cache != nil {
 		s.cache.InvalidatePage(id)
 		s.cache.Delete("pages:all")
+		if page.Path != "" {
+			s.cache.Delete(fmt.Sprintf("page:path:%s", page.Path))
+		}
 	}
 
 	return nil
@@ -235,8 +376,7 @@ func (s *PageService) GetByID(id uint) (*models.Page, error) {
 	}
 
 	if s.cache != nil {
-		cacheKey := fmt.Sprintf("page:%d", id)
-		s.cache.Set(cacheKey, page, 1*time.Hour)
+		s.cachePage(page)
 	}
 
 	return page, nil
@@ -257,9 +397,36 @@ func (s *PageService) GetBySlug(slug string) (*models.Page, error) {
 	}
 
 	if s.cache != nil {
-		cacheKey := fmt.Sprintf("page:slug:%s", slug)
-		s.cache.Set(cacheKey, page, 1*time.Hour)
-		s.cache.Set(fmt.Sprintf("page:%d", page.ID), page, 1*time.Hour)
+		s.cachePage(page)
+	}
+
+	return page, nil
+}
+
+func (s *PageService) GetByPath(requestedPath string) (*models.Page, error) {
+	normalizedPath, err := normalizePagePath(requestedPath)
+	if err != nil {
+		return nil, err
+	}
+	if normalizedPath == "" {
+		normalizedPath = "/"
+	}
+
+	if s.cache != nil {
+		var page models.Page
+		cacheKey := fmt.Sprintf("page:path:%s", normalizedPath)
+		if err := s.cache.Get(cacheKey, &page); err == nil {
+			return &page, nil
+		}
+	}
+
+	page, err := s.pageRepo.GetByPath(normalizedPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.cache != nil {
+		s.cachePage(page)
 	}
 
 	return page, nil
@@ -304,6 +471,9 @@ func (s *PageService) PublishPage(id uint) error {
 	if s.cache != nil {
 		s.cache.InvalidatePage(id)
 		s.cache.Delete("pages:all")
+		if page.Path != "" {
+			s.cache.Delete(fmt.Sprintf("page:path:%s", page.Path))
+		}
 	}
 
 	return nil
@@ -324,6 +494,9 @@ func (s *PageService) UnpublishPage(id uint) error {
 	if s.cache != nil {
 		s.cache.InvalidatePage(id)
 		s.cache.Delete("pages:all")
+		if page.Path != "" {
+			s.cache.Delete(fmt.Sprintf("page:path:%s", page.Path))
+		}
 	}
 
 	return nil
