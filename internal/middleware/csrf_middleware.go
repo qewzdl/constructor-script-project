@@ -17,9 +17,23 @@ var stateChangingMethods = map[string]struct{}{
 	http.MethodDelete: {},
 }
 
+var csrfExemptPaths = map[string]struct{}{
+	"/api/v1/setup": {},
+}
+
 func CSRFMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if _, shouldCheck := stateChangingMethods[c.Request.Method]; !shouldCheck {
+			c.Next()
+			return
+		}
+
+		path := c.FullPath()
+		if path == "" {
+			path = c.Request.URL.Path
+		}
+
+		if _, exempt := csrfExemptPaths[path]; exempt {
 			c.Next()
 			return
 		}
