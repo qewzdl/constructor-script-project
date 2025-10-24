@@ -11,16 +11,17 @@ import (
 	"constructor-script-backend/pkg/logger"
 )
 
-func (h *TemplateHandler) renderSections(sections models.PostSections) template.HTML {
+func (h *TemplateHandler) renderSections(sections models.PostSections) (template.HTML, []string) {
 	return h.renderSectionsWithPrefix(sections, "post")
 }
 
-func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections, prefix string) template.HTML {
+func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections, prefix string) (template.HTML, []string) {
 	if len(sections) == 0 {
-		return ""
+		return "", nil
 	}
 
 	var sb strings.Builder
+	var scripts []string
 
 	for _, section := range sections {
 		sectionType := strings.TrimSpace(strings.ToLower(section.Type))
@@ -54,14 +55,16 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 
 		if !skipElements {
 			for _, elem := range section.Elements {
-				sb.WriteString(h.renderSectionElement(prefix, elem))
+				html, elemScripts := h.renderSectionElement(prefix, elem)
+				sb.WriteString(html)
+				scripts = appendScripts(scripts, elemScripts)
 			}
 		}
 
 		sb.WriteString(`</section>`)
 	}
 
-	return template.HTML(sb.String())
+	return template.HTML(sb.String()), scripts
 }
 
 func (h *TemplateHandler) renderPostsListSection(prefix string, section models.Section) string {
@@ -141,16 +144,65 @@ func (h *TemplateHandler) renderPostCard(tmpl *template.Template, post *models.P
 	return buf.String(), nil
 }
 
-func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement) string {
+func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement) (string, []string) {
 	if h.sectionRenderers == nil {
-		return ""
+		return "", nil
 	}
 
 	if renderer, ok := h.sectionRenderers[elem.Type]; ok {
 		return renderer(h, prefix, elem)
 	}
 
-	return ""
+	return "", nil
+}
+
+func appendScripts(existing []string, additions []string) []string {
+	if len(additions) == 0 {
+		return existing
+	}
+
+	seen := make(map[string]struct{}, len(existing))
+	for _, script := range existing {
+		if script == "" {
+			continue
+		}
+		seen[script] = struct{}{}
+	}
+
+	for _, script := range additions {
+		if script == "" {
+			continue
+		}
+		if _, ok := seen[script]; ok {
+			continue
+		}
+		existing = append(existing, script)
+		seen[script] = struct{}{}
+	}
+
+	return existing
+}
+
+func asScriptSlice(value interface{}) []string {
+	if value == nil {
+		return nil
+	}
+
+	if scripts, ok := value.([]string); ok {
+		return scripts
+	}
+
+	if rawSlice, ok := value.([]interface{}); ok {
+		result := make([]string, 0, len(rawSlice))
+		for _, item := range rawSlice {
+			if str, ok := item.(string); ok {
+				result = append(result, str)
+			}
+		}
+		return result
+	}
+
+	return nil
 }
 
 func (h *TemplateHandler) generateTOC(sections models.PostSections) template.HTML {

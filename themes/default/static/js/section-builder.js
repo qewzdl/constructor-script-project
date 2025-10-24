@@ -320,6 +320,24 @@
                 content: { ordered: false, items: [''] },
             };
         }
+        if (type === 'search') {
+            return {
+                id: generateId(),
+                type: 'search',
+                content: {
+                    title: 'Search',
+                    description: '',
+                    placeholder: 'Start typing to search posts',
+                    submitLabel: 'Search',
+                    filterLabel: 'Filter by',
+                    action: '/search',
+                    showFilters: true,
+                    heading: 'h2',
+                    hint: 'Use the search form above to explore the knowledge base.',
+                    default_type: 'all',
+                },
+            };
+        }
         return { id: generateId(), type: 'paragraph', content: { text: '' } };
     };
 
@@ -402,6 +420,69 @@
             if (element.content?.ordered) {
                 payload.ordered = true;
             }
+            return payload;
+        }
+        if (element.type === 'search') {
+            const content = element.content || {};
+            const payload = {};
+
+            const assignString = (key, value) => {
+                if (typeof value === 'string') {
+                    const trimmed = value.trim();
+                    if (trimmed) {
+                        payload[key] = trimmed;
+                    }
+                }
+            };
+
+            assignString('title', content.title);
+            assignString('description', content.description);
+            assignString('placeholder', content.placeholder);
+            assignString('submit_label', content.submitLabel);
+            assignString('filter_label', content.filterLabel);
+            assignString('action', content.action);
+            assignString('hint', content.hint);
+
+            payload.show_filters = Boolean(content.showFilters);
+
+            const heading = (content.heading || '').toString().trim().toLowerCase();
+            if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(heading)) {
+                payload.heading = heading;
+            }
+
+            const defaultType = (content.default_type || '').toString().trim().toLowerCase();
+            if (['title', 'content', 'tag', 'author'].includes(defaultType)) {
+                payload.default_type = defaultType;
+            }
+
+            if (!payload.placeholder) {
+                payload.placeholder = 'Start typing to search posts';
+            }
+
+            if (!payload.submit_label) {
+                payload.submit_label = 'Search';
+            }
+
+            if (!payload.filter_label) {
+                payload.filter_label = 'Filter by';
+            }
+
+            if (!payload.action) {
+                payload.action = '/search';
+            }
+
+            if (!payload.hint) {
+                payload.hint = 'Use the search form above to explore the knowledge base.';
+            }
+
+            if (!payload.title) {
+                payload.title = 'Search';
+            }
+
+            if (!payload.default_type) {
+                payload.default_type = 'all';
+            }
+
             return payload;
         }
         return cloneDeep(element.content);
@@ -1025,6 +1106,17 @@
                 });
                 elementActions.appendChild(addList);
 
+                const addSearch = createElement('button', {
+                    className: 'section-elements__button',
+                    textContent: 'Add search block',
+                    type: 'button',
+                });
+                addSearch.addEventListener('click', () => {
+                    section.elements.push(createElementByType('search'));
+                    render();
+                });
+                elementActions.appendChild(addSearch);
+
                 elementsWrapper.appendChild(elementActions);
             }
 
@@ -1313,6 +1405,151 @@
                 itemsField.appendChild(itemsLabel);
                 itemsField.appendChild(itemsTextarea);
                 body.appendChild(itemsField);
+            } else if (element.type === 'search') {
+                if (!element.content || typeof element.content !== 'object') {
+                    element.content = {};
+                }
+
+                element.content.title = element.content.title || 'Search';
+                element.content.placeholder = element.content.placeholder || 'Start typing to search posts';
+                element.content.submitLabel = element.content.submitLabel || 'Search';
+                element.content.filterLabel = element.content.filterLabel || 'Filter by';
+                element.content.action = element.content.action || '/search';
+                if (element.content.showFilters === undefined) {
+                    element.content.showFilters = true;
+                }
+                element.content.heading = (element.content.heading || 'h2').toLowerCase();
+                element.content.hint = element.content.hint || 'Use the search form above to explore the knowledge base.';
+                element.content.default_type = (element.content.default_type || 'all').toLowerCase();
+
+                const fieldId = (name) => `${section.id}-${element.id}-${name}`;
+
+                const createTextField = (labelText, key, placeholder = '', isTextarea = false) => {
+                    const id = fieldId(key);
+                    const field = createElement('div', {
+                        className: 'section-field',
+                    });
+                    const label = createElement('label', {
+                        textContent: labelText,
+                        attrs: { for: id },
+                    });
+                    const control = isTextarea
+                        ? document.createElement('textarea')
+                        : createElement('input', { type: 'text' });
+                    control.id = id;
+                    if (placeholder) {
+                        control.placeholder = placeholder;
+                    }
+                    control.value = element.content[key] || '';
+                    control.addEventListener('input', (event) => {
+                        element.content[key] = event.target.value;
+                    });
+                    field.appendChild(label);
+                    field.appendChild(control);
+                    body.appendChild(field);
+                };
+
+                createTextField('Block title', 'title', 'Search');
+                createTextField('Description (optional)', 'description', 'Describe what visitors can search for.', true);
+                createTextField('Placeholder text', 'placeholder', 'Start typing to search posts');
+                createTextField('Submit button label', 'submitLabel', 'Search');
+                createTextField('Filter label', 'filterLabel', 'Filter by');
+                createTextField('Form action URL', 'action', '/search');
+
+                const showFiltersId = fieldId('show-filters');
+                const showFiltersField = createElement('div', {
+                    className: 'section-field section-field--checkbox',
+                });
+                const showFiltersLabel = createElement('label', {
+                    textContent: 'Allow filtering by title, content, tag, or author',
+                    attrs: { for: showFiltersId },
+                });
+                const showFiltersInput = createElement('input', { type: 'checkbox' });
+                showFiltersInput.id = showFiltersId;
+                showFiltersInput.checked = Boolean(element.content.showFilters);
+                showFiltersInput.addEventListener('input', (event) => {
+                    element.content.showFilters = event.target.checked;
+                });
+                showFiltersField.appendChild(showFiltersInput);
+                showFiltersField.appendChild(showFiltersLabel);
+                body.appendChild(showFiltersField);
+
+                const headingId = fieldId('heading');
+                const headingField = createElement('div', {
+                    className: 'section-field',
+                });
+                const headingLabel = createElement('label', {
+                    textContent: 'Heading level',
+                    attrs: { for: headingId },
+                });
+                const headingSelect = document.createElement('select');
+                headingSelect.id = headingId;
+                ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach((option) => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option;
+                    optionElement.textContent = option.toUpperCase();
+                    if (option === element.content.heading) {
+                        optionElement.selected = true;
+                    }
+                    headingSelect.appendChild(optionElement);
+                });
+                headingSelect.addEventListener('change', (event) => {
+                    element.content.heading = event.target.value;
+                });
+                headingField.appendChild(headingLabel);
+                headingField.appendChild(headingSelect);
+                body.appendChild(headingField);
+
+                const defaultTypeId = fieldId('default-type');
+                const defaultTypeField = createElement('div', {
+                    className: 'section-field',
+                });
+                const defaultTypeLabel = createElement('label', {
+                    textContent: 'Default filter option',
+                    attrs: { for: defaultTypeId },
+                });
+                const defaultTypeSelect = document.createElement('select');
+                defaultTypeSelect.id = defaultTypeId;
+                [
+                    { value: 'all', label: 'Title & content' },
+                    { value: 'title', label: 'Title' },
+                    { value: 'content', label: 'Content' },
+                    { value: 'tag', label: 'Tag' },
+                    { value: 'author', label: 'Author' },
+                ].forEach((option) => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option.value;
+                    optionElement.textContent = option.label;
+                    if (option.value === element.content.default_type) {
+                        optionElement.selected = true;
+                    }
+                    defaultTypeSelect.appendChild(optionElement);
+                });
+                defaultTypeSelect.addEventListener('change', (event) => {
+                    element.content.default_type = event.target.value;
+                });
+                defaultTypeField.appendChild(defaultTypeLabel);
+                defaultTypeField.appendChild(defaultTypeSelect);
+                body.appendChild(defaultTypeField);
+
+                const hintId = fieldId('hint');
+                const hintField = createElement('div', {
+                    className: 'section-field',
+                });
+                const hintLabel = createElement('label', {
+                    textContent: 'Hint text (shown when no search query is provided)',
+                    attrs: { for: hintId },
+                });
+                const hintTextarea = document.createElement('textarea');
+                hintTextarea.id = hintId;
+                hintTextarea.placeholder = 'Use the search form above to explore the knowledge base.';
+                hintTextarea.value = element.content.hint || '';
+                hintTextarea.addEventListener('input', (event) => {
+                    element.content.hint = event.target.value;
+                });
+                hintField.appendChild(hintLabel);
+                hintField.appendChild(hintTextarea);
+                body.appendChild(hintField);
             } else if (element.type === 'image_group') {
                 if (!Array.isArray(element.content?.images)) {
                     element.content.images = [];

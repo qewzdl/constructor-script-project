@@ -58,10 +58,13 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 
 	structuredData := h.buildPostStructuredData(post, site, canonicalURL)
 
+	contentHTML, sectionScripts := h.renderSections(post.Sections)
+	scripts := appendScripts([]string{"/static/js/post.js"}, sectionScripts)
+
 	data := h.basePageData(post.Title, post.Description, gin.H{
 		"Post":           post,
 		"RelatedPosts":   related,
-		"Content":        h.renderSections(post.Sections),
+		"Content":        contentHTML,
 		"TOC":            h.generateTOC(post.Sections),
 		"Comments":       comments,
 		"CommentCount":   commentCount,
@@ -70,7 +73,7 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 		"OGImage":        post.FeaturedImg,
 		"TwitterImage":   post.FeaturedImg,
 		"StructuredData": structuredData,
-		"Scripts":        []string{"/static/js/post.js"},
+		"Scripts":        scripts,
 	})
 
 	if len(keywords) > 0 {
@@ -180,7 +183,7 @@ func (h *TemplateHandler) renderCustomPage(c *gin.Context, page *models.Page) {
 		contentHTML = template.HTML(page.Content)
 	}
 
-	sectionsHTML := h.renderSectionsWithPrefix(page.Sections, "page-view")
+	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(page.Sections, "page-view")
 
 	data := gin.H{
 		"Page": page,
@@ -192,6 +195,10 @@ func (h *TemplateHandler) renderCustomPage(c *gin.Context, page *models.Page) {
 
 	if sectionsHTML != "" {
 		data["Sections"] = sectionsHTML
+	}
+
+	if len(sectionScripts) > 0 {
+		data["Scripts"] = appendScripts(asScriptSlice(data["Scripts"]), sectionScripts)
 	}
 
 	templateName := strings.TrimSpace(page.Template)
@@ -397,8 +404,12 @@ func (h *TemplateHandler) renderBlogWithPage(c *gin.Context, page *models.Page) 
 		data["Content"] = template.HTML(page.Content)
 	}
 
-	if sections := h.renderSectionsWithPrefix(page.Sections, "blog"); sections != "" {
+	sections, sectionScripts := h.renderSectionsWithPrefix(page.Sections, "blog")
+	if sections != "" {
 		data["Sections"] = sections
+	}
+	if len(sectionScripts) > 0 {
+		data["Scripts"] = appendScripts(asScriptSlice(data["Scripts"]), sectionScripts)
 	}
 
 	title := page.Title
@@ -795,6 +806,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"/static/js/admin/elements/image.js",
 			"/static/js/admin/elements/image-group.js",
 			"/static/js/admin/elements/list.js",
+			"/static/js/admin/elements/search.js",
 			"/static/js/admin/sections/registry.js",
 			"/static/js/admin/builder/section-state.js",
 			"/static/js/admin/builder/section-view.js",

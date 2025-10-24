@@ -1,144 +1,15 @@
-<section class="search" aria-labelledby="search-title">
-    <header class="search__header">
-        <h1 id="search-title" class="search__title">Search</h1>
-        <p class="search__description">
-            Find posts, tutorials, and updates published on {{ .Site.Name }}.
-        </p>
-    </header>
-
-    <form class="search__form" action="/search" method="get" role="search" aria-label="Site search">
-        <div class="search__fields">
-            <div class="search__input-group">
-                <label class="search__label" for="search-query">Search query</label>
-                <input
-                    id="search-query"
-                    class="search__input"
-                    type="search"
-                    name="q"
-                    value="{{ .Query }}"
-                    placeholder="Start typing to search posts"
-                    required
-                />
-            </div>
-
-            <div class="search__input-group">
-                <label class="search__label" id="search-type-label" for="search-type-trigger">Filter by</label>
-                <div class="search__custom-select" data-custom-select>
-                    <input
-                        type="hidden"
-                        name="type"
-                        value="{{ if .SearchType }}{{ .SearchType }}{{ else }}all{{ end }}"
-                        data-custom-select-input
-                    />
-                    <button
-                        id="search-type-trigger"
-                        class="search__custom-trigger"
-                        type="button"
-                        aria-haspopup="listbox"
-                        aria-expanded="false"
-                        aria-labelledby="search-type-label search-type-trigger"
-                        aria-controls="search-type-options"
-                        data-custom-select-trigger
-                    >
-                        <span data-custom-select-label>
-                            {{- if eq .SearchType "title" -}}Title{{- else if eq .SearchType "content" -}}Content{{- else if eq .SearchType "tag" -}}Tag{{- else if eq .SearchType "author" -}}Author{{- else -}}Title &amp; content{{- end -}}
-                        </span>
-                        <span class="search__custom-icon" aria-hidden="true"></span>
-                    </button>
-                    <ul
-                        id="search-type-options"
-                        class="search__custom-options"
-                        role="listbox"
-                        aria-labelledby="search-type-label"
-                        tabindex="-1"
-                        hidden
-                        data-custom-select-list
-                    >
-                        <li
-                            id="search-type-option-all"
-                            class="search__custom-option{{ if or (eq .SearchType "" ) (eq .SearchType "all") }} search__custom-option--selected{{ end }}"
-                            role="option"
-                            data-value="all"
-                            aria-selected="{{ if or (eq .SearchType "" ) (eq .SearchType "all") }}true{{ else }}false{{ end }}"
-                            data-custom-select-option
-                        >
-                            Title &amp; content
-                        </li>
-                        <li
-                            id="search-type-option-title"
-                            class="search__custom-option{{ if eq .SearchType "title" }} search__custom-option--selected{{ end }}"
-                            role="option"
-                            data-value="title"
-                            aria-selected="{{ if eq .SearchType "title" }}true{{ else }}false{{ end }}"
-                            data-custom-select-option
-                        >
-                            Title
-                        </li>
-                        <li
-                            id="search-type-option-content"
-                            class="search__custom-option{{ if eq .SearchType "content" }} search__custom-option--selected{{ end }}"
-                            role="option"
-                            data-value="content"
-                            aria-selected="{{ if eq .SearchType "content" }}true{{ else }}false{{ end }}"
-                            data-custom-select-option
-                        >
-                            Content
-                        </li>
-                        <li
-                            id="search-type-option-tag"
-                            class="search__custom-option{{ if eq .SearchType "tag" }} search__custom-option--selected{{ end }}"
-                            role="option"
-                            data-value="tag"
-                            aria-selected="{{ if eq .SearchType "tag" }}true{{ else }}false{{ end }}"
-                            data-custom-select-option
-                        >
-                            Tag
-                        </li>
-                        <li
-                            id="search-type-option-author"
-                            class="search__custom-option{{ if eq .SearchType "author" }} search__custom-option--selected{{ end }}"
-                            role="option"
-                            data-value="author"
-                            aria-selected="{{ if eq .SearchType "author" }}true{{ else }}false{{ end }}"
-                            data-custom-select-option
-                        >
-                            Author
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <button type="submit" class="search__submit">Search</button>
-    </form>
-
-    {{ if .HasQuery }}
-    <section class="search__results" aria-live="polite" aria-busy="false">
-        {{ if gt .Result.Total 0 }}
-        <p class="search__meta">
-            Found {{ .Result.Total }} {{ if eq .Result.Total 1 }}result{{ else }}results{{ end }} for
-            <strong>&ldquo;{{ .Result.Query }}&rdquo;</strong>
-        </p>
-        <div class="search__posts">
-            {{ range .Result.Posts }}
-            {{ $authorName := or (and .Author .Author.Username) "" }}
-            {{ template "components/post-card" (dict
-                "Post" .
-                "WrapperClass" "post-card search__post"
-                "HideViews" true
-                "ShowAuthor" (ne $authorName "")
-                "AuthorName" $authorName
-            ) }}
-            {{ end }}
-        </div>
-        {{ else }}
-        <p class="search__empty">
-            We couldn&rsquo;t find anything for <strong>&ldquo;{{ .Result.Query }}&rdquo;</strong>. Try another keyword or
-            change the filter.
-        </p>
-        {{ end }}
-    </section>
-    {{ else }}
-    <p class="search__hint">Use the search form above to explore the knowledge base.</p>
-    {{ end }}
-</section>
+{{ template "components/search" (dict
+    "ID" "search"
+    "Heading" "h1"
+    "Title" "Search"
+    "Description" (printf "Find posts, tutorials, and updates published on %s." .Site.Name)
+    "Action" "/search"
+    "Query" .Query
+    "SearchType" .SearchType
+    "ShowFilters" true
+    "ShowResults" true
+    "HasQuery" .HasQuery
+    "Result" .Result
+    "Placeholder" "Start typing to search posts"
+    "Hint" "Use the search form above to explore the knowledge base."
+) }}

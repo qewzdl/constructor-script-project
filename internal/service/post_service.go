@@ -322,7 +322,7 @@ func (s *PostService) prepareSectionElements(elements []models.SectionElement) (
 		}
 
 		switch elem.Type {
-		case "paragraph", "image", "image_group", "list":
+		case "paragraph", "image", "image_group", "list", "search":
 
 		default:
 			return nil, fmt.Errorf("element %d: unknown type '%s'", i, elem.Type)
