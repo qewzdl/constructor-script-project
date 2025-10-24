@@ -308,10 +308,29 @@
                     <div class="footer__group">
                         <h2 class="footer__heading">{{ .Title }}</h2>
                         <ul class="footer__list">
+                            {{ if eq .Key "footer:account" }}
+                            <li
+                                class="footer__item"
+                                data-auth="auth"
+                                {{ if not $.IsAuthenticated }}hidden{{ end }}
+                            >
+                                <a href="/profile" class="footer__link">Profile</a>
+                            </li>
+                            {{ range .Items }}
+                            <li
+                                class="footer__item"
+                                data-auth="guest"
+                                {{ if $.IsAuthenticated }}hidden{{ end }}
+                            >
+                                <a href="{{ .URL }}" class="footer__link">{{ .Title }}</a>
+                            </li>
+                            {{ end }}
+                            {{ else }}
                             {{ range .Items }}
                             <li class="footer__item">
                                 <a href="{{ .URL }}" class="footer__link">{{ .Title }}</a>
                             </li>
+                            {{ end }}
                             {{ end }}
                         </ul>
                     </div>
