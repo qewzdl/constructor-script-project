@@ -14,14 +14,10 @@ type PageRepository interface {
 	GetByID(id uint) (*models.Page, error)
 	GetBySlug(slug string) (*models.Page, error)
 	GetBySlugAny(slug string) (*models.Page, error)
-	GetByPath(path string) (*models.Page, error)
-	GetByPathAny(path string) (*models.Page, error)
 	GetAll() ([]models.Page, error)
 	GetAllAdmin() ([]models.Page, error)
 	ExistsBySlug(slug string) (bool, error)
 	ExistsBySlugExceptID(slug string, excludeID uint) (bool, error)
-	ExistsByPath(path string) (bool, error)
-	ExistsByPathExceptID(path string, excludeID uint) (bool, error)
 }
 
 type pageRepository struct {
@@ -68,22 +64,6 @@ func (r *pageRepository) GetBySlugAny(slug string) (*models.Page, error) {
 	return &page, nil
 }
 
-func (r *pageRepository) GetByPath(path string) (*models.Page, error) {
-	var page models.Page
-	if err := r.db.Where("path = ? AND published = ?", path, true).First(&page).Error; err != nil {
-		return nil, err
-	}
-	return &page, nil
-}
-
-func (r *pageRepository) GetByPathAny(path string) (*models.Page, error) {
-	var page models.Page
-	if err := r.db.Where("path = ?", path).First(&page).Error; err != nil {
-		return nil, err
-	}
-	return &page, nil
-}
-
 func (r *pageRepository) GetAll() ([]models.Page, error) {
 	var pages []models.Page
 	if err := r.db.Where("published = ?", true).
@@ -115,25 +95,6 @@ func (r *pageRepository) ExistsBySlugExceptID(slug string, excludeID uint) (bool
 	var count int64
 	if err := r.db.Model(&models.Page{}).
 		Where("slug = ? AND id <> ?", slug, excludeID).
-		Count(&count).Error; err != nil {
-		return false, err
-	}
-
-	return count > 0, nil
-}
-
-func (r *pageRepository) ExistsByPath(path string) (bool, error) {
-	var count int64
-	if err := r.db.Model(&models.Page{}).Where("path = ?", path).Count(&count).Error; err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-func (r *pageRepository) ExistsByPathExceptID(path string, excludeID uint) (bool, error) {
-	var count int64
-	if err := r.db.Model(&models.Page{}).
-		Where("path = ? AND id <> ?", path, excludeID).
 		Count(&count).Error; err != nil {
 		return false, err
 	}

@@ -373,7 +373,6 @@
                         <thead>
                             <tr>
                                 <th scope="col">Title</th>
-                                <th scope="col">Path</th>
                                 <th scope="col">Slug</th>
                                 <th scope="col">Published</th>
                                 <th scope="col">Updated</th>
@@ -381,7 +380,7 @@
                         </thead>
                         <tbody id="admin-pages-table">
                             <tr class="admin-table__placeholder">
-                                <td colspan="5">Loading pages…</td>
+                                <td colspan="4">Loading pages…</td>
                             </tr>
                         </tbody>
                     </table>
@@ -393,11 +392,6 @@
                             <label class="admin-form__label">
                                 Title
                                 <input type="text" name="title" required class="admin-form__input" />
-                            </label>
-                            <label class="admin-form__label">
-                                Public path
-                                <input type="text" name="path" class="admin-form__input" placeholder="e.g. /about" />
-                                <small class="admin-form__hint">Paths should start with a forward slash. Leave blank to use the default based on the slug.</small>
                             </label>
                             <label class="admin-form__label">
                                 Custom slug

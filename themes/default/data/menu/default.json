@@ -13,7 +13,7 @@
     },
     {
         "title": "About",
-        "url": "/about",
+        "url": "/page/about",
         "location": "header",
         "order": 2
     },
@@ -37,7 +37,7 @@
     },
     {
         "title": "About",
-        "url": "/about",
+        "url": "/page/about",
         "location": "footer:explore",
         "order": 2
     },
@@ -49,13 +49,13 @@
     },
     {
         "title": "Terms of Use",
-        "url": "/terms",
+        "url": "/page/terms",
         "location": "footer:legal",
         "order": 0
     },
     {
         "title": "Privacy Policy",
-        "url": "/privacy",
+        "url": "/page/privacy",
         "location": "footer:legal",
         "order": 1
     },

@@ -193,10 +193,7 @@ func (c *Cache) InvalidatePage(pageID uint) error {
 		return err
 	}
 	// Удаляем кэш по slug (используем pattern)
-	if err := c.DeletePattern("page:slug:*"); err != nil {
-		return err
-	}
-	return c.DeletePattern("page:path:*")
+	return c.DeletePattern(fmt.Sprintf("page:slug:*"))
 }
 
 // InvalidatePagesCache - инвалидация всего кэша страниц

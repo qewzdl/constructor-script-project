@@ -1,7 +1,6 @@
 {
-    "title": "About",
+    "title": "About", 
     "slug": "about",
-    "path": "/about",
     "description": "Learn more about Constructor Script, our mission, and the team building modern site experiences.",
     "published": true,
     "template": "page",

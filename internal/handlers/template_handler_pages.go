@@ -169,104 +169,25 @@ func (h *TemplateHandler) buildPostStructuredData(post *models.Post, site models
 	return template.JS(data)
 }
 
-func (h *TemplateHandler) renderCustomPage(c *gin.Context, page *models.Page) {
-	if page == nil {
-		h.renderError(c, http.StatusNotFound, "404 - Page Not Found", "Requested page not found")
-		return
-	}
-
-	var contentHTML template.HTML
-	if strings.TrimSpace(page.Content) != "" {
-		contentHTML = template.HTML(page.Content)
-	}
-
-	sectionsHTML := h.renderSectionsWithPrefix(page.Sections, "page-view")
-
-	data := gin.H{
-		"Page": page,
-	}
-
-	if contentHTML != "" {
-		data["Content"] = contentHTML
-	}
-
-	if sectionsHTML != "" {
-		data["Sections"] = sectionsHTML
-	}
-
-	templateName := strings.TrimSpace(page.Template)
-	if templateName == "" {
-		templateName = "page"
-	}
-
-	h.renderTemplate(c, templateName, page.Title, page.Description, data)
-}
-
-func (h *TemplateHandler) renderPageByTemplate(c *gin.Context, page *models.Page) {
-	if page == nil {
-		h.renderError(c, http.StatusNotFound, "404 - Page Not Found", "Requested page not found")
-		return
-	}
-
-	templateName := strings.TrimSpace(strings.ToLower(page.Template))
-	switch templateName {
-	case "blog":
-		h.renderBlogWithPage(c, page)
-	default:
-		h.renderCustomPage(c, page)
-	}
-}
-
-func (h *TemplateHandler) renderPageForPath(c *gin.Context, path string) bool {
-	if h.pageService == nil {
-		return false
-	}
-
-	page, err := h.pageService.GetByPath(path)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false
-		}
-		logger.Error(err, "Failed to load page", map[string]interface{}{"path": path})
-		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load page")
-		return true
-	}
-
-	h.renderPageByTemplate(c, page)
-	return true
-}
-
-func (h *TemplateHandler) TryRenderPage(c *gin.Context) bool {
-	path := c.Request.URL.Path
-	if path == "" {
-		path = "/"
-	}
-	return h.renderPageForPath(c, path)
-}
-
 func (h *TemplateHandler) RenderIndex(c *gin.Context) {
-	if h.renderPageForPath(c, "/") {
-		return
-	}
-
-	pageNumber, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
-	posts, total, err := h.postService.GetAll(pageNumber, limit, nil, nil, nil)
+	posts, total, err := h.postService.GetAll(page, limit, nil, nil, nil)
 	if err != nil {
 		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
 		return
 	}
 
 	totalPages := int((total + int64(limit) - 1) / int64(limit))
-	pagination := h.buildPagination(pageNumber, totalPages, func(p int) string {
+	pagination := h.buildPagination(page, totalPages, func(p int) string {
 		return fmt.Sprintf("/?page=%d", p)
 	})
 
 	h.renderTemplate(c, "index", "Home", h.config.SiteDescription, gin.H{
 		"Posts":       posts,
 		"Total":       total,
-		"CurrentPage": pageNumber,
+		"CurrentPage": page,
 		"TotalPages":  totalPages,
 		"Pagination":  pagination,
 	})
@@ -294,27 +215,43 @@ func (h *TemplateHandler) RenderPost(c *gin.Context) {
 }
 
 func (h *TemplateHandler) RenderPage(c *gin.Context) {
-	if h.TryRenderPage(c) {
+	slug := c.Param("slug")
+	page, err := h.pageService.GetBySlug(slug)
+	if err != nil {
+		h.renderError(c, http.StatusNotFound, "404 - Page Not Found", "Requested page not found")
 		return
 	}
 
-	slug := strings.TrimSpace(c.Param("slug"))
-	if slug != "" && h.pageService != nil {
-		if page, err := h.pageService.GetBySlug(slug); err == nil {
-			if strings.TrimSpace(page.Path) != "" {
-				c.Redirect(http.StatusMovedPermanently, page.Path)
-				return
-			}
-		}
+	var contentHTML template.HTML
+	if strings.TrimSpace(page.Content) != "" {
+		contentHTML = template.HTML(page.Content)
 	}
 
-	h.renderError(c, http.StatusNotFound, "404 - Page Not Found", "Requested page not found")
+	sectionsHTML := h.renderSectionsWithPrefix(page.Sections, "page-view")
+
+	data := gin.H{
+		"Page": page,
+	}
+
+	if contentHTML != "" {
+		data["Content"] = contentHTML
+	}
+
+	if sectionsHTML != "" {
+		data["Sections"] = sectionsHTML
+	}
+
+	h.renderTemplate(c, page.Template, page.Title, page.Description, data)
 }
 
-func (h *TemplateHandler) loadBlogCollections(page, limit int) ([]models.Post, int64, []models.Tag, []models.Category, error) {
+func (h *TemplateHandler) RenderBlog(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
+
 	posts, total, err := h.postService.GetAll(page, limit, nil, nil, nil)
 	if err != nil {
-		return nil, 0, nil, nil, err
+		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
+		return
 	}
 
 	var tags []models.Tag
@@ -328,123 +265,29 @@ func (h *TemplateHandler) loadBlogCollections(page, limit int) ([]models.Post, i
 	if h.categoryService != nil {
 		if loadedCategories, catErr := h.categoryService.GetAll(); catErr != nil {
 			logger.Error(catErr, "Failed to load categories", nil)
-		} else if len(loadedCategories) > 0 {
-			filteredCategories := make([]models.Category, 0, len(loadedCategories))
-			for _, category := range loadedCategories {
-				if strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized") {
-					continue
+		} else {
+			if len(loadedCategories) > 0 {
+				filteredCategories := make([]models.Category, 0, len(loadedCategories))
+				for _, category := range loadedCategories {
+					if strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized") {
+						continue
+					}
+					filteredCategories = append(filteredCategories, category)
 				}
-				filteredCategories = append(filteredCategories, category)
+				categories = filteredCategories
 			}
-			categories = filteredCategories
 		}
 	}
 
-	return posts, total, tags, categories, nil
-}
-
-func (h *TemplateHandler) renderBlogWithPage(c *gin.Context, page *models.Page) {
-	if page == nil {
-		h.renderLegacyBlog(c)
-		return
-	}
-
-	pageNumber, err := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if err != nil || pageNumber < 1 {
-		pageNumber = 1
-	}
-
-	limit, err := strconv.Atoi(c.DefaultQuery("limit", "12"))
-	if err != nil || limit <= 0 {
-		limit = 12
-	}
-
-	posts, total, tags, categories, fetchErr := h.loadBlogCollections(pageNumber, limit)
-	if fetchErr != nil {
-		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
-		return
-	}
-
 	totalPages := int((total + int64(limit) - 1) / int64(limit))
-
-	basePath := page.Path
-	if basePath == "" {
-		basePath = "/blog"
-	}
-
-	pagination := h.buildPagination(pageNumber, totalPages, func(p int) string {
-		return fmt.Sprintf("%s?page=%d", basePath, p)
-	})
-
-	data := gin.H{
-		"Page":        page,
-		"Posts":       posts,
-		"Total":       total,
-		"CurrentPage": pageNumber,
-		"TotalPages":  totalPages,
-		"Pagination":  pagination,
-	}
-
-	if len(tags) > 0 {
-		data["Tags"] = tags
-	}
-
-	if len(categories) > 0 {
-		data["Categories"] = categories
-	}
-
-	if strings.TrimSpace(page.Content) != "" {
-		data["Content"] = template.HTML(page.Content)
-	}
-
-	if sections := h.renderSectionsWithPrefix(page.Sections, "blog"); sections != "" {
-		data["Sections"] = sections
-	}
-
-	title := page.Title
-	if strings.TrimSpace(title) == "" {
-		title = "Blog"
-	}
-
-	description := page.Description
-	if strings.TrimSpace(description) == "" {
-		description = h.config.SiteName + " Blog — insights about Go programming, web technologies, performance, and best practices in backend design."
-	}
-
-	templateName := strings.TrimSpace(page.Template)
-	if templateName == "" {
-		templateName = "blog"
-	}
-
-	h.renderTemplate(c, templateName, title, description, data)
-}
-
-func (h *TemplateHandler) renderLegacyBlog(c *gin.Context) {
-	pageNumber, err := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if err != nil || pageNumber < 1 {
-		pageNumber = 1
-	}
-
-	limit, err := strconv.Atoi(c.DefaultQuery("limit", "12"))
-	if err != nil || limit <= 0 {
-		limit = 12
-	}
-
-	posts, total, tags, categories, fetchErr := h.loadBlogCollections(pageNumber, limit)
-	if fetchErr != nil {
-		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
-		return
-	}
-
-	totalPages := int((total + int64(limit) - 1) / int64(limit))
-	pagination := h.buildPagination(pageNumber, totalPages, func(p int) string {
+	pagination := h.buildPagination(page, totalPages, func(p int) string {
 		return fmt.Sprintf("/blog?page=%d", p)
 	})
 
 	data := gin.H{
 		"Posts":       posts,
 		"Total":       total,
-		"CurrentPage": pageNumber,
+		"CurrentPage": page,
 		"TotalPages":  totalPages,
 		"Pagination":  pagination,
 	}
@@ -458,19 +301,6 @@ func (h *TemplateHandler) renderLegacyBlog(c *gin.Context) {
 	}
 
 	h.renderTemplate(c, "blog", "Blog", h.config.SiteName+" Blog — insights about Go programming, web technologies, performance, and best practices in backend design.", data)
-}
-
-func (h *TemplateHandler) RenderBlog(c *gin.Context) {
-	path := c.Request.URL.Path
-	if path == "" {
-		path = "/blog"
-	}
-
-	if h.renderPageForPath(c, path) {
-		return
-	}
-
-	h.renderLegacyBlog(c)
 }
 
 func (h *TemplateHandler) RenderSearch(c *gin.Context) {
