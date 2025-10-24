@@ -2043,6 +2043,14 @@
             if (publishedField) {
                 publishedField.checked = Boolean(page.published);
             }
+            const hideHeaderField = pageForm.querySelector(
+                'input[name="hide_header"]'
+            );
+            if (hideHeaderField) {
+                const hideHeaderValue =
+                    page.hide_header ?? page.HideHeader ?? false;
+                hideHeaderField.checked = Boolean(hideHeaderValue);
+            }
             if (pageSubmitButton) {
                 pageSubmitButton.textContent = 'Update page';
             }
@@ -2075,6 +2083,12 @@
             }
             if (pageContentField) {
                 pageContentField.value = '';
+            }
+            const hideHeaderField = pageForm.querySelector(
+                'input[name="hide_header"]'
+            );
+            if (hideHeaderField) {
+                hideHeaderField.checked = false;
             }
             pageSectionBuilder?.reset();
             highlightRow(tables.pages);
@@ -4651,12 +4665,16 @@
             const publishedField = pageForm.querySelector(
                 'input[name="published"]'
             );
+            const hideHeaderField = pageForm.querySelector(
+                'input[name="hide_header"]'
+            );
             const payload = {
                 title,
                 description,
                 content,
                 order: Number.isNaN(orderValue) ? 0 : orderValue,
                 published: Boolean(publishedField?.checked),
+                hide_header: Boolean(hideHeaderField?.checked),
             };
             if (!id && pageSlugInput) {
                 const slugValue = pageSlugInput.value.trim();

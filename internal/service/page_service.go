@@ -66,6 +66,7 @@ func (s *PageService) Create(req models.CreatePageRequest) (*models.Page, error)
 		Content:     strings.TrimSpace(req.Content),
 		Sections:    sections,
 		Template:    s.getTemplate(req.Template),
+		HideHeader:  req.HideHeader,
 		Order:       req.Order,
 	}
 
@@ -118,6 +119,9 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 	}
 	if req.Template != nil {
 		page.Template = s.getTemplate(*req.Template)
+	}
+	if req.HideHeader != nil {
+		page.HideHeader = *req.HideHeader
 	}
 	if req.Order != nil {
 		page.Order = *req.Order

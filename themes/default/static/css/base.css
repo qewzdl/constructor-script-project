@@ -913,6 +913,7 @@ textarea.form-field__input {
     height: 200px;
     object-fit: cover;
     border-radius: var(--size-xs);
+    pointer-events: none;
 }
 
 .post-card__title {

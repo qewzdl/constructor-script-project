@@ -239,6 +239,7 @@ type Page struct {
 	Content     string       `gorm:"type:text" json:"content"`
 	Sections    PostSections `gorm:"type:jsonb" json:"sections"`
 	Template    string       `gorm:"default:'page'" json:"template"`
+	HideHeader  bool         `gorm:"default:false" json:"hide_header"`
 
 	Order int `gorm:"default:0" json:"order"`
 }
@@ -252,6 +253,7 @@ type CreatePageRequest struct {
 	Content     string    `json:"content"`
 	Sections    []Section `json:"sections"`
 	Template    string    `json:"template"`
+	HideHeader  bool      `json:"hide_header"`
 	Order       int       `json:"order"`
 }
 
@@ -263,6 +265,7 @@ type UpdatePageRequest struct {
 	Content     *string    `json:"content"`
 	Sections    *[]Section `json:"sections"`
 	Template    *string    `json:"template"`
+	HideHeader  *bool      `json:"hide_header"`
 	Order       *int       `json:"order"`
 }
 
