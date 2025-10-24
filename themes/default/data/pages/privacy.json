@@ -1,6 +1,7 @@
 {
     "title": "Privacy Policy",
     "slug": "privacy",
+    "path": "/privacy",
     "description": "Privacy Policy for Constructor Script detailing the personal data we collect, how we use it, how it is shared, and the rights available to users.",
     "published": true,
     "template": "page",

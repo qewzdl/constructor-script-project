@@ -1,9 +1,10 @@
 {
     "title": "Blog",
     "slug": "blog",
+    "path": "/blog",
     "description": "Articles, tutorials, and release notes that help you get more from Constructor Script.",
     "published": true,
-    "template": "page",
+    "template": "blog",
     "sections": [
         {
             "title": "Insights from the Constructor Script team",

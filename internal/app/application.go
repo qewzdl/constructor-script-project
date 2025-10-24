@@ -261,6 +261,17 @@ func (a *Application) runMigrations() error {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 
+	if err := a.db.Exec(`
+                UPDATE pages
+                SET path = CASE
+                        WHEN slug = 'home' THEN '/'
+                        ELSE '/' || slug
+                END
+                WHERE (path IS NULL OR path = '') AND slug <> ''
+        `).Error; err != nil {
+		return fmt.Errorf("failed to backfill page paths: %w", err)
+	}
+
 	logger.Info("Database migration completed", nil)
 	return nil
 }
@@ -279,6 +290,7 @@ func (a *Application) createIndexes() error {
 		"CREATE INDEX IF NOT EXISTS idx_posts_template ON posts(template)",
 		"CREATE INDEX IF NOT EXISTS idx_pages_published ON pages(published) WHERE published = true",
 		"CREATE INDEX IF NOT EXISTS idx_pages_slug ON pages(slug) WHERE published = true",
+		"CREATE INDEX IF NOT EXISTS idx_pages_path ON pages(path) WHERE published = true",
 		"CREATE INDEX IF NOT EXISTS idx_pages_order ON pages(\"order\" ASC)",
 		"CREATE INDEX IF NOT EXISTS idx_posts_sections ON posts USING GIN (sections)",
 		"CREATE INDEX IF NOT EXISTS idx_pages_sections ON pages USING GIN (sections)",
@@ -648,11 +660,14 @@ func (a *Application) initRouter() error {
 				"path":  c.Request.URL.Path,
 			})
 			return
-		} else {
-			if a.templateHandler != nil {
-				a.templateHandler.RenderErrorPage(c, http.StatusNotFound, "404 - Page not found", "The requested page could not be found")
+		}
+
+		if a.templateHandler != nil {
+			if a.templateHandler.TryRenderPage(c) {
 				return
 			}
+			a.templateHandler.RenderErrorPage(c, http.StatusNotFound, "404 - Page not found", "The requested page could not be found")
+			return
 		}
 
 		c.JSON(http.StatusNotFound, gin.H{

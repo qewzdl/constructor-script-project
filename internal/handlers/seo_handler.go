@@ -118,12 +118,17 @@ func (h *SEOHandler) Sitemap(c *gin.Context) {
 	}
 
 	for _, page := range pages {
-		if page.Slug == "" {
+		if page.Slug == "" && strings.TrimSpace(page.Path) == "" {
 			continue
 		}
 
+		path := strings.TrimSpace(page.Path)
+		if path == "" {
+			path = fmt.Sprintf("/page/%s", page.Slug)
+		}
+
 		urls = append(urls, sitemapURL{
-			Loc:        h.joinURL(baseURL, fmt.Sprintf("/page/%s", page.Slug)),
+			Loc:        h.joinURL(baseURL, path),
 			LastMod:    h.formatLastMod(page.UpdatedAt),
 			ChangeFreq: "monthly",
 			Priority:   "0.6",

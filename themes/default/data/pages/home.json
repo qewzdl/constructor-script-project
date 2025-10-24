@@ -1,6 +1,7 @@
 {
     "title": "Home",
     "slug": "home",
+    "path": "/",
     "description": "A welcoming landing page that introduces Constructor Script and points visitors to recent updates and resources.",
     "published": true,
     "template": "page",
