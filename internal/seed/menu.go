@@ -3,6 +3,8 @@ package seed
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/fs"
 	"sort"
 	"strings"
@@ -64,6 +66,69 @@ func EnsureDefaultMenu(menuService *service.MenuService, dataFS fs.FS) {
 			ensureMenuItem(menuService, definition, seen, name)
 		}
 	}
+}
+
+func ResetMenu(menuService *service.MenuService, dataFS fs.FS) error {
+	if menuService == nil || dataFS == nil {
+		return nil
+	}
+
+	entries, err := fs.ReadDir(dataFS, ".")
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name() < entries[j].Name()
+	})
+
+	var (
+		definitions []models.CreateMenuItemRequest
+		errs        []error
+	)
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		data, readErr := fs.ReadFile(dataFS, name)
+		if readErr != nil {
+			logger.Error(readErr, "Failed to read menu definition", map[string]interface{}{"file": name})
+			errs = append(errs, fmt.Errorf("read menu definition %s: %w", name, readErr))
+			continue
+		}
+
+		parsed, parseErr := parseMenuDefinitions(data)
+		if parseErr != nil {
+			logger.Error(parseErr, "Failed to parse menu definition", map[string]interface{}{"file": name})
+			errs = append(errs, fmt.Errorf("parse menu definition %s: %w", name, parseErr))
+			continue
+		}
+
+		definitions = append(definitions, parsed...)
+	}
+
+	if err := menuService.DeleteAll(); err != nil {
+		logger.Error(err, "Failed to clear existing menu items", nil)
+		errs = append(errs, fmt.Errorf("clear existing menu items: %w", err))
+	} else {
+		for _, definition := range definitions {
+			if _, err := menuService.Create(definition); err != nil {
+				logger.Error(err, "Failed to recreate default menu item", map[string]interface{}{"url": definition.URL, "location": definition.Location})
+				errs = append(errs, fmt.Errorf("create menu item %s@%s: %w", definition.URL, definition.Location, err))
+				continue
+			}
+			logger.Info("Reset default menu item", map[string]interface{}{"url": definition.URL, "location": definition.Location})
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
 }
 
 func ensureMenuItem(menuService *service.MenuService, definition models.CreateMenuItemRequest, seen map[string]bool, source string) {

@@ -15,6 +15,7 @@ type MenuRepository interface {
 	Delete(id uint) error
 	GetByID(id uint) (*models.MenuItem, error)
 	NextOrder(location string) (int, error)
+	DeleteAll() error
 }
 
 type menuRepository struct {
@@ -59,4 +60,8 @@ func (r *menuRepository) NextOrder(location string) (int, error) {
 		return 0, err
 	}
 	return int(maxOrder) + 1, nil
+}
+
+func (r *menuRepository) DeleteAll() error {
+	return r.db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&models.MenuItem{}).Error
 }

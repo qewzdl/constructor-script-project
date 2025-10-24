@@ -81,6 +81,43 @@ func (s *PageService) Create(req models.CreatePageRequest) (*models.Page, error)
 	return s.pageRepo.GetByID(page.ID)
 }
 
+func (s *PageService) ApplyDefinition(req models.CreatePageRequest) (*models.Page, error) {
+	if s == nil || s.pageRepo == nil {
+		return nil, errors.New("page repository not configured")
+	}
+
+	title := strings.TrimSpace(req.Title)
+	if title == "" && strings.TrimSpace(req.Slug) == "" {
+		return nil, errors.New("page title is required")
+	}
+	req.Title = title
+
+	sourceSlug := strings.TrimSpace(req.Slug)
+	if sourceSlug == "" {
+		sourceSlug = title
+	}
+
+	slug := utils.GenerateSlug(sourceSlug)
+	if slug == "" {
+		return nil, errors.New("page slug is required")
+	}
+	req.Slug = slug
+
+	if existing, err := s.pageRepo.GetBySlugAny(slug); err == nil {
+		if err := s.pageRepo.Delete(existing.ID); err != nil {
+			return nil, fmt.Errorf("failed to remove existing page: %w", err)
+		}
+		if s.cache != nil {
+			s.cache.InvalidatePage(existing.ID)
+			s.cache.Delete("pages:all")
+		}
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("failed to look up existing page: %w", err)
+	}
+
+	return s.Create(req)
+}
+
 func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Page, error) {
 	page, err := s.pageRepo.GetByID(id)
 	if err != nil {

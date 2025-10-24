@@ -130,6 +130,13 @@ func (s *MenuService) Delete(id uint) error {
 	return s.repo.Delete(id)
 }
 
+func (s *MenuService) DeleteAll() error {
+	if s == nil || s.repo == nil {
+		return errors.New("menu repository not configured")
+	}
+	return s.repo.DeleteAll()
+}
+
 func (s *MenuService) Reorder(orders []models.MenuOrder) error {
 	if s == nil || s.repo == nil {
 		return errors.New("menu repository not configured")

@@ -620,6 +620,7 @@ func (a *Application) initRouter() error {
 
 			admin.GET("/themes", a.handlers.Theme.List)
 			admin.PUT("/themes/:slug/activate", a.handlers.Theme.Activate)
+			admin.PUT("/themes/:slug/reload", a.handlers.Theme.Reload)
 
 			admin.GET("/social-links", a.handlers.SocialLink.List)
 			admin.POST("/social-links", a.handlers.SocialLink.Create)

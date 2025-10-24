@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"sort"
 
@@ -55,6 +56,56 @@ func EnsureDefaultPages(pageService *service.PageService, dataFS fs.FS) {
 	}
 }
 
+func ResetPages(pageService *service.PageService, dataFS fs.FS) error {
+	if pageService == nil || dataFS == nil {
+		return nil
+	}
+
+	entries, err := fs.ReadDir(dataFS, ".")
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name() < entries[j].Name()
+	})
+
+	var errs []error
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		data, readErr := fs.ReadFile(dataFS, name)
+		if readErr != nil {
+			logger.Error(readErr, "Failed to read page definition", map[string]interface{}{"file": name})
+			errs = append(errs, fmt.Errorf("read page definition %s: %w", name, readErr))
+			continue
+		}
+
+		definitions, parseErr := parsePageDefinitions(data)
+		if parseErr != nil {
+			logger.Error(parseErr, "Failed to parse page definition", map[string]interface{}{"file": name})
+			errs = append(errs, fmt.Errorf("parse page definition %s: %w", name, parseErr))
+			continue
+		}
+
+		for _, definition := range definitions {
+			if err := resetPage(pageService, definition, name); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
 func ensurePage(pageService *service.PageService, definition models.CreatePageRequest, source string) {
 	slug := definition.Slug
 	if slug == "" {
@@ -79,6 +130,31 @@ func ensurePage(pageService *service.PageService, definition models.CreatePageRe
 	}
 
 	logger.Info("Ensured default page", map[string]interface{}{"slug": slug, "source": source})
+}
+
+func resetPage(pageService *service.PageService, definition models.CreatePageRequest, source string) error {
+	if pageService == nil {
+		return errors.New("page service not configured")
+	}
+
+	slug := definition.Slug
+	if slug == "" {
+		slug = definition.Title
+	}
+	slug = utils.GenerateSlug(slug)
+
+	page, err := pageService.ApplyDefinition(definition)
+	if err != nil {
+		logger.Error(err, "Failed to reset default page", map[string]interface{}{"slug": slug, "source": source})
+		return fmt.Errorf("reset page %q failed: %w", slug, err)
+	}
+
+	if page != nil {
+		slug = page.Slug
+	}
+
+	logger.Info("Reset default page", map[string]interface{}{"slug": slug, "source": source})
+	return nil
 }
 
 func parsePageDefinitions(data []byte) ([]models.CreatePageRequest, error) {

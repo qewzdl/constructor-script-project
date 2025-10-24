@@ -13,6 +13,7 @@ type PageRepository interface {
 	Delete(id uint) error
 	GetByID(id uint) (*models.Page, error)
 	GetBySlug(slug string) (*models.Page, error)
+	GetBySlugAny(slug string) (*models.Page, error)
 	GetAll() ([]models.Page, error)
 	GetAllAdmin() ([]models.Page, error)
 	ExistsBySlug(slug string) (bool, error)
@@ -50,6 +51,14 @@ func (r *pageRepository) GetByID(id uint) (*models.Page, error) {
 func (r *pageRepository) GetBySlug(slug string) (*models.Page, error) {
 	var page models.Page
 	if err := r.db.Where("slug = ? AND published = ?", slug, true).First(&page).Error; err != nil {
+		return nil, err
+	}
+	return &page, nil
+}
+
+func (r *pageRepository) GetBySlugAny(slug string) (*models.Page, error) {
+	var page models.Page
+	if err := r.db.Where("slug = ?", slug).First(&page).Error; err != nil {
 		return nil, err
 	}
 	return &page, nil

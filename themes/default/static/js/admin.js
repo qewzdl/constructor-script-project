@@ -2989,6 +2989,18 @@
             }
 
             actions.appendChild(button);
+            if (theme?.active) {
+                const reloadButton = document.createElement('button');
+                reloadButton.type = 'button';
+                reloadButton.className = 'admin-theme__reload';
+                reloadButton.dataset.role = 'theme-reload';
+                if (slug) {
+                    reloadButton.dataset.themeSlug = slug;
+                }
+                reloadButton.dataset.themeName = themeName;
+                reloadButton.textContent = 'Reload from defaults';
+                actions.appendChild(reloadButton);
+            }
             item.appendChild(actions);
 
             return item;
@@ -3035,6 +3047,56 @@
         };
 
         const handleThemeListClick = async (event) => {
+            const reloadButton = event.target?.closest('[data-role="theme-reload"]');
+            if (reloadButton && themeList?.contains(reloadButton)) {
+                event.preventDefault();
+
+                const slug = normaliseString(reloadButton.dataset.themeSlug ?? '');
+                if (!slug) {
+                    return;
+                }
+
+                if (!endpoints.themes) {
+                    showAlert('Theme reload is not available in this environment.', 'error');
+                    return;
+                }
+
+                const name = reloadButton.dataset.themeName || slug;
+                const confirmed = window.confirm(
+                    `Reloading "${name}" will replace the theme's default pages and menus. Continue?`,
+                );
+                if (!confirmed) {
+                    return;
+                }
+
+                const baseReload = endpoints.themes.endsWith('/')
+                    ? endpoints.themes.slice(0, -1)
+                    : endpoints.themes;
+                const reloadUrl = `${baseReload}/${encodeURIComponent(slug)}/reload`;
+
+                const originalReloadText = reloadButton.textContent;
+                reloadButton.disabled = true;
+                reloadButton.dataset.loading = 'true';
+                reloadButton.textContent = 'Reloading…';
+                showAlert(`Reloading "${name}" from defaults…`, 'info');
+
+                try {
+                    await apiRequest(reloadUrl, { method: 'PUT' });
+                    showAlert(`Theme "${name}" reset to defaults. Reloading…`, 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 800);
+                } catch (error) {
+                    reloadButton.disabled = false;
+                    reloadButton.textContent = originalReloadText || 'Reload from defaults';
+                    handleRequestError(error);
+                } finally {
+                    reloadButton.removeAttribute('data-loading');
+                }
+
+                return;
+            }
+
             const button = event.target?.closest('[data-role="theme-activate"]');
             if (!button || !themeList?.contains(button)) {
                 return;
