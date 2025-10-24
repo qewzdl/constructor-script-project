@@ -38,7 +38,7 @@ func (r *socialLinkRepository) Update(link *models.SocialLink) error {
 }
 
 func (r *socialLinkRepository) Delete(id uint) error {
-	return r.db.Delete(&models.SocialLink{}, id).Error
+	return r.db.Unscoped().Delete(&models.SocialLink{}, id).Error
 }
 
 func (r *socialLinkRepository) GetByID(id uint) (*models.SocialLink, error) {

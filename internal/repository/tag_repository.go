@@ -141,7 +141,7 @@ func (r *tagRepository) DeleteUnusedBefore(cutoff time.Time) (int64, error) {
 		Select("1").
 		Where("post_tags.tag_id = tags.id")
 
-	result := r.db.
+	result := r.db.Unscoped().
 		Where("unused_since IS NOT NULL").
 		Where("unused_since <= ?", cutoff).
 		Where("NOT EXISTS (?)", subQuery).

@@ -41,7 +41,7 @@ func (r *menuRepository) Update(item *models.MenuItem) error {
 }
 
 func (r *menuRepository) Delete(id uint) error {
-	return r.db.Delete(&models.MenuItem{}, id).Error
+	return r.db.Unscoped().Delete(&models.MenuItem{}, id).Error
 }
 
 func (r *menuRepository) GetByID(id uint) (*models.MenuItem, error) {
@@ -63,5 +63,5 @@ func (r *menuRepository) NextOrder(location string) (int, error) {
 }
 
 func (r *menuRepository) DeleteAll() error {
-	return r.db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&models.MenuItem{}).Error
+	return r.db.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&models.MenuItem{}).Error
 }

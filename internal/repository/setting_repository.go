@@ -36,5 +36,5 @@ func (r *settingRepository) Set(key, value string) error {
 }
 
 func (r *settingRepository) Delete(key string) error {
-	return r.db.Delete(&models.Setting{}, "key = ?", key).Error
+	return r.db.Unscoped().Delete(&models.Setting{}, "key = ?", key).Error
 }
