@@ -12,10 +12,16 @@
         "order": 1
     },
     {
+        "title": "About",
+        "url": "/page/about",
+        "location": "header",
+        "order": 2
+    },
+    {
         "title": "Search",
         "url": "/search",
         "location": "header",
-        "order": 2
+        "order": 3
     },
     {
         "title": "Home",
@@ -30,10 +36,16 @@
         "order": 1
     },
     {
+        "title": "About",
+        "url": "/page/about",
+        "location": "footer:explore",
+        "order": 2
+    },
+    {
         "title": "Search",
         "url": "/search",
         "location": "footer:explore",
-        "order": 2
+        "order": 3
     },
     {
         "title": "Terms of Use",

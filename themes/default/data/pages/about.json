@@ -1,0 +1,53 @@
+{
+    "title": "About", 
+    "slug": "about",
+    "description": "Learn more about Constructor Script, our mission, and the team building modern site experiences.",
+    "published": true,
+    "template": "page",
+    "sections": [
+        {
+            "title": "Our Mission",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Constructor Script empowers creators to launch dynamic, content-rich sites without code-heavy overhead. We focus on intuitive tooling, flexibility, and reliable performance so teams can share their stories faster."
+                    }
+                }
+            ]
+        },
+        {
+            "title": "What We Build",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "From configurable themes to an extensible data layer, Constructor Script provides the building blocks needed to publish blogs, documentation, and marketing pages with ease."
+                    }
+                }
+            ]
+        },
+        {
+            "title": "Our Team",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "We are a distributed team of developers, designers, and storytellers committed to crafting polished digital experiences. Collaboration, curiosity, and empathy guide our work."
+                    }
+                }
+            ]
+        },
+        {
+            "title": "Get in Touch",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Have a question or want to collaborate? Reach out at hello@constructor-script.com and we will get back to you shortly."
+                    }
+                }
+            ]
+        }
+    ]
+}
