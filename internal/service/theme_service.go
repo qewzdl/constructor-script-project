@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -19,7 +20,10 @@ var (
 	ErrThemeNotFound           = errors.New("theme not found")
 )
 
-const SettingKeyActiveTheme = "site.theme"
+const (
+	SettingKeyActiveTheme          = "site.theme"
+	settingKeyThemeInitializedBase = "site.theme.initialized."
+)
 
 type ThemeService struct {
 	mu sync.Mutex
@@ -65,9 +69,9 @@ func (s *ThemeService) List() ([]models.ThemeInfo, error) {
 	return results, nil
 }
 
-func (s *ThemeService) Activate(slug string) (models.ThemeInfo, error) {
+func (s *ThemeService) Activate(slug string) (models.ThemeInfo, bool, error) {
 	if s.manager == nil {
-		return models.ThemeInfo{}, ErrThemeManagerUnavailable
+		return models.ThemeInfo{}, false, ErrThemeManagerUnavailable
 	}
 
 	cleaned := strings.ToLower(strings.TrimSpace(slug))
@@ -75,7 +79,7 @@ func (s *ThemeService) Activate(slug string) (models.ThemeInfo, error) {
 		cleaned = s.defaultTheme
 	}
 	if cleaned == "" {
-		return models.ThemeInfo{}, errors.New("no theme specified")
+		return models.ThemeInfo{}, false, errors.New("no theme specified")
 	}
 
 	s.mu.Lock()
@@ -86,7 +90,7 @@ func (s *ThemeService) Activate(slug string) (models.ThemeInfo, error) {
 		if s.defaultTheme != "" && cleaned != s.defaultTheme {
 			if fallback, ok := s.manager.Resolve(s.defaultTheme); ok {
 				if err := s.manager.Activate(s.defaultTheme); err != nil {
-					return models.ThemeInfo{}, err
+					return models.ThemeInfo{}, false, err
 				}
 				cleaned = s.defaultTheme
 				themeCandidate = fallback
@@ -94,17 +98,24 @@ func (s *ThemeService) Activate(slug string) (models.ThemeInfo, error) {
 			}
 		}
 		if !ok {
-			return models.ThemeInfo{}, fmt.Errorf("%w: %s", ErrThemeNotFound, cleaned)
+			return models.ThemeInfo{}, false, fmt.Errorf("%w: %s", ErrThemeNotFound, cleaned)
 		}
 	} else {
 		if err := s.manager.Activate(cleaned); err != nil {
-			return models.ThemeInfo{}, err
+			return models.ThemeInfo{}, false, err
 		}
 	}
 
+	needsInitialization := false
 	if s.settingRepo != nil {
+		var err error
+		needsInitialization, err = s.RequiresInitialization(themeCandidate.Slug)
+		if err != nil {
+			return models.ThemeInfo{}, false, err
+		}
+
 		if err := s.settingRepo.Set(SettingKeyActiveTheme, themeCandidate.Slug); err != nil {
-			return models.ThemeInfo{}, err
+			return models.ThemeInfo{}, false, err
 		}
 	}
 
@@ -118,7 +129,7 @@ func (s *ThemeService) Activate(slug string) (models.ThemeInfo, error) {
 		Active:       true,
 	}
 
-	return info, nil
+	return info, needsInitialization, nil
 }
 
 func (s *ThemeService) Active() (models.ThemeInfo, error) {
@@ -169,4 +180,40 @@ func (s *ThemeService) ResolveActiveSlug() string {
 	}
 
 	return strings.ToLower(strings.TrimSpace(s.defaultTheme))
+}
+
+func (s *ThemeService) RequiresInitialization(slug string) (bool, error) {
+	if s.settingRepo == nil {
+		return false, nil
+	}
+
+	cleaned := strings.ToLower(strings.TrimSpace(slug))
+	if cleaned == "" {
+		return false, errors.New("theme slug is required")
+	}
+
+	key := settingKeyThemeInitializedBase + cleaned
+
+	if _, err := s.settingRepo.Get(key); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return true, nil
+		}
+		return false, err
+	}
+
+	return false, nil
+}
+
+func (s *ThemeService) MarkInitialized(slug string) error {
+	if s.settingRepo == nil {
+		return nil
+	}
+
+	cleaned := strings.ToLower(strings.TrimSpace(slug))
+	if cleaned == "" {
+		return errors.New("theme slug is required")
+	}
+
+	key := settingKeyThemeInitializedBase + cleaned
+	return s.settingRepo.Set(key, time.Now().UTC().Format(time.RFC3339))
 }

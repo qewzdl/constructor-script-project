@@ -141,8 +141,26 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 	seed.EnsureDefaultCategory(app.services.Category)
 
 	if theme := app.themeManager.Active(); theme != nil {
-		seed.EnsureDefaultPages(app.services.Page, theme.PagesFS())
-		seed.EnsureDefaultMenu(app.services.Menu, theme.MenuFS())
+		applyDefaults := true
+		if app.services.Theme != nil {
+			if needsInitialization, err := app.services.Theme.RequiresInitialization(theme.Slug); err != nil {
+				logger.Error(err, "Failed to determine if theme defaults should be applied", map[string]interface{}{"theme": theme.Slug})
+				applyDefaults = false
+			} else {
+				applyDefaults = needsInitialization
+			}
+		}
+
+		if applyDefaults {
+			seed.EnsureDefaultPages(app.services.Page, theme.PagesFS())
+			seed.EnsureDefaultMenu(app.services.Menu, theme.MenuFS())
+
+			if app.services.Theme != nil {
+				if err := app.services.Theme.MarkInitialized(theme.Slug); err != nil {
+					logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": theme.Slug})
+				}
+			}
+		}
 	}
 
 	if err := app.initHandlers(); err != nil {

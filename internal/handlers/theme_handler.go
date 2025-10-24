@@ -48,7 +48,7 @@ func (h *ThemeHandler) Activate(c *gin.Context) {
 	}
 
 	slug := c.Param("slug")
-	theme, err := h.service.Activate(slug)
+	theme, needsInitialization, err := h.service.Activate(slug)
 	if err != nil {
 		status := http.StatusInternalServerError
 		switch err {
@@ -64,7 +64,7 @@ func (h *ThemeHandler) Activate(c *gin.Context) {
 		return
 	}
 
-	if h.pageService != nil || h.menuService != nil {
+	if needsInitialization && (h.pageService != nil || h.menuService != nil) {
 		if activeTheme, activeErr := h.service.ActiveTheme(); activeErr == nil {
 			if h.pageService != nil {
 				seed.EnsureDefaultPages(h.pageService, activeTheme.PagesFS())
@@ -72,8 +72,15 @@ func (h *ThemeHandler) Activate(c *gin.Context) {
 			if h.menuService != nil {
 				seed.EnsureDefaultMenu(h.menuService, activeTheme.MenuFS())
 			}
+			if err := h.service.MarkInitialized(activeTheme.Slug); err != nil {
+				logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": activeTheme.Slug})
+			}
 		} else {
 			logger.Error(activeErr, "Failed to load active theme for defaults", nil)
+		}
+	} else if needsInitialization {
+		if err := h.service.MarkInitialized(theme.Slug); err != nil {
+			logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": theme.Slug})
 		}
 	}
 
