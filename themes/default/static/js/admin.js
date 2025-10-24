@@ -498,6 +498,7 @@
         const userDeleteButton = userForm?.querySelector('[data-role="user-delete"]');
         const userHint = userForm?.querySelector('[data-role="user-hint"]');
         const DEFAULT_CATEGORY_SLUG = 'uncategorized';
+        const pagePathInput = pageForm?.querySelector('input[name="path"]');
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
         const postSectionBuilder = postForm
             ? window.SectionBuilder?.init(
@@ -624,13 +625,13 @@
             if (!page) {
                 return '';
             }
+            const path = normaliseString(page.path ?? page.Path ?? '').trim();
+            if (path) {
+                return path.startsWith('/') ? path : `/${path}`;
+            }
             const slug = normaliseString(page.slug ?? page.Slug ?? '').trim();
             if (slug) {
-                return `/page/${encodeURIComponent(slug)}`;
-            }
-            const id = page.id ?? page.ID;
-            if (id) {
-                return `/page/${encodeURIComponent(String(id))}`;
+                return `/${encodeURIComponent(slug)}`;
             }
             return '';
         };
@@ -919,6 +920,8 @@
             page?.ID,
             page?.title,
             page?.Title,
+            page?.path,
+            page?.Path,
             page?.slug,
             page?.Slug,
             page?.description,
@@ -1406,7 +1409,7 @@
                         ? 'No pages match your search'
                         : 'No pages found',
                 });
-                cell.colSpan = 4;
+                cell.colSpan = 5;
                 row.appendChild(cell);
                 table.appendChild(row);
                 return;
@@ -1419,6 +1422,12 @@
                         page.title || page.Title || 'Untitled',
                         getPagePublicPath(page)
                     )
+                );
+                const pathText = normaliseString(page.path ?? page.Path ?? '').trim();
+                row.appendChild(
+                    createElement('td', {
+                        textContent: pathText || '—',
+                    })
                 );
                 row.appendChild(
                     createElement('td', {
@@ -2023,6 +2032,9 @@
             }
             pageForm.dataset.id = page.id;
             pageForm.title.value = page.title || '';
+            if (pagePathInput) {
+                pagePathInput.value = page.path || page.Path || '';
+            }
             if (pageSlugInput) {
                 pageSlugInput.value = page.slug || '';
                 pageSlugInput.disabled = true;
@@ -2072,6 +2084,9 @@
             }
             if (pageDeleteButton) {
                 pageDeleteButton.hidden = true;
+            }
+            if (pagePathInput) {
+                pagePathInput.value = '';
             }
             if (pageSlugInput) {
                 pageSlugInput.disabled = false;
@@ -4722,6 +4737,9 @@
             const content = pageContentField
                 ? pageContentField.value.trim()
                 : '';
+            const pathValue = pagePathInput
+                ? pagePathInput.value.trim()
+                : '';
             const orderInput = pageForm.querySelector('input[name="order"]');
             const orderValue = orderInput ? Number(orderInput.value) : 0;
             const publishedField = pageForm.querySelector(
@@ -4738,6 +4756,9 @@
                 published: Boolean(publishedField?.checked),
                 hide_header: Boolean(hideHeaderField?.checked),
             };
+            if (pagePathInput) {
+                payload.path = pathValue;
+            }
             if (!id && pageSlugInput) {
                 const slugValue = pageSlugInput.value.trim();
                 if (slugValue) {

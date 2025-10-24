@@ -233,6 +233,7 @@ type Page struct {
 
 	Title       string       `gorm:"not null" json:"title"`
 	Slug        string       `gorm:"uniqueIndex;not null" json:"slug"`
+	Path        string       `gorm:"uniqueIndex;not null" json:"path"`
 	Description string       `json:"description"`
 	FeaturedImg string       `json:"featured_img"`
 	Published   bool         `gorm:"default:false" json:"published"`
@@ -247,6 +248,7 @@ type Page struct {
 type CreatePageRequest struct {
 	Title       string    `json:"title" binding:"required"`
 	Slug        string    `json:"slug"`
+	Path        string    `json:"path"`
 	Description string    `json:"description"`
 	FeaturedImg string    `json:"featured_img"`
 	Published   bool      `json:"published"`
@@ -259,6 +261,7 @@ type CreatePageRequest struct {
 
 type UpdatePageRequest struct {
 	Title       *string    `json:"title"`
+	Path        *string    `json:"path"`
 	Description *string    `json:"description"`
 	FeaturedImg *string    `json:"featured_img"`
 	Published   *bool      `json:"published"`

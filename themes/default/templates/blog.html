@@ -1,7 +1,32 @@
-<section class="blog" aria-labelledby="blog-title">
+{{ $title := "Latest Posts" }}
+{{ if .Page }}
+    {{ if .Page.Title }}
+        {{ $title = .Page.Title }}
+    {{ end }}
+{{ end }}
+{{ $showHeader := true }}
+{{ if .Page }}
+    {{ if .Page.HideHeader }}
+        {{ $showHeader = false }}
+    {{ end }}
+{{ end }}
+<section class="blog" {{ if $showHeader }}aria-labelledby="blog-title"{{ else }}aria-label="{{ $title }}"{{ end }}>
+    {{ if $showHeader }}
     <header class="blog__header">
-        <h1 id="blog-title" class="blog__title">Latest Posts</h1>
+        <h1 id="blog-title" class="blog__title">
+            {{ $title }}
+        </h1>
+        {{ if and .Page .Page.Description }}
+        <p class="blog__description">{{ .Page.Description }}</p>
+        {{ end }}
     </header>
+    {{ end }}
+
+    {{ if .Content }}
+    <div class="blog__intro">
+        {{ .Content }}
+    </div>
+    {{ end }}
 
     {{ with .Categories }}
     <nav class="blog__categories" aria-label="Browse by category">
@@ -45,5 +70,11 @@
 
     {{ with .Pagination }}
         {{ template "components/pagination" . }}
+    {{ end }}
+
+    {{ if .Sections }}
+    <div class="blog__sections">
+        {{ .Sections }}
+    </div>
     {{ end }}
 </section>

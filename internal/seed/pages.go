@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"sort"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -116,6 +117,26 @@ func ensurePage(pageService *service.PageService, definition models.CreatePageRe
 
 	definition.Slug = slug
 
+	pathValue := strings.TrimSpace(definition.Path)
+	if pathValue == "" {
+		if slug == "home" {
+			pathValue = "/"
+		} else {
+			pathValue = "/" + slug
+		}
+	}
+	definition.Path = pathValue
+
+	if pathValue != "" {
+		if _, err := pageService.GetByPath(pathValue); err == nil {
+			logger.Info("Default page already present", map[string]interface{}{"path": pathValue, "source": source})
+			return
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Error(err, "Failed to verify default page", map[string]interface{}{"path": pathValue, "source": source})
+			return
+		}
+	}
+
 	if _, err := pageService.GetBySlug(slug); err == nil {
 		logger.Info("Default page already present", map[string]interface{}{"slug": slug, "source": source})
 		return
@@ -129,7 +150,7 @@ func ensurePage(pageService *service.PageService, definition models.CreatePageRe
 		return
 	}
 
-	logger.Info("Ensured default page", map[string]interface{}{"slug": slug, "source": source})
+	logger.Info("Ensured default page", map[string]interface{}{"slug": slug, "path": pathValue, "source": source})
 }
 
 func resetPage(pageService *service.PageService, definition models.CreatePageRequest, source string) error {
