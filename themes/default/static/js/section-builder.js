@@ -639,6 +639,31 @@
 
         let draggingIndex = null;
 
+        const insertSectionAt = (index, type = selectedSectionType) => {
+            const boundedIndex = Math.max(
+                0,
+                Math.min(index, state.sections.length)
+            );
+            const section = createEmptySection(type);
+            state.sections.splice(boundedIndex, 0, section);
+            render();
+            window.requestAnimationFrame(() => {
+                const target = list.querySelector(
+                    `.section-card[data-section-id="${section.id}"]`
+                );
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                    });
+                    const focusable = target.querySelector(
+                        '.section-card__drag-handle'
+                    );
+                    focusable?.focus();
+                }
+            });
+        };
+
         const clearDropIndicators = () => {
             list.querySelectorAll(
                 '.section-card--drop-before, .section-card--drop-after'
@@ -649,6 +674,11 @@
                 );
                 delete card.dataset.dropPosition;
             });
+            list.querySelectorAll('.section-builder__insertion').forEach(
+                (control) => {
+                    control.classList.remove('section-builder__insertion--active');
+                }
+            );
         };
 
         const endDrag = () => {
@@ -745,6 +775,75 @@
             }
             images.splice(imageIndex, 1);
             render();
+        };
+
+        const createInsertionControl = (index) => {
+            const insertion = createElement('li', {
+                className: 'section-builder__insertion',
+            });
+            insertion.dataset.insertIndex = index;
+
+            const total = state.sections.length;
+            let label = 'Add section';
+            if (total) {
+                if (index === 0) {
+                    label = 'Add section to beginning';
+                } else if (index >= total) {
+                    label = 'Add section to end';
+                } else {
+                    label = `Add section between sections ${index} and ${index + 1}`;
+                }
+            }
+
+            const button = createElement('button', {
+                className: 'section-builder__insert-button',
+                type: 'button',
+                textContent: '+',
+                attrs: {
+                    'aria-label': label,
+                    title: label,
+                },
+            });
+
+            button.addEventListener('click', () => {
+                insertSectionAt(index);
+            });
+
+            insertion.addEventListener('dragover', (event) => {
+                if (draggingIndex === null) {
+                    return;
+                }
+                event.preventDefault();
+                insertion.classList.add('section-builder__insertion--active');
+                try {
+                    event.dataTransfer.dropEffect = 'move';
+                } catch (error) {
+                    // ignore when dataTransfer is unavailable
+                }
+            });
+
+            insertion.addEventListener('dragleave', () => {
+                insertion.classList.remove('section-builder__insertion--active');
+            });
+
+            insertion.addEventListener('drop', (event) => {
+                if (draggingIndex === null) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                insertion.classList.remove('section-builder__insertion--active');
+                clearDropIndicators();
+                const fromIndex = draggingIndex;
+                let destination = index;
+                if (fromIndex < destination) {
+                    destination -= 1;
+                }
+                moveSection(fromIndex, destination);
+            });
+
+            insertion.appendChild(button);
+            return insertion;
         };
 
         const createSectionCard = (section, index) => {
@@ -1752,19 +1851,16 @@
             }
             empty.hidden = true;
             state.sections.forEach((section, index) => {
+                if (index === 0) {
+                    list.appendChild(createInsertionControl(0));
+                }
                 list.appendChild(createSectionCard(section, index));
+                list.appendChild(createInsertionControl(index + 1));
             });
         };
 
         addButton?.addEventListener('click', () => {
-            state.sections.push(createEmptySection(selectedSectionType));
-            render();
-            window.requestAnimationFrame(() => {
-                list.lastElementChild?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                });
-            });
+            insertSectionAt(state.sections.length);
         });
 
         render();

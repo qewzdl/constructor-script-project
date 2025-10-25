@@ -1273,13 +1273,78 @@
 }
 
 .section-builder__list {
-    display: grid;
-    gap: var(--size-sm);
+    display: block;
     list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .section-builder__list--dragging {
     cursor: grabbing;
+}
+
+.section-builder__insertion {
+    position: relative;
+    padding: calc(var(--size-sm) / 2) 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.section-builder__insertion::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: var(--color-primary);
+    transform: translateY(-50%);
+    opacity: 0;
+}
+
+.section-builder__insertion:hover::before,
+.section-builder__insertion:focus-within::before,
+.section-builder__insertion--active::before {
+    opacity: 1;
+}
+
+.section-builder__insertion--active::before {
+    background: var(--color-primary);
+}
+
+.section-builder__insert-button {
+    position: relative;
+    z-index: 1;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    border: 1px dashed var(--color-primary);
+    background: var(--color-bg-top);
+    color: var(--color-primary);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
+    margin: var(--size-xs) 0;
+}
+
+.section-builder__insertion:hover .section-builder__insert-button,
+.section-builder__insertion:focus-within .section-builder__insert-button,
+.section-builder__insertion--active .section-builder__insert-button {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.section-builder__insert-button:hover,
+.section-builder__insert-button:focus-visible {
+    outline: none;
 }
 
 .section-builder__actions {
