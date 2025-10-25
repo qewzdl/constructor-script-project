@@ -2,3 +2,4 @@
 tmp/
 air-build.log
 uploads/
+vendor/
