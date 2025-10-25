@@ -148,9 +148,9 @@
         {{ if and $showResults $hasQuery }}
         <section class="search__results" aria-live="polite" aria-busy="false">
             {{ with $result }}
-                {{ if gt .Total 0 }}
+                {{ if gt (len .Posts) 0 }}
                 <p class="search__meta">
-                    Found {{ .Total }} {{ if eq .Total 1 }}result{{ else }}results{{ end }} for
+                    Found {{ if gt .Total 0 }}{{ .Total }}{{ else }}{{ len .Posts }}{{ end }} {{ if eq (len .Posts) 1 }}result{{ else }}results{{ end }} for
                     <strong>&ldquo;{{ .Query }}&rdquo;</strong>
                 </p>
                 <div class="search__posts">

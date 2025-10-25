@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -105,8 +106,8 @@ func GetTemplateFuncs(assetModTime AssetModTimeFunc) template.FuncMap {
 		"first": func(items interface{}, count int) interface{} { return items },
 		"last":  func(items interface{}, count int) interface{} { return items },
 
-		"default": func(value, defaultValue interface{}) interface{} {
-			if value == nil || value == "" {
+		"default": func(defaultValue, value interface{}) interface{} {
+			if isEmpty(value) {
 				return defaultValue
 			}
 			return value
@@ -162,6 +163,34 @@ func GetTemplateFuncs(assetModTime AssetModTimeFunc) template.FuncMap {
 			return fmt.Sprintf("%s%sv=%d", path, separator, version)
 		},
 	}
+}
+
+func isEmpty(value interface{}) bool {
+	if value == nil {
+		return true
+	}
+
+	v := reflect.ValueOf(value)
+
+	switch v.Kind() {
+	case reflect.String:
+		return strings.TrimSpace(v.String()) == ""
+	case reflect.Bool:
+		return false
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Slice, reflect.Array, reflect.Map:
+		return v.Len() == 0
+	case reflect.Ptr, reflect.Interface:
+		return v.IsNil()
+	}
+
+	zero := reflect.Zero(v.Type())
+	return reflect.DeepEqual(value, zero.Interface())
 }
 
 func formatPlural(n int, one, few, many string) string {
