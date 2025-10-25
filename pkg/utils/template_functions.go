@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -45,7 +46,7 @@ func GetTemplateFuncs(assetModTime AssetModTimeFunc) template.FuncMap {
 			return strings.ReplaceAll(strings.ReplaceAll(s, "<", ""), ">", "")
 		},
 		"pathEquals": func(current, value string) bool {
-			current = normalizePath(current)
+			current = NormalizePath(current)
 			value = strings.TrimSpace(value)
 			if value == "" {
 				return false
@@ -57,7 +58,7 @@ func GetTemplateFuncs(assetModTime AssetModTimeFunc) template.FuncMap {
 					}
 				}
 			}
-			value = normalizePath(value)
+			value = NormalizePath(value)
 			return current != "" && current == value
 		},
 
@@ -178,11 +179,12 @@ func intToString(n int) string {
 	return fmt.Sprintf("%d", n)
 }
 
-func normalizePath(value string) string {
+func NormalizePath(value string) string {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
 		return "/"
 	}
+
 	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
 		if parsed, err := url.Parse(trimmed); err == nil {
 			if parsed.Path != "" {
@@ -192,14 +194,19 @@ func normalizePath(value string) string {
 			}
 		}
 	}
+
 	if !strings.HasPrefix(trimmed, "/") {
 		trimmed = "/" + trimmed
 	}
-	if len(trimmed) > 1 {
-		trimmed = strings.TrimSuffix(trimmed, "/")
-		if trimmed == "" {
-			trimmed = "/"
-		}
+
+	cleaned := path.Clean(trimmed)
+	if cleaned == "." || cleaned == "" {
+		return "/"
 	}
-	return trimmed
+
+	if cleaned != "/" && strings.HasSuffix(cleaned, "/") {
+		cleaned = strings.TrimSuffix(cleaned, "/")
+	}
+
+	return cleaned
 }

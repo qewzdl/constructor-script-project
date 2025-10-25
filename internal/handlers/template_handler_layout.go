@@ -12,6 +12,7 @@ import (
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/pkg/logger"
+	"constructor-script-backend/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -491,10 +492,7 @@ func (h *TemplateHandler) applySEOMetadata(c *gin.Context, data gin.H) {
 
 func (h *TemplateHandler) setNavigationState(c *gin.Context, data gin.H) {
 	path := c.Request.URL.Path
-	cleanedPath := strings.TrimSuffix(path, "/")
-	if cleanedPath == "" {
-		cleanedPath = "/"
-	}
+	cleanedPath := utils.NormalizePath(path)
 	data["ActivePath"] = cleanedPath
 
 	if _, exists := data["ActiveNav"]; exists {
@@ -504,19 +502,19 @@ func (h *TemplateHandler) setNavigationState(c *gin.Context, data gin.H) {
 	active := ""
 
 	switch {
-	case path == "/" || path == "":
+	case cleanedPath == "/" || cleanedPath == "":
 		active = "home"
-	case strings.HasPrefix(path, "/blog"):
+	case strings.HasPrefix(cleanedPath, "/blog"):
 		active = "blog"
-	case strings.HasPrefix(path, "/search"):
+	case strings.HasPrefix(cleanedPath, "/search"):
 		active = "search"
-	case strings.HasPrefix(path, "/admin"):
+	case strings.HasPrefix(cleanedPath, "/admin"):
 		active = "admin"
-	case strings.HasPrefix(path, "/profile"):
+	case strings.HasPrefix(cleanedPath, "/profile"):
 		active = "profile"
-	case strings.HasPrefix(path, "/login"):
+	case strings.HasPrefix(cleanedPath, "/login"):
 		active = "login"
-	case strings.HasPrefix(path, "/register"):
+	case strings.HasPrefix(cleanedPath, "/register"):
 		active = "register"
 	}
 
