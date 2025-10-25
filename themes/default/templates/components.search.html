@@ -1,8 +1,5 @@
 {{ define "components/search" }}
     {{ $id := default "search" .ID }}
-    {{ $heading := default "h2" .Heading }}
-    {{ $title := default "Search" .Title }}
-    {{ $description := .Description }}
     {{ $action := default "/search" .Action }}
     {{ $method := default "get" .Method }}
     {{ $query := default "" .Query }}
@@ -15,26 +12,7 @@
     {{ $hasQuery := default false .HasQuery }}
     {{ $hint := default "Use the search form above to explore the knowledge base." .Hint }}
     {{ $result := .Result }}
-    <section class="search" aria-labelledby="{{ $id }}-title">
-        <header class="search__header">
-            {{ if eq $heading "h1" }}
-            <h1 id="{{ $id }}-title" class="search__title">{{ $title }}</h1>
-            {{ else if eq $heading "h3" }}
-            <h3 id="{{ $id }}-title" class="search__title">{{ $title }}</h3>
-            {{ else if eq $heading "h4" }}
-            <h4 id="{{ $id }}-title" class="search__title">{{ $title }}</h4>
-            {{ else if eq $heading "h5" }}
-            <h5 id="{{ $id }}-title" class="search__title">{{ $title }}</h5>
-            {{ else if eq $heading "h6" }}
-            <h6 id="{{ $id }}-title" class="search__title">{{ $title }}</h6>
-            {{ else }}
-            <h2 id="{{ $id }}-title" class="search__title">{{ $title }}</h2>
-            {{ end }}
-            {{ if $description }}
-            <p class="search__description">{{ $description }}</p>
-            {{ end }}
-        </header>
-
+    <section class="search">
         <form class="search__form" action="{{ $action }}" method="{{ $method }}" role="search" aria-label="Site search">
             <div class="search__fields">
                 <div class="search__input-group">

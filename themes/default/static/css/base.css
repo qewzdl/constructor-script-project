@@ -574,22 +574,8 @@ textarea.form-field__input {
 }
 
 .search {
-    display: grid;
-}
-
-.search__header {
-    display: grid;
-    gap: var(--size-xs);
-}
-
-.search__title {
-    font-size: clamp(2rem, 4vw, 2.5rem);
-    font-weight: 700;
-}
-
-.search__description {
-    color: var(--color-secondary);
-    font-size: var(--font-size-lg);
+    display: flex;
+    flex-direction: column;
 }
 
 .search__form {
@@ -2063,7 +2049,6 @@ body.post-image-modal-open .post-progress {
     .blog__header,
     .blog__categories,
     .blog__tags,
-    .search__header,
     .search__meta,
     .search__meta,
     .search__empty,
