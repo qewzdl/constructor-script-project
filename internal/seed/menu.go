@@ -50,6 +50,9 @@ func EnsureDefaultMenu(menuService *service.MenuService, dataFS fs.FS) {
 		}
 
 		name := entry.Name()
+		if !strings.HasSuffix(strings.ToLower(name), ".json") {
+			continue
+		}
 		data, err := fs.ReadFile(dataFS, name)
 		if err != nil {
 			logger.Error(err, "Failed to read menu definition", map[string]interface{}{"file": name})
@@ -93,6 +96,9 @@ func ResetMenu(menuService *service.MenuService, dataFS fs.FS) error {
 		}
 
 		name := entry.Name()
+		if !strings.HasSuffix(strings.ToLower(name), ".json") {
+			continue
+		}
 		data, readErr := fs.ReadFile(dataFS, name)
 		if readErr != nil {
 			logger.Error(readErr, "Failed to read menu definition", map[string]interface{}{"file": name})

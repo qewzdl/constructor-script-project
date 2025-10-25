@@ -39,6 +39,9 @@ func EnsureDefaultPages(pageService *service.PageService, dataFS fs.FS) {
 		}
 
 		name := entry.Name()
+		if !strings.HasSuffix(strings.ToLower(name), ".json") {
+			continue
+		}
 		data, err := fs.ReadFile(dataFS, name)
 		if err != nil {
 			logger.Error(err, "Failed to read page definition", map[string]interface{}{"file": name})
@@ -79,6 +82,9 @@ func ResetPages(pageService *service.PageService, dataFS fs.FS) error {
 		}
 
 		name := entry.Name()
+		if !strings.HasSuffix(strings.ToLower(name), ".json") {
+			continue
+		}
 		data, readErr := fs.ReadFile(dataFS, name)
 		if readErr != nil {
 			logger.Error(readErr, "Failed to read page definition", map[string]interface{}{"file": name})

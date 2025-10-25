@@ -185,37 +185,81 @@ func (s *PageService) ApplyDefinition(req models.CreatePageRequest) (*models.Pag
 	}
 	req.Path = normalizedPath
 
-	var existing *models.Page
-	if normalizedPath != "" {
-		if pageByPath, err := s.pageRepo.GetByPathAny(normalizedPath); err == nil {
-			existing = pageByPath
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("failed to look up existing page by path: %w", err)
-		}
+	if err := s.removeExistingPages(slug, normalizedPath); err != nil {
+		return nil, err
 	}
 
-	if existing == nil {
-		if pageBySlug, err := s.pageRepo.GetBySlugAny(slug); err == nil {
-			existing = pageBySlug
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("failed to look up existing page: %w", err)
-		}
+	return s.Create(req)
+}
+
+func (s *PageService) removeExistingPages(slug, path string) error {
+	if s == nil || s.pageRepo == nil {
+		return errors.New("page repository not configured")
 	}
 
-	if existing != nil {
-		if err := s.pageRepo.Delete(existing.ID); err != nil {
-			return nil, fmt.Errorf("failed to remove existing page: %w", err)
-		}
-		if s.cache != nil {
-			s.cache.InvalidatePage(existing.ID)
-			s.cache.Delete("pages:all")
-			if existing.Path != "" {
-				s.cache.Delete(fmt.Sprintf("page:path:%s", existing.Path))
+	seen := make(map[uint]struct{})
+
+	if path != "" {
+		for {
+			existing, err := s.pageRepo.GetByPathAny(path)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					break
+				}
+				return fmt.Errorf("failed to look up existing page by path: %w", err)
+			}
+
+			if _, ok := seen[existing.ID]; ok {
+				break
+			}
+			seen[existing.ID] = struct{}{}
+
+			if err := s.removePage(existing); err != nil {
+				return err
 			}
 		}
 	}
 
-	return s.Create(req)
+	for {
+		existing, err := s.pageRepo.GetBySlugAny(slug)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				break
+			}
+			return fmt.Errorf("failed to look up existing page: %w", err)
+		}
+
+		if _, ok := seen[existing.ID]; ok {
+			break
+		}
+		seen[existing.ID] = struct{}{}
+
+		if err := s.removePage(existing); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *PageService) removePage(existing *models.Page) error {
+	if existing == nil {
+		return nil
+	}
+
+	if err := s.pageRepo.Delete(existing.ID); err != nil {
+		return fmt.Errorf("failed to remove existing page: %w", err)
+	}
+
+	if s.cache != nil {
+		s.cache.InvalidatePage(existing.ID)
+		s.cache.Delete("pages:all")
+		if existing.Path != "" {
+			s.cache.Delete(fmt.Sprintf("page:path:%s", existing.Path))
+		}
+	}
+
+	return nil
 }
 
 func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Page, error) {
