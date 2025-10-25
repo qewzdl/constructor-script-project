@@ -52,7 +52,6 @@ textarea {
     width: min(100%, 640px);
 }
 
-
 .header {
     grid-area: header;
     height: var(--header-height);
