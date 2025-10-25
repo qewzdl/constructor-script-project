@@ -696,9 +696,12 @@
                 if (!section) {
                     continue;
                 }
-                if (!section.title) {
-                    return `Section ${index + 1} needs a title.`;
-                }
+                const rawTitle =
+                    section.title === undefined || section.title === null
+                        ? ''
+                        : section.title;
+                const sectionTitle = String(rawTitle).trim();
+                const displayTitle = sectionTitle || `Section ${index + 1}`;
                 if (!Array.isArray(section.elements)) {
                     continue;
                 }
@@ -715,29 +718,27 @@
                         element.type === 'paragraph' &&
                         !element.content?.text
                     ) {
-                        return `Paragraph ${elementIndex + 1} in section "${
-                            section.title
-                        }" is empty.`;
+                        return `Paragraph ${
+                            elementIndex + 1
+                        } in section "${displayTitle}" is empty.`;
                     }
                     if (element.type === 'image' && !element.content?.url) {
-                        return `Image ${elementIndex + 1} in section "${
-                            section.title
-                        }" is missing a URL.`;
+                        return `Image ${
+                            elementIndex + 1
+                        } in section "${displayTitle}" is missing a URL.`;
                     }
                     if (element.type === 'image_group') {
                         const images = Array.isArray(element.content?.images)
                             ? element.content.images
                             : [];
                         if (!images.length) {
-                            return `The image group in section "${section.title}" needs at least one image.`;
+                            return `The image group in section "${displayTitle}" needs at least one image.`;
                         }
                         const missing = images.findIndex((img) => !img?.url);
                         if (missing !== -1) {
                             return `Image ${
                                 missing + 1
-                            } in the group for section "${
-                                section.title
-                            }" is missing a URL.`;
+                            } in the group for section "${displayTitle}" is missing a URL.`;
                         }
                     }
                     if (element.type === 'list') {
@@ -748,9 +749,9 @@
                             (item) => item && item.toString().trim()
                         );
                         if (!hasItems) {
-                            return `List ${elementIndex + 1} in section "${
-                                section.title
-                            }" needs at least one item.`;
+                            return `List ${
+                                elementIndex + 1
+                            } in section "${displayTitle}" needs at least one item.`;
                         }
                     }
                 }

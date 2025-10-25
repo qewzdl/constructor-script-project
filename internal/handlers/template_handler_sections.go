@@ -29,6 +29,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sectionType = "standard"
 		}
 
+		title := strings.TrimSpace(section.Title)
+		escapedTitle := template.HTMLEscapeString(title)
+
 		baseClass := fmt.Sprintf("%s__section", prefix)
 		sectionClasses := []string{baseClass, fmt.Sprintf("%s__section--%s", prefix, sectionType)}
 		sectionTitleClass := fmt.Sprintf("%s__section-title", prefix)
@@ -36,11 +39,13 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		sectionImageClass := fmt.Sprintf("%s__section-img", prefix)
 
 		sb.WriteString(`<section class="` + strings.Join(sectionClasses, " ") + `" id="section-` + template.HTMLEscapeString(section.ID) + `">`)
-		sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + template.HTMLEscapeString(section.Title) + `</h2>`)
+		if title != "" {
+			sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
+		}
 
 		if section.Image != "" {
 			sb.WriteString(`<div class="` + sectionImageWrapperClass + `">`)
-			sb.WriteString(`<img class="` + sectionImageClass + `" src="` + template.HTMLEscapeString(section.Image) + `" alt="` + template.HTMLEscapeString(section.Title) + `" />`)
+			sb.WriteString(`<img class="` + sectionImageClass + `" src="` + template.HTMLEscapeString(section.Image) + `" alt="` + escapedTitle + `" />`)
 			sb.WriteString(`</div>`)
 		}
 
@@ -219,9 +224,14 @@ func (h *TemplateHandler) generateTOC(sections models.PostSections) template.HTM
 		if strings.EqualFold(section.Type, "hero") {
 			continue
 		}
+
+		title := strings.TrimSpace(section.Title)
+		if title == "" {
+			continue
+		}
 		sb.WriteString(`<li class="post__toc-item">`)
 		sb.WriteString(`<a href="#section-` + template.HTMLEscapeString(section.ID) + `" class="post__toc-link">`)
-		sb.WriteString(template.HTMLEscapeString(section.Title))
+		sb.WriteString(template.HTMLEscapeString(title))
 		sb.WriteString(`</a>`)
 		sb.WriteString(`</li>`)
 	}

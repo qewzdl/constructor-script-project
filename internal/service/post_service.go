@@ -300,10 +300,6 @@ func (s *PostService) prepareSections(sections []models.Section) (models.PostSec
 			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
 		}
 
-		if section.Title == "" {
-			return nil, fmt.Errorf("section %d: title is required", i)
-		}
-
 		if section.ID == "" {
 			section.ID = uuid.New().String()
 		}
@@ -354,8 +350,11 @@ func (s *PostService) generateContentFromSections(sections models.PostSections) 
 	var content strings.Builder
 
 	for _, section := range sections {
-		content.WriteString(section.Title)
-		content.WriteString("\n\n")
+		title := strings.TrimSpace(section.Title)
+		if title != "" {
+			content.WriteString(title)
+			content.WriteString("\n\n")
+		}
 
 		for _, elem := range section.Elements {
 			if elem.Type == "paragraph" {

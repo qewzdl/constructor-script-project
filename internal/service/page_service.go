@@ -585,10 +585,6 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
 		}
 
-		if section.Title == "" {
-			return nil, fmt.Errorf("section %d: title is required", i)
-		}
-
 		if section.ID == "" {
 			section.ID = uuid.New().String()
 		}

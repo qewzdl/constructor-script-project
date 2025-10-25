@@ -133,12 +133,6 @@
         supportsElements: false,
         description:
             'Large introductory section with a headline and optional image. Does not allow additional content blocks.',
-        validate: (section) => {
-            if (!section.title || !section.title.trim()) {
-                return 'requires a title.';
-            }
-            return null;
-        },
     });
 
     sectionTypeRegistry.register('posts_list', {
@@ -538,10 +532,6 @@
             const section = sections[i] || {};
             const type = sectionTypeRegistry.ensure(section.type);
             const definition = sectionTypeRegistry.get(type);
-            const title = section?.title || '';
-            if (!title.trim()) {
-                return `Section ${i + 1} requires a title.`;
-            }
 
             if (definition?.validate) {
                 const message = definition.validate(section, i);
