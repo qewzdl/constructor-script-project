@@ -8,6 +8,13 @@ import (
 	"constructor-script-backend/pkg/validator"
 )
 
+const (
+	DefaultSearchLimit     = 20
+	MaxSearchLimit         = 100
+	DefaultSuggestionLimit = 10
+	MaxSuggestionLimit     = 50
+)
+
 type SearchService struct {
 	searchRepo repository.SearchRepository
 }
@@ -23,9 +30,9 @@ func NewSearchService(searchRepo repository.SearchRepository) *SearchService {
 }
 
 func (s *SearchService) Search(query string, searchType string, limit int) (*SearchResult, error) {
-
 	query = validator.TrimSpaces(query)
 	query = validator.NormalizeSpaces(query)
+	limit = normalizeLimit(limit, DefaultSearchLimit, MaxSearchLimit)
 
 	if query == "" {
 		return &SearchResult{
@@ -64,6 +71,7 @@ func (s *SearchService) Search(query string, searchType string, limit int) (*Sea
 
 func (s *SearchService) SearchMultiple(query string, limit int) (*SearchResult, error) {
 	query = validator.TrimSpaces(query)
+	limit = normalizeLimit(limit, DefaultSearchLimit, MaxSearchLimit)
 
 	terms := strings.Fields(query)
 	if len(terms) == 0 {
@@ -83,6 +91,8 @@ func (s *SearchService) SearchMultiple(query string, limit int) (*SearchResult, 
 }
 
 func (s *SearchService) SuggestTags(query string, limit int) ([]string, error) {
+	limit = normalizeLimit(limit, DefaultSuggestionLimit, MaxSuggestionLimit)
+
 	posts, err := s.searchRepo.SearchByTag(query, limit)
 	if err != nil {
 		return nil, err
@@ -101,4 +111,16 @@ func (s *SearchService) SuggestTags(query string, limit int) ([]string, error) {
 	}
 
 	return tags, nil
+}
+
+func normalizeLimit(limit int, defaultLimit int, maxLimit int) int {
+	if limit <= 0 {
+		return defaultLimit
+	}
+
+	if maxLimit > 0 && limit > maxLimit {
+		return maxLimit
+	}
+
+	return limit
 }

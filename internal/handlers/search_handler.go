@@ -19,7 +19,12 @@ func NewSearchHandler(searchService *service.SearchService) *SearchHandler {
 func (h *SearchHandler) Search(c *gin.Context) {
 	query := c.Query("q")
 	searchType := c.DefaultQuery("type", "all")
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	limitStr := c.DefaultQuery("limit", strconv.Itoa(service.DefaultSearchLimit))
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = service.DefaultSearchLimit
+	}
 
 	if query == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "search query is required"})
@@ -37,7 +42,12 @@ func (h *SearchHandler) Search(c *gin.Context) {
 
 func (h *SearchHandler) SuggestTags(c *gin.Context) {
 	query := c.Query("q")
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	limitStr := c.DefaultQuery("limit", strconv.Itoa(service.DefaultSuggestionLimit))
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = service.DefaultSuggestionLimit
+	}
 
 	tags, err := h.searchService.SuggestTags(query, limit)
 	if err != nil {
