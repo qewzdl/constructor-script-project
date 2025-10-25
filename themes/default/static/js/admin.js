@@ -81,12 +81,37 @@
 
         const app = window.App || {};
         const auth = app.auth;
+        const stateChangingMethods = new Set([
+            'POST',
+            'PUT',
+            'PATCH',
+            'DELETE',
+        ]);
+        const readCookie = (name) => {
+            if (!name || typeof document?.cookie !== 'string') {
+                return '';
+            }
+            const cookies = document.cookie.split('; ');
+            for (let index = 0; index < cookies.length; index += 1) {
+                const cookie = cookies[index];
+                if (!cookie) {
+                    continue;
+                }
+                const [key, ...rest] = cookie.split('=');
+                if (key === name) {
+                    return decodeURIComponent(rest.join('='));
+                }
+            }
+            return '';
+        };
+        const getCSRFCookie = () => readCookie('csrf_token');
         const fallbackApiRequest = async (url, options = {}) => {
             const headers = Object.assign({}, options.headers || {});
             const token =
                 auth && typeof auth.getToken === 'function'
                     ? auth.getToken()
                     : undefined;
+            const method = (options.method || 'GET').toUpperCase();
 
             if (options.body && !(options.body instanceof FormData)) {
                 headers['Content-Type'] =
@@ -96,6 +121,14 @@
             if (token) {
                 headers.Authorization =
                     headers.Authorization || `Bearer ${token}`;
+            }
+
+            if (stateChangingMethods.has(method)) {
+                const csrfToken = getCSRFCookie();
+                if (csrfToken) {
+                    headers['X-CSRF-Token'] =
+                        headers['X-CSRF-Token'] || csrfToken;
+                }
             }
 
             const response = await fetch(url, {

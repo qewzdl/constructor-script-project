@@ -103,6 +103,13 @@ func (h *TemplateHandler) reloadTemplates() error {
 	return nil
 }
 
+func (h *TemplateHandler) ReloadTemplates() error {
+	if h == nil {
+		return errors.New("template handler not configured")
+	}
+	return h.reloadTemplates()
+}
+
 func (h *TemplateHandler) templateClone() (*template.Template, error) {
 	if h.themeManager == nil {
 		return nil, errors.New("theme manager not configured")

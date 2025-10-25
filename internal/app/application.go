@@ -469,7 +469,7 @@ func (a *Application) initHandlers() error {
 
 	a.templateHandler = templateHandler
 
-	a.handlers.Theme = handlers.NewThemeHandler(a.services.Theme, a.services.Page, a.services.Menu)
+	a.handlers.Theme = handlers.NewThemeHandler(a.services.Theme, a.services.Page, a.services.Menu, a.templateHandler)
 	return nil
 }
 

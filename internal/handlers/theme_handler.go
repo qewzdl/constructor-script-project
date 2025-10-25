@@ -15,10 +15,11 @@ type ThemeHandler struct {
 	service     *service.ThemeService
 	pageService *service.PageService
 	menuService *service.MenuService
+	templates   *TemplateHandler
 }
 
-func NewThemeHandler(themeService *service.ThemeService, pageService *service.PageService, menuService *service.MenuService) *ThemeHandler {
-	return &ThemeHandler{service: themeService, pageService: pageService, menuService: menuService}
+func NewThemeHandler(themeService *service.ThemeService, pageService *service.PageService, menuService *service.MenuService, templateHandler *TemplateHandler) *ThemeHandler {
+	return &ThemeHandler{service: themeService, pageService: pageService, menuService: menuService, templates: templateHandler}
 }
 
 func (h *ThemeHandler) List(c *gin.Context) {
@@ -140,6 +141,12 @@ func (h *ThemeHandler) Reload(c *gin.Context) {
 
 	if err := h.service.MarkInitialized(activeTheme.Slug); err != nil {
 		logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": activeTheme.Slug})
+	}
+
+	if h.templates != nil {
+		if err := h.templates.ReloadTemplates(); err != nil {
+			logger.Error(err, "Failed to reload templates after theme defaults reset", map[string]interface{}{"theme": activeTheme.Slug})
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"theme": theme})
