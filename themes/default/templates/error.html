@@ -1,28 +1,148 @@
-<section class="error" role="alert">
-    {{ if .StatusCode }}
-        <div class="error__code">{{ .StatusCode }}</div>
-    {{ else }}
-        <div class="error__icon" aria-hidden="true">⚠️</div>
-    {{ end }}
-    
-    <h1 class="error__title">
-        {{ if .Title }}
-            {{ .Title }}
-        {{ else }}
-            Oops! Something went wrong
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>
+            {{ if .Title }}
+                {{ .Title }} - {{ .Site.Name }}
+            {{ else if .StatusCode }}
+                {{ .StatusCode }} Error - {{ .Site.Name }}
+            {{ else }}
+                Error - {{ .Site.Name }}
+            {{ end }}
+        </title>
+
+        {{ if .Site.Description }}
+            <meta name="description" content="{{ .Site.Description }}" />
         {{ end }}
-    </h1>
-    
-    <p class="error__message">
-        {{ if .error }}
-            {{ .error }}
+
+        <meta name="author" content="{{ .Site.Name }}" />
+
+        <script>
+            (function () {
+                const storageKey = "theme";
+                const root = document.documentElement;
+
+                try {
+                    const storedTheme = localStorage.getItem(storageKey);
+                    if (storedTheme === "light" || storedTheme === "dark") {
+                        root.setAttribute("data-theme", storedTheme);
+                        return;
+                    }
+                } catch (error) {}
+
+                const prefersDark =
+                    window.matchMedia &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+                if (prefersDark) {
+                    root.setAttribute("data-theme", "dark");
+                }
+            })();
+        </script>
+
+        <link rel="stylesheet" href="{{ asset "/static/css/root.css" }}" />
+        <link rel="stylesheet" href="{{ asset "/static/css/layout.css" }}" />
+        <link rel="stylesheet" href="{{ asset "/static/css/base.css" }}" />
+        <link rel="stylesheet" href="{{ asset "/static/css/sections.css" }}" />
+
+        {{ if .Site.FaviconType }}
+            <link rel="icon" href="{{ .Site.Favicon }}" type="{{ .Site.FaviconType }}" />
         {{ else }}
-            It looks like the page you’re looking for doesn’t exist or has been moved.
+            <link rel="icon" href="{{ .Site.Favicon }}" />
         {{ end }}
-    </p>
-    
-    <div class="error__actions">
-        <a href="/" class="button button--primary">Go to Homepage</a>
-        <a href="javascript:history.back()" class="button button--secondary">Go Back</a>
-    </div>
-</section>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+
+    <body class="layout layout--error">
+        <header class="header" role="banner">
+            <nav class="header__nav" role="navigation" aria-label="Main navigation">
+                <a href="/" class="header__logo" aria-label="Go to {{ .Site.Name }} homepage">
+                    {{ if .Site.Logo }}
+                        <img
+                            src="{{ .Site.Logo }}"
+                            alt="{{ .Site.Name }} Logo"
+                            class="header__logo-image"
+                        />
+                    {{ else }}
+                        <span class="header__logo-text">{{ .Site.Name }}</span>
+                    {{ end }}
+                </a>
+
+                <button
+                    type="button"
+                    class="header__theme-toggle"
+                    data-theme-toggle
+                    aria-label="Toggle dark mode"
+                >
+                    <span aria-hidden="true" class="header__theme-icon">🌙</span>
+                    <span class="header__theme-label" data-theme-toggle-label>
+                        Dark mode
+                    </span>
+                </button>
+            </nav>
+        </header>
+
+        <main id="main-content" class="main" role="main">
+            <section class="error" role="alert">
+                {{ if .StatusCode }}
+                    <div class="error__code">{{ .StatusCode }}</div>
+                {{ else }}
+                    <div class="error__icon" aria-hidden="true">⚠️</div>
+                {{ end }}
+
+                <h1 class="error__title">
+                    {{ if .Title }}
+                        {{ .Title }}
+                    {{ else }}
+                        Oops! Something went wrong
+                    {{ end }}
+                </h1>
+
+                <p class="error__message">
+                    {{ if .error }}
+                        {{ .error }}
+                    {{ else }}
+                        It looks like the page you’re looking for doesn’t exist or has been moved.
+                    {{ end }}
+                </p>
+
+                <div class="error__actions">
+                    <a href="/" class="button button--primary">Go to Homepage</a>
+                    <a href="javascript:history.back()" class="button button--secondary">Go Back</a>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer" role="contentinfo">
+            <div class="footer__container">
+                <section class="footer__info">
+                    <a
+                        href="/"
+                        class="footer__brand-link"
+                        aria-label="Go to {{ .Site.Name }} homepage"
+                    >
+                        {{ .Site.Name }}
+                    </a>
+                    <p class="footer__text">
+                        {{ if .Site.Description }}
+                            {{ .Site.Description }}
+                        {{ else }}
+                            Build, publish, and grow your content with confidence.
+                        {{ end }}
+                    </p>
+                </section>
+            </div>
+        </footer>
+
+        <script src="{{ asset "/static/js/theme.js" }}" defer></script>
+    </body>
+</html>

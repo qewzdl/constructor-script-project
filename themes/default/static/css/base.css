@@ -40,6 +40,19 @@ textarea {
     resize: none;
 }
 
+.layout--error .main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--size-max) 0;
+}
+
+.layout--error .error {
+    margin: 0 auto;
+    width: min(100%, 640px);
+}
+
+
 .header {
     grid-area: header;
     height: var(--header-height);
@@ -73,6 +86,13 @@ textarea {
 .header__logo .header__logo-image {
     height: var(--size-md);
     width: auto;
+}
+
+.header__logo-text {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: inherit;
+    text-transform: none;
 }
 
 .header__theme-toggle {

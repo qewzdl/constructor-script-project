@@ -859,16 +859,19 @@ func (h *TemplateHandler) buildPagination(current, total int, buildURL func(page
 }
 
 func (h *TemplateHandler) renderError(c *gin.Context, status int, title, msg string) {
+	site := h.siteSettings()
+
 	data := gin.H{
 		"Title":      title,
 		"error":      msg,
 		"StatusCode": status,
 		"Site": gin.H{
-			"Name":        h.config.SiteName,
-			"Description": h.config.SiteDescription,
-			"URL":         h.config.SiteURL,
-			"Favicon":     h.config.SiteFavicon,
-			"FaviconType": models.DetectFaviconType(h.config.SiteFavicon),
+			"Name":        site.Name,
+			"Description": site.Description,
+			"URL":         site.URL,
+			"Favicon":     site.Favicon,
+			"FaviconType": site.FaviconType,
+			"Logo":        site.Logo,
 		},
 	}
 
