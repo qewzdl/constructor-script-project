@@ -176,6 +176,18 @@ func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*mode
 	return s.postRepo.GetByID(post.ID)
 }
 
+func (s *PostService) ExistsBySlug(slug string) (bool, error) {
+	cleaned := strings.TrimSpace(slug)
+	if cleaned == "" {
+		return false, errors.New("slug is required")
+	}
+	if s.postRepo == nil {
+		return false, errors.New("post repository not configured")
+	}
+
+	return s.postRepo.ExistsBySlug(cleaned)
+}
+
 func (s *PostService) Update(id uint, req models.UpdatePostRequest, userID uint, isAdmin bool) (*models.Post, error) {
 	post, err := s.postRepo.GetByID(id)
 	if err != nil {

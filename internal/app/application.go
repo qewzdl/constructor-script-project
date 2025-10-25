@@ -154,6 +154,7 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 		if applyDefaults {
 			seed.EnsureDefaultPages(app.services.Page, theme.PagesFS())
 			seed.EnsureDefaultMenu(app.services.Menu, theme.MenuFS())
+			seed.EnsureDefaultPosts(app.services.Post, app.repositories.User, theme.PostsFS())
 
 			if app.services.Theme != nil {
 				if err := app.services.Theme.MarkInitialized(theme.Slug); err != nil {
@@ -469,7 +470,14 @@ func (a *Application) initHandlers() error {
 
 	a.templateHandler = templateHandler
 
-	a.handlers.Theme = handlers.NewThemeHandler(a.services.Theme, a.services.Page, a.services.Menu, a.templateHandler)
+	a.handlers.Theme = handlers.NewThemeHandler(
+		a.services.Theme,
+		a.services.Page,
+		a.services.Menu,
+		a.services.Post,
+		a.repositories.User,
+		a.templateHandler,
+	)
 	return nil
 }
 

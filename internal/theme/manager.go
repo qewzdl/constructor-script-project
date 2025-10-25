@@ -214,6 +214,10 @@ func (t *Theme) MenuFS() fs.FS {
 	return t.dataFS("menu")
 }
 
+func (t *Theme) PostsFS() fs.FS {
+	return t.dataFS("posts")
+}
+
 func (t *Theme) dataFS(dir string) fs.FS {
 	if dir == "" {
 		return nil

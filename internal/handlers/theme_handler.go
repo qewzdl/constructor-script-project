@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/internal/seed"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
@@ -15,11 +16,27 @@ type ThemeHandler struct {
 	service     *service.ThemeService
 	pageService *service.PageService
 	menuService *service.MenuService
+	postService *service.PostService
+	userRepo    repository.UserRepository
 	templates   *TemplateHandler
 }
 
-func NewThemeHandler(themeService *service.ThemeService, pageService *service.PageService, menuService *service.MenuService, templateHandler *TemplateHandler) *ThemeHandler {
-	return &ThemeHandler{service: themeService, pageService: pageService, menuService: menuService, templates: templateHandler}
+func NewThemeHandler(
+	themeService *service.ThemeService,
+	pageService *service.PageService,
+	menuService *service.MenuService,
+	postService *service.PostService,
+	userRepo repository.UserRepository,
+	templateHandler *TemplateHandler,
+) *ThemeHandler {
+	return &ThemeHandler{
+		service:     themeService,
+		pageService: pageService,
+		menuService: menuService,
+		postService: postService,
+		userRepo:    userRepo,
+		templates:   templateHandler,
+	}
 }
 
 func (h *ThemeHandler) List(c *gin.Context) {
@@ -65,13 +82,16 @@ func (h *ThemeHandler) Activate(c *gin.Context) {
 		return
 	}
 
-	if needsInitialization && (h.pageService != nil || h.menuService != nil) {
+	if needsInitialization && (h.pageService != nil || h.menuService != nil || (h.postService != nil && h.userRepo != nil)) {
 		if activeTheme, activeErr := h.service.ActiveTheme(); activeErr == nil {
 			if h.pageService != nil {
 				seed.EnsureDefaultPages(h.pageService, activeTheme.PagesFS())
 			}
 			if h.menuService != nil {
 				seed.EnsureDefaultMenu(h.menuService, activeTheme.MenuFS())
+			}
+			if h.postService != nil && h.userRepo != nil {
+				seed.EnsureDefaultPosts(h.postService, h.userRepo, activeTheme.PostsFS())
 			}
 			if err := h.service.MarkInitialized(activeTheme.Slug); err != nil {
 				logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": activeTheme.Slug})
@@ -132,6 +152,10 @@ func (h *ThemeHandler) Reload(c *gin.Context) {
 			logger.Error(err, "Failed to reset theme menu", map[string]interface{}{"theme": activeTheme.Slug})
 			errs = append(errs, err)
 		}
+	}
+
+	if h.postService != nil && h.userRepo != nil {
+		seed.EnsureDefaultPosts(h.postService, h.userRepo, activeTheme.PostsFS())
 	}
 
 	if combined := errors.Join(errs...); combined != nil {
