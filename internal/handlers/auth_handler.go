@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -57,13 +58,18 @@ func (h *AuthHandler) clearCSRFCookie(c *gin.Context) {
 	c.SetCookie(constants.CSRFTokenCookieName, "", -1, "/", "", secure, false)
 }
 
+func bindAuthRequest(c *gin.Context, req interface{}) error {
+	if strings.Contains(c.GetHeader("Content-Type"), "application/json") {
+		return c.ShouldBindJSON(req)
+	}
+	return c.ShouldBind(req)
+}
+
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if err := c.ShouldBind(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+	if err := bindAuthRequest(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	user, err := h.authService.Register(req)
@@ -77,11 +83,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if err := c.ShouldBind(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+	if err := bindAuthRequest(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	token, user, err := h.authService.Login(req)
