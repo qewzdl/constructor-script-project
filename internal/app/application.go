@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -407,7 +408,46 @@ func (a *Application) initThemeManager() error {
 
 func (a *Application) initServices() {
 	uploadService := service.NewUploadService(a.cfg.UploadDir)
-	backupService := service.NewBackupService(a.db, a.cfg.UploadDir, a.repositories.Setting)
+
+	backupOptions := service.BackupOptions{UploadDir: a.cfg.UploadDir}
+
+	if key := strings.TrimSpace(a.cfg.BackupEncryptionKey); key != "" {
+		decoded, err := base64.StdEncoding.DecodeString(key)
+		if err != nil {
+			logger.Error(err, "Invalid backup encryption key", nil)
+		} else if len(decoded) < 32 {
+			logger.Warn("Backup encryption key must be at least 32 bytes after base64 decoding; encryption disabled", map[string]interface{}{"provided_length": len(decoded)})
+		} else {
+			backupOptions.EncryptionKey = decoded
+		}
+	}
+
+	if a.cfg.BackupS3Enabled {
+		endpoint := strings.TrimSpace(a.cfg.BackupS3Endpoint)
+		accessKey := strings.TrimSpace(a.cfg.BackupS3AccessKey)
+		secretKey := strings.TrimSpace(a.cfg.BackupS3SecretKey)
+		bucket := strings.TrimSpace(a.cfg.BackupS3Bucket)
+
+		if endpoint == "" || accessKey == "" || secretKey == "" || bucket == "" {
+			logger.Warn("Incomplete S3 backup configuration; remote uploads disabled", map[string]interface{}{
+				"endpoint_configured": endpoint != "",
+				"bucket_configured":   bucket != "",
+				"access_configured":   accessKey != "" && secretKey != "",
+			})
+		} else {
+			backupOptions.S3 = &service.BackupS3Config{
+				Endpoint:  endpoint,
+				AccessKey: accessKey,
+				SecretKey: secretKey,
+				Bucket:    bucket,
+				Region:    strings.TrimSpace(a.cfg.BackupS3Region),
+				UseSSL:    a.cfg.BackupS3UseSSL,
+				Prefix:    strings.Trim(a.cfg.BackupS3Prefix, "/"),
+			}
+		}
+	}
+
+	backupService := service.NewBackupService(a.db, a.repositories.Setting, backupOptions)
 
 	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
 	categoryService := service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache)

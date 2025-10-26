@@ -3,11 +3,20 @@ package service
 import (
 	"archive/zip"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -29,19 +38,42 @@ const (
 	backupApplication              = "constructor-script"
 	defaultAutoBackupIntervalHours = 24
 	SettingKeyBackupAuto           = "site.backup.auto"
+	backupEncryptionMagic          = "CSBK"
+	backupEncryptionVersion        = byte(1)
+	backupEncryptionTagSize        = sha256.Size
+	backupEncryptionIVSize         = 16
 )
 
 var (
 	ErrInvalidBackup         = errors.New("invalid backup archive")
 	ErrBackupVersion         = errors.New("unsupported backup schema version")
 	ErrInvalidBackupSettings = errors.New("invalid backup settings")
+	ErrBackupEncrypted       = errors.New("backup archive is encrypted and cannot be decrypted")
 )
 
+type BackupOptions struct {
+	UploadDir     string
+	EncryptionKey []byte
+	S3            *BackupS3Config
+}
+
+type BackupS3Config struct {
+	Endpoint  string
+	AccessKey string
+	SecretKey string
+	Bucket    string
+	Region    string
+	UseSSL    bool
+	Prefix    string
+}
+
 type BackupService struct {
-	db        *gorm.DB
-	uploadDir string
-	appName   string
-	settings  repository.SettingRepository
+	db         *gorm.DB
+	uploadDir  string
+	appName    string
+	settings   repository.SettingRepository
+	encryptor  *backupEncryptor
+	s3Uploader *backupS3Uploader
 
 	autoMu       sync.Mutex
 	autoCancel   context.CancelFunc
@@ -49,6 +81,22 @@ type BackupService struct {
 	autoLastRun  time.Time
 	autoInterval time.Duration
 	autoEnabled  bool
+}
+
+type backupEncryptor struct {
+	encKey []byte
+	macKey []byte
+}
+
+type backupS3Uploader struct {
+	endpoint   string
+	accessKey  string
+	secretKey  string
+	bucket     string
+	region     string
+	useSSL     bool
+	prefix     string
+	httpClient *http.Client
 }
 
 type BackupSummary struct {
@@ -70,9 +118,11 @@ type BackupSummary struct {
 }
 
 type BackupArchive struct {
-	file     *os.File
-	Filename string
-	Summary  BackupSummary
+	file        *os.File
+	Filename    string
+	Summary     BackupSummary
+	Encrypted   bool
+	ContentType string
 }
 
 type backupManifest struct {
@@ -217,13 +267,37 @@ type postTagRow struct {
 	TagID  uint
 }
 
-func NewBackupService(db *gorm.DB, uploadDir string, settings repository.SettingRepository) *BackupService {
-	return &BackupService{
+func NewBackupService(db *gorm.DB, settings repository.SettingRepository, options BackupOptions) *BackupService {
+	service := &BackupService{
 		db:        db,
-		uploadDir: uploadDir,
+		uploadDir: options.UploadDir,
 		appName:   backupApplication,
 		settings:  settings,
 	}
+
+	if service.uploadDir == "" {
+		service.uploadDir = "./uploads"
+	}
+
+	if len(options.EncryptionKey) > 0 {
+		encryptor, err := newBackupEncryptor(options.EncryptionKey)
+		if err != nil {
+			logger.Error(err, "Failed to configure backup encryption", nil)
+		} else {
+			service.encryptor = encryptor
+		}
+	}
+
+	if options.S3 != nil {
+		uploader, err := newBackupS3Uploader(*options.S3)
+		if err != nil {
+			logger.Error(err, "Failed to configure S3 backup uploader", map[string]interface{}{"endpoint": options.S3.Endpoint})
+		} else {
+			service.s3Uploader = uploader
+		}
+	}
+
+	return service
 }
 
 func (s *BackupService) InitializeAutoBackups() {
@@ -476,6 +550,12 @@ func (s *BackupService) executeAutoBackup() error {
 		logger.Warn("Failed to flush automatic backup to disk", map[string]interface{}{"path": destinationPath, "error": err.Error()})
 	}
 
+	if s.s3Uploader != nil {
+		if _, err := s.s3Uploader.Upload(ctx, archive); err != nil {
+			return fmt.Errorf("failed to upload automatic backup to object storage: %w", err)
+		}
+	}
+
 	logger.Info("Automatic site backup created", map[string]interface{}{"path": destinationPath})
 
 	return nil
@@ -518,13 +598,42 @@ func (s *BackupService) CreateArchive(ctx context.Context) (*BackupArchive, erro
 		return nil, fmt.Errorf("failed to finalise backup archive: %w", err)
 	}
 
-	if _, err := tempFile.Seek(0, io.SeekStart); err != nil {
-		tempFile.Close()
-		os.Remove(tempFile.Name())
-		return nil, fmt.Errorf("failed to rewind backup archive: %w", err)
-	}
-
 	archiveName := fmt.Sprintf("backup-%s.zip", manifest.GeneratedAt.UTC().Format("20060102-150405"))
+	contentType := "application/zip"
+	encrypted := false
+
+	if s.encryptor != nil {
+		if _, err := tempFile.Seek(0, io.SeekStart); err != nil {
+			tempFile.Close()
+			os.Remove(tempFile.Name())
+			return nil, fmt.Errorf("failed to prepare archive for encryption: %w", err)
+		}
+
+		encryptedFile, err := s.encryptor.EncryptFile(tempFile)
+		originalName := tempFile.Name()
+		tempFile.Close()
+		if removeErr := os.Remove(originalName); removeErr != nil {
+			logger.Warn("Failed to remove plaintext backup archive", map[string]interface{}{"path": originalName, "error": removeErr.Error()})
+		}
+		if err != nil {
+			if encryptedFile != nil {
+				encryptedFile.Close()
+				os.Remove(encryptedFile.Name())
+			}
+			return nil, fmt.Errorf("failed to encrypt backup archive: %w", err)
+		}
+
+		tempFile = encryptedFile
+		archiveName = archiveName + ".enc"
+		contentType = "application/octet-stream"
+		encrypted = true
+	} else {
+		if _, err := tempFile.Seek(0, io.SeekStart); err != nil {
+			tempFile.Close()
+			os.Remove(tempFile.Name())
+			return nil, fmt.Errorf("failed to rewind backup archive: %w", err)
+		}
+	}
 
 	summary := BackupSummary{
 		SchemaVersion: manifest.SchemaVersion,
@@ -544,9 +653,11 @@ func (s *BackupService) CreateArchive(ctx context.Context) (*BackupArchive, erro
 	}
 
 	return &BackupArchive{
-		file:     tempFile,
-		Filename: archiveName,
-		Summary:  summary,
+		file:        tempFile,
+		Filename:    archiveName,
+		Summary:     summary,
+		Encrypted:   encrypted,
+		ContentType: contentType,
 	}, nil
 }
 
@@ -581,7 +692,41 @@ func (s *BackupService) RestoreArchive(ctx context.Context, reader io.Reader, si
 		return summary, fmt.Errorf("failed to rewind archive: %w", err)
 	}
 
-	zipReader, err := zip.NewReader(spoolFile, written)
+	archiveFile := spoolFile
+	var cleanup func()
+
+	encrypted, err := detectEncryptedArchive(spoolFile)
+	if err != nil {
+		return summary, fmt.Errorf("failed to inspect backup archive: %w", err)
+	}
+
+	if encrypted {
+		if s.encryptor == nil {
+			return summary, ErrBackupEncrypted
+		}
+
+		decryptedFile, decryptErr := s.encryptor.DecryptFile(spoolFile)
+		if decryptErr != nil {
+			return summary, decryptErr
+		}
+
+		archiveFile = decryptedFile
+		cleanup = func() {
+			decryptedFile.Close()
+			os.Remove(decryptedFile.Name())
+		}
+	}
+
+	if cleanup != nil {
+		defer cleanup()
+	}
+
+	info, err := archiveFile.Stat()
+	if err != nil {
+		return summary, fmt.Errorf("failed to inspect backup archive: %w", err)
+	}
+
+	zipReader, err := zip.NewReader(archiveFile, info.Size())
 	if err != nil {
 		return summary, fmt.Errorf("failed to read archive contents: %w", err)
 	}
@@ -1424,6 +1569,420 @@ func copyDirectory(src, dst string) error {
 		}
 		return in.Close()
 	})
+}
+
+func newBackupEncryptor(key []byte) (*backupEncryptor, error) {
+	if len(key) < 32 {
+		return nil, fmt.Errorf("encryption key must be at least 32 bytes")
+	}
+
+	sum := sha512.Sum512(key)
+
+	encKey := make([]byte, 32)
+	macKey := make([]byte, 32)
+	copy(encKey, sum[:32])
+	copy(macKey, sum[32:])
+
+	return &backupEncryptor{encKey: encKey, macKey: macKey}, nil
+}
+
+func (e *backupEncryptor) EncryptFile(src *os.File) (*os.File, error) {
+	if e == nil {
+		return nil, fmt.Errorf("encryption is not configured")
+	}
+	if src == nil {
+		return nil, fmt.Errorf("archive file is not available")
+	}
+	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("failed to prepare archive for encryption: %w", err)
+	}
+
+	dest, err := os.CreateTemp("", "constructor-backup-*.enc")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create encrypted archive: %w", err)
+	}
+
+	iv := make([]byte, backupEncryptionIVSize)
+	if _, err := rand.Read(iv); err != nil {
+		dest.Close()
+		os.Remove(dest.Name())
+		return nil, fmt.Errorf("failed to generate encryption nonce: %w", err)
+	}
+
+	header := make([]byte, 0, len(backupEncryptionMagic)+2+len(iv))
+	header = append(header, []byte(backupEncryptionMagic)...)
+	header = append(header, backupEncryptionVersion)
+	header = append(header, byte(len(iv)))
+	header = append(header, iv...)
+
+	if _, err := dest.Write(header); err != nil {
+		dest.Close()
+		os.Remove(dest.Name())
+		return nil, fmt.Errorf("failed to write encryption header: %w", err)
+	}
+
+	block, err := aes.NewCipher(e.encKey)
+	if err != nil {
+		dest.Close()
+		os.Remove(dest.Name())
+		return nil, fmt.Errorf("failed to configure encryptor: %w", err)
+	}
+
+	stream := cipher.NewCTR(block, iv)
+	mac := hmac.New(sha256.New, e.macKey)
+	mac.Write(header)
+
+	buffer := make([]byte, 32*1024)
+	for {
+		n, readErr := src.Read(buffer)
+		if n > 0 {
+			chunk := buffer[:n]
+			stream.XORKeyStream(chunk, chunk)
+			if _, err := dest.Write(chunk); err != nil {
+				dest.Close()
+				os.Remove(dest.Name())
+				return nil, fmt.Errorf("failed to write encrypted archive: %w", err)
+			}
+			mac.Write(chunk)
+		}
+
+		if readErr != nil {
+			if errors.Is(readErr, io.EOF) {
+				break
+			}
+			dest.Close()
+			os.Remove(dest.Name())
+			return nil, fmt.Errorf("failed to read archive for encryption: %w", readErr)
+		}
+	}
+
+	tag := mac.Sum(nil)
+	if _, err := dest.Write(tag); err != nil {
+		dest.Close()
+		os.Remove(dest.Name())
+		return nil, fmt.Errorf("failed to append archive authentication tag: %w", err)
+	}
+
+	if _, err := dest.Seek(0, io.SeekStart); err != nil {
+		dest.Close()
+		os.Remove(dest.Name())
+		return nil, fmt.Errorf("failed to prepare encrypted archive: %w", err)
+	}
+
+	return dest, nil
+}
+
+func (e *backupEncryptor) DecryptFile(src *os.File) (*os.File, error) {
+	if e == nil {
+		return nil, fmt.Errorf("encryption is not configured")
+	}
+	if src == nil {
+		return nil, fmt.Errorf("archive file is not available")
+	}
+	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("failed to prepare encrypted archive: %w", err)
+	}
+
+	headerMagic := make([]byte, len(backupEncryptionMagic))
+	if _, err := io.ReadFull(src, headerMagic); err != nil {
+		return nil, fmt.Errorf("failed to read encrypted archive header: %w", err)
+	}
+
+	if string(headerMagic) != backupEncryptionMagic {
+		return nil, ErrInvalidBackup
+	}
+
+	version := make([]byte, 1)
+	if _, err := io.ReadFull(src, version); err != nil {
+		return nil, fmt.Errorf("failed to read encryption version: %w", err)
+	}
+	if version[0] != backupEncryptionVersion {
+		return nil, fmt.Errorf("unsupported backup encryption version: %d", version[0])
+	}
+
+	ivLenBuf := make([]byte, 1)
+	if _, err := io.ReadFull(src, ivLenBuf); err != nil {
+		return nil, fmt.Errorf("failed to read encryption metadata: %w", err)
+	}
+	ivLen := int(ivLenBuf[0])
+	if ivLen <= 0 {
+		return nil, fmt.Errorf("invalid encrypted archive metadata")
+	}
+
+	iv := make([]byte, ivLen)
+	if _, err := io.ReadFull(src, iv); err != nil {
+		return nil, fmt.Errorf("failed to read encryption nonce: %w", err)
+	}
+
+	header := make([]byte, 0, len(backupEncryptionMagic)+2+len(iv))
+	header = append(header, headerMagic...)
+	header = append(header, version[0])
+	header = append(header, ivLenBuf[0])
+	header = append(header, iv...)
+
+	info, err := src.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("failed to inspect encrypted archive: %w", err)
+	}
+
+	cipherLength := info.Size() - int64(len(header)) - int64(backupEncryptionTagSize)
+	if cipherLength < 0 {
+		return nil, fmt.Errorf("encrypted archive is malformed")
+	}
+
+	dest, err := os.CreateTemp("", "constructor-restore-*.zip")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create decrypted archive: %w", err)
+	}
+
+	block, err := aes.NewCipher(e.encKey)
+	if err != nil {
+		dest.Close()
+		os.Remove(dest.Name())
+		return nil, fmt.Errorf("failed to configure decryptor: %w", err)
+	}
+
+	stream := cipher.NewCTR(block, iv)
+	mac := hmac.New(sha256.New, e.macKey)
+	mac.Write(header)
+
+	buffer := make([]byte, 32*1024)
+	remaining := cipherLength
+	for remaining > 0 {
+		toRead := len(buffer)
+		if int64(toRead) > remaining {
+			toRead = int(remaining)
+		}
+
+		n, readErr := io.ReadFull(src, buffer[:toRead])
+		if readErr != nil {
+			dest.Close()
+			os.Remove(dest.Name())
+			return nil, fmt.Errorf("failed to read encrypted payload: %w", readErr)
+		}
+
+		chunk := buffer[:n]
+		mac.Write(chunk)
+		stream.XORKeyStream(chunk, chunk)
+		if _, err := dest.Write(chunk); err != nil {
+			dest.Close()
+			os.Remove(dest.Name())
+			return nil, fmt.Errorf("failed to write decrypted archive: %w", err)
+		}
+
+		remaining -= int64(n)
+	}
+
+	storedTag := make([]byte, backupEncryptionTagSize)
+	if _, err := io.ReadFull(src, storedTag); err != nil {
+		dest.Close()
+		os.Remove(dest.Name())
+		return nil, fmt.Errorf("failed to read archive authentication tag: %w", err)
+	}
+
+	expectedTag := mac.Sum(nil)
+	if !hmac.Equal(expectedTag, storedTag) {
+		dest.Close()
+		os.Remove(dest.Name())
+		return nil, fmt.Errorf("backup archive integrity check failed")
+	}
+
+	if _, err := dest.Seek(0, io.SeekStart); err != nil {
+		dest.Close()
+		os.Remove(dest.Name())
+		return nil, fmt.Errorf("failed to prepare decrypted archive: %w", err)
+	}
+
+	return dest, nil
+}
+
+func detectEncryptedArchive(file *os.File) (bool, error) {
+	if file == nil {
+		return false, fmt.Errorf("archive file is not available")
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return false, fmt.Errorf("failed to inspect archive: %w", err)
+	}
+
+	header := make([]byte, len(backupEncryptionMagic))
+	if _, err := io.ReadFull(file, header); err != nil {
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			if _, seekErr := file.Seek(0, io.SeekStart); seekErr != nil {
+				return false, fmt.Errorf("failed to reset archive pointer: %w", seekErr)
+			}
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to read archive header: %w", err)
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return false, fmt.Errorf("failed to reset archive pointer: %w", err)
+	}
+
+	return string(header) == backupEncryptionMagic, nil
+}
+
+func newBackupS3Uploader(cfg BackupS3Config) (*backupS3Uploader, error) {
+	if cfg.Endpoint == "" {
+		return nil, fmt.Errorf("s3 endpoint is required")
+	}
+	if cfg.AccessKey == "" || cfg.SecretKey == "" {
+		return nil, fmt.Errorf("s3 credentials are required")
+	}
+	if cfg.Bucket == "" {
+		return nil, fmt.Errorf("s3 bucket is required")
+	}
+
+	region := strings.TrimSpace(cfg.Region)
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	uploader := &backupS3Uploader{
+		endpoint:   strings.TrimSpace(cfg.Endpoint),
+		accessKey:  cfg.AccessKey,
+		secretKey:  cfg.SecretKey,
+		bucket:     cfg.Bucket,
+		region:     region,
+		useSSL:     cfg.UseSSL,
+		prefix:     strings.Trim(cfg.Prefix, "/"),
+		httpClient: &http.Client{Timeout: 60 * time.Second},
+	}
+
+	return uploader, nil
+}
+
+func (u *backupS3Uploader) objectName(filename string) string {
+	if u == nil {
+		return filename
+	}
+	if u.prefix == "" {
+		return filename
+	}
+	return path.Join(u.prefix, filename)
+}
+
+func (u *backupS3Uploader) Upload(ctx context.Context, archive *BackupArchive) (string, error) {
+	if u == nil || archive == nil {
+		return "", nil
+	}
+
+	file := archive.File()
+	if file == nil {
+		return "", fmt.Errorf("archive file is not available")
+	}
+
+	size, err := archive.Size()
+	if err != nil {
+		return "", fmt.Errorf("failed to determine archive size: %w", err)
+	}
+
+	objectName := u.objectName(archive.Filename)
+	contentType := archive.ContentType
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, io.NewSectionReader(file, 0, size)); err != nil {
+		return "", fmt.Errorf("failed to hash archive for upload: %w", err)
+	}
+	payloadHash := hex.EncodeToString(hasher.Sum(nil))
+
+	scheme := "https"
+	if !u.useSSL {
+		scheme = "http"
+	}
+
+	objectPath := path.Join(u.bucket, objectName)
+	if !strings.HasPrefix(objectPath, "/") {
+		objectPath = "/" + objectPath
+	}
+
+	endpointURL := url.URL{
+		Scheme: scheme,
+		Host:   u.endpoint,
+		Path:   objectPath,
+	}
+
+	bodyReader := io.NewSectionReader(file, 0, size)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpointURL.String(), bodyReader)
+	if err != nil {
+		return "", fmt.Errorf("failed to build upload request: %w", err)
+	}
+	req.ContentLength = size
+	req.Header.Set("Content-Type", contentType)
+	amzDate := time.Now().UTC()
+	amzDateStr := amzDate.Format("20060102T150405Z")
+	dateStamp := amzDate.Format("20060102")
+	req.Header.Set("x-amz-content-sha256", payloadHash)
+	req.Header.Set("x-amz-date", amzDateStr)
+
+	canonicalURI := endpointURL.EscapedPath()
+	canonicalHeaders := fmt.Sprintf("host:%s\nx-amz-content-sha256:%s\nx-amz-date:%s\n", strings.ToLower(req.Host), payloadHash, amzDateStr)
+	signedHeaders := "host;x-amz-content-sha256;x-amz-date"
+	canonicalRequest := strings.Join([]string{
+		http.MethodPut,
+		canonicalURI,
+		"",
+		canonicalHeaders,
+		signedHeaders,
+		payloadHash,
+	}, "\n")
+
+	hashedCanonicalRequest := sha256.Sum256([]byte(canonicalRequest))
+	credentialScope := fmt.Sprintf("%s/%s/s3/aws4_request", dateStamp, u.region)
+	stringToSign := strings.Join([]string{
+		"AWS4-HMAC-SHA256",
+		amzDateStr,
+		credentialScope,
+		hex.EncodeToString(hashedCanonicalRequest[:]),
+	}, "\n")
+
+	signingKey := deriveSigningKey(u.secretKey, dateStamp, u.region, "s3")
+	signature := hmacSHA256Hex(signingKey, stringToSign)
+
+	authorization := fmt.Sprintf("AWS4-HMAC-SHA256 Credential=%s/%s, SignedHeaders=%s, Signature=%s", u.accessKey, credentialScope, signedHeaders, signature)
+	req.Header.Set("Authorization", authorization)
+
+	resp, err := u.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload backup to bucket %s: %w", u.bucket, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return "", fmt.Errorf("object storage upload failed with status %s: %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	if err := archive.Reset(); err != nil {
+		logger.Warn("Failed to rewind archive after object storage upload", map[string]interface{}{"archive": archive.Filename, "error": err.Error()})
+	}
+
+	logger.Info("Automatic site backup uploaded", map[string]interface{}{"bucket": u.bucket, "object": objectName})
+
+	return objectName, nil
+}
+
+func deriveSigningKey(secret, date, region, service string) []byte {
+	kDate := hmacSHA256([]byte("AWS4"+secret), []byte(date))
+	kRegion := hmacSHA256(kDate, []byte(region))
+	kService := hmacSHA256(kRegion, []byte(service))
+	return hmacSHA256(kService, []byte("aws4_request"))
+}
+
+func hmacSHA256(key []byte, data []byte) []byte {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(data)
+	return mac.Sum(nil)
+}
+
+func hmacSHA256Hex(key []byte, data string) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write([]byte(data))
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 func deletedAtPtr(value gorm.DeletedAt) *time.Time {

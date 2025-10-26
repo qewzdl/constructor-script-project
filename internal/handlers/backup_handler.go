@@ -106,12 +106,18 @@ func (h *BackupHandler) Export(c *gin.Context) {
 		fmt.Sprintf("uploads=%d", summary.Uploads),
 	}
 
-	c.Header("Content-Type", "application/zip")
+	contentType := archive.ContentType
+	if contentType == "" {
+		contentType = "application/zip"
+	}
+
+	c.Header("Content-Type", contentType)
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", archive.Filename))
 	c.Header("X-Backup-Schema", summary.SchemaVersion)
 	c.Header("X-Backup-Generated-At", summary.GeneratedAt.UTC().Format(time.RFC3339Nano))
 	c.Header("X-Backup-Application", summary.Application)
 	c.Header("X-Backup-Counts", strings.Join(counts, ";"))
+	c.Header("X-Backup-Encrypted", strconv.FormatBool(archive.Encrypted))
 	if size, err := archive.Size(); err == nil {
 		c.Header("X-Backup-Size", strconv.FormatInt(size, 10))
 	}
@@ -141,7 +147,7 @@ func (h *BackupHandler) Import(c *gin.Context) {
 	summary, restoreErr := h.service.RestoreArchive(c.Request.Context(), uploaded, fileHeader.Size)
 	if restoreErr != nil {
 		status := http.StatusInternalServerError
-		if errors.Is(restoreErr, service.ErrInvalidBackup) || errors.Is(restoreErr, service.ErrBackupVersion) {
+		if errors.Is(restoreErr, service.ErrInvalidBackup) || errors.Is(restoreErr, service.ErrBackupVersion) || errors.Is(restoreErr, service.ErrBackupEncrypted) {
 			status = http.StatusBadRequest
 		}
 		logger.Error(restoreErr, "Failed to restore backup", nil)

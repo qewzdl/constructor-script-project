@@ -61,6 +61,17 @@ type Config struct {
 	SiteDescription string
 	SiteURL         string
 	SiteFavicon     string
+
+	// Backup
+	BackupEncryptionKey string
+	BackupS3Enabled     bool
+	BackupS3Endpoint    string
+	BackupS3AccessKey   string
+	BackupS3SecretKey   string
+	BackupS3Bucket      string
+	BackupS3Region      string
+	BackupS3UseSSL      bool
+	BackupS3Prefix      string
 }
 
 func New() *Config {
@@ -118,6 +129,17 @@ func New() *Config {
 		SiteDescription: getEnv("SITE_DESCRIPTION", "Platform for building modern, high-performance websites using Go and templates."),
 		SiteURL:         getEnv("SITE_URL", "http://localhost:8081"),
 		SiteFavicon:     getEnv("SITE_FAVICON", "/favicon.ico"),
+
+		// Backup
+		BackupEncryptionKey: getEnv("BACKUP_ENCRYPTION_KEY", ""),
+		BackupS3Enabled:     getEnvAsBool("BACKUP_S3_ENABLED", false),
+		BackupS3Endpoint:    getEnv("BACKUP_S3_ENDPOINT", ""),
+		BackupS3AccessKey:   getEnv("BACKUP_S3_ACCESS_KEY", ""),
+		BackupS3SecretKey:   getEnv("BACKUP_S3_SECRET_KEY", ""),
+		BackupS3Bucket:      getEnv("BACKUP_S3_BUCKET", ""),
+		BackupS3Region:      getEnv("BACKUP_S3_REGION", ""),
+		BackupS3UseSSL:      getEnvAsBool("BACKUP_S3_USE_SSL", true),
+		BackupS3Prefix:      getEnv("BACKUP_S3_PREFIX", ""),
 	}
 
 	// Build DSN
