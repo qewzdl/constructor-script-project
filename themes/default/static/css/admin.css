@@ -917,8 +917,6 @@
 
 .admin-theme {
     margin-top: var(--size-xl);
-    padding-top: var(--size-lg);
-    border-top: 1px solid var(--color-border);
     display: grid;
     gap: var(--size-md);
 }

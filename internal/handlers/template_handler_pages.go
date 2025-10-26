@@ -256,27 +256,7 @@ func (h *TemplateHandler) RenderIndex(c *gin.Context) {
 		return
 	}
 
-	pageNumber, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-
-	posts, total, err := h.postService.GetAll(pageNumber, limit, nil, nil, nil)
-	if err != nil {
-		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Failed to load posts")
-		return
-	}
-
-	totalPages := int((total + int64(limit) - 1) / int64(limit))
-	pagination := h.buildPagination(pageNumber, totalPages, func(p int) string {
-		return fmt.Sprintf("/?page=%d", p)
-	})
-
-	h.renderTemplate(c, "index", "Home", h.config.SiteDescription, gin.H{
-		"Posts":       posts,
-		"Total":       total,
-		"CurrentPage": pageNumber,
-		"TotalPages":  totalPages,
-		"Pagination":  pagination,
-	})
+	h.renderError(c, http.StatusNotFound, "404 - Page Not Found", "Homepage is not configured")
 }
 
 func (h *TemplateHandler) RenderPost(c *gin.Context) {
