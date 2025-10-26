@@ -1211,6 +1211,54 @@
             });
         };
 
+        const calculateNiceScale = (maxValue, segments = 4) => {
+            const safeSegments = Math.max(1, Number.parseInt(segments, 10) || 1);
+            const safeMax = Number.isFinite(maxValue) ? maxValue : 0;
+            if (safeMax <= 0) {
+                return { max: 0, ticks: [] };
+            }
+            const exponent = Math.floor(Math.log10(safeMax));
+            const magnitude = 10 ** exponent;
+            const fraction = safeMax / magnitude;
+            let niceFraction;
+            if (fraction <= 1) {
+                niceFraction = 1;
+            } else if (fraction <= 2) {
+                niceFraction = 2;
+            } else if (fraction <= 5) {
+                niceFraction = 5;
+            } else {
+                niceFraction = 10;
+            }
+            const niceMax = niceFraction * magnitude;
+            const step = niceMax / safeSegments;
+            const ticks = Array.from({ length: safeSegments + 1 }, (_, index) => {
+                const raw = index * step;
+                return Number(raw.toPrecision(8));
+            });
+            return { max: niceMax, ticks };
+        };
+
+        const formatAxisTick = (value) => {
+            if (!Number.isFinite(value)) {
+                return '0';
+            }
+            const absolute = Math.abs(value);
+            const decimals = absolute < 1 ? 2 : absolute < 10 ? 1 : 0;
+            const rounded = Number(value.toFixed(decimals));
+            if (decimals === 0) {
+                return formatNumber(rounded);
+            }
+            try {
+                return rounded.toLocaleString(undefined, {
+                    minimumFractionDigits: decimals,
+                    maximumFractionDigits: decimals,
+                });
+            } catch (error) {
+                return rounded.toFixed(decimals);
+            }
+        };
+
         const renderMetricsChart = (trend = []) => {
             if (
                 !chartContainer ||
@@ -1256,12 +1304,12 @@
                     return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
                 })
             );
-            const maxValue = values.length ? Math.max(...values, 0) : 0;
+            const rawMaxValue = values.length ? Math.max(...values, 0) : 0;
 
             chartLegend.innerHTML = '';
             chartSummary.innerHTML = '';
 
-            if (!normalised.length || maxValue <= 0) {
+            if (!normalised.length || rawMaxValue <= 0) {
                 chartSvg.innerHTML = '';
                 chartEmpty.hidden = false;
                 chartLegend.hidden = true;
@@ -1275,29 +1323,92 @@
             chartSummary.hidden = false;
             chartContainer.dataset.state = 'ready';
 
-            const width = 600;
-            const height = 260;
-            const topPadding = 16;
-            const bottomPadding = 32;
+            const segmentCount = Math.max(1, Math.min(4, normalised.length));
+            const { max: scaledMax, ticks: yTicks } = calculateNiceScale(
+                rawMaxValue,
+                segmentCount
+            );
+            const maxValue = scaledMax || rawMaxValue;
+
+            const width = 660;
+            const height = 320;
+            const leftPadding = 56;
+            const rightPadding = 24;
+            const topPadding = 24;
+            const bottomPadding = 64;
+            const chartWidth = width - leftPadding - rightPadding;
             const chartHeight = height - topPadding - bottomPadding;
             const stepX =
-                normalised.length > 1 ? width / (normalised.length - 1) : 0;
+                normalised.length > 1 ? chartWidth / (normalised.length - 1) : 0;
 
             chartSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
             chartSvg.innerHTML = '';
 
-            const gridLines = 4;
-            for (let index = 0; index <= gridLines; index += 1) {
-                const y = topPadding + (chartHeight / gridLines) * index;
+            const gridGroup = createSvgElement('g', {
+                class: 'admin-chart__grid',
+            });
+            const seriesGroup = createSvgElement('g', {
+                class: 'admin-chart__series',
+            });
+            const pointsGroup = createSvgElement('g', {
+                class: 'admin-chart__points',
+            });
+            const axisGroup = createSvgElement('g', {
+                class: 'admin-chart__axis',
+            });
+
+            chartSvg.appendChild(gridGroup);
+            chartSvg.appendChild(seriesGroup);
+            chartSvg.appendChild(pointsGroup);
+            chartSvg.appendChild(axisGroup);
+
+            const yTickValues = yTicks.length ? yTicks : [0, maxValue];
+            yTickValues.forEach((tickValue) => {
+                const ratio = maxValue > 0 ? tickValue / maxValue : 0;
+                const y = topPadding + chartHeight - ratio * chartHeight;
                 const line = createSvgElement('line', {
-                    x1: 0,
-                    x2: width,
+                    x1: leftPadding.toFixed(2),
+                    x2: (width - rightPadding).toFixed(2),
                     y1: y.toFixed(2),
                     y2: y.toFixed(2),
-                    class: 'admin-chart__grid-line',
+                    class:
+                        tickValue === 0
+                            ? 'admin-chart__grid-line admin-chart__grid-line--baseline'
+                            : 'admin-chart__grid-line',
                 });
-                chartSvg.appendChild(line);
-            }
+                gridGroup.appendChild(line);
+
+                const label = createSvgElement('text', {
+                    x: (leftPadding - 12).toFixed(2),
+                    y: y.toFixed(2),
+                    class: 'admin-chart__axis-label admin-chart__axis-label--y',
+                });
+                label.textContent = formatAxisTick(tickValue);
+                axisGroup.appendChild(label);
+            });
+
+            const xLabelInterval = Math.max(1, Math.round(normalised.length / 6));
+            normalised.forEach((point, index) => {
+                const shouldShowLabel =
+                    index === 0 ||
+                    index === normalised.length - 1 ||
+                    index % xLabelInterval === 0;
+                if (!shouldShowLabel) {
+                    return;
+                }
+                const x =
+                    normalised.length > 1
+                        ? leftPadding + index * stepX
+                        : leftPadding + chartWidth / 2;
+                const label = createSvgElement('text', {
+                    x: x.toFixed(2),
+                    y: (topPadding + chartHeight + 24).toFixed(2),
+                    class: 'admin-chart__axis-label admin-chart__axis-label--x',
+                });
+                label.textContent =
+                    formatPeriodLabel(point.period) || String(point.period);
+                axisGroup.appendChild(label);
+            });
 
             chartSeries.forEach((series) => {
                 const pathData = normalised
@@ -1307,14 +1418,18 @@
                             ? Math.max(0, value)
                             : 0;
                         const x =
-                            normalised.length > 1 ? index * stepX : width / 2;
+                            normalised.length > 1
+                                ? leftPadding + index * stepX
+                                : leftPadding + chartWidth / 2;
                         const y =
                             topPadding +
                             chartHeight -
-                            (safeValue / maxValue) * chartHeight;
-                        return `${index === 0 ? 'M' : 'L'}${x.toFixed(
+                            (maxValue > 0
+                                ? (safeValue / maxValue) * chartHeight
+                                : 0);
+                        return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(
                             2
-                        )} ${y.toFixed(2)}`;
+                        )}`;
                     })
                     .join(' ');
 
@@ -1324,18 +1439,23 @@
                     stroke: series.color,
                 });
                 path.dataset.series = series.key;
-                chartSvg.appendChild(path);
+                seriesGroup.appendChild(path);
 
                 normalised.forEach((point, index) => {
                     const value = Number(point[series.key]);
                     const safeValue = Number.isFinite(value)
                         ? Math.max(0, value)
                         : 0;
-                    const x = normalised.length > 1 ? index * stepX : width / 2;
+                    const x =
+                        normalised.length > 1
+                            ? leftPadding + index * stepX
+                            : leftPadding + chartWidth / 2;
                     const y =
                         topPadding +
                         chartHeight -
-                        (safeValue / maxValue) * chartHeight;
+                        (maxValue > 0
+                            ? (safeValue / maxValue) * chartHeight
+                            : 0);
                     const circle = createSvgElement('circle', {
                         cx: x.toFixed(2),
                         cy: y.toFixed(2),
@@ -1344,7 +1464,12 @@
                         stroke: series.color,
                     });
                     circle.dataset.series = series.key;
-                    chartSvg.appendChild(circle);
+                    const tooltip = createSvgElement('title');
+                    tooltip.textContent = `${series.label}: ${formatNumber(
+                        safeValue
+                    )} • ${formatPeriodLabel(point.period) || point.period}`;
+                    circle.appendChild(tooltip);
+                    pointsGroup.appendChild(circle);
                 });
             });
 

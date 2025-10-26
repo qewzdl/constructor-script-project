@@ -138,7 +138,7 @@
 
 .admin-chart__viewport {
     width: 100%;
-    min-height: 260px;
+    min-height: 320px;
     border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
     background: linear-gradient(
         180deg,
@@ -199,8 +199,34 @@
     stroke-width: 1;
 }
 
+.admin-chart__grid-line--baseline {
+    stroke-width: 1.5;
+    stroke: color-mix(in srgb, var(--admin-chart-grid-line) 80%, transparent);
+}
+
 .admin-chart__grid-line:last-of-type {
     stroke-opacity: 0.8;
+}
+
+.admin-chart__axis {
+    pointer-events: none;
+}
+
+.admin-chart__axis-label {
+    fill: var(--admin-chart-axis-label);
+    font-size: var(--font-size-xs);
+    font-family: var(--font-family-admin);
+    letter-spacing: 0.02em;
+}
+
+.admin-chart__axis-label--y {
+    text-anchor: end;
+    dominant-baseline: middle;
+}
+
+.admin-chart__axis-label--x {
+    text-anchor: middle;
+    dominant-baseline: hanging;
 }
 
 .admin-chart__line {

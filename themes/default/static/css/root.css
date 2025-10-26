@@ -74,6 +74,11 @@
     --admin-chart-surface: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg-top) 88%);
     --admin-chart-grid-line: color-mix(in srgb, var(--color-border) 45%, transparent);
     --admin-chart-point-bg: color-mix(in srgb, var(--color-bg-top) 70%, transparent);
+    --admin-chart-axis-label: color-mix(
+        in srgb,
+        var(--color-secondary) 75%,
+        var(--color-text) 25%
+    );
 
     /* Typography */
     --font-family-base: "Outfit", "Inter", sans-serif;
