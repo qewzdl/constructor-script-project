@@ -46,6 +46,30 @@
             ]
         },
         {
+            "title": "Build with flexible grids",
+            "type": "grid",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Reuse sections to highlight features, services, or case studies side by side without touching code."
+                    }
+                },
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Mix paragraphs, images, and lists—each card automatically adapts to fill the available space."
+                    }
+                },
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Responsive defaults ensure every card stays legible from widescreen dashboards to mobile phones."
+                    }
+                }
+            ]
+        },
+        {
             "title": "Latest from the blog",
             "type": "posts_list",
             "limit": 3

@@ -135,6 +135,20 @@
             'Large introductory section with a headline and optional image. Does not allow additional content blocks.',
     });
 
+    sectionTypeRegistry.register('grid', {
+        label: 'Grid section',
+        order: 15,
+        supportsElements: true,
+        description:
+            'Displays content blocks in a responsive grid, ideal for highlighting features or resources side by side.',
+        validate: (section) => {
+            if (!Array.isArray(section?.elements) || section.elements.length < 2) {
+                return 'must include at least two content blocks to form a grid.';
+            }
+            return null;
+        },
+    });
+
     sectionTypeRegistry.register('posts_list', {
         label: 'Posts list',
         order: 20,

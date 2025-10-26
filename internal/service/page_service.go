@@ -561,7 +561,7 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 		}
 
 		switch sectionType {
-		case "standard":
+		case "standard", "grid":
 			if len(section.Elements) > 0 {
 				preparedElements, err := s.prepareSectionElements(section.Elements)
 				if err != nil {

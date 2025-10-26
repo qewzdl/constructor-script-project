@@ -76,6 +76,14 @@
             'Prominent introduction block without additional content elements.',
     });
 
+    ensureRegistered('grid', {
+        label: 'Grid section',
+        order: 15,
+        supportsElements: true,
+        description:
+            'Displays content blocks in a responsive grid. Add at least two elements for a balanced layout.',
+    });
+
     ensureRegistered('posts_list', {
         label: 'Posts list',
         order: 20,

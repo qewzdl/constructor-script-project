@@ -59,10 +59,34 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		}
 
 		if !skipElements {
+			gridWrapperClass := ""
+			gridItemClass := ""
+			gridOpened := false
+			if sectionType == "grid" {
+				gridWrapperClass = fmt.Sprintf("%s__section-grid", prefix)
+				gridItemClass = fmt.Sprintf("%s__section-grid-item", prefix)
+			}
+
 			for _, elem := range section.Elements {
 				html, elemScripts := h.renderSectionElement(prefix, elem)
-				sb.WriteString(html)
 				scripts = appendScripts(scripts, elemScripts)
+				if html == "" {
+					continue
+				}
+
+				if sectionType == "grid" {
+					if !gridOpened {
+						sb.WriteString(`<div class="` + gridWrapperClass + `">`)
+						gridOpened = true
+					}
+					sb.WriteString(`<div class="` + gridItemClass + `">` + html + `</div>`)
+				} else {
+					sb.WriteString(html)
+				}
+			}
+
+			if gridOpened {
+				sb.WriteString(`</div>`)
 			}
 		}
 
