@@ -1352,7 +1352,6 @@
     margin-right: var(--size-xs);
     padding: var(--size-xs) var(--size-sm);
     border: 1px solid var(--color-border);
-    border-radius: 0.375rem;
     background: var(--color-bg-top);
     color: inherit;
     font: inherit;
