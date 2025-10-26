@@ -1467,6 +1467,16 @@
             } else if (element.type === 'list') {
                 if (!Array.isArray(element.content?.items)) {
                     element.content.items = [''];
+                } else {
+                    element.content.items = element.content.items.map((item) => {
+                        if (typeof item === 'string') {
+                            return item;
+                        }
+                        if (item === null || item === undefined) {
+                            return '';
+                        }
+                        return String(item);
+                    });
                 }
 
                 const orderedId = `${section.id}-${element.id}-ordered`;
@@ -1491,23 +1501,313 @@
 
                 const itemsId = `${section.id}-${element.id}-items`;
                 const itemsField = createElement('div', {
-                    className: 'section-field',
+                    className: 'section-field section-field--list-items',
                 });
                 const itemsLabel = createElement('label', {
                     textContent: 'List items',
                     attrs: { for: itemsId },
                 });
-                const itemsTextarea = document.createElement('textarea');
-                itemsTextarea.id = itemsId;
-                itemsTextarea.placeholder = 'Write one item per line';
-                itemsTextarea.value = element.content.items.join('\n');
-                itemsTextarea.addEventListener('input', (event) => {
-                    const nextValue = event.target.value.replace(/\r/g, '');
-                    element.content.items = nextValue.split('\n');
-                });
                 itemsField.appendChild(itemsLabel);
-                itemsField.appendChild(itemsTextarea);
+
+                const listItemsWrapper = createElement('div', {
+                    className: 'list-items',
+                    attrs: { id: itemsId },
+                });
+                const listItemsList = createElement('div', {
+                    className: 'list-items__list',
+                });
+                const listItemsActions = createElement('div', {
+                    className: 'list-items__actions',
+                });
+                const addListItem = createElement('button', {
+                    className: 'list-items__add',
+                    textContent: 'Add item',
+                    type: 'button',
+                });
+                listItemsActions.appendChild(addListItem);
+                listItemsWrapper.appendChild(listItemsList);
+                listItemsWrapper.appendChild(listItemsActions);
+                itemsField.appendChild(listItemsWrapper);
                 body.appendChild(itemsField);
+
+                let listItemDraggingIndex = null;
+
+                const clearListItemDropIndicators = () => {
+                    listItemsList
+                        .querySelectorAll(
+                            '.list-item--drop-before, .list-item--drop-after'
+                        )
+                        .forEach((item) => {
+                            item.classList.remove(
+                                'list-item--drop-before',
+                                'list-item--drop-after'
+                            );
+                            delete item.dataset.dropPosition;
+                        });
+                };
+
+                const endListItemDrag = () => {
+                    listItemDraggingIndex = null;
+                    listItemsWrapper.classList.remove('list-items--dragging');
+                    clearListItemDropIndicators();
+                    listItemsList.querySelectorAll('.list-item').forEach((item) => {
+                        item.classList.remove('list-item--dragging');
+                        item.draggable = false;
+                        delete item.dataset.dropPosition;
+                    });
+                };
+
+                const startListItemDrag = (index, item) => {
+                    listItemDraggingIndex = index;
+                    listItemsWrapper.classList.add('list-items--dragging');
+                    item.classList.add('list-item--dragging');
+                };
+
+                const renderListItems = (focusIndex = null) => {
+                    listItemsList.innerHTML = '';
+
+                    const items = element.content.items;
+                    if (!items.length) {
+                        listItemsList.appendChild(
+                            createElement('p', {
+                                className: 'list-items__empty',
+                                textContent: 'No list items yet.',
+                            })
+                        );
+                        return;
+                    }
+
+                    items.forEach((value, itemIndex) => {
+                        const row = createElement('div', {
+                            className: 'list-item',
+                        });
+                        row.dataset.index = String(itemIndex);
+                        row.draggable = false;
+
+                        const dragHandle = createElement('button', {
+                            className: 'list-item__drag-handle',
+                            type: 'button',
+                            attrs: {
+                                'aria-label': 'Reorder list item',
+                                title: 'Drag to reorder list item',
+                            },
+                            html: '<span aria-hidden="true">⋮⋮</span>',
+                        });
+
+                        dragHandle.addEventListener('pointerdown', () => {
+                            row.draggable = true;
+                        });
+
+                        const resetDraggable = () => {
+                            if (!row.classList.contains('list-item--dragging')) {
+                                row.draggable = false;
+                            }
+                        };
+
+                        dragHandle.addEventListener('pointerup', resetDraggable);
+                        dragHandle.addEventListener('pointercancel', resetDraggable);
+
+                        row.appendChild(dragHandle);
+
+                        const input = createElement('input', {
+                            className: 'list-item__input',
+                            type: 'text',
+                            value: value,
+                        });
+                        input.placeholder = 'List item';
+                        input.addEventListener('input', (event) => {
+                            element.content.items[itemIndex] = event.target.value;
+                        });
+                        row.appendChild(input);
+
+                        const controls = createElement('div', {
+                            className: 'list-item__controls',
+                        });
+
+                        const moveUp = createElement('button', {
+                            className: 'list-item__control',
+                            textContent: 'Up',
+                            type: 'button',
+                        });
+                        moveUp.disabled = itemIndex === 0;
+                        moveUp.addEventListener('click', () => {
+                            moveListItem(itemIndex, itemIndex - 1);
+                        });
+                        controls.appendChild(moveUp);
+
+                        const moveDown = createElement('button', {
+                            className: 'list-item__control',
+                            textContent: 'Down',
+                            type: 'button',
+                        });
+                        moveDown.disabled = itemIndex === items.length - 1;
+                        moveDown.addEventListener('click', () => {
+                            moveListItem(itemIndex, itemIndex + 1);
+                        });
+                        controls.appendChild(moveDown);
+
+                        const removeItem = createElement('button', {
+                            className: 'list-item__control',
+                            textContent: 'Remove',
+                            type: 'button',
+                        });
+                        removeItem.addEventListener('click', () => {
+                            element.content.items.splice(itemIndex, 1);
+                            const nextFocus = Math.max(
+                                0,
+                                Math.min(itemIndex, element.content.items.length - 1)
+                            );
+                            renderListItems(
+                                element.content.items.length ? nextFocus : null
+                            );
+                        });
+                        controls.appendChild(removeItem);
+
+                        row.appendChild(controls);
+
+                        row.addEventListener('dragstart', (event) => {
+                            startListItemDrag(itemIndex, row);
+                            try {
+                                event.dataTransfer.effectAllowed = 'move';
+                                event.dataTransfer.setData(
+                                    'text/plain',
+                                    String(itemIndex)
+                                );
+                            } catch (error) {
+                                // ignore if dataTransfer is unavailable
+                            }
+                        });
+
+                        row.addEventListener('dragover', (event) => {
+                            if (
+                                listItemDraggingIndex === null ||
+                                listItemDraggingIndex === itemIndex
+                            ) {
+                                return;
+                            }
+                            event.preventDefault();
+                            clearListItemDropIndicators();
+                            const rect = row.getBoundingClientRect();
+                            const offset = event.clientY - rect.top;
+                            const insertBefore = offset < rect.height / 2;
+                            row.dataset.dropPosition = insertBefore
+                                ? 'before'
+                                : 'after';
+                            row.classList.add(
+                                insertBefore
+                                    ? 'list-item--drop-before'
+                                    : 'list-item--drop-after'
+                            );
+                            try {
+                                event.dataTransfer.dropEffect = 'move';
+                            } catch (error) {
+                                // ignore if dataTransfer is unavailable
+                            }
+                        });
+
+                        row.addEventListener('dragleave', (event) => {
+                            if (!row.contains(event.relatedTarget)) {
+                                row.classList.remove(
+                                    'list-item--drop-before',
+                                    'list-item--drop-after'
+                                );
+                                delete row.dataset.dropPosition;
+                            }
+                        });
+
+                        row.addEventListener('drop', (event) => {
+                            if (listItemDraggingIndex === null) {
+                                return;
+                            }
+                            event.preventDefault();
+                            event.stopPropagation();
+                            const fromIndex = listItemDraggingIndex;
+                            const dropPosition =
+                                row.dataset.dropPosition === 'before'
+                                    ? 'before'
+                                    : 'after';
+                            let destination =
+                                dropPosition === 'before'
+                                    ? itemIndex
+                                    : itemIndex + 1;
+                            if (fromIndex < destination) {
+                                destination -= 1;
+                            }
+                            endListItemDrag();
+                            moveListItem(fromIndex, destination);
+                        });
+
+                        row.addEventListener('dragend', () => {
+                            endListItemDrag();
+                        });
+
+                        listItemsList.appendChild(row);
+                    });
+
+                    if (focusIndex !== null) {
+                        const target = listItemsList.querySelector(
+                            `[data-index="${focusIndex}"] .list-item__input`
+                        );
+                        if (target) {
+                            target.focus();
+                            target.select();
+                        }
+                    }
+                };
+
+                const moveListItem = (fromIndex, toIndex) => {
+                    if (fromIndex === toIndex) {
+                        return;
+                    }
+                    const items = element.content.items;
+                    if (
+                        fromIndex < 0 ||
+                        fromIndex >= items.length ||
+                        toIndex < 0 ||
+                        toIndex > items.length
+                    ) {
+                        return;
+                    }
+                    const [moved] = items.splice(fromIndex, 1);
+                    items.splice(toIndex, 0, moved);
+                    renderListItems(toIndex);
+                };
+
+                listItemsList.addEventListener('dragover', (event) => {
+                    if (listItemDraggingIndex === null) {
+                        return;
+                    }
+                    if (event.target !== listItemsList) {
+                        return;
+                    }
+                    event.preventDefault();
+                    clearListItemDropIndicators();
+                    try {
+                        event.dataTransfer.dropEffect = 'move';
+                    } catch (error) {
+                        // ignore if dataTransfer is unavailable
+                    }
+                });
+
+                listItemsList.addEventListener('drop', (event) => {
+                    if (listItemDraggingIndex === null) {
+                        return;
+                    }
+                    if (event.target !== listItemsList) {
+                        return;
+                    }
+                    event.preventDefault();
+                    const fromIndex = listItemDraggingIndex;
+                    endListItemDrag();
+                    moveListItem(fromIndex, element.content.items.length);
+                });
+
+                addListItem.addEventListener('click', () => {
+                    element.content.items.push('');
+                    renderListItems(element.content.items.length - 1);
+                });
+
+                renderListItems();
             } else if (element.type === 'search') {
                 if (!element.content || typeof element.content !== 'object') {
                     element.content = {};
