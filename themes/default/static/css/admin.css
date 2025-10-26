@@ -1211,9 +1211,29 @@
     color: var(--color-primary-opposite);
 }
 
+.admin-form__submit--secondary {
+    background: color-mix(
+        in srgb,
+        var(--color-border-subtle) 30%,
+        var(--color-bg-top)
+    );
+    color: var(--color-primary);
+    border: 1px solid var(--color-border);
+}
+
 .admin-form__submit:hover,
 .admin-form__submit:focus-visible {
     background: var(--color-primary-hover);
+    outline: none;
+}
+
+.admin-form__submit--secondary:hover,
+.admin-form__submit--secondary:focus-visible {
+    background: color-mix(
+        in srgb,
+        var(--color-border-subtle) 55%,
+        var(--color-bg-top)
+    );
     outline: none;
 }
 

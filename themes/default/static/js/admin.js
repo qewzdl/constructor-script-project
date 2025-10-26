@@ -625,14 +625,20 @@
         const postDeleteButton = postForm?.querySelector(
             '[data-role="post-delete"]'
         );
-        const postSubmitButton = postForm?.querySelector(
-            '[data-role="post-submit"]'
+        const postPublishButton = postForm?.querySelector(
+            '[data-role="post-submit-publish"]'
+        );
+        const postDraftButton = postForm?.querySelector(
+            '[data-role="post-submit-draft"]'
         );
         const pageDeleteButton = pageForm?.querySelector(
             '[data-role="page-delete"]'
         );
-        const pageSubmitButton = pageForm?.querySelector(
-            '[data-role="page-submit"]'
+        const pagePublishButton = pageForm?.querySelector(
+            '[data-role="page-submit-publish"]'
+        );
+        const pageDraftButton = pageForm?.querySelector(
+            '[data-role="page-submit-draft"]'
         );
         const categoryDeleteButton = categoryForm?.querySelector(
             '[data-role="category-delete"]'
@@ -2269,12 +2275,7 @@
             if (postTagsInput) {
                 postTagsInput.value = extractTagNames(post).join(', ');
             }
-            const publishedField = postForm.querySelector(
-                'input[name="published"]'
-            );
-            if (publishedField) {
-                publishedField.checked = Boolean(post.published);
-            }
+            postForm.dataset.published = String(Boolean(post.published));
             if (postPublishAtInput) {
                 const publishAt = extractDateValue(
                     post,
@@ -2289,8 +2290,11 @@
                 postPublishedAtNote.textContent = note;
                 postPublishedAtNote.hidden = !note;
             }
-            if (postSubmitButton) {
-                postSubmitButton.textContent = 'Update post';
+            if (postPublishButton) {
+                postPublishButton.textContent = 'Update & publish';
+            }
+            if (postDraftButton) {
+                postDraftButton.textContent = 'Save as draft';
             }
             if (postDeleteButton) {
                 postDeleteButton.hidden = false;
@@ -2326,8 +2330,12 @@
                 postPublishedAtNote.textContent = '';
                 postPublishedAtNote.hidden = true;
             }
-            if (postSubmitButton) {
-                postSubmitButton.textContent = 'Create post';
+            delete postForm.dataset.published;
+            if (postPublishButton) {
+                postPublishButton.textContent = 'Save & publish';
+            }
+            if (postDraftButton) {
+                postDraftButton.textContent = 'Save as draft';
             }
             if (postDeleteButton) {
                 postDeleteButton.hidden = true;
@@ -2367,12 +2375,7 @@
             if (orderInput) {
                 orderInput.value = page.order ?? 0;
             }
-            const publishedField = pageForm.querySelector(
-                'input[name="published"]'
-            );
-            if (publishedField) {
-                publishedField.checked = Boolean(page.published);
-            }
+            pageForm.dataset.published = String(Boolean(page.published));
             if (pagePublishAtInput) {
                 const publishAt = extractDateValue(
                     page,
@@ -2395,8 +2398,11 @@
                     page.hide_header ?? page.HideHeader ?? false;
                 hideHeaderField.checked = Boolean(hideHeaderValue);
             }
-            if (pageSubmitButton) {
-                pageSubmitButton.textContent = 'Update page';
+            if (pagePublishButton) {
+                pagePublishButton.textContent = 'Update & publish';
+            }
+            if (pageDraftButton) {
+                pageDraftButton.textContent = 'Save as draft';
             }
             if (pageDeleteButton) {
                 pageDeleteButton.hidden = false;
@@ -2411,8 +2417,12 @@
             }
             pageForm.reset();
             delete pageForm.dataset.id;
-            if (pageSubmitButton) {
-                pageSubmitButton.textContent = 'Create page';
+            delete pageForm.dataset.published;
+            if (pagePublishButton) {
+                pagePublishButton.textContent = 'Save & publish';
+            }
+            if (pageDraftButton) {
+                pageDraftButton.textContent = 'Save as draft';
             }
             if (pageDeleteButton) {
                 pageDeleteButton.hidden = true;
@@ -5264,15 +5274,25 @@
             const content = postContentField
                 ? postContentField.value.trim()
                 : '';
-            const publishedField = postForm.querySelector(
-                'input[name="published"]'
-            );
+            const submitter = event.submitter;
+            const intent = submitter?.dataset?.intent;
+            let published;
+            if (intent === 'draft') {
+                published = false;
+            } else if (intent === 'publish') {
+                published = true;
+            } else if (postForm.dataset.published) {
+                published = postForm.dataset.published === 'true';
+            } else {
+                published = true;
+            }
+            postForm.dataset.published = String(published);
             const payload = {
                 title,
                 description,
                 featured_img: featuredImg,
                 content,
-                published: Boolean(publishedField?.checked),
+                published,
             };
             if (postPublishAtInput) {
                 const rawPublishAt = postPublishAtInput.value.trim();
@@ -5387,18 +5407,28 @@
                 : '';
             const orderInput = pageForm.querySelector('input[name="order"]');
             const orderValue = orderInput ? Number(orderInput.value) : 0;
-            const publishedField = pageForm.querySelector(
-                'input[name="published"]'
-            );
             const hideHeaderField = pageForm.querySelector(
                 'input[name="hide_header"]'
             );
+            const submitter = event.submitter;
+            const intent = submitter?.dataset?.intent;
+            let published;
+            if (intent === 'draft') {
+                published = false;
+            } else if (intent === 'publish') {
+                published = true;
+            } else if (pageForm.dataset.published) {
+                published = pageForm.dataset.published === 'true';
+            } else {
+                published = true;
+            }
+            pageForm.dataset.published = String(published);
             const payload = {
                 title,
                 description,
                 content,
                 order: Number.isNaN(orderValue) ? 0 : orderValue,
-                published: Boolean(publishedField?.checked),
+                published,
                 hide_header: Boolean(hideHeaderField?.checked),
             };
             if (pagePublishAtInput) {

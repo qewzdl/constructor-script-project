@@ -318,13 +318,22 @@
                                 </small>
                             </label>
                             <p class="admin-form__hint" data-role="post-published-at" hidden></p>
-                            <label class="admin-form__checkbox">
-                                <input type="checkbox" name="published" />
-                                <span>Mark as published</span>
-                            </label>
                             <div class="admin-form__actions">
-                                <button type="submit" class="admin-form__submit" data-role="post-submit">
-                                    Create post
+                                <button
+                                    type="submit"
+                                    class="admin-form__submit"
+                                    data-role="post-submit-publish"
+                                    data-intent="publish"
+                                >
+                                    Save &amp; publish
+                                </button>
+                                <button
+                                    type="submit"
+                                    class="admin-form__submit admin-form__submit--secondary"
+                                    data-role="post-submit-draft"
+                                    data-intent="draft"
+                                >
+                                    Save as draft
                                 </button>
                                 <button type="button" class="admin-form__delete" data-role="post-delete" hidden>
                                     Delete post
@@ -472,13 +481,22 @@
                                 </small>
                             </label>
                             <p class="admin-form__hint" data-role="page-published-at" hidden></p>
-                            <label class="admin-form__checkbox">
-                                <input type="checkbox" name="published" />
-                                <span>Visible to visitors</span>
-                            </label>
                             <div class="admin-form__actions">
-                                <button type="submit" class="admin-form__submit" data-role="page-submit">
-                                    Create page
+                                <button
+                                    type="submit"
+                                    class="admin-form__submit"
+                                    data-role="page-submit-publish"
+                                    data-intent="publish"
+                                >
+                                    Save &amp; publish
+                                </button>
+                                <button
+                                    type="submit"
+                                    class="admin-form__submit admin-form__submit--secondary"
+                                    data-role="page-submit-draft"
+                                    data-intent="draft"
+                                >
+                                    Save as draft
                                 </button>
                                 <button type="button" class="admin-form__delete" data-role="page-delete" hidden>
                                     Delete page
