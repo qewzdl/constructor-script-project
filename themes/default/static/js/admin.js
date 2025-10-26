@@ -1324,50 +1324,34 @@
 
         const calculateNiceScale = (maxValue, segments = 4) => {
             const safeSegments = Math.max(1, Number.parseInt(segments, 10) || 1);
-            const safeMax = Number.isFinite(maxValue) ? maxValue : 0;
-            if (safeMax <= 0) {
+            const safeMaxValue = Number.isFinite(maxValue)
+                ? Math.max(0, maxValue)
+                : 0;
+            if (safeMaxValue <= 0) {
                 return { max: 0, ticks: [] };
             }
-            const exponent = Math.floor(Math.log10(safeMax));
-            const magnitude = 10 ** exponent;
-            const fraction = safeMax / magnitude;
-            let niceFraction;
-            if (fraction <= 1) {
-                niceFraction = 1;
-            } else if (fraction <= 2) {
-                niceFraction = 2;
-            } else if (fraction <= 5) {
-                niceFraction = 5;
-            } else {
-                niceFraction = 10;
+
+            const safeMax = Math.ceil(safeMaxValue);
+            const integerStep = Math.max(1, Math.ceil(safeMax / safeSegments));
+            const ticks = Array.from({ length: safeSegments + 1 }, (_, index) =>
+                index * integerStep
+            );
+
+            let lastTick = ticks[ticks.length - 1];
+            while (lastTick < safeMax) {
+                lastTick += integerStep;
+                ticks.push(lastTick);
             }
-            const niceMax = niceFraction * magnitude;
-            const step = niceMax / safeSegments;
-            const ticks = Array.from({ length: safeSegments + 1 }, (_, index) => {
-                const raw = index * step;
-                return Number(raw.toPrecision(8));
-            });
-            return { max: niceMax, ticks };
+
+            return { max: ticks[ticks.length - 1], ticks };
         };
 
         const formatAxisTick = (value) => {
             if (!Number.isFinite(value)) {
                 return '0';
             }
-            const absolute = Math.abs(value);
-            const decimals = absolute < 1 ? 2 : absolute < 10 ? 1 : 0;
-            const rounded = Number(value.toFixed(decimals));
-            if (decimals === 0) {
-                return formatNumber(rounded);
-            }
-            try {
-                return rounded.toLocaleString(undefined, {
-                    minimumFractionDigits: decimals,
-                    maximumFractionDigits: decimals,
-                });
-            } catch (error) {
-                return rounded.toFixed(decimals);
-            }
+            const rounded = Math.round(value);
+            return formatNumber(rounded);
         };
 
         const renderMetricsChart = (trend = []) => {
