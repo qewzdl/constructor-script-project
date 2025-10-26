@@ -278,6 +278,38 @@ func (a *Application) runMigrations() error {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 
+	if err := a.db.Exec(`
+                UPDATE posts
+                SET publish_at = COALESCE(publish_at, created_at)
+                WHERE publish_at IS NULL AND published = TRUE
+        `).Error; err != nil {
+		return fmt.Errorf("failed to backfill post publish_at: %w", err)
+	}
+
+	if err := a.db.Exec(`
+                UPDATE posts
+                SET published_at = COALESCE(published_at, publish_at, created_at)
+                WHERE published = TRUE
+        `).Error; err != nil {
+		return fmt.Errorf("failed to backfill post published_at: %w", err)
+	}
+
+	if err := a.db.Exec(`
+                UPDATE pages
+                SET publish_at = COALESCE(publish_at, created_at)
+                WHERE publish_at IS NULL AND published = TRUE
+        `).Error; err != nil {
+		return fmt.Errorf("failed to backfill page publish_at: %w", err)
+	}
+
+	if err := a.db.Exec(`
+                UPDATE pages
+                SET published_at = COALESCE(published_at, publish_at, created_at)
+                WHERE published = TRUE
+        `).Error; err != nil {
+		return fmt.Errorf("failed to backfill page published_at: %w", err)
+	}
+
 	if migrator.HasTable(&models.Page{}) {
 		if err := a.db.Exec(`
                         UPDATE pages
@@ -321,11 +353,13 @@ func (a *Application) createIndexes() error {
 	statements := []string{
 		"CREATE INDEX IF NOT EXISTS idx_posts_published ON posts(published) WHERE published = true",
 		"CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)",
+		"CREATE INDEX IF NOT EXISTS idx_posts_publish_at ON posts(publish_at)",
 		"CREATE INDEX IF NOT EXISTS idx_posts_slug ON posts(slug) WHERE published = true",
 		"CREATE INDEX IF NOT EXISTS idx_posts_template ON posts(template)",
 		"CREATE INDEX IF NOT EXISTS idx_pages_published ON pages(published) WHERE published = true",
 		"CREATE INDEX IF NOT EXISTS idx_pages_slug ON pages(slug) WHERE published = true",
 		"CREATE INDEX IF NOT EXISTS idx_pages_path ON pages(path) WHERE published = true",
+		"CREATE INDEX IF NOT EXISTS idx_pages_publish_at ON pages(publish_at)",
 		"CREATE INDEX IF NOT EXISTS idx_pages_order ON pages(\"order\" ASC)",
 		"CREATE INDEX IF NOT EXISTS idx_posts_sections ON posts USING GIN (sections)",
 		"CREATE INDEX IF NOT EXISTS idx_pages_sections ON pages USING GIN (sections)",

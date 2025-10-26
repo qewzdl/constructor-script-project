@@ -717,7 +717,7 @@
 
 .admin-form__fieldset {
     display: grid;
-    gap: var(--size-sm);
+    gap: var(--size-base);
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
 }

@@ -152,6 +152,9 @@ func (s *PostService) Create(req models.CreatePostRequest, authorID uint) (*mode
 		Template:    s.getTemplate(req.Template),
 	}
 
+	now := time.Now().UTC()
+	post.Published, post.PublishAt, post.PublishedAt = normalizePublicationState(post.Published, req.PublishAt.Or(nil), now)
+
 	if req.TagNames != nil {
 		if len(req.TagNames) == 0 {
 			post.Tags = []models.Tag{}
@@ -223,6 +226,10 @@ func (s *PostService) Update(id uint, req models.UpdatePostRequest, userID uint,
 	if req.Template != nil {
 		post.Template = s.getTemplate(*req.Template)
 	}
+
+	publishAtCandidate := req.PublishAt.Or(post.PublishAt)
+	now := time.Now().UTC()
+	post.Published, post.PublishAt, post.PublishedAt = normalizePublicationState(post.Published, publishAtCandidate, now)
 
 	if req.Sections != nil {
 		sections, err := s.prepareSections(*req.Sections)
@@ -768,7 +775,8 @@ func (s *PostService) PublishPost(postID uint) error {
 		return err
 	}
 
-	post.Published = true
+	now := time.Now().UTC()
+	post.Published, post.PublishAt, post.PublishedAt = normalizePublicationState(true, &now, now)
 
 	if err := s.postRepo.Update(post); err != nil {
 		return err
@@ -788,7 +796,8 @@ func (s *PostService) UnpublishPost(postID uint) error {
 		return err
 	}
 
-	post.Published = false
+	now := time.Now().UTC()
+	post.Published, post.PublishAt, post.PublishedAt = normalizePublicationState(false, nil, now)
 
 	if err := s.postRepo.Update(post); err != nil {
 		return err

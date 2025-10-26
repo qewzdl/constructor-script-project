@@ -52,14 +52,16 @@ type Post struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Title       string `gorm:"not null" json:"title"`
-	Slug        string `gorm:"uniqueIndex;not null" json:"slug"`
-	Description string `json:"description"`
-	Content     string `gorm:"type:text;not null" json:"content"`
-	Excerpt     string `json:"excerpt"`
-	FeaturedImg string `json:"featured_img"`
-	Published   bool   `gorm:"default:false" json:"published"`
-	Views       int    `gorm:"default:0" json:"views"`
+	Title       string     `gorm:"not null" json:"title"`
+	Slug        string     `gorm:"uniqueIndex;not null" json:"slug"`
+	Description string     `json:"description"`
+	Content     string     `gorm:"type:text;not null" json:"content"`
+	Excerpt     string     `json:"excerpt"`
+	FeaturedImg string     `json:"featured_img"`
+	Published   bool       `gorm:"default:false" json:"published"`
+	PublishAt   *time.Time `gorm:"index" json:"publish_at,omitempty"`
+	PublishedAt *time.Time `gorm:"index" json:"published_at,omitempty"`
+	Views       int        `gorm:"default:0" json:"views"`
 
 	Sections PostSections `gorm:"type:jsonb" json:"sections"`
 	Template string       `gorm:"default:'post'" json:"template"`
@@ -202,29 +204,31 @@ func (ps PostSections) Value() (driver.Value, error) {
 }
 
 type CreatePostRequest struct {
-	Title       string    `json:"title" binding:"required"`
-	Description string    `json:"description"`
-	Content     string    `json:"content"`
-	Excerpt     string    `json:"excerpt"`
-	FeaturedImg string    `json:"featured_img"`
-	Published   bool      `json:"published"`
-	CategoryID  uint      `json:"category_id"`
-	TagNames    []string  `json:"tags"`
-	Sections    []Section `json:"sections"`
-	Template    string    `json:"template"`
+	Title       string       `json:"title" binding:"required"`
+	Description string       `json:"description"`
+	Content     string       `json:"content"`
+	Excerpt     string       `json:"excerpt"`
+	FeaturedImg string       `json:"featured_img"`
+	Published   bool         `json:"published"`
+	CategoryID  uint         `json:"category_id"`
+	TagNames    []string     `json:"tags"`
+	Sections    []Section    `json:"sections"`
+	Template    string       `json:"template"`
+	PublishAt   OptionalTime `json:"publish_at"`
 }
 
 type UpdatePostRequest struct {
-	Title       *string    `json:"title"`
-	Description *string    `json:"description"`
-	Content     *string    `json:"content"`
-	Excerpt     *string    `json:"excerpt"`
-	FeaturedImg *string    `json:"featured_img"`
-	Published   *bool      `json:"published"`
-	CategoryID  *uint      `json:"category_id"`
-	TagNames    []string   `json:"tags"`
-	Sections    *[]Section `json:"sections"`
-	Template    *string    `json:"template"`
+	Title       *string      `json:"title"`
+	Description *string      `json:"description"`
+	Content     *string      `json:"content"`
+	Excerpt     *string      `json:"excerpt"`
+	FeaturedImg *string      `json:"featured_img"`
+	Published   *bool        `json:"published"`
+	CategoryID  *uint        `json:"category_id"`
+	TagNames    []string     `json:"tags"`
+	Sections    *[]Section   `json:"sections"`
+	Template    *string      `json:"template"`
+	PublishAt   OptionalTime `json:"publish_at"`
 }
 
 type Page struct {
@@ -239,6 +243,8 @@ type Page struct {
 	Description string       `json:"description"`
 	FeaturedImg string       `json:"featured_img"`
 	Published   bool         `gorm:"default:false" json:"published"`
+	PublishAt   *time.Time   `gorm:"index" json:"publish_at,omitempty"`
+	PublishedAt *time.Time   `gorm:"index" json:"published_at,omitempty"`
 	Content     string       `gorm:"type:text" json:"content"`
 	Sections    PostSections `gorm:"type:jsonb" json:"sections"`
 	Template    string       `gorm:"default:'page'" json:"template"`
@@ -248,30 +254,32 @@ type Page struct {
 }
 
 type CreatePageRequest struct {
-	Title       string    `json:"title" binding:"required"`
-	Slug        string    `json:"slug"`
-	Path        string    `json:"path"`
-	Description string    `json:"description"`
-	FeaturedImg string    `json:"featured_img"`
-	Published   bool      `json:"published"`
-	Content     string    `json:"content"`
-	Sections    []Section `json:"sections"`
-	Template    string    `json:"template"`
-	HideHeader  bool      `json:"hide_header"`
-	Order       int       `json:"order"`
+	Title       string       `json:"title" binding:"required"`
+	Slug        string       `json:"slug"`
+	Path        string       `json:"path"`
+	Description string       `json:"description"`
+	FeaturedImg string       `json:"featured_img"`
+	Published   bool         `json:"published"`
+	Content     string       `json:"content"`
+	Sections    []Section    `json:"sections"`
+	Template    string       `json:"template"`
+	HideHeader  bool         `json:"hide_header"`
+	Order       int          `json:"order"`
+	PublishAt   OptionalTime `json:"publish_at"`
 }
 
 type UpdatePageRequest struct {
-	Title       *string    `json:"title"`
-	Path        *string    `json:"path"`
-	Description *string    `json:"description"`
-	FeaturedImg *string    `json:"featured_img"`
-	Published   *bool      `json:"published"`
-	Content     *string    `json:"content"`
-	Sections    *[]Section `json:"sections"`
-	Template    *string    `json:"template"`
-	HideHeader  *bool      `json:"hide_header"`
-	Order       *int       `json:"order"`
+	Title       *string      `json:"title"`
+	Path        *string      `json:"path"`
+	Description *string      `json:"description"`
+	FeaturedImg *string      `json:"featured_img"`
+	Published   *bool        `json:"published"`
+	Content     *string      `json:"content"`
+	Sections    *[]Section   `json:"sections"`
+	Template    *string      `json:"template"`
+	HideHeader  *bool        `json:"hide_header"`
+	Order       *int         `json:"order"`
+	PublishAt   OptionalTime `json:"publish_at"`
 }
 
 type Setting struct {

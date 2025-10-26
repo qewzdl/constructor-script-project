@@ -29,7 +29,9 @@ func GetStatistics(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		db.Model(&models.Post{}).Count(&stats.TotalPosts)
-		db.Model(&models.Post{}).Where("published = ?", true).Count(&stats.PublishedPosts)
+		db.Model(&models.Post{}).
+			Where("published = ? AND (publish_at IS NULL OR publish_at <= ?)", true, now).
+			Count(&stats.PublishedPosts)
 		db.Model(&models.User{}).Count(&stats.TotalUsers)
 		db.Model(&models.Category{}).Count(&stats.TotalCategories)
 		db.Model(&models.Comment{}).Count(&stats.TotalComments)
@@ -40,10 +42,10 @@ func GetStatistics(db *gorm.DB) gin.HandlerFunc {
 		sevenDaysAgo := now.AddDate(0, 0, -7)
 
 		db.Model(&models.Post{}).
-			Where("created_at >= ?", twentyFourHoursAgo).
+			Where("COALESCE(published_at, publish_at, created_at) >= ?", twentyFourHoursAgo).
 			Count(&stats.PostsLast24Hours)
 		db.Model(&models.Post{}).
-			Where("created_at >= ?", sevenDaysAgo).
+			Where("COALESCE(published_at, publish_at, created_at) >= ?", sevenDaysAgo).
 			Count(&stats.PostsLast7Days)
 		db.Model(&models.Comment{}).
 			Where("created_at >= ?", twentyFourHoursAgo).
@@ -64,7 +66,7 @@ func GetStatistics(db *gorm.DB) gin.HandlerFunc {
 
 		db.Model(&models.Post{}).
 			Select("id, title, views").
-			Where("published = ?", true).
+			Where("published = ? AND (publish_at IS NULL OR publish_at <= ?)", true, now).
 			Order("views DESC").
 			Limit(5).
 			Scan(&popularPosts)
@@ -79,8 +81,8 @@ func GetStatistics(db *gorm.DB) gin.HandlerFunc {
 
 		var postBuckets []timeBucket
 		db.Model(&models.Post{}).
-			Select("DATE_TRUNC('day', created_at) AS period, COUNT(*) AS count").
-			Where("created_at >= ?", windowStart).
+			Select("DATE_TRUNC('day', COALESCE(published_at, publish_at, created_at)) AS period, COUNT(*) AS count").
+			Where("COALESCE(published_at, publish_at, created_at) >= ?", windowStart).
 			Group("period").
 			Order("period").
 			Scan(&postBuckets)

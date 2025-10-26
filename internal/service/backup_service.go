@@ -191,6 +191,8 @@ type backupPost struct {
 	Excerpt     string              `json:"excerpt"`
 	FeaturedImg string              `json:"featured_img"`
 	Published   bool                `json:"published"`
+	PublishAt   *time.Time          `json:"publish_at,omitempty"`
+	PublishedAt *time.Time          `json:"published_at,omitempty"`
 	Views       int                 `json:"views"`
 	Sections    models.PostSections `json:"sections"`
 	Template    string              `json:"template"`
@@ -209,6 +211,8 @@ type backupPage struct {
 	Description string              `json:"description"`
 	FeaturedImg string              `json:"featured_img"`
 	Published   bool                `json:"published"`
+	PublishAt   *time.Time          `json:"publish_at,omitempty"`
+	PublishedAt *time.Time          `json:"published_at,omitempty"`
 	Content     string              `json:"content"`
 	Sections    models.PostSections `json:"sections"`
 	Template    string              `json:"template"`
@@ -945,6 +949,8 @@ func (s *BackupService) snapshotData(ctx context.Context) (backupData, error) {
 			Excerpt:     post.Excerpt,
 			FeaturedImg: post.FeaturedImg,
 			Published:   post.Published,
+			PublishAt:   normalizeTimePtr(post.PublishAt),
+			PublishedAt: normalizeTimePtr(post.PublishedAt),
 			Views:       post.Views,
 			Sections:    post.Sections,
 			Template:    post.Template,
@@ -970,6 +976,8 @@ func (s *BackupService) snapshotData(ctx context.Context) (backupData, error) {
 			Description: page.Description,
 			FeaturedImg: page.FeaturedImg,
 			Published:   page.Published,
+			PublishAt:   normalizeTimePtr(page.PublishAt),
+			PublishedAt: normalizeTimePtr(page.PublishedAt),
 			Content:     page.Content,
 			Sections:    page.Sections,
 			Template:    page.Template,
@@ -1346,6 +1354,8 @@ func (s *BackupService) restoreData(tx *gorm.DB, data backupData) error {
 				Description: item.Description,
 				FeaturedImg: item.FeaturedImg,
 				Published:   item.Published,
+				PublishAt:   normalizeTimePtr(item.PublishAt),
+				PublishedAt: normalizeTimePtr(item.PublishedAt),
 				Content:     item.Content,
 				Sections:    item.Sections,
 				Template:    item.Template,
@@ -1373,6 +1383,8 @@ func (s *BackupService) restoreData(tx *gorm.DB, data backupData) error {
 				Excerpt:     item.Excerpt,
 				FeaturedImg: item.FeaturedImg,
 				Published:   item.Published,
+				PublishAt:   normalizeTimePtr(item.PublishAt),
+				PublishedAt: normalizeTimePtr(item.PublishedAt),
 				Views:       item.Views,
 				Sections:    item.Sections,
 				Template:    item.Template,

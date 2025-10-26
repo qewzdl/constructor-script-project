@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"constructor-script-backend/internal/models"
 
 	"gorm.io/gorm"
@@ -45,9 +47,13 @@ func (r *postRepository) GetAll(offset, limit int, categoryID *uint, tagName *st
 	var total int64
 
 	query := r.db.Model(&models.Post{})
+	now := time.Now().UTC()
 
 	if published != nil {
 		query = query.Where("published = ?", *published)
+		if *published {
+			query = query.Where("publish_at IS NULL OR publish_at <= ?", now)
+		}
 	}
 
 	if categoryID != nil {
@@ -67,7 +73,7 @@ func (r *postRepository) GetAll(offset, limit int, categoryID *uint, tagName *st
 	query.Count(&total)
 
 	err := query.Preload("Author").Preload("Category").Preload("Tags").
-		Order("created_at DESC").
+		Order("COALESCE(publish_at, created_at) DESC").
 		Offset(offset).Limit(limit).
 		Find(&posts).Error
 
@@ -94,7 +100,10 @@ func (r *postRepository) Delete(id uint) error {
 
 func (r *postRepository) GetBySlug(slug string) (*models.Post, error) {
 	var post models.Post
+	now := time.Now().UTC()
+
 	err := r.db.Where("slug = ?", slug).
+		Where("publish_at IS NULL OR publish_at <= ?", now).
 		Preload("Author").
 		Preload("Category").
 		Preload("Tags").
@@ -107,7 +116,10 @@ func (r *postRepository) GetBySlug(slug string) (*models.Post, error) {
 
 func (r *postRepository) GetPopular(limit int) ([]models.Post, error) {
 	var posts []models.Post
+	now := time.Now().UTC()
+
 	err := r.db.Where("published = ?", true).
+		Where("publish_at IS NULL OR publish_at <= ?", now).
 		Preload("Author").
 		Preload("Category").
 		Preload("Tags").
@@ -119,11 +131,14 @@ func (r *postRepository) GetPopular(limit int) ([]models.Post, error) {
 
 func (r *postRepository) GetRecent(limit int) ([]models.Post, error) {
 	var posts []models.Post
+	now := time.Now().UTC()
+
 	err := r.db.Where("published = ?", true).
+		Where("publish_at IS NULL OR publish_at <= ?", now).
 		Preload("Author").
 		Preload("Category").
 		Preload("Tags").
-		Order("created_at DESC").
+		Order("COALESCE(publish_at, created_at) DESC").
 		Limit(limit).
 		Find(&posts).Error
 	return posts, err
@@ -131,11 +146,14 @@ func (r *postRepository) GetRecent(limit int) ([]models.Post, error) {
 
 func (r *postRepository) GetRelated(postID uint, categoryID uint, limit int) ([]models.Post, error) {
 	var posts []models.Post
+	now := time.Now().UTC()
+
 	err := r.db.Where("id != ? AND category_id = ? AND published = ?", postID, categoryID, true).
+		Where("publish_at IS NULL OR publish_at <= ?", now).
 		Preload("Author").
 		Preload("Category").
 		Preload("Tags").
-		Order("created_at DESC").
+		Order("COALESCE(publish_at, created_at) DESC").
 		Limit(limit).
 		Find(&posts).Error
 	return posts, err
@@ -161,9 +179,12 @@ func (r *postRepository) ReassignCategory(fromCategoryID, toCategoryID uint) err
 
 func (r *postRepository) GetAllPublished() ([]models.Post, error) {
 	var posts []models.Post
-	err := r.db.Select("id", "slug", "updated_at", "created_at").
+	now := time.Now().UTC()
+
+	err := r.db.Select("id", "slug", "updated_at", "created_at", "publish_at", "published_at").
 		Where("published = ?", true).
-		Order("updated_at DESC").
+		Where("publish_at IS NULL OR publish_at <= ?", now).
+		Order("COALESCE(publish_at, updated_at, created_at) DESC").
 		Find(&posts).Error
 	return posts, err
 }

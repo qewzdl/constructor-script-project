@@ -91,10 +91,13 @@
         <p class="post__description">{{ .Post.Description }}</p>
         {{ end }}
 
+        {{ $publishedAt := or .Post.PublishedAt (or .Post.PublishAt .Post.CreatedAt) }}
         <div class="post__meta" aria-label="Post metadata">
-            <span class="post__meta-item post__meta-item--date"
-                >📅 {{ .Post.CreatedAt.Format "02 January 2006" }}</span
-            >
+            {{ if $publishedAt }}
+            <span class="post__meta-item post__meta-item--date">
+                📅 {{ $publishedAt.Format "02 January 2006" }}
+            </span>
+            {{ end }}
             <span class="post__meta-item post__meta-item--author"
                 >✍️ {{ .Post.Author.Username }}</span
             >
@@ -183,10 +186,11 @@
             {{ end }}
             <div class="post__related-content">
                 <h3 class="post__related-heading">{{ .Title }}</h3>
+                {{ $relatedPublished := or .PublishedAt (or .PublishAt .CreatedAt) }}
                 <time
                     class="post__related-date"
-                    datetime='{{ .CreatedAt.Format "2006-01-02" }}'
-                    >{{ .CreatedAt.Format "02.01.2006" }}</time
+                    datetime='{{ $relatedPublished.Format "2006-01-02" }}'
+                    >{{ $relatedPublished.Format "02.01.2006" }}</time
                 >
             </div>
         </a>

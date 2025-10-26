@@ -17,6 +17,39 @@
         }
     };
 
+    const parseDateInput = (value) => {
+        if (value instanceof Date) {
+            const time = value.getTime();
+            return Number.isNaN(time) ? null : new Date(time);
+        }
+        if (typeof value === 'number') {
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) {
+                return null;
+            }
+            const date = new Date(trimmed);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+        return null;
+    };
+
+    const formatDateTimeInput = (value) => {
+        const date = parseDateInput(value);
+        if (!date) {
+            return '';
+        }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     const booleanLabel = (value) => (value ? 'Yes' : 'No');
 
     const createElement = (tag, options = {}) => {
@@ -162,6 +195,8 @@
 
     window.AdminUtils = {
         formatDate,
+        parseDateInput,
+        formatDateTimeInput,
         booleanLabel,
         createElement,
         buildAbsoluteUrl,

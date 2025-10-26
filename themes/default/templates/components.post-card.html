@@ -79,17 +79,18 @@
             {{ $showAuthor := and $.ShowAuthor (or $.AuthorName (or (and $post.Author $post.Author.Username) $post.Username)) }}
             {{ $isoDate := "" }}
             {{ $readableDate := "" }}
-            {{ if $post.CreatedAt }}
-                {{ $isoDate = $post.CreatedAt.Format "2006-01-02" }}
-                {{ $readableDate = $post.CreatedAt.Format "02 Jan 2006" }}
+            {{ $publishedDate := or $post.PublishedAt (or $post.PublishAt $post.CreatedAt) }}
+            {{ if $publishedDate }}
+                {{ $isoDate = $publishedDate.Format "2006-01-02" }}
+                {{ $readableDate = $publishedDate.Format "02 Jan 2006" }}
             {{ end }}
-            {{ if or $post.CreatedAt (and $showViews $post.Views) $showAuthor }}
+            {{ if or $publishedDate (and $showViews $post.Views) $showAuthor }}
                 {{ if eq $metaElement "footer" }}
                 <footer class="{{ $metaClass }}">
                 {{ else }}
                 <div class="{{ $metaClass }}">
                 {{ end }}
-                    {{ if $post.CreatedAt }}
+                    {{ if $publishedDate }}
                     <time class="post-card__date" datetime="{{ $isoDate }}">
                         {{ $readableDate }}
                     </time>

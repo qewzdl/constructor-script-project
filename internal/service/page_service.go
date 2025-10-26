@@ -143,6 +143,9 @@ func (s *PageService) Create(req models.CreatePageRequest) (*models.Page, error)
 		Order:       req.Order,
 	}
 
+	now := time.Now().UTC()
+	page.Published, page.PublishAt, page.PublishedAt = normalizePublicationState(page.Published, req.PublishAt.Or(nil), now)
+
 	if err := s.pageRepo.Create(page); err != nil {
 		return nil, fmt.Errorf("failed to create page: %w", err)
 	}
@@ -316,6 +319,10 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 	if req.Template != nil {
 		page.Template = s.getTemplate(*req.Template)
 	}
+
+	publishAtCandidate := req.PublishAt.Or(page.PublishAt)
+	now := time.Now().UTC()
+	page.Published, page.PublishAt, page.PublishedAt = normalizePublicationState(page.Published, publishAtCandidate, now)
 	if req.HideHeader != nil {
 		page.HideHeader = *req.HideHeader
 	}
@@ -506,7 +513,8 @@ func (s *PageService) PublishPage(id uint) error {
 		return err
 	}
 
-	page.Published = true
+	now := time.Now().UTC()
+	page.Published, page.PublishAt, page.PublishedAt = normalizePublicationState(true, &now, now)
 
 	if err := s.pageRepo.Update(page); err != nil {
 		return err
@@ -529,7 +537,8 @@ func (s *PageService) UnpublishPage(id uint) error {
 		return err
 	}
 
-	page.Published = false
+	now := time.Now().UTC()
+	page.Published, page.PublishAt, page.PublishedAt = normalizePublicationState(false, nil, now)
 
 	if err := s.pageRepo.Update(page); err != nil {
 		return err

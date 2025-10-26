@@ -235,7 +235,7 @@
                                 <th scope="col">Title</th>
                                 <th scope="col">Category</th>
                                 <th scope="col">Tags</th>
-                                <th scope="col">Published</th>
+                                <th scope="col">Publication</th>
                                 <th scope="col">Updated</th>
                             </tr>
                         </thead>
@@ -305,6 +305,19 @@
                                 <small class="admin-form__hint">Separate tags with commas. Existing tags appear as suggestions.</small>
                                 <datalist id="admin-post-tags-list"></datalist>
                             </label>
+                            <label class="admin-form__label">
+                                Publish at
+                                <input
+                                    type="datetime-local"
+                                    name="publish_at"
+                                    class="admin-form__input"
+                                    step="60"
+                                />
+                                <small class="admin-form__hint">
+                                    Leave empty to publish immediately. Future times schedule the post for automatic release.
+                                </small>
+                            </label>
+                            <p class="admin-form__hint" data-role="post-published-at" hidden></p>
                             <label class="admin-form__checkbox">
                                 <input type="checkbox" name="published" />
                                 <span>Mark as published</span>
@@ -378,7 +391,7 @@
                                 <th scope="col">Title</th>
                                 <th scope="col">Path</th>
                                 <th scope="col">Slug</th>
-                                <th scope="col">Published</th>
+                                <th scope="col">Publication</th>
                                 <th scope="col">Updated</th>
                             </tr>
                         </thead>
@@ -446,6 +459,19 @@
                                 <input type="checkbox" name="hide_header" />
                                 <span>Hide page header</span>
                             </label>
+                            <label class="admin-form__label">
+                                Publish at
+                                <input
+                                    type="datetime-local"
+                                    name="publish_at"
+                                    class="admin-form__input"
+                                    step="60"
+                                />
+                                <small class="admin-form__hint">
+                                    Leave empty to publish immediately. Future times schedule the page for automatic release.
+                                </small>
+                            </label>
+                            <p class="admin-form__hint" data-role="page-published-at" hidden></p>
                             <label class="admin-form__checkbox">
                                 <input type="checkbox" name="published" />
                                 <span>Visible to visitors</span>

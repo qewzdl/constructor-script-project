@@ -10,6 +10,8 @@
 
     const {
         formatDate,
+        parseDateInput,
+        formatDateTimeInput,
         booleanLabel,
         createElement,
         buildAbsoluteUrl,
@@ -42,6 +44,97 @@
             }
         });
         return parts.join('\n\n');
+    };
+
+    const coerceDateValue = (value) => {
+        if (value instanceof Date) {
+            const time = value.getTime();
+            return Number.isNaN(time) ? null : new Date(time);
+        }
+        if (typeof value === 'number') {
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) {
+                return null;
+            }
+            const date = new Date(trimmed);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+        if (value && typeof value === 'object') {
+            if (value.Time) {
+                return coerceDateValue(value.Time);
+            }
+            if (value.time) {
+                return coerceDateValue(value.time);
+            }
+        }
+        return null;
+    };
+
+    const extractDateValue = (entry, ...keys) => {
+        if (!entry) {
+            return null;
+        }
+        for (const key of keys) {
+            if (Object.prototype.hasOwnProperty.call(entry, key)) {
+                const date = coerceDateValue(entry[key]);
+                if (date) {
+                    return date;
+                }
+            }
+        }
+        return null;
+    };
+
+    const formatPublicationStatus = (entry) => {
+        const published = Boolean(entry?.published ?? entry?.Published);
+        const publishAtDate = extractDateValue(entry, 'publish_at', 'publishAt', 'PublishAt');
+        const publishedAtDate = extractDateValue(entry, 'published_at', 'publishedAt', 'PublishedAt');
+        const now = Date.now();
+
+        if (!published) {
+            if (publishAtDate) {
+                return publishAtDate.getTime() > now
+                    ? `Draft (scheduled ${formatDate(publishAtDate)})`
+                    : `Draft (planned ${formatDate(publishAtDate)})`;
+            }
+            return 'Draft';
+        }
+
+        if (publishAtDate && publishAtDate.getTime() > now) {
+            return `Scheduled for ${formatDate(publishAtDate)}`;
+        }
+
+        if (publishedAtDate) {
+            return `Published ${formatDate(publishedAtDate)}`;
+        }
+
+        if (publishAtDate) {
+            return `Published ${formatDate(publishAtDate)}`;
+        }
+
+        return 'Published';
+    };
+
+    const describePublication = (entry) => {
+        const publishAtDate = extractDateValue(entry, 'publish_at', 'publishAt', 'PublishAt');
+        const publishedAtDate = extractDateValue(entry, 'published_at', 'publishedAt', 'PublishedAt');
+        const now = Date.now();
+
+        if (publishedAtDate) {
+            return `Published on ${formatDate(publishedAtDate)}.`;
+        }
+
+        if (publishAtDate) {
+            return publishAtDate.getTime() > now
+                ? `Scheduled for ${formatDate(publishAtDate)}.`
+                : `Planned publish date ${formatDate(publishAtDate)}.`;
+        }
+
+        return '';
     };
 
     const parseOrder = (value, fallback = 0) => {
@@ -554,6 +647,12 @@
         const postFeaturedImageInput = postForm?.querySelector(
             'input[name="featured_img"]'
         );
+        const postPublishAtInput = postForm?.querySelector(
+            'input[name="publish_at"]'
+        );
+        const postPublishedAtNote = postForm?.querySelector(
+            '[data-role="post-published-at"]'
+        );
         const tagList = document.getElementById('admin-tags-list');
         const postTagsList = document.getElementById('admin-post-tags-list');
         const userUsernameField = userForm?.querySelector('input[name="username"]');
@@ -578,6 +677,12 @@
             : null;
         const pageContentField = pageForm?.querySelector('[name="content"]');
         const postContentField = postForm?.querySelector('[name="content"]');
+        const pagePublishAtInput = pageForm?.querySelector(
+            'input[name="publish_at"]'
+        );
+        const pagePublishedAtNote = pageForm?.querySelector(
+            '[data-role="page-published-at"]'
+        );
 
         if (faviconUploadButton && !endpoints.faviconUpload) {
             faviconUploadButton.disabled = true;
@@ -1565,7 +1670,7 @@
                 );
                 row.appendChild(
                     createElement('td', {
-                        textContent: booleanLabel(post.published),
+                        textContent: formatPublicationStatus(post),
                     })
                 );
                 const updated =
@@ -1628,7 +1733,7 @@
                 );
                 row.appendChild(
                     createElement('td', {
-                        textContent: booleanLabel(page.published),
+                        textContent: formatPublicationStatus(page),
                     })
                 );
                 const updated =
@@ -2170,6 +2275,20 @@
             if (publishedField) {
                 publishedField.checked = Boolean(post.published);
             }
+            if (postPublishAtInput) {
+                const publishAt = extractDateValue(
+                    post,
+                    'publish_at',
+                    'publishAt',
+                    'PublishAt'
+                );
+                postPublishAtInput.value = formatDateTimeInput(publishAt);
+            }
+            if (postPublishedAtNote) {
+                const note = describePublication(post);
+                postPublishedAtNote.textContent = note;
+                postPublishedAtNote.hidden = !note;
+            }
             if (postSubmitButton) {
                 postSubmitButton.textContent = 'Update post';
             }
@@ -2199,6 +2318,13 @@
             }
             if (postContentField) {
                 postContentField.value = '';
+            }
+            if (postPublishAtInput) {
+                postPublishAtInput.value = '';
+            }
+            if (postPublishedAtNote) {
+                postPublishedAtNote.textContent = '';
+                postPublishedAtNote.hidden = true;
             }
             if (postSubmitButton) {
                 postSubmitButton.textContent = 'Create post';
@@ -2247,6 +2373,20 @@
             if (publishedField) {
                 publishedField.checked = Boolean(page.published);
             }
+            if (pagePublishAtInput) {
+                const publishAt = extractDateValue(
+                    page,
+                    'publish_at',
+                    'publishAt',
+                    'PublishAt'
+                );
+                pagePublishAtInput.value = formatDateTimeInput(publishAt);
+            }
+            if (pagePublishedAtNote) {
+                const note = describePublication(page);
+                pagePublishedAtNote.textContent = note;
+                pagePublishedAtNote.hidden = !note;
+            }
             const hideHeaderField = pageForm.querySelector(
                 'input[name="hide_header"]'
             );
@@ -2290,6 +2430,13 @@
             }
             if (pageContentField) {
                 pageContentField.value = '';
+            }
+            if (pagePublishAtInput) {
+                pagePublishAtInput.value = '';
+            }
+            if (pagePublishedAtNote) {
+                pagePublishedAtNote.textContent = '';
+                pagePublishedAtNote.hidden = true;
             }
             const hideHeaderField = pageForm.querySelector(
                 'input[name="hide_header"]'
@@ -5127,6 +5274,22 @@
                 content,
                 published: Boolean(publishedField?.checked),
             };
+            if (postPublishAtInput) {
+                const rawPublishAt = postPublishAtInput.value.trim();
+                if (rawPublishAt) {
+                    const parsedPublishAt = parseDateInput(rawPublishAt);
+                    if (!parsedPublishAt) {
+                        showAlert(
+                            'Please enter a valid publish date and time.',
+                            'error'
+                        );
+                        return;
+                    }
+                    payload.publish_at = parsedPublishAt.toISOString();
+                } else if (id) {
+                    payload.publish_at = null;
+                }
+            }
             if (sectionBuilder) {
                 const sections = sectionBuilder.getSections();
                 const sectionError = validateSections(sections);
@@ -5238,6 +5401,22 @@
                 published: Boolean(publishedField?.checked),
                 hide_header: Boolean(hideHeaderField?.checked),
             };
+            if (pagePublishAtInput) {
+                const rawPublishAt = pagePublishAtInput.value.trim();
+                if (rawPublishAt) {
+                    const parsedPublishAt = parseDateInput(rawPublishAt);
+                    if (!parsedPublishAt) {
+                        showAlert(
+                            'Please enter a valid publish date and time.',
+                            'error'
+                        );
+                        return;
+                    }
+                    payload.publish_at = parsedPublishAt.toISOString();
+                } else if (id) {
+                    payload.publish_at = null;
+                }
+            }
             if (pagePathInput) {
                 payload.path = pathValue;
             }

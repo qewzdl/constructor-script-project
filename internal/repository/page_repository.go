@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"constructor-script-backend/internal/models"
 
 	"gorm.io/gorm"
@@ -54,7 +56,11 @@ func (r *pageRepository) GetByID(id uint) (*models.Page, error) {
 
 func (r *pageRepository) GetBySlug(slug string) (*models.Page, error) {
 	var page models.Page
-	if err := r.db.Where("slug = ? AND published = ?", slug, true).First(&page).Error; err != nil {
+	now := time.Now().UTC()
+
+	if err := r.db.Where("slug = ? AND published = ?", slug, true).
+		Where("publish_at IS NULL OR publish_at <= ?", now).
+		First(&page).Error; err != nil {
 		return nil, err
 	}
 	return &page, nil
@@ -70,7 +76,11 @@ func (r *pageRepository) GetBySlugAny(slug string) (*models.Page, error) {
 
 func (r *pageRepository) GetByPath(path string) (*models.Page, error) {
 	var page models.Page
-	if err := r.db.Where("path = ? AND published = ?", path, true).First(&page).Error; err != nil {
+	now := time.Now().UTC()
+
+	if err := r.db.Where("path = ? AND published = ?", path, true).
+		Where("publish_at IS NULL OR publish_at <= ?", now).
+		First(&page).Error; err != nil {
 		return nil, err
 	}
 	return &page, nil
@@ -86,9 +96,12 @@ func (r *pageRepository) GetByPathAny(path string) (*models.Page, error) {
 
 func (r *pageRepository) GetAll() ([]models.Page, error) {
 	var pages []models.Page
+	now := time.Now().UTC()
+
 	if err := r.db.Where("published = ?", true).
+		Where("publish_at IS NULL OR publish_at <= ?", now).
 		Order(clause.OrderByColumn{Column: clause.Column{Name: "order"}}).
-		Order("created_at DESC").
+		Order("COALESCE(publish_at, created_at) DESC").
 		Find(&pages).Error; err != nil {
 		return nil, err
 	}

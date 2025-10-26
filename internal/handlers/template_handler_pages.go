@@ -99,11 +99,18 @@ func (h *TemplateHandler) buildPostStructuredData(post *models.Post, site models
 		baseURL = h.config.SiteURL
 	}
 
+	publishedAt := post.CreatedAt
+	if post.PublishedAt != nil {
+		publishedAt = post.PublishedAt.UTC()
+	} else if post.PublishAt != nil {
+		publishedAt = post.PublishAt.UTC()
+	}
+
 	article := map[string]interface{}{
 		"@context":      "https://schema.org",
 		"@type":         "BlogPosting",
 		"headline":      post.Title,
-		"datePublished": post.CreatedAt.Format(time.RFC3339),
+		"datePublished": publishedAt.Format(time.RFC3339),
 		"dateModified":  post.UpdatedAt.Format(time.RFC3339),
 		"mainEntityOfPage": map[string]interface{}{
 			"@type": "WebPage",
