@@ -279,7 +279,7 @@
             ? elementsSource.map((item) => normaliseElement(item))
             : [];
 
-        return {
+        const normalised = {
             id: section.id || section.ID || generateId(),
             type,
             title: section.title || section.Title || '',
@@ -289,11 +289,36 @@
                 ? clampPostListLimit(section.limit ?? section.Limit)
                 : section.limit || section.Limit || 0,
         };
+
+        if (type === 'grid') {
+            const styleGridItemsSource =
+                section.styleGridItems ??
+                section.StyleGridItems ??
+                section.style_grid_items ??
+                section.Style_grid_items;
+
+            let styleGridItems = true;
+            if (styleGridItemsSource !== undefined && styleGridItemsSource !== null) {
+                if (typeof styleGridItemsSource === 'string') {
+                    const normalisedValue = styleGridItemsSource.trim().toLowerCase();
+                    styleGridItems =
+                        normalisedValue === 'true' ||
+                        normalisedValue === '1' ||
+                        normalisedValue === 'yes';
+                } else {
+                    styleGridItems = Boolean(styleGridItemsSource);
+                }
+            }
+
+            normalised.styleGridItems = styleGridItems;
+        }
+
+        return normalised;
     };
 
     const createEmptySection = (type = sectionTypeRegistry.getDefault()) => {
         const ensuredType = sectionTypeRegistry.ensure(type);
-        return {
+        const section = {
             id: generateId(),
             type: ensuredType,
             title: '',
@@ -304,6 +329,10 @@
                     ? clampPostListLimit(6)
                     : 0,
         };
+        if (ensuredType === 'grid') {
+            section.styleGridItems = true;
+        }
+        return section;
     };
 
     const createElementByType = (type) => {
@@ -528,6 +557,9 @@
                 order: index + 1,
                 elements,
             };
+            if (type === 'grid') {
+                payload.style_grid_items = section.styleGridItems !== false;
+            }
             if (type === 'posts_list') {
                 payload.limit = clampPostListLimit(
                     section.limit ?? section.Limit ?? payload.limit
@@ -1029,6 +1061,13 @@
                 return;
             }
             section.type = nextType;
+            if (nextType === 'grid') {
+                if (section.styleGridItems === undefined) {
+                    section.styleGridItems = true;
+                }
+            } else if (section.styleGridItems !== undefined) {
+                delete section.styleGridItems;
+            }
             const nextDefinition = sectionTypeRegistry.get(nextType);
             if (nextDefinition?.supportsElements === false) {
                 section.elements = [];
@@ -1083,6 +1122,26 @@
             imageField.appendChild(imageLabel);
             imageField.appendChild(imageInput);
             body.appendChild(imageField);
+
+            if (section.type === 'grid') {
+                const styleId = `${section.id}-style-grid-items`;
+                const styleField = createElement('div', {
+                    className: 'section-field section-field--checkbox',
+                });
+                const styleLabel = createElement('label', {
+                    textContent: 'Apply border, background, and padding to grid items',
+                    attrs: { for: styleId },
+                });
+                const styleInput = createElement('input', { type: 'checkbox' });
+                styleInput.id = styleId;
+                styleInput.checked = section.styleGridItems !== false;
+                styleInput.addEventListener('input', (event) => {
+                    section.styleGridItems = event.target.checked;
+                });
+                styleField.appendChild(styleInput);
+                styleField.appendChild(styleLabel);
+                body.appendChild(styleField);
+            }
 
             const elementsWrapper = createElement('div', {
                 className: 'section-elements',

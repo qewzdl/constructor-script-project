@@ -177,6 +177,26 @@
                 imageField.append(imageInput);
                 sectionItem.append(imageField);
 
+                if (section.type === 'grid') {
+                    const styleField = createElement('label', {
+                        className:
+                            'admin-builder__field admin-builder__field--checkbox',
+                    });
+                    const styleInput = createElement('input', {
+                        className: 'admin-builder__checkbox',
+                    });
+                    styleInput.type = 'checkbox';
+                    styleInput.dataset.field = 'section-grid-style';
+                    styleInput.checked = section.styleGridItems !== false;
+                    const styleLabel = createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent:
+                            'Apply border, background, and padding to grid items',
+                    });
+                    styleField.append(styleInput, styleLabel);
+                    sectionItem.append(styleField);
+                }
+
                 const limitDefinition = sectionDefinition.settings?.limit;
                 if (limitDefinition) {
                     const limitField = createElement('label', {

@@ -78,6 +78,14 @@
     height: 100%;
 }
 
+.post__section-grid-item--plain,
+.page-view__section-grid-item--plain,
+.blog__section-grid-item--plain {
+    border: none;
+    padding: 0;
+    background-color: transparent;
+}
+
 .post__section-grid-item > *:first-child,
 .page-view__section-grid-item > *:first-child,
 .blog__section-grid-item > *:first-child {

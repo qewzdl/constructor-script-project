@@ -65,6 +65,15 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			if sectionType == "grid" {
 				gridWrapperClass = fmt.Sprintf("%s__section-grid", prefix)
 				gridItemClass = fmt.Sprintf("%s__section-grid-item", prefix)
+
+				styleGridItems := true
+				if section.StyleGridItems != nil {
+					styleGridItems = *section.StyleGridItems
+				}
+
+				if !styleGridItems {
+					gridItemClass = gridItemClass + " " + fmt.Sprintf("%s__section-grid-item--plain", prefix)
+				}
 			}
 
 			for _, elem := range section.Elements {

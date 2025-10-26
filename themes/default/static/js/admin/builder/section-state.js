@@ -94,6 +94,23 @@
         const limitValue = limitDefinition
             ? clampLimit(parseInteger(rawLimit), limitDefinition)
             : 0;
+        let styleGridItems = true;
+        const styleGridItemsSource =
+            section.styleGridItems ??
+            section.StyleGridItems ??
+            section.style_grid_items ??
+            section.Style_grid_items;
+        if (styleGridItemsSource !== undefined && styleGridItemsSource !== null) {
+            if (typeof styleGridItemsSource === 'string') {
+                const normalisedValue = styleGridItemsSource.trim().toLowerCase();
+                styleGridItems =
+                    normalisedValue === 'true' ||
+                    normalisedValue === '1' ||
+                    normalisedValue === 'yes';
+            } else {
+                styleGridItems = Boolean(styleGridItemsSource);
+            }
+        }
         return {
             clientId: randomId(),
             id: normaliseString(section.id ?? section.ID ?? ''),
@@ -106,6 +123,7 @@
                   )
                 : [],
             limit: limitValue,
+            styleGridItems,
         };
     };
 
@@ -186,6 +204,10 @@
 
                     if (image) {
                         payload.image = image;
+                    }
+
+                    if (section.type === 'grid') {
+                        payload.style_grid_items = section.styleGridItems !== false;
                     }
 
                     const limitDefinition =
@@ -321,6 +343,8 @@
                 section.title = value;
             } else if (field === 'section-image') {
                 section.image = value;
+            } else if (field === 'section-grid-style') {
+                section.styleGridItems = Boolean(value);
             } else if (field === 'section-limit') {
                 const limitDefinition = sectionDefs[section.type]?.settings?.limit;
                 if (limitDefinition) {
@@ -338,6 +362,9 @@
                     return;
                 }
                 section.type = ensuredType;
+                if (section.type === 'grid' && section.styleGridItems === undefined) {
+                    section.styleGridItems = true;
+                }
                 if (!supportsElements(section.type)) {
                     section.elements = [];
                 }
