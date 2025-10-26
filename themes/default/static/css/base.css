@@ -402,7 +402,7 @@ textarea.form-field__input {
 
 .checkbox {
     display: inline-flex;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--size-sm);
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
@@ -416,11 +416,29 @@ textarea.form-field__input {
     display: grid;
     place-items: center;
     background-color: var(--color-bg-top);
+    position: relative;
 }
 
 .checkbox__input:checked {
     border-color: var(--color-primary);
     background-color: var(--color-primary);
+}
+
+.checkbox__input::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.35rem;
+    height: 0.65rem;
+    border: solid var(--color-primary-opposite);
+    border-width: 0 0.18rem 0.18rem 0;
+    transform: translate(-50%, -60%) rotate(45deg) scale(0.75);
+    transform-origin: center;
+}
+
+.checkbox__input:not(:checked)::after {
+    border: solid transparent;
 }
 
 .checkbox__input:focus-visible {
@@ -431,6 +449,7 @@ textarea.form-field__input {
 .checkbox__label {
     color: var(--color-secondary);
     line-height: 1.6;
+    user-select: none;
 }
 
 .auth {
