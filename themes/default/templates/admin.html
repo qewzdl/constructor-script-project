@@ -464,9 +464,9 @@
                                 Display order
                                 <input type="number" name="order" value="0" class="admin-form__input" />
                             </label>
-                            <label class="admin-form__checkbox">
-                                <input type="checkbox" name="hide_header" />
-                                <span>Hide page header</span>
+                            <label class="admin-form__checkbox checkbox">
+                                <input type="checkbox" name="hide_header" class="checkbox__input" />
+                                <span class="checkbox__label">Hide page header</span>
                             </label>
                             <label class="admin-form__label">
                                 Publish at
@@ -884,9 +884,14 @@
                         <form id="admin-backup-settings-form" class="admin-form" novalidate>
                             <fieldset class="admin-form__fieldset">
                                 <legend class="admin-form__legend">Schedule</legend>
-                                <label class="admin-form__checkbox" for="backup-auto-enabled">
-                                    <input type="checkbox" id="backup-auto-enabled" name="auto_enabled" />
-                                    <span>Enable automatic backups</span>
+                                <label class="admin-form__checkbox checkbox" for="backup-auto-enabled">
+                                    <input
+                                        type="checkbox"
+                                        id="backup-auto-enabled"
+                                        name="auto_enabled"
+                                        class="checkbox__input"
+                                    />
+                                    <span class="checkbox__label">Enable automatic backups</span>
                                 </label>
                                 <label class="admin-form__label" for="backup-auto-interval">
                                     Backup interval (hours)
@@ -971,9 +976,14 @@
                     <form id="admin-ads-form" class="admin-form" novalidate>
                         <fieldset class="admin-form__fieldset">
                             <legend class="admin-form__legend">General settings</legend>
-                            <label class="admin-form__checkbox">
-                                <input type="checkbox" name="enabled" data-role="ads-enabled" />
-                                <span>Enable advertising</span>
+                            <label class="admin-form__checkbox checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="enabled"
+                                    data-role="ads-enabled"
+                                    class="checkbox__input"
+                                />
+                                <span class="checkbox__label">Enable advertising</span>
                             </label>
                             <label class="admin-form__label">
                                 Provider
@@ -999,9 +1009,14 @@
                             <small class="admin-form__hint">
                                 Use the publisher ID from your AdSense account (format: ca-pub-XXXXXXXXXXXXXXXX).
                             </small>
-                            <label class="admin-form__checkbox">
-                                <input type="checkbox" name="google_ads.auto_ads" data-role="ads-google-auto" />
-                                <span>Enable Auto Ads</span>
+                            <label class="admin-form__checkbox checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="google_ads.auto_ads"
+                                    data-role="ads-google-auto"
+                                    class="checkbox__input"
+                                />
+                                <span class="checkbox__label">Enable Auto Ads</span>
                             </label>
                             <p class="admin-form__hint">
                                 Auto Ads allow Google to automatically place ads across your pages. You can still define manual slots.

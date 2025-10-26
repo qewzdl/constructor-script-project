@@ -68,6 +68,7 @@
     /* Admin chart */
     --admin-chart-posts: #2563eb;
     --admin-chart-comments: #f97316;
+    --admin-chart-views: #10b981;
     --admin-chart-surface: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-top) 94%);
     --admin-chart-grid-line: color-mix(in srgb, var(--color-border) 65%, transparent);
     --admin-chart-point-bg: var(--color-bg-top);

@@ -252,12 +252,23 @@
     );
 }
 
+.admin-chart__line[data-series='views'] {
+    stroke: var(--admin-chart-views);
+    filter: drop-shadow(
+        0 10px 18px color-mix(in srgb, var(--admin-chart-views) 20%, transparent)
+    );
+}
+
 .admin-chart__point[data-series='posts'] {
     fill: var(--admin-chart-posts);
 }
 
 .admin-chart__point[data-series='comments'] {
     fill: var(--admin-chart-comments);
+}
+
+.admin-chart__point[data-series='views'] {
+    fill: var(--admin-chart-views);
 }
 
 .admin-chart__footer {
@@ -296,6 +307,10 @@
 
 .admin-chart__legend-item[data-series='comments'] .admin-chart__legend-swatch {
     background: var(--admin-chart-comments);
+}
+
+.admin-chart__legend-item[data-series='views'] .admin-chart__legend-swatch {
+    background: var(--admin-chart-views);
 }
 
 .admin-chart__legend-label {
@@ -355,6 +370,14 @@
 
 .admin-chart__summary-value[data-series='comments']::before {
     background: var(--admin-chart-comments);
+}
+
+.admin-chart__summary-value[data-series='views'] {
+    color: color-mix(in srgb, var(--admin-chart-views) 75%, var(--color-text));
+}
+
+.admin-chart__summary-value[data-series='views']::before {
+    background: var(--admin-chart-views);
 }
 
 .admin-chart__empty {
@@ -734,7 +757,7 @@
 
 .admin-form__label {
     display: grid;
-    gap: var(--size-xs);
+    gap: var(--size-sm);
     font-weight: 500;
     font-size: var(--font-size-sm);
 }
@@ -844,10 +867,12 @@
 }
 
 .admin-form__checkbox {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--size-xs);
-    font-size: var(--font-size-sm);
+    gap: var(--size-sm);
+    color: var(--color-secondary);
+}
+
+.admin-form__checkbox .checkbox__label {
+    color: inherit;
 }
 
 .admin-ads__slots {
@@ -890,11 +915,6 @@
 
 .admin-ads__slot-remove {
     justify-self: start;
-}
-
-.admin-form__checkbox input {
-    width: 1rem;
-    height: 1rem;
 }
 
 .admin-form__actions {

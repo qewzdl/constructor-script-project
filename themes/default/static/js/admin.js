@@ -542,6 +542,11 @@
                 label: 'Comments',
                 color: 'var(--admin-chart-comments)',
             },
+            {
+                key: 'views',
+                label: 'Views',
+                color: 'var(--admin-chart-views)',
+            },
         ];
 
         const navigationContainer = root.querySelector('[data-role="admin-nav"]');
@@ -1380,6 +1385,9 @@
                           const commentsValue = Number(
                               entry?.comments ?? entry?.Comments ?? 0
                           );
+                          const viewsValue = Number(
+                              entry?.views ?? entry?.Views ?? 0
+                          );
                           return {
                               period,
                               posts: Number.isFinite(postsValue)
@@ -1387,6 +1395,9 @@
                                   : 0,
                               comments: Number.isFinite(commentsValue)
                                   ? Math.max(0, commentsValue)
+                                  : 0,
+                              views: Number.isFinite(viewsValue)
+                                  ? Math.max(0, viewsValue)
                                   : 0,
                           };
                       })
