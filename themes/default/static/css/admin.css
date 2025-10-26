@@ -1237,7 +1237,7 @@
         var(--color-border-subtle) 30%,
         var(--color-bg-top)
     );
-    color: var(--color-primary);
+    color: var(--color-secondary);
     border: 1px solid var(--color-border);
 }
 
@@ -1249,11 +1249,9 @@
 
 .admin-form__submit--secondary:hover,
 .admin-form__submit--secondary:focus-visible {
-    background: color-mix(
-        in srgb,
-        var(--color-border-subtle) 55%,
-        var(--color-bg-top)
-    );
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: var(--color-primary-transparent);
     outline: none;
 }
 
@@ -1377,10 +1375,10 @@
 }
 
 .section-builder__add {
-    border: 1px dashed var(--color-primary);
+    border: 1px dashed var(--color-secondary);
     padding: var(--size-xs) var(--size-mid);
     background: var(--color-bg-top);
-    color: var(--color-primary);
+    color: var(--color-secondary);
     font-weight: 600;
     font-size: var(--font-size-sm);
 }
@@ -1388,6 +1386,8 @@
 .section-builder__add:hover,
 .section-builder__add:focus-visible {
     background: var(--color-primary-transparent);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
     outline: none;
 }
 
@@ -1479,6 +1479,7 @@
 
 .admin-form__upload-button:hover,
 .admin-form__upload-button:focus-visible {
+    background: var(--color-primary-transparent);
     border-color: var(--color-primary);
     color: var(--color-primary);
     outline: none;
@@ -1519,7 +1520,16 @@
     background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-base);
     font-size: var(--font-size-xs);
+    color: var(--color-secondary);
     font-weight: 600;
+}
+
+.section-elements__button:hover,
+.section-elements__button:focus-visible {
+    border-color: var(--color-primary);
+    background: var(--color-primary-transparent);
+    color: var(--color-primary);
+    outline: none;
 }
 
 .section-elements__empty {
