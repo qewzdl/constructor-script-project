@@ -188,13 +188,13 @@ func (s *PostService) ExistsBySlug(slug string) (bool, error) {
 	return s.postRepo.ExistsBySlug(cleaned)
 }
 
-func (s *PostService) Update(id uint, req models.UpdatePostRequest, userID uint, isAdmin bool) (*models.Post, error) {
+func (s *PostService) Update(id uint, req models.UpdatePostRequest, userID uint, canManageAll bool) (*models.Post, error) {
 	post, err := s.postRepo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if !isAdmin && post.AuthorID != userID {
+	if !canManageAll && post.AuthorID != userID {
 		return nil, errors.New("unauthorized")
 	}
 
@@ -441,13 +441,13 @@ func (s *PostService) getOrCreateTags(tagNames []string) ([]models.Tag, error) {
 	return tags, nil
 }
 
-func (s *PostService) Delete(id uint, userID uint, isAdmin bool) error {
+func (s *PostService) Delete(id uint, userID uint, canManageAll bool) error {
 	post, err := s.postRepo.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	if !isAdmin && post.AuthorID != userID {
+	if !canManageAll && post.AuthorID != userID {
 		return errors.New("unauthorized")
 	}
 

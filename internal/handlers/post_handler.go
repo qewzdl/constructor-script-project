@@ -1,14 +1,16 @@
 package handlers
 
 import (
-	"constructor-script-backend/internal/models"
-	"constructor-script-backend/internal/service"
 	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"constructor-script-backend/internal/authorization"
+	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/service"
 )
 
 type PostHandler struct {
@@ -103,9 +105,11 @@ func (h *PostHandler) Update(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	isAdmin := c.GetString("role") == "admin"
+	roleValue, _ := c.Get("role")
+	role, _ := authorization.ParseUserRole(roleValue)
+	canManageAll := authorization.RoleHasPermission(role, authorization.PermissionManageAllContent)
 
-	post, err := h.postService.Update(uint(id), req, userID, isAdmin)
+	post, err := h.postService.Update(uint(id), req, userID, canManageAll)
 	if err != nil {
 		if err.Error() == "unauthorized" {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -126,9 +130,11 @@ func (h *PostHandler) Delete(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	isAdmin := c.GetString("role") == "admin"
+	roleValue, _ := c.Get("role")
+	role, _ := authorization.ParseUserRole(roleValue)
+	canManageAll := authorization.RoleHasPermission(role, authorization.PermissionManageAllContent)
 
-	if err := h.postService.Delete(uint(id), userID, isAdmin); err != nil {
+	if err := h.postService.Delete(uint(id), userID, canManageAll); err != nil {
 		if err.Error() == "unauthorized" {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		} else {

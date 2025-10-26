@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+
+	"constructor-script-backend/internal/authorization"
 )
 
 type User struct {
@@ -18,10 +20,10 @@ type User struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Username string `gorm:"uniqueIndex;not null" json:"username"`
-	Email    string `gorm:"uniqueIndex;not null" json:"email"`
-	Password string `gorm:"not null" json:"-"`
-	Role     string `gorm:"default:'user'" json:"role"`
+	Username string                 `gorm:"uniqueIndex;not null" json:"username"`
+	Email    string                 `gorm:"uniqueIndex;not null" json:"email"`
+	Password string                 `gorm:"not null" json:"-"`
+	Role     authorization.UserRole `gorm:"type:varchar(32);default:'user'" json:"role"`
 
 	Status string `gorm:"default:'active'" json:"status"`
 

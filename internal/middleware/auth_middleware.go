@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"constructor-script-backend/internal/constants"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,6 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+
+	"constructor-script-backend/internal/authorization"
+	"constructor-script-backend/internal/constants"
 )
 
 func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
@@ -72,7 +74,22 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		c.Set("user_id", uint(claims["user_id"].(float64)))
 		c.Set("email", claims["email"].(string))
 		c.Set("username", claims["username"].(string))
-		c.Set("role", claims["role"].(string))
+
+		rawRole, ok := claims["role"].(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token role"})
+			c.Abort()
+			return
+		}
+
+		role := authorization.UserRole(strings.ToLower(strings.TrimSpace(rawRole)))
+		if !role.IsValid() {
+			c.JSON(http.StatusForbidden, gin.H{"error": "unknown user role"})
+			c.Abort()
+			return
+		}
+
+		c.Set("role", role)
 
 		c.Next()
 	}
@@ -81,11 +98,78 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")
-		if !exists || role != "admin" {
+		parsedRole, ok := authorization.ParseUserRole(role)
+		if !exists || !ok || parsedRole != authorization.RoleAdmin {
 			c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
 			c.Abort()
 			return
 		}
 		c.Next()
+	}
+}
+
+func RequirePermissions(perms ...authorization.Permission) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if len(perms) == 0 {
+			c.Next()
+			return
+		}
+
+		roleValue, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusForbidden, gin.H{"error": "role not provided"})
+			c.Abort()
+			return
+		}
+
+		role, ok := authorization.ParseUserRole(roleValue)
+		if !ok {
+			c.JSON(http.StatusForbidden, gin.H{"error": "invalid user role"})
+			c.Abort()
+			return
+		}
+
+		for _, perm := range perms {
+			if authorization.RoleHasPermission(role, perm) {
+				c.Next()
+				return
+			}
+		}
+
+		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
+		c.Abort()
+	}
+}
+
+func RequireRoles(roles ...authorization.UserRole) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if len(roles) == 0 {
+			c.Next()
+			return
+		}
+
+		roleValue, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusForbidden, gin.H{"error": "role not provided"})
+			c.Abort()
+			return
+		}
+
+		role, ok := authorization.ParseUserRole(roleValue)
+		if !ok {
+			c.JSON(http.StatusForbidden, gin.H{"error": "invalid user role"})
+			c.Abort()
+			return
+		}
+
+		for _, allowed := range roles {
+			if role == allowed {
+				c.Next()
+				return
+			}
+		}
+
+		c.JSON(http.StatusForbidden, gin.H{"error": "role not permitted"})
+		c.Abort()
 	}
 }

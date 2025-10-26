@@ -16,11 +16,12 @@ import (
 	"sync"
 	"time"
 
+	"gorm.io/gorm"
+
+	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/logger"
-
-	"gorm.io/gorm"
 )
 
 const (
@@ -741,7 +742,7 @@ func (s *BackupService) snapshotData(ctx context.Context) (backupData, error) {
 			Username:  user.Username,
 			Email:     user.Email,
 			Password:  user.Password,
-			Role:      user.Role,
+			Role:      user.Role.String(),
 			Status:    user.Status,
 		}
 	}
@@ -1127,6 +1128,11 @@ func (s *BackupService) restoreData(tx *gorm.DB, data backupData) error {
 	if len(data.Users) > 0 {
 		users := make([]models.User, len(data.Users))
 		for i, item := range data.Users {
+			role := authorization.UserRole(strings.ToLower(strings.TrimSpace(item.Role)))
+			if !role.IsValid() {
+				return fmt.Errorf("invalid user role in backup: %s", item.Role)
+			}
+
 			users[i] = models.User{
 				ID:        item.ID,
 				CreatedAt: item.CreatedAt,
@@ -1135,7 +1141,7 @@ func (s *BackupService) restoreData(tx *gorm.DB, data backupData) error {
 				Username:  item.Username,
 				Email:     item.Email,
 				Password:  item.Password,
-				Role:      item.Role,
+				Role:      role,
 				Status:    item.Status,
 			}
 		}

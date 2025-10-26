@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
 )
@@ -56,7 +57,7 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		Username: req.Username,
 		Email:    req.Email,
 		Password: string(hashedPassword),
-		Role:     "user",
+		Role:     authorization.RoleUser,
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
@@ -89,7 +90,7 @@ func (s *AuthService) generateToken(user *models.User) (string, error) {
 		"user_id":  user.ID,
 		"email":    user.Email,
 		"username": user.Username,
-		"role":     user.Role,
+		"role":     user.Role.String(),
 		"exp":      time.Now().Add(time.Hour * 72).Unix(),
 	}
 
@@ -115,12 +116,17 @@ func (s *AuthService) DeleteUser(id uint) error {
 }
 
 func (s *AuthService) UpdateUserRole(id uint, role string) error {
+	targetRole := authorization.UserRole(strings.ToLower(strings.TrimSpace(role)))
+	if !targetRole.IsValid() {
+		return errors.New("invalid role")
+	}
+
 	user, err := s.userRepo.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	user.Role = role
+	user.Role = targetRole
 	return s.userRepo.Update(user)
 }
 

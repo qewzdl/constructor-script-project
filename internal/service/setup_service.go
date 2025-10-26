@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
 )
@@ -109,7 +110,7 @@ func (s *SetupService) CompleteSetup(req models.SetupRequest) (*models.User, err
 		Username: req.AdminUsername,
 		Email:    req.AdminEmail,
 		Password: string(hashedPassword),
-		Role:     "admin",
+		Role:     authorization.RoleAdmin,
 	}
 
 	if err := s.userRepo.Create(user); err != nil {

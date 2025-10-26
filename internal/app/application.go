@@ -14,6 +14,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/handlers"
 	"constructor-script-backend/internal/middleware"
@@ -633,73 +634,100 @@ func (a *Application) initRouter() error {
 
 		admin := v1.Group("/admin")
 		admin.Use(middleware.AuthMiddleware(a.cfg.JWTSecret))
-		admin.Use(middleware.AdminMiddleware())
+
+		content := admin.Group("")
+		content.Use(middleware.RequirePermissions(authorization.PermissionManageAllContent))
 		{
-			admin.POST("/posts", a.handlers.Post.Create)
-			admin.PUT("/posts/:id", a.handlers.Post.Update)
-			admin.DELETE("/posts/:id", a.handlers.Post.Delete)
-			admin.GET("/posts", a.handlers.Post.GetAllAdmin)
-			admin.PUT("/posts/:id/publish", a.handlers.Post.PublishPost)
-			admin.PUT("/posts/:id/unpublish", a.handlers.Post.UnpublishPost)
+			content.POST("/posts", a.handlers.Post.Create)
+			content.PUT("/posts/:id", a.handlers.Post.Update)
+			content.DELETE("/posts/:id", a.handlers.Post.Delete)
+			content.GET("/posts", a.handlers.Post.GetAllAdmin)
 
-			admin.POST("/pages", a.handlers.Page.Create)
-			admin.PUT("/pages/:id", a.handlers.Page.Update)
-			admin.DELETE("/pages/:id", a.handlers.Page.Delete)
-			admin.GET("/pages", a.handlers.Page.GetAllAdmin)
-			admin.PUT("/pages/:id/publish", a.handlers.Page.PublishPage)
-			admin.PUT("/pages/:id/unpublish", a.handlers.Page.UnpublishPage)
+			content.POST("/pages", a.handlers.Page.Create)
+			content.PUT("/pages/:id", a.handlers.Page.Update)
+			content.DELETE("/pages/:id", a.handlers.Page.Delete)
+			content.GET("/pages", a.handlers.Page.GetAllAdmin)
 
-			admin.POST("/upload", a.handlers.Upload.UploadImage)
+			content.POST("/upload", a.handlers.Upload.UploadImage)
 
-			admin.POST("/categories", a.handlers.Category.Create)
-			admin.PUT("/categories/:id", a.handlers.Category.Update)
-			admin.DELETE("/categories/:id", a.handlers.Category.Delete)
+			content.POST("/categories", a.handlers.Category.Create)
+			content.PUT("/categories/:id", a.handlers.Category.Update)
+			content.DELETE("/categories/:id", a.handlers.Category.Delete)
 
-			admin.GET("/users", a.handlers.Auth.GetAllUsers)
-			admin.GET("/users/:id", a.handlers.Auth.GetUser)
-			admin.DELETE("/users/:id", a.handlers.Auth.DeleteUser)
-			admin.PUT("/users/:id/role", a.handlers.Auth.UpdateUserRole)
-			admin.PUT("/users/:id/status", a.handlers.Auth.UpdateUserStatus)
+			content.DELETE("/tags/:id", a.handlers.Post.DeleteTag)
+		}
 
-			admin.GET("/comments", a.handlers.Comment.GetAll)
-			admin.DELETE("/comments/:id", a.handlers.Comment.Delete)
-			admin.PUT("/comments/:id/approve", a.handlers.Comment.ApproveComment)
-			admin.PUT("/comments/:id/reject", a.handlers.Comment.RejectComment)
+		publish := admin.Group("")
+		publish.Use(middleware.RequirePermissions(authorization.PermissionPublishContent))
+		{
+			publish.PUT("/posts/:id/publish", a.handlers.Post.PublishPost)
+			publish.PUT("/posts/:id/unpublish", a.handlers.Post.UnpublishPost)
+			publish.PUT("/pages/:id/publish", a.handlers.Page.PublishPage)
+			publish.PUT("/pages/:id/unpublish", a.handlers.Page.UnpublishPage)
+		}
 
-			admin.DELETE("/tags/:id", a.handlers.Post.DeleteTag)
+		users := admin.Group("")
+		users.Use(middleware.RequirePermissions(authorization.PermissionManageUsers))
+		{
+			users.GET("/users", a.handlers.Auth.GetAllUsers)
+			users.GET("/users/:id", a.handlers.Auth.GetUser)
+			users.DELETE("/users/:id", a.handlers.Auth.DeleteUser)
+			users.PUT("/users/:id/role", a.handlers.Auth.UpdateUserRole)
+			users.PUT("/users/:id/status", a.handlers.Auth.UpdateUserStatus)
+		}
 
-			admin.GET("/settings/site", a.handlers.Setup.GetSiteSettings)
-			admin.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
-			admin.POST("/settings/favicon", a.handlers.Setup.UploadFavicon)
-			admin.POST("/settings/logo", a.handlers.Setup.UploadLogo)
-			admin.GET("/settings/advertising", a.handlers.Advertising.Get)
-			admin.PUT("/settings/advertising", a.handlers.Advertising.Update)
+		comments := admin.Group("")
+		comments.Use(middleware.RequirePermissions(authorization.PermissionModerateComments))
+		{
+			comments.GET("/comments", a.handlers.Comment.GetAll)
+			comments.DELETE("/comments/:id", a.handlers.Comment.Delete)
+			comments.PUT("/comments/:id/approve", a.handlers.Comment.ApproveComment)
+			comments.PUT("/comments/:id/reject", a.handlers.Comment.RejectComment)
+		}
 
-			admin.GET("/themes", a.handlers.Theme.List)
-			admin.PUT("/themes/:slug/activate", a.handlers.Theme.Activate)
-			admin.PUT("/themes/:slug/reload", a.handlers.Theme.Reload)
+		settings := admin.Group("")
+		settings.Use(middleware.RequirePermissions(authorization.PermissionManageSettings))
+		{
+			settings.GET("/settings/site", a.handlers.Setup.GetSiteSettings)
+			settings.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
+			settings.POST("/settings/favicon", a.handlers.Setup.UploadFavicon)
+			settings.POST("/settings/logo", a.handlers.Setup.UploadLogo)
+			settings.GET("/settings/advertising", a.handlers.Advertising.Get)
+			settings.PUT("/settings/advertising", a.handlers.Advertising.Update)
 
-			admin.GET("/social-links", a.handlers.SocialLink.List)
-			admin.POST("/social-links", a.handlers.SocialLink.Create)
-			admin.PUT("/social-links/:id", a.handlers.SocialLink.Update)
-			admin.DELETE("/social-links/:id", a.handlers.SocialLink.Delete)
+			settings.GET("/social-links", a.handlers.SocialLink.List)
+			settings.POST("/social-links", a.handlers.SocialLink.Create)
+			settings.PUT("/social-links/:id", a.handlers.SocialLink.Update)
+			settings.DELETE("/social-links/:id", a.handlers.SocialLink.Delete)
 
-			admin.GET("/menu-items", a.handlers.Menu.List)
-			admin.POST("/menu-items", a.handlers.Menu.Create)
-			admin.PUT("/menu-items/reorder", a.handlers.Menu.Reorder)
-			admin.PUT("/menu-items/:id", a.handlers.Menu.Update)
-			admin.DELETE("/menu-items/:id", a.handlers.Menu.Delete)
+			settings.GET("/menu-items", a.handlers.Menu.List)
+			settings.POST("/menu-items", a.handlers.Menu.Create)
+			settings.PUT("/menu-items/reorder", a.handlers.Menu.Reorder)
+			settings.PUT("/menu-items/:id", a.handlers.Menu.Update)
+			settings.DELETE("/menu-items/:id", a.handlers.Menu.Delete)
 
-			admin.GET("/backups/settings", a.handlers.Backup.GetSettings)
-			admin.PUT("/backups/settings", a.handlers.Backup.UpdateSettings)
-			admin.GET("/backups/export", a.handlers.Backup.Export)
-			admin.POST("/backups/import", a.handlers.Backup.Import)
-
-			admin.GET("/stats", handlers.GetStatistics(a.db))
+			settings.GET("/stats", handlers.GetStatistics(a.db))
 
 			if a.cache != nil {
-				admin.DELETE("/cache", handlers.ClearCache(a.cache))
+				settings.DELETE("/cache", handlers.ClearCache(a.cache))
 			}
+		}
+
+		themes := admin.Group("")
+		themes.Use(middleware.RequirePermissions(authorization.PermissionManageThemes))
+		{
+			themes.GET("/themes", a.handlers.Theme.List)
+			themes.PUT("/themes/:slug/activate", a.handlers.Theme.Activate)
+			themes.PUT("/themes/:slug/reload", a.handlers.Theme.Reload)
+		}
+
+		backups := admin.Group("")
+		backups.Use(middleware.RequirePermissions(authorization.PermissionManageBackups))
+		{
+			backups.GET("/backups/settings", a.handlers.Backup.GetSettings)
+			backups.PUT("/backups/settings", a.handlers.Backup.UpdateSettings)
+			backups.GET("/backups/export", a.handlers.Backup.Export)
+			backups.POST("/backups/import", a.handlers.Backup.Import)
 		}
 	}
 

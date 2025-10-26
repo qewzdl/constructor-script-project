@@ -1,12 +1,14 @@
 package handlers
 
 import (
-	"constructor-script-backend/internal/models"
-	"constructor-script-backend/internal/service"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"constructor-script-backend/internal/authorization"
+	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/service"
 )
 
 type CommentHandler struct {
@@ -80,9 +82,11 @@ func (h *CommentHandler) Update(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	isAdmin := c.GetString("role") == "admin"
+	roleValue, _ := c.Get("role")
+	role, _ := authorization.ParseUserRole(roleValue)
+	canModerate := authorization.RoleHasPermission(role, authorization.PermissionModerateComments)
 
-	comment, err := h.commentService.Update(uint(id), userID, isAdmin, req)
+	comment, err := h.commentService.Update(uint(id), userID, canModerate, req)
 	if err != nil {
 		if err.Error() == "unauthorized" {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -103,9 +107,11 @@ func (h *CommentHandler) Delete(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	isAdmin := c.GetString("role") == "admin"
+	roleValue, _ := c.Get("role")
+	role, _ := authorization.ParseUserRole(roleValue)
+	canModerate := authorization.RoleHasPermission(role, authorization.PermissionModerateComments)
 
-	if err := h.commentService.Delete(uint(id), userID, isAdmin); err != nil {
+	if err := h.commentService.Delete(uint(id), userID, canModerate); err != nil {
 		if err.Error() == "unauthorized" {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		} else {

@@ -38,18 +38,21 @@ func (s *CommentService) GetAll() ([]models.Comment, error) {
 	return s.commentRepo.GetAll()
 }
 
-func (s *CommentService) Update(id, userID uint, isAdmin bool, req models.UpdateCommentRequest) (*models.Comment, error) {
+func (s *CommentService) Update(id, userID uint, canModerate bool, req models.UpdateCommentRequest) (*models.Comment, error) {
 	comment, err := s.commentRepo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if !isAdmin && comment.AuthorID != userID {
+	if !canModerate && comment.AuthorID != userID {
 		return nil, errors.New("unauthorized")
 	}
 
 	comment.Content = req.Content
-	if req.Approved != nil && isAdmin {
+	if req.Approved != nil {
+		if !canModerate {
+			return nil, errors.New("unauthorized")
+		}
 		comment.Approved = *req.Approved
 	}
 
@@ -60,13 +63,13 @@ func (s *CommentService) Update(id, userID uint, isAdmin bool, req models.Update
 	return s.commentRepo.GetByID(comment.ID)
 }
 
-func (s *CommentService) Delete(id, userID uint, isAdmin bool) error {
+func (s *CommentService) Delete(id, userID uint, canModerate bool) error {
 	comment, err := s.commentRepo.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	if !isAdmin && comment.AuthorID != userID {
+	if !canModerate && comment.AuthorID != userID {
 		return errors.New("unauthorized")
 	}
 

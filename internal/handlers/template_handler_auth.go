@@ -1,12 +1,14 @@
 package handlers
 
 import (
-	"constructor-script-backend/internal/constants"
-	"constructor-script-backend/internal/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+
+	"constructor-script-backend/internal/authorization"
+	"constructor-script-backend/internal/constants"
+	"constructor-script-backend/internal/models"
 )
 
 func (h *TemplateHandler) currentUser(c *gin.Context) (*models.User, bool) {
@@ -75,6 +77,18 @@ func (h *TemplateHandler) addUserContext(c *gin.Context, data gin.H) {
 	}
 
 	data["IsAuthenticated"] = true
-	data["IsAdmin"] = user.Role == "admin"
+	data["IsAdmin"] = user.Role == authorization.RoleAdmin
 	data["CurrentUser"] = user
+	data["UserPermissions"] = gin.H{
+		"manage_all_content":  authorization.RoleHasPermission(user.Role, authorization.PermissionManageAllContent),
+		"manage_own_content":  authorization.RoleHasPermission(user.Role, authorization.PermissionManageOwnContent),
+		"publish_content":     authorization.RoleHasPermission(user.Role, authorization.PermissionPublishContent),
+		"moderate_comments":   authorization.RoleHasPermission(user.Role, authorization.PermissionModerateComments),
+		"manage_settings":     authorization.RoleHasPermission(user.Role, authorization.PermissionManageSettings),
+		"manage_users":        authorization.RoleHasPermission(user.Role, authorization.PermissionManageUsers),
+		"manage_themes":       authorization.RoleHasPermission(user.Role, authorization.PermissionManageThemes),
+		"manage_backups":      authorization.RoleHasPermission(user.Role, authorization.PermissionManageBackups),
+		"manage_navigation":   authorization.RoleHasPermission(user.Role, authorization.PermissionManageNavigation),
+		"manage_integrations": authorization.RoleHasPermission(user.Role, authorization.PermissionManageIntegrations),
+	}
 }

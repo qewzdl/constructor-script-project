@@ -11,12 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
+	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
-
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
@@ -827,7 +828,14 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		return
 	}
 
-	if user.Role != "admin" {
+	hasAccess := authorization.RoleHasPermission(user.Role, authorization.PermissionManageAllContent) ||
+		authorization.RoleHasPermission(user.Role, authorization.PermissionManageSettings) ||
+		authorization.RoleHasPermission(user.Role, authorization.PermissionManageUsers) ||
+		authorization.RoleHasPermission(user.Role, authorization.PermissionManageBackups) ||
+		authorization.RoleHasPermission(user.Role, authorization.PermissionManageThemes) ||
+		authorization.RoleHasPermission(user.Role, authorization.PermissionModerateComments)
+
+	if !hasAccess {
 		h.renderError(c, http.StatusForbidden, "403 - Forbidden", "Administrator access required")
 		return
 	}
