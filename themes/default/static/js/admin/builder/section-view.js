@@ -183,7 +183,7 @@
                             'admin-builder__field admin-builder__field--checkbox',
                     });
                     const styleInput = createElement('input', {
-                        className: 'admin-builder__checkbox',
+                        className: 'admin-builder__checkbox checkbox__input',
                     });
                     styleInput.type = 'checkbox';
                     styleInput.dataset.field = 'section-grid-style';

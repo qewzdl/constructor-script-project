@@ -39,7 +39,7 @@
                 className: 'admin-builder__field admin-builder__field--inline',
             });
             const orderedCheckbox = createElement('input', {
-                className: 'admin-builder__checkbox',
+                className: 'admin-builder__checkbox checkbox__input',
             });
             orderedCheckbox.type = 'checkbox';
             orderedCheckbox.checked = Boolean(element.content?.ordered);

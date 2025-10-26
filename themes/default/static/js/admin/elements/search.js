@@ -230,7 +230,7 @@
                 className: 'admin-builder__field admin-builder__field--inline',
             });
             const showFiltersCheckbox = createElement('input', {
-                className: 'admin-builder__checkbox',
+                className: 'admin-builder__checkbox checkbox__input',
             });
             showFiltersCheckbox.type = 'checkbox';
             showFiltersCheckbox.checked = Boolean(element.content.showFilters);

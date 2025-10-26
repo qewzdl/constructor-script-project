@@ -1673,7 +1673,7 @@
     color: var(--color-secondary);
 }
 
-.section-field input,
+.section-field input:not([type='checkbox']),
 .section-field textarea {
     width: 100%;
     padding: 0.6rem 0.9rem;

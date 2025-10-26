@@ -2982,6 +2982,7 @@
                 responsiveLabel.className = 'admin-form__checkbox admin-ads__slot-checkbox';
                 const responsiveInput = document.createElement('input');
                 responsiveInput.type = 'checkbox';
+                responsiveInput.className = 'checkbox__input';
                 responsiveInput.dataset.role = 'ads-slot-responsive';
                 responsiveInput.dataset.index = String(index);
                 responsiveInput.checked = Boolean(slot?.full_width_responsive);

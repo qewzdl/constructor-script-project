@@ -1340,17 +1340,6 @@ body.post-image-modal-open .post-progress {
     line-height: 1.6;
 }
 
-.section-field--checkbox {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.section-field--checkbox input[type="checkbox"] {
-    width: 1.2rem;
-    height: 1.2rem;
-}
-
 .post__section-image,
 .page-view__section-image {
     margin: var(--size-sm) 0;

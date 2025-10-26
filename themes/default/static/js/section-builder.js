@@ -1132,7 +1132,10 @@
                     textContent: 'Apply border, background, and padding to grid items',
                     attrs: { for: styleId },
                 });
-                const styleInput = createElement('input', { type: 'checkbox' });
+                const styleInput = createElement('input', {
+                    type: 'checkbox',
+                    className: 'checkbox__input',
+                });
                 styleInput.id = styleId;
                 styleInput.checked = section.styleGridItems !== false;
                 styleInput.addEventListener('input', (event) => {
@@ -1548,6 +1551,7 @@
                 });
                 const orderedInput = createElement('input', {
                     type: 'checkbox',
+                    className: 'checkbox__input',
                 });
                 orderedInput.id = orderedId;
                 orderedInput.checked = Boolean(element.content?.ordered);
@@ -1926,7 +1930,10 @@
                     textContent: 'Allow filtering by title, content, tag, or author',
                     attrs: { for: showFiltersId },
                 });
-                const showFiltersInput = createElement('input', { type: 'checkbox' });
+                const showFiltersInput = createElement('input', {
+                    type: 'checkbox',
+                    className: 'checkbox__input',
+                });
                 showFiltersInput.id = showFiltersId;
                 showFiltersInput.checked = Boolean(element.content.showFilters);
                 showFiltersInput.addEventListener('input', (event) => {
