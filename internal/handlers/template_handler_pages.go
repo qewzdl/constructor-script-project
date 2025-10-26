@@ -867,6 +867,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"MenuItems":       "/api/v1/admin/menu-items",
 			"Users":           "/api/v1/admin/users",
 			"Advertising":     "/api/v1/admin/settings/advertising",
+			"BackupSettings":  "/api/v1/admin/backups/settings",
 			"BackupExport":    "/api/v1/admin/backups/export",
 			"BackupImport":    "/api/v1/admin/backups/import",
 		},

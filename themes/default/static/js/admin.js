@@ -216,6 +216,7 @@
             advertising: root.dataset.endpointAdvertisingSettings,
             backupExport: root.dataset.endpointBackupExport,
             backupImport: root.dataset.endpointBackupImport,
+            backupSettings: root.dataset.endpointBackupSettings,
         };
 
         const currentUserIdValue = Number.parseInt(
@@ -478,6 +479,11 @@
         const backupDownloadButton = backupPanel?.querySelector('[data-role="backup-download"]');
         const backupImportForm = document.getElementById('admin-backup-import-form');
         const backupUploadInput = backupImportForm?.querySelector('input[name="backup_file"]');
+        const backupSettingsForm = document.getElementById('admin-backup-settings-form');
+        const backupSettingsToggle = backupSettingsForm?.querySelector('input[name="auto_enabled"]');
+        const backupSettingsIntervalInput = backupSettingsForm?.querySelector('input[name="interval_hours"]');
+        const backupSettingsStatus = backupSettingsForm?.querySelector('[data-role="backup-settings-status"]');
+        const backupSettingsSubmit = backupSettingsForm?.querySelector('[data-role="backup-settings-submit"]');
         const faviconUrlInput = settingsForm?.querySelector('input[name="favicon"]');
         const faviconUploadInput = settingsForm?.querySelector('[data-role="favicon-file"]');
         const faviconUploadButton = settingsForm?.querySelector('[data-role="favicon-upload"]');
@@ -4783,6 +4789,133 @@
             }
         };
 
+        const handleBackupAutoToggleChange = () => {
+            if (!backupSettingsIntervalInput) {
+                return;
+            }
+            const enabled = Boolean(backupSettingsToggle?.checked);
+            backupSettingsIntervalInput.disabled = !enabled;
+            if (enabled) {
+                backupSettingsIntervalInput.removeAttribute('aria-disabled');
+            } else {
+                backupSettingsIntervalInput.setAttribute('aria-disabled', 'true');
+            }
+        };
+
+        const renderBackupSettings = (settings) => {
+            if (!backupSettingsForm) {
+                return;
+            }
+            const enabled = Boolean(settings?.enabled);
+            const interval = Number.parseInt(settings?.interval_hours, 10);
+
+            if (backupSettingsToggle) {
+                backupSettingsToggle.checked = enabled;
+            }
+
+            if (backupSettingsIntervalInput) {
+                const value = Number.isFinite(interval) && interval > 0 ? String(interval) : '24';
+                backupSettingsIntervalInput.value = value;
+            }
+
+            if (backupSettingsStatus) {
+                const parts = [];
+                if (enabled) {
+                    parts.push('Automatic backups enabled');
+                    if (settings?.next_run) {
+                        parts.push(`Next backup ${formatDate(settings.next_run)}`);
+                    }
+                    if (settings?.last_run) {
+                        parts.push(`Last backup ${formatDate(settings.last_run)}`);
+                    }
+                } else {
+                    parts.push('Automatic backups disabled');
+                }
+                const message = parts.join('. ');
+                backupSettingsStatus.textContent = message;
+                backupSettingsStatus.hidden = message.length === 0;
+            }
+
+            handleBackupAutoToggleChange();
+        };
+
+        const loadBackupSettings = async () => {
+            if (!backupSettingsForm || !endpoints.backupSettings) {
+                return;
+            }
+
+            try {
+                disableForm(backupSettingsForm, true);
+                const payload = await apiRequest(endpoints.backupSettings, {
+                    method: 'GET',
+                });
+                if (payload && typeof payload === 'object' && payload.settings) {
+                    renderBackupSettings(payload.settings);
+                }
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(backupSettingsForm, false);
+                handleBackupAutoToggleChange();
+            }
+        };
+
+        const handleBackupSettingsSubmit = async (event) => {
+            event.preventDefault();
+            if (!backupSettingsForm || !endpoints.backupSettings) {
+                showAlert('Automatic backup configuration is not available.', 'error');
+                return;
+            }
+
+            const intervalValue = Number.parseInt(
+                backupSettingsIntervalInput?.value || '',
+                10
+            );
+            if (!Number.isFinite(intervalValue) || intervalValue < 1) {
+                showAlert('Enter a valid backup interval of at least one hour.', 'error');
+                return;
+            }
+            if (intervalValue > 168) {
+                showAlert('Automatic backup interval cannot exceed 168 hours (7 days).', 'error');
+                return;
+            }
+
+            const payload = {
+                enabled: Boolean(backupSettingsToggle?.checked),
+                interval_hours: intervalValue,
+            };
+
+            const originalText = backupSettingsSubmit?.textContent || '';
+
+            disableForm(backupSettingsForm, true);
+            if (backupSettingsSubmit) {
+                backupSettingsSubmit.disabled = true;
+                backupSettingsSubmit.textContent = 'Saving…';
+            }
+
+            clearAlert();
+            try {
+                const response = await apiRequest(endpoints.backupSettings, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload),
+                });
+                showAlert('Backup settings updated successfully.', 'success');
+                if (response && typeof response === 'object' && response.settings) {
+                    renderBackupSettings(response.settings);
+                }
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(backupSettingsForm, false);
+                if (backupSettingsSubmit) {
+                    backupSettingsSubmit.disabled = false;
+                    backupSettingsSubmit.textContent =
+                        originalText || 'Save backup settings';
+                }
+                handleBackupAutoToggleChange();
+            }
+        };
+
         const handleSiteSettingsSubmit = async (event) => {
             event.preventDefault();
             if (!settingsForm || !endpoints.siteSettings) {
@@ -5370,6 +5503,8 @@
         userDeleteButton?.addEventListener('click', handleUserDelete);
         backupDownloadButton?.addEventListener('click', handleBackupDownload);
         backupImportForm?.addEventListener('submit', handleBackupImport);
+        backupSettingsForm?.addEventListener('submit', handleBackupSettingsSubmit);
+        backupSettingsToggle?.addEventListener('change', handleBackupAutoToggleChange);
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
         advertisingForm?.addEventListener('submit', handleAdvertisingSubmit);
         advertisingProviderSelect?.addEventListener('change', handleAdvertisingProviderChange);
@@ -5394,6 +5529,7 @@
         menuList?.addEventListener('click', handleMenuListClick);
         postTagsInput?.addEventListener('input', renderTagSuggestions);
 
+        handleBackupAutoToggleChange();
         clearAlert();
         renderMetricsChart(state.activityTrend);
         loadStats();
@@ -5405,6 +5541,7 @@
         loadPages();
         loadComments();
         loadUsers();
+        loadBackupSettings();
         loadSiteSettings();
         loadAdvertisingSettings();
         loadThemes();

@@ -201,6 +201,10 @@ func (a *Application) Shutdown(ctx context.Context) error {
 		}
 	}
 
+	if a.services.Backup != nil {
+		a.services.Backup.ShutdownAutoBackups()
+	}
+
 	if a.cache != nil {
 		if err := a.cache.Close(); err != nil {
 			logger.Error(err, "Failed to close cache connection", nil)
@@ -402,7 +406,7 @@ func (a *Application) initThemeManager() error {
 
 func (a *Application) initServices() {
 	uploadService := service.NewUploadService(a.cfg.UploadDir)
-	backupService := service.NewBackupService(a.db, a.cfg.UploadDir)
+	backupService := service.NewBackupService(a.db, a.cfg.UploadDir, a.repositories.Setting)
 
 	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
 	categoryService := service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache)
@@ -436,6 +440,8 @@ func (a *Application) initServices() {
 		Theme:       themeService,
 		Advertising: advertisingService,
 	}
+
+	backupService.InitializeAutoBackups()
 }
 
 func (a *Application) initHandlers() error {
@@ -684,6 +690,8 @@ func (a *Application) initRouter() error {
 			admin.PUT("/menu-items/:id", a.handlers.Menu.Update)
 			admin.DELETE("/menu-items/:id", a.handlers.Menu.Delete)
 
+			admin.GET("/backups/settings", a.handlers.Backup.GetSettings)
+			admin.PUT("/backups/settings", a.handlers.Backup.UpdateSettings)
 			admin.GET("/backups/export", a.handlers.Backup.Export)
 			admin.POST("/backups/import", a.handlers.Backup.Import)
 

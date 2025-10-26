@@ -291,6 +291,18 @@ type SiteSettings struct {
 	MenuItems               []MenuItem   `json:"menu_items"`
 }
 
+type BackupSettings struct {
+	Enabled       bool       `json:"enabled"`
+	IntervalHours int        `json:"interval_hours"`
+	LastRun       *time.Time `json:"last_run,omitempty"`
+	NextRun       *time.Time `json:"next_run,omitempty"`
+}
+
+type UpdateBackupSettingsRequest struct {
+	Enabled       bool `json:"enabled"`
+	IntervalHours int  `json:"interval_hours" binding:"required,min=1,max=168"`
+}
+
 type ThemeInfo struct {
 	Slug         string `json:"slug"`
 	Name         string `json:"name"`

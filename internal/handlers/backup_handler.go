@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
 
@@ -20,6 +21,48 @@ type BackupHandler struct {
 
 func NewBackupHandler(service *service.BackupService) *BackupHandler {
 	return &BackupHandler{service: service}
+}
+
+func (h *BackupHandler) GetSettings(c *gin.Context) {
+	if h == nil || h.service == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Backup service not available"})
+		return
+	}
+
+	settings, err := h.service.GetAutoSettings()
+	if err != nil {
+		logger.Error(err, "Failed to load backup settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load backup settings"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"settings": settings})
+}
+
+func (h *BackupHandler) UpdateSettings(c *gin.Context) {
+	if h == nil || h.service == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Backup service not available"})
+		return
+	}
+
+	var req models.UpdateBackupSettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	settings, err := h.service.UpdateAutoSettings(req)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, service.ErrInvalidBackupSettings) {
+			status = http.StatusBadRequest
+		}
+		logger.Error(err, "Failed to update backup settings", nil)
+		c.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Backup settings updated", "settings": settings})
 }
 
 func (h *BackupHandler) Export(c *gin.Context) {

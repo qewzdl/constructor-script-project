@@ -21,6 +21,7 @@
     data-endpoint-advertising-settings="{{ index .AdminEndpoints "Advertising" }}"
     data-endpoint-backup-export="{{ index .AdminEndpoints "BackupExport" }}"
     data-endpoint-backup-import="{{ index .AdminEndpoints "BackupImport" }}"
+    data-endpoint-backup-settings="{{ index .AdminEndpoints "BackupSettings" }}"
     data-current-user-id="{{ if .CurrentUser }}{{ .CurrentUser.ID }}{{ end }}"
 >
     <header class="admin__header">
@@ -828,6 +829,44 @@
                             </button>
                         </div>
                         <p class="admin-form__hint" data-role="backup-summary" hidden></p>
+                    </section>
+                    <section class="admin__section" aria-labelledby="admin-backup-auto-title">
+                        <div class="admin__section-header">
+                            <h3 id="admin-backup-auto-title" class="admin__section-title">Automatic backups</h3>
+                            <p class="admin__section-description">
+                                Schedule recurring backups that are stored on the server for additional protection.
+                            </p>
+                        </div>
+                        <form id="admin-backup-settings-form" class="admin-form" novalidate>
+                            <fieldset class="admin-form__fieldset">
+                                <legend class="admin-form__legend">Schedule</legend>
+                                <label class="admin-form__checkbox" for="backup-auto-enabled">
+                                    <input type="checkbox" id="backup-auto-enabled" name="auto_enabled" />
+                                    <span>Enable automatic backups</span>
+                                </label>
+                                <label class="admin-form__label" for="backup-auto-interval">
+                                    Backup interval (hours)
+                                    <input
+                                        type="number"
+                                        id="backup-auto-interval"
+                                        name="interval_hours"
+                                        class="admin-form__input"
+                                        min="1"
+                                        max="168"
+                                        value="24"
+                                    />
+                                </label>
+                                <small class="admin-form__hint">
+                                    Choose how often to run automatic backups. The maximum interval is 168 hours (7 days).
+                                </small>
+                                <p class="admin-form__hint" data-role="backup-settings-status" hidden></p>
+                                <div class="admin-form__actions">
+                                    <button type="submit" class="admin-form__submit" data-role="backup-settings-submit">
+                                        Save backup settings
+                                    </button>
+                                </div>
+                            </fieldset>
+                        </form>
                     </section>
                     <section class="admin__section" aria-labelledby="admin-backup-restore-title">
                         <div class="admin__section-header">

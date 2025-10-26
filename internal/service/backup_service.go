@@ -13,28 +13,41 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/logger"
 
 	"gorm.io/gorm"
 )
 
 const (
-	backupSchemaVersion = "1"
-	backupApplication   = "constructor-script"
+	backupSchemaVersion            = "1"
+	backupApplication              = "constructor-script"
+	defaultAutoBackupIntervalHours = 24
+	SettingKeyBackupAuto           = "site.backup.auto"
 )
 
 var (
-	ErrInvalidBackup = errors.New("invalid backup archive")
-	ErrBackupVersion = errors.New("unsupported backup schema version")
+	ErrInvalidBackup         = errors.New("invalid backup archive")
+	ErrBackupVersion         = errors.New("unsupported backup schema version")
+	ErrInvalidBackupSettings = errors.New("invalid backup settings")
 )
 
 type BackupService struct {
 	db        *gorm.DB
 	uploadDir string
 	appName   string
+	settings  repository.SettingRepository
+
+	autoMu       sync.Mutex
+	autoCancel   context.CancelFunc
+	autoNextRun  time.Time
+	autoLastRun  time.Time
+	autoInterval time.Duration
+	autoEnabled  bool
 }
 
 type BackupSummary struct {
@@ -203,12 +216,268 @@ type postTagRow struct {
 	TagID  uint
 }
 
-func NewBackupService(db *gorm.DB, uploadDir string) *BackupService {
+func NewBackupService(db *gorm.DB, uploadDir string, settings repository.SettingRepository) *BackupService {
 	return &BackupService{
 		db:        db,
 		uploadDir: uploadDir,
 		appName:   backupApplication,
+		settings:  settings,
 	}
+}
+
+func (s *BackupService) InitializeAutoBackups() {
+	if s == nil {
+		return
+	}
+
+	settings, err := s.loadStoredAutoSettings()
+	if err != nil {
+		logger.Error(err, "Failed to load automatic backup settings", nil)
+		return
+	}
+
+	s.applyAutoSettings(settings)
+}
+
+func (s *BackupService) ShutdownAutoBackups() {
+	if s == nil {
+		return
+	}
+
+	s.autoMu.Lock()
+	if s.autoCancel != nil {
+		s.autoCancel()
+		s.autoCancel = nil
+	}
+	s.autoEnabled = false
+	s.autoInterval = 0
+	s.autoNextRun = time.Time{}
+	s.autoMu.Unlock()
+}
+
+func (s *BackupService) GetAutoSettings() (models.BackupSettings, error) {
+	settings, err := s.loadStoredAutoSettings()
+	if err != nil {
+		return models.BackupSettings{}, err
+	}
+
+	return s.autoSettingsWithRuntime(settings), nil
+}
+
+func (s *BackupService) UpdateAutoSettings(req models.UpdateBackupSettingsRequest) (models.BackupSettings, error) {
+	if req.IntervalHours < 1 || req.IntervalHours > 168 {
+		return models.BackupSettings{}, fmt.Errorf("%w: interval must be between 1 and 168 hours", ErrInvalidBackupSettings)
+	}
+
+	settings := models.BackupSettings{
+		Enabled:       req.Enabled,
+		IntervalHours: req.IntervalHours,
+	}
+
+	if s.settings != nil {
+		payload, err := json.Marshal(struct {
+			Enabled       bool `json:"enabled"`
+			IntervalHours int  `json:"interval_hours"`
+		}{Enabled: settings.Enabled, IntervalHours: settings.IntervalHours})
+		if err != nil {
+			return models.BackupSettings{}, fmt.Errorf("failed to encode backup settings: %w", err)
+		}
+
+		if err := s.settings.Set(SettingKeyBackupAuto, string(payload)); err != nil {
+			return models.BackupSettings{}, fmt.Errorf("failed to persist backup settings: %w", err)
+		}
+	}
+
+	s.applyAutoSettings(settings)
+
+	return s.autoSettingsWithRuntime(settings), nil
+}
+
+func (s *BackupService) autoSettingsWithRuntime(base models.BackupSettings) models.BackupSettings {
+	result := base
+
+	s.autoMu.Lock()
+	enabled := s.autoEnabled
+	interval := s.autoInterval
+	lastRun := s.autoLastRun
+	nextRun := s.autoNextRun
+	s.autoMu.Unlock()
+
+	if enabled {
+		result.Enabled = true
+	} else {
+		result.Enabled = false
+	}
+
+	if interval > 0 {
+		result.IntervalHours = int(interval / time.Hour)
+	}
+
+	if !lastRun.IsZero() {
+		lr := lastRun
+		result.LastRun = &lr
+	}
+
+	if enabled && !nextRun.IsZero() {
+		nr := nextRun
+		result.NextRun = &nr
+	}
+
+	if result.IntervalHours <= 0 {
+		result.IntervalHours = defaultAutoBackupIntervalHours
+	}
+
+	return result
+}
+
+func (s *BackupService) loadStoredAutoSettings() (models.BackupSettings, error) {
+	settings := models.BackupSettings{
+		Enabled:       false,
+		IntervalHours: defaultAutoBackupIntervalHours,
+	}
+
+	if s == nil || s.settings == nil {
+		return settings, nil
+	}
+
+	record, err := s.settings.Get(SettingKeyBackupAuto)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return settings, nil
+		}
+		return settings, fmt.Errorf("failed to load backup settings: %w", err)
+	}
+
+	if record == nil || strings.TrimSpace(record.Value) == "" {
+		return settings, nil
+	}
+
+	var stored struct {
+		Enabled       bool `json:"enabled"`
+		IntervalHours int  `json:"interval_hours"`
+	}
+
+	if err := json.Unmarshal([]byte(record.Value), &stored); err != nil {
+		return settings, fmt.Errorf("failed to parse backup settings: %w", err)
+	}
+
+	settings.Enabled = stored.Enabled
+	if stored.IntervalHours > 0 {
+		settings.IntervalHours = stored.IntervalHours
+	}
+
+	return settings, nil
+}
+
+func (s *BackupService) applyAutoSettings(settings models.BackupSettings) {
+	if s == nil {
+		return
+	}
+
+	intervalHours := settings.IntervalHours
+	if intervalHours <= 0 {
+		intervalHours = defaultAutoBackupIntervalHours
+	}
+
+	interval := time.Duration(intervalHours) * time.Hour
+
+	s.autoMu.Lock()
+	if s.autoCancel != nil {
+		s.autoCancel()
+		s.autoCancel = nil
+	}
+
+	if !settings.Enabled || interval <= 0 {
+		s.autoEnabled = false
+		s.autoInterval = 0
+		s.autoNextRun = time.Time{}
+		s.autoMu.Unlock()
+		logger.Info("Automatic backups disabled", nil)
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	s.autoCancel = cancel
+	s.autoEnabled = true
+	s.autoInterval = interval
+	s.autoNextRun = time.Now().Add(interval)
+	s.autoMu.Unlock()
+
+	logger.Info("Automatic backups enabled", map[string]interface{}{"interval_hours": intervalHours})
+
+	go s.runAutoBackupLoop(ctx, interval)
+}
+
+func (s *BackupService) runAutoBackupLoop(ctx context.Context, interval time.Duration) {
+	timer := time.NewTimer(interval)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-timer.C:
+			if err := s.executeAutoBackup(); err != nil {
+				logger.Error(err, "Failed to create automatic backup", nil)
+			}
+
+			now := time.Now()
+			s.autoMu.Lock()
+			s.autoLastRun = now
+			s.autoNextRun = now.Add(interval)
+			s.autoMu.Unlock()
+
+			timer.Reset(interval)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (s *BackupService) executeAutoBackup() error {
+	if s == nil {
+		return fmt.Errorf("backup service not configured")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+
+	archive, err := s.CreateArchive(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create automatic backup archive: %w", err)
+	}
+	defer archive.Close()
+
+	if err := archive.Reset(); err != nil {
+		return fmt.Errorf("failed to prepare automatic backup archive: %w", err)
+	}
+
+	targetDir := filepath.Join(s.uploadDir, "auto-backups")
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+		return fmt.Errorf("failed to prepare automatic backup directory: %w", err)
+	}
+
+	destinationPath := filepath.Join(targetDir, archive.Filename)
+	destination, err := os.Create(destinationPath)
+	if err != nil {
+		return fmt.Errorf("failed to create automatic backup destination: %w", err)
+	}
+	defer destination.Close()
+
+	file := archive.File()
+	if file == nil {
+		return fmt.Errorf("automatic backup archive is unavailable")
+	}
+
+	if _, err := io.Copy(destination, file); err != nil {
+		return fmt.Errorf("failed to store automatic backup: %w", err)
+	}
+
+	if err := destination.Sync(); err != nil {
+		logger.Warn("Failed to flush automatic backup to disk", map[string]interface{}{"path": destinationPath, "error": err.Error()})
+	}
+
+	logger.Info("Automatic site backup created", map[string]interface{}{"path": destinationPath})
+
+	return nil
 }
 
 func (s *BackupService) CreateArchive(ctx context.Context) (*BackupArchive, error) {
