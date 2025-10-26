@@ -974,16 +974,19 @@ textarea.form-field__input {
     list-style: none;
 }
 
-.post-card__tag-link {
+.post-card__tag {
     padding: 0.25rem 0.5rem;
     background-color: rgba(16, 185, 129, 0.1);
-    color: var(--color-accent);
     font-size: var(--font-size-xs);
     border: 1px solid transparent;
 }
 
-.post-card__tag-link:hover {
+.post-card__tag:hover {
     border-color: var(--color-accent);
+}
+
+.post-card__tag-link {
+    color: var(--color-accent);
 }
 
 .post {
