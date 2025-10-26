@@ -1,0 +1,66 @@
+{{ define "components/blog-overview" }}
+    {{ $hasCategories := gt (len .Categories) 0 }}
+    {{ $hasTags := gt (len .Tags) 0 }}
+    {{ $hasPosts := gt (len .Posts) 0 }}
+    {{ $hasPagination := .Pagination }}
+    {{ $hasExtra := .ExtraSections }}
+    {{ if or $hasCategories (or $hasTags (or $hasPosts (or $hasPagination $hasExtra))) }}
+    <section class="blog-overview" aria-label="Blog content">
+        {{ if $hasCategories }}
+        <nav class="blog__categories" aria-label="Browse by category">
+            <ul class="category-list">
+                {{ range .Categories }}
+                <li class="category-list__item">
+                    <a href="/category/{{ .Slug }}" class="category-list__link">
+                        {{ if .Name }}
+                            {{ .Name }}
+                        {{ else }}
+                            {{ .Slug }}
+                        {{ end }}
+                    </a>
+                </li>
+                {{ end }}
+            </ul>
+        </nav>
+        {{ end }}
+
+        {{ if $hasTags }}
+        <nav class="blog__tags" aria-label="Browse by tag">
+            <ul class="tag-list">
+                {{ range .Tags }}
+                <li class="tag-list__item">
+                    <a href="/tag/{{ .Slug }}" class="tag-list__link">#{{ .Name }}</a>
+                </li>
+                {{ end }}
+            </ul>
+        </nav>
+        {{ end }}
+
+        <div class="blog__posts">
+            {{ if $hasPosts }}
+            {{ range .Posts }}
+            {{ template "components/post-card" (dict "Post" . "WrapperClass" "blog__post post-card") }}
+            {{ end }}
+            {{ else }}
+            <p class="blog__empty">No posts available yet. Check back soon!</p>
+            {{ end }}
+        </div>
+
+        {{ with .Pagination }}
+            {{ template "components/pagination" . }}
+        {{ end }}
+
+        {{ if $hasExtra }}
+        <div class="blog__sections">
+            {{ .ExtraSections }}
+        </div>
+        {{ end }}
+    </section>
+    {{ else }}
+    <section class="blog-overview" aria-label="Blog content">
+        <div class="blog__posts">
+            <p class="blog__empty">No posts available yet. Check back soon!</p>
+        </div>
+    </section>
+    {{ end }}
+{{ end }}

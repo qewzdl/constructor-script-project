@@ -405,9 +405,15 @@ func (h *TemplateHandler) renderBlogWithPage(c *gin.Context, page *models.Page) 
 	}
 
 	sections, sectionScripts := h.renderSectionsWithPrefix(page.Sections, "blog")
-	if sections != "" {
+
+	data["PageViewModifiers"] = []string{"blog"}
+
+	if overview := h.renderBlogOverviewSection(posts, tags, categories, pagination, sections); overview != "" {
+		data["Sections"] = overview
+	} else if sections != "" {
 		data["Sections"] = sections
 	}
+
 	if len(sectionScripts) > 0 {
 		data["Scripts"] = appendScripts(asScriptSlice(data["Scripts"]), sectionScripts)
 	}
@@ -424,7 +430,7 @@ func (h *TemplateHandler) renderBlogWithPage(c *gin.Context, page *models.Page) 
 
 	templateName := strings.TrimSpace(page.Template)
 	if templateName == "" {
-		templateName = "blog"
+		templateName = "page"
 	}
 
 	h.renderTemplate(c, templateName, title, description, data)
@@ -452,12 +458,21 @@ func (h *TemplateHandler) renderLegacyBlog(c *gin.Context) {
 		return fmt.Sprintf("/blog?page=%d", p)
 	})
 
+	page := &models.Page{
+		Title:       "Blog",
+		Description: h.config.SiteName + " Blog — insights about Go programming, web technologies, performance, and best practices in backend design.",
+		Path:        "/blog",
+		Template:    "page",
+	}
+
 	data := gin.H{
-		"Posts":       posts,
-		"Total":       total,
-		"CurrentPage": pageNumber,
-		"TotalPages":  totalPages,
-		"Pagination":  pagination,
+		"Page":              page,
+		"Posts":             posts,
+		"Total":             total,
+		"CurrentPage":       pageNumber,
+		"TotalPages":        totalPages,
+		"Pagination":        pagination,
+		"PageViewModifiers": []string{"blog"},
 	}
 
 	if len(tags) > 0 {
@@ -468,7 +483,11 @@ func (h *TemplateHandler) renderLegacyBlog(c *gin.Context) {
 		data["Categories"] = categories
 	}
 
-	h.renderTemplate(c, "blog", "Blog", h.config.SiteName+" Blog — insights about Go programming, web technologies, performance, and best practices in backend design.", data)
+	if overview := h.renderBlogOverviewSection(posts, tags, categories, pagination, ""); overview != "" {
+		data["Sections"] = overview
+	}
+
+	h.renderTemplate(c, page.Template, page.Title, page.Description, data)
 }
 
 func (h *TemplateHandler) RenderBlog(c *gin.Context) {
@@ -482,6 +501,42 @@ func (h *TemplateHandler) RenderBlog(c *gin.Context) {
 	}
 
 	h.renderLegacyBlog(c)
+}
+
+func (h *TemplateHandler) renderBlogOverviewSection(posts []models.Post, tags []models.Tag, categories []models.Category, pagination gin.H, extraSections template.HTML) template.HTML {
+	tmpl, err := h.templateClone()
+	if err != nil {
+		logger.Error(err, "Failed to clone templates for blog overview", nil)
+		return extraSections
+	}
+
+	component := tmpl.Lookup("components/blog-overview")
+	if component == nil {
+		logger.Error(nil, "Blog overview component missing", nil)
+		return extraSections
+	}
+
+	data := gin.H{
+		"Posts":      posts,
+		"Tags":       tags,
+		"Categories": categories,
+	}
+
+	if pagination != nil {
+		data["Pagination"] = pagination
+	}
+
+	if extraSections != "" {
+		data["ExtraSections"] = extraSections
+	}
+
+	output, execErr := h.executeTemplate(component, data)
+	if execErr != nil {
+		logger.Error(execErr, "Failed to render blog overview component", nil)
+		return extraSections
+	}
+
+	return template.HTML(output)
 }
 
 func (h *TemplateHandler) RenderSearch(c *gin.Context) {

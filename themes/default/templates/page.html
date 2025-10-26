@@ -1,4 +1,10 @@
-<article class="page-view" role="article">
+{{ $classes := "page-view" }}
+{{ with .PageViewModifiers }}
+    {{ range . }}
+        {{ $classes = printf "%s page-view--%s" $classes . }}
+    {{ end }}
+{{ end }}
+<article class="{{ $classes }}" role="article">
     {{ if not .Page.HideHeader }}
     <header class="page-view__header">
         <h1 class="page-view__title">{{ .Page.Title }}</h1>
