@@ -17,6 +17,7 @@
         formatNumber,
         formatPeriodLabel,
         normaliseString,
+        parseContentDispositionFilename,
     } = utils;
 
     const elementDefinitions = registry.getDefinitions();
@@ -105,37 +106,43 @@
             return '';
         };
         const getCSRFCookie = () => readCookie('csrf_token');
-        const fallbackApiRequest = async (url, options = {}) => {
+        const buildAuthenticatedRequestInit = (options = {}) => {
+            const init = { ...options };
             const headers = Object.assign({}, options.headers || {});
-            const token =
-                auth && typeof auth.getToken === 'function'
-                    ? auth.getToken()
-                    : undefined;
             const method = (options.method || 'GET').toUpperCase();
+
+            init.method = method;
 
             if (options.body && !(options.body instanceof FormData)) {
                 headers['Content-Type'] =
                     headers['Content-Type'] || 'application/json';
             }
 
-            if (token) {
-                headers.Authorization =
-                    headers.Authorization || `Bearer ${token}`;
+            const token =
+                auth && typeof auth.getToken === 'function'
+                    ? auth.getToken()
+                    : undefined;
+            if (token && !headers.Authorization) {
+                headers.Authorization = `Bearer ${token}`;
             }
 
             if (stateChangingMethods.has(method)) {
                 const csrfToken = getCSRFCookie();
-                if (csrfToken) {
-                    headers['X-CSRF-Token'] =
-                        headers['X-CSRF-Token'] || csrfToken;
+                if (csrfToken && !headers['X-CSRF-Token']) {
+                    headers['X-CSRF-Token'] = csrfToken;
                 }
             }
 
-            const response = await fetch(url, {
-                credentials: 'include',
-                ...options,
-                headers,
-            });
+            init.headers = headers;
+            init.credentials = 'include';
+            return init;
+        };
+
+        const authenticatedFetch = (url, options = {}) =>
+            fetch(url, buildAuthenticatedRequestInit(options));
+
+        const fallbackApiRequest = async (url, options = {}) => {
+            const response = await authenticatedFetch(url, options);
 
             const contentType = response.headers.get('content-type') || '';
             const isJson = contentType.includes('application/json');
@@ -207,6 +214,8 @@
             menuItems: root.dataset.endpointMenuItems,
             users: root.dataset.endpointUsers,
             advertising: root.dataset.endpointAdvertisingSettings,
+            backupExport: root.dataset.endpointBackupExport,
+            backupImport: root.dataset.endpointBackupImport,
         };
 
         const currentUserIdValue = Number.parseInt(
@@ -397,6 +406,19 @@
             }
         };
 
+        const updateBackupSummary = (message) => {
+            if (!backupSummary) {
+                return;
+            }
+            if (!message) {
+                backupSummary.textContent = '';
+                backupSummary.hidden = true;
+                return;
+            }
+            backupSummary.hidden = false;
+            backupSummary.textContent = message;
+        };
+
         const metricElements = new Map();
         root.querySelectorAll('.admin__metric').forEach((card) => {
             const key = card.dataset.metric;
@@ -451,6 +473,11 @@
         const menuList = root.querySelector('[data-role="menu-list"]');
         const menuEmpty = root.querySelector('[data-role="menu-empty"]');
         const menuForm = document.getElementById('admin-menu-form');
+        const backupPanel = root.querySelector('#admin-panel-backups');
+        const backupSummary = backupPanel?.querySelector('[data-role="backup-summary"]');
+        const backupDownloadButton = backupPanel?.querySelector('[data-role="backup-download"]');
+        const backupImportForm = document.getElementById('admin-backup-import-form');
+        const backupUploadInput = backupImportForm?.querySelector('input[name="backup_file"]');
         const faviconUrlInput = settingsForm?.querySelector('input[name="favicon"]');
         const faviconUploadInput = settingsForm?.querySelector('[data-role="favicon-file"]');
         const faviconUploadButton = settingsForm?.querySelector('[data-role="favicon-upload"]');
@@ -4593,6 +4620,169 @@
             }
         };
 
+        const parseBackupCounts = (header) => {
+            if (!header || typeof header !== 'string') {
+                return {};
+            }
+            return header.split(';').reduce((accumulator, part) => {
+                const [rawKey, rawValue] = part.split('=');
+                if (!rawKey || rawValue === undefined) {
+                    return accumulator;
+                }
+                const key = rawKey.trim();
+                const value = Number.parseInt(rawValue.trim(), 10);
+                if (!Number.isNaN(value)) {
+                    accumulator[key] = value;
+                }
+                return accumulator;
+            }, {});
+        };
+
+        const handleBackupDownload = async () => {
+            if (!backupDownloadButton || !endpoints.backupExport) {
+                showAlert('Backup download is not available.', 'error');
+                return;
+            }
+            backupDownloadButton.disabled = true;
+            try {
+                const response = await authenticatedFetch(endpoints.backupExport, {
+                    method: 'GET',
+                });
+                if (!response.ok) {
+                    let message = 'Failed to generate backup.';
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        const payload = await response.json().catch(() => null);
+                        if (payload && typeof payload === 'object' && payload.error) {
+                            message = payload.error;
+                        }
+                    } else {
+                        const text = await response.text();
+                        if (text) {
+                            message = text;
+                        }
+                    }
+                    const error = new Error(message);
+                    error.status = response.status;
+                    throw error;
+                }
+
+                const blob = await response.blob();
+                let filename = parseContentDispositionFilename(
+                    response.headers.get('content-disposition')
+                );
+                if (!filename) {
+                    const generatedAtHeader = response.headers.get(
+                        'x-backup-generated-at'
+                    );
+                    if (generatedAtHeader) {
+                        filename = `backup-${generatedAtHeader.replace(/[:]/g, '-')}.zip`;
+                    } else {
+                        filename = 'backup.zip';
+                    }
+                }
+
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(downloadUrl);
+
+                showAlert('Backup downloaded successfully.', 'success');
+
+                const generatedAt = response.headers.get('x-backup-generated-at');
+                const schema = response.headers.get('x-backup-schema');
+                const countsHeader = response.headers.get('x-backup-counts');
+                const counts = parseBackupCounts(countsHeader);
+                const summaryParts = [];
+                if (generatedAt) {
+                    summaryParts.push(`Generated ${formatDate(generatedAt)}`);
+                }
+                if (schema) {
+                    summaryParts.push(`Schema ${schema}`);
+                }
+                const highlight = [];
+                if (typeof counts.posts === 'number') {
+                    highlight.push(`${counts.posts} posts`);
+                }
+                if (typeof counts.pages === 'number') {
+                    highlight.push(`${counts.pages} pages`);
+                }
+                if (typeof counts.uploads === 'number') {
+                    highlight.push(`${counts.uploads} uploads`);
+                }
+                if (highlight.length > 0) {
+                    summaryParts.push(highlight.join(', '));
+                }
+                updateBackupSummary(summaryParts.join(' · '));
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                backupDownloadButton.disabled = false;
+            }
+        };
+
+        const handleBackupImport = async (event) => {
+            event.preventDefault();
+            if (!backupImportForm || !endpoints.backupImport) {
+                showAlert('Backup restore is not available.', 'error');
+                return;
+            }
+
+            if (!backupUploadInput || backupUploadInput.files.length === 0) {
+                showAlert('Select a backup archive to upload.', 'error');
+                return;
+            }
+
+            const file = backupUploadInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            disableForm(backupImportForm, true);
+            clearAlert();
+            try {
+                const payload = await apiRequest(endpoints.backupImport, {
+                    method: 'POST',
+                    body: formData,
+                });
+                showAlert('Backup restored successfully.', 'success');
+                if (payload && typeof payload === 'object' && payload.summary) {
+                    const summary = payload.summary;
+                    const parts = [];
+                    if (summary.generated_at) {
+                        parts.push(`Snapshot ${formatDate(summary.generated_at)}`);
+                    }
+                    if (summary.restored_at) {
+                        parts.push(`Restored ${formatDate(summary.restored_at)}`);
+                    }
+                    const details = [];
+                    if (typeof summary.posts === 'number') {
+                        details.push(`${summary.posts} posts`);
+                    }
+                    if (typeof summary.pages === 'number') {
+                        details.push(`${summary.pages} pages`);
+                    }
+                    if (typeof summary.uploads === 'number') {
+                        details.push(`${summary.uploads} uploads`);
+                    }
+                    if (details.length > 0) {
+                        parts.push(details.join(', '));
+                    }
+                    updateBackupSummary(parts.join(' · '));
+                } else {
+                    updateBackupSummary('Backup restored successfully.');
+                }
+                backupImportForm.reset();
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(backupImportForm, false);
+            }
+        };
+
         const handleSiteSettingsSubmit = async (event) => {
             event.preventDefault();
             if (!settingsForm || !endpoints.siteSettings) {
@@ -5178,6 +5368,8 @@
         categoryDeleteButton?.addEventListener('click', handleCategoryDelete);
         userForm?.addEventListener('submit', handleUserSubmit);
         userDeleteButton?.addEventListener('click', handleUserDelete);
+        backupDownloadButton?.addEventListener('click', handleBackupDownload);
+        backupImportForm?.addEventListener('submit', handleBackupImport);
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
         advertisingForm?.addEventListener('submit', handleAdvertisingSubmit);
         advertisingProviderSelect?.addEventListener('change', handleAdvertisingProviderChange);

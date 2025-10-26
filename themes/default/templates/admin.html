@@ -19,6 +19,8 @@
     data-endpoint-menu-items="{{ index .AdminEndpoints "MenuItems" }}"
     data-endpoint-users="{{ index .AdminEndpoints "Users" }}"
     data-endpoint-advertising-settings="{{ index .AdminEndpoints "Advertising" }}"
+    data-endpoint-backup-export="{{ index .AdminEndpoints "BackupExport" }}"
+    data-endpoint-backup-import="{{ index .AdminEndpoints "BackupImport" }}"
     data-current-user-id="{{ if .CurrentUser }}{{ .CurrentUser.ID }}{{ end }}"
 >
     <header class="admin__header">
@@ -787,6 +789,80 @@
                 </form>
             </div>
             </section>
+
+            <section
+                id="admin-panel-backups"
+                class="admin-panel"
+                data-panel="backups"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Backups"
+                data-nav-order="2"
+                role="tabpanel"
+                aria-labelledby="admin-tab-backups"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Site backups</h2>
+                        <p class="admin-panel__description">
+                            Create a full export of database records and managed uploads or restore a previous snapshot when needed.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--single">
+                    <section class="admin__section" aria-labelledby="admin-backup-download-title">
+                        <div class="admin__section-header">
+                            <h3 id="admin-backup-download-title" class="admin__section-title">Download full backup</h3>
+                            <p class="admin__section-description">
+                                Generates a ZIP archive containing all site data and uploaded media so you can store it securely.
+                            </p>
+                        </div>
+                        <p class="admin-form__hint">
+                            Backups include users, content, configuration, and files managed through the media uploader.
+                        </p>
+                        <div class="admin-form__actions">
+                            <button type="button" class="admin-form__submit" data-role="backup-download">
+                                Download backup
+                            </button>
+                        </div>
+                        <p class="admin-form__hint" data-role="backup-summary" hidden></p>
+                    </section>
+                    <section class="admin__section" aria-labelledby="admin-backup-restore-title">
+                        <div class="admin__section-header">
+                            <h3 id="admin-backup-restore-title" class="admin__section-title">Restore from backup</h3>
+                            <p class="admin__section-description">
+                                Upload a previously generated archive to replace all content and media with the snapshot it contains.
+                            </p>
+                        </div>
+                        <form id="admin-backup-import-form" class="admin-form" novalidate>
+                            <fieldset class="admin-form__fieldset">
+                                <legend class="admin-form__legend">Backup archive</legend>
+                                <label class="admin-form__label">
+                                    Archive file
+                                    <input
+                                        type="file"
+                                        name="backup_file"
+                                        accept="application/zip,.zip"
+                                        required
+                                        class="admin-form__input"
+                                    />
+                                    <small class="admin-form__hint">
+                                        Restoring a backup overwrites the current database and uploads. Ensure you have a recent export before continuing.
+                                    </small>
+                                </label>
+                                <div class="admin-form__actions">
+                                    <button type="submit" class="admin-form__submit" data-role="backup-upload-submit">
+                                        Restore backup
+                                    </button>
+                                </div>
+                            </fieldset>
+                        </form>
+                    </section>
+                </div>
+            </section>
+
             <section
                 id="admin-panel-advertising"
                 class="admin-panel"
@@ -795,7 +871,7 @@
                 data-nav-group-label="Configuration"
                 data-nav-group-order="3"
                 data-nav-label="Monetization"
-                data-nav-order="2"
+                data-nav-order="3"
                 role="tabpanel"
                 aria-labelledby="admin-tab-advertising"
                 hidden

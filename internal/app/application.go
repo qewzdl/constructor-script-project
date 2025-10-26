@@ -68,6 +68,7 @@ type serviceContainer struct {
 	Comment     *service.CommentService
 	Search      *service.SearchService
 	Upload      *service.UploadService
+	Backup      *service.BackupService
 	Page        *service.PageService
 	Setup       *service.SetupService
 	SocialLink  *service.SocialLinkService
@@ -83,6 +84,7 @@ type handlerContainer struct {
 	Comment     *handlers.CommentHandler
 	Search      *handlers.SearchHandler
 	Upload      *handlers.UploadHandler
+	Backup      *handlers.BackupHandler
 	Page        *handlers.PageHandler
 	Setup       *handlers.SetupHandler
 	SocialLink  *handlers.SocialLinkHandler
@@ -400,6 +402,7 @@ func (a *Application) initThemeManager() error {
 
 func (a *Application) initServices() {
 	uploadService := service.NewUploadService(a.cfg.UploadDir)
+	backupService := service.NewBackupService(a.db, a.cfg.UploadDir)
 
 	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
 	categoryService := service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache)
@@ -425,6 +428,7 @@ func (a *Application) initServices() {
 		Comment:     commentService,
 		Search:      searchService,
 		Upload:      uploadService,
+		Backup:      backupService,
 		Page:        pageService,
 		Setup:       setupService,
 		SocialLink:  socialLinkService,
@@ -442,6 +446,7 @@ func (a *Application) initHandlers() error {
 		Comment:     handlers.NewCommentHandler(a.services.Comment),
 		Search:      handlers.NewSearchHandler(a.services.Search),
 		Upload:      handlers.NewUploadHandler(a.services.Upload),
+		Backup:      handlers.NewBackupHandler(a.services.Backup),
 		Page:        handlers.NewPageHandler(a.services.Page),
 		Setup:       handlers.NewSetupHandler(a.services.Setup, a.cfg),
 		SocialLink:  handlers.NewSocialLinkHandler(a.services.SocialLink),
@@ -678,6 +683,9 @@ func (a *Application) initRouter() error {
 			admin.PUT("/menu-items/reorder", a.handlers.Menu.Reorder)
 			admin.PUT("/menu-items/:id", a.handlers.Menu.Update)
 			admin.DELETE("/menu-items/:id", a.handlers.Menu.Delete)
+
+			admin.GET("/backups/export", a.handlers.Backup.Export)
+			admin.POST("/backups/import", a.handlers.Backup.Import)
 
 			admin.GET("/stats", handlers.GetStatistics(a.db))
 

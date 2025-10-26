@@ -141,6 +141,25 @@
         return `${year}-${month}-${day}`;
     };
 
+    const parseContentDispositionFilename = (header) => {
+        if (!header || typeof header !== 'string') {
+            return '';
+        }
+        const filenameStarMatch = header.match(/filename\*=UTF-8''([^;]+)/i);
+        if (filenameStarMatch && filenameStarMatch[1]) {
+            try {
+                return decodeURIComponent(filenameStarMatch[1]);
+            } catch (error) {
+                return filenameStarMatch[1];
+            }
+        }
+        const filenameMatch = header.match(/filename\s*=\s*"?([^";]+)"?/i);
+        if (filenameMatch && filenameMatch[1]) {
+            return filenameMatch[1].trim();
+        }
+        return '';
+    };
+
     window.AdminUtils = {
         formatDate,
         booleanLabel,
@@ -153,5 +172,6 @@
         createSvgElement,
         formatNumber,
         formatPeriodLabel,
+        parseContentDispositionFilename,
     };
 })();
