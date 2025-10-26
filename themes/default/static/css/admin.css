@@ -205,7 +205,7 @@
 
 .admin-chart__line {
     fill: none;
-    stroke-width: 3;
+    stroke-width: 1;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
@@ -226,17 +226,12 @@
     );
 }
 
-.admin-chart__point {
-    fill: var(--admin-chart-point-bg);
-    stroke-width: 3;
-}
-
 .admin-chart__point[data-series='posts'] {
-    stroke: var(--admin-chart-posts);
+    fill: var(--admin-chart-posts);
 }
 
 .admin-chart__point[data-series='comments'] {
-    stroke: var(--admin-chart-comments);
+    fill: var(--admin-chart-comments);
 }
 
 .admin-chart__footer {
