@@ -40,6 +40,7 @@ func NewThemeHandler(
 }
 
 func (h *ThemeHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
 	if h == nil || h.service == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "theme service unavailable"})
 		return
@@ -51,7 +52,7 @@ func (h *ThemeHandler) List(c *gin.Context) {
 		if err == service.ErrThemeManagerUnavailable {
 			status = http.StatusServiceUnavailable
 		}
-		logger.Error(err, "Failed to list themes", nil)
+		logger.ErrorContext(ctx, err, "Failed to list themes", nil)
 		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
@@ -60,6 +61,7 @@ func (h *ThemeHandler) List(c *gin.Context) {
 }
 
 func (h *ThemeHandler) Activate(c *gin.Context) {
+	ctx := c.Request.Context()
 	if h == nil || h.service == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "theme service unavailable"})
 		return
@@ -77,7 +79,7 @@ func (h *ThemeHandler) Activate(c *gin.Context) {
 				status = http.StatusNotFound
 			}
 		}
-		logger.Error(err, "Failed to activate theme", map[string]interface{}{"slug": slug})
+		logger.ErrorContext(ctx, err, "Failed to activate theme", map[string]interface{}{"slug": slug})
 		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
@@ -94,14 +96,14 @@ func (h *ThemeHandler) Activate(c *gin.Context) {
 				seed.EnsureDefaultPosts(h.postService, h.userRepo, activeTheme.PostsFS())
 			}
 			if err := h.service.MarkInitialized(activeTheme.Slug); err != nil {
-				logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": activeTheme.Slug})
+				logger.ErrorContext(ctx, err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": activeTheme.Slug})
 			}
 		} else {
-			logger.Error(activeErr, "Failed to load active theme for defaults", nil)
+			logger.ErrorContext(ctx, activeErr, "Failed to load active theme for defaults", nil)
 		}
 	} else if needsInitialization {
 		if err := h.service.MarkInitialized(theme.Slug); err != nil {
-			logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": theme.Slug})
+			logger.ErrorContext(ctx, err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": theme.Slug})
 		}
 	}
 
@@ -109,6 +111,7 @@ func (h *ThemeHandler) Activate(c *gin.Context) {
 }
 
 func (h *ThemeHandler) Reload(c *gin.Context) {
+	ctx := c.Request.Context()
 	if h == nil || h.service == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "theme service unavailable"})
 		return
@@ -126,14 +129,14 @@ func (h *ThemeHandler) Reload(c *gin.Context) {
 				status = http.StatusNotFound
 			}
 		}
-		logger.Error(err, "Failed to reload theme", map[string]interface{}{"slug": slug})
+		logger.ErrorContext(ctx, err, "Failed to reload theme", map[string]interface{}{"slug": slug})
 		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 
 	activeTheme, activeErr := h.service.ActiveTheme()
 	if activeErr != nil {
-		logger.Error(activeErr, "Failed to resolve active theme during reload", map[string]interface{}{"slug": slug})
+		logger.ErrorContext(ctx, activeErr, "Failed to resolve active theme during reload", map[string]interface{}{"slug": slug})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve active theme"})
 		return
 	}
@@ -142,14 +145,14 @@ func (h *ThemeHandler) Reload(c *gin.Context) {
 
 	if h.pageService != nil {
 		if err := seed.ResetPages(h.pageService, activeTheme.PagesFS()); err != nil {
-			logger.Error(err, "Failed to reset theme pages", map[string]interface{}{"theme": activeTheme.Slug})
+			logger.ErrorContext(ctx, err, "Failed to reset theme pages", map[string]interface{}{"theme": activeTheme.Slug})
 			errs = append(errs, err)
 		}
 	}
 
 	if h.menuService != nil {
 		if err := seed.ResetMenu(h.menuService, activeTheme.MenuFS()); err != nil {
-			logger.Error(err, "Failed to reset theme menu", map[string]interface{}{"theme": activeTheme.Slug})
+			logger.ErrorContext(ctx, err, "Failed to reset theme menu", map[string]interface{}{"theme": activeTheme.Slug})
 			errs = append(errs, err)
 		}
 	}
@@ -164,12 +167,12 @@ func (h *ThemeHandler) Reload(c *gin.Context) {
 	}
 
 	if err := h.service.MarkInitialized(activeTheme.Slug); err != nil {
-		logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": activeTheme.Slug})
+		logger.ErrorContext(ctx, err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": activeTheme.Slug})
 	}
 
 	if h.templates != nil {
 		if err := h.templates.ReloadTemplates(); err != nil {
-			logger.Error(err, "Failed to reload templates after theme defaults reset", map[string]interface{}{"theme": activeTheme.Slug})
+			logger.ErrorContext(ctx, err, "Failed to reload templates after theme defaults reset", map[string]interface{}{"theme": activeTheme.Slug})
 		}
 	}
 

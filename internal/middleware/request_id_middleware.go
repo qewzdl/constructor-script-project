@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"constructor-script-backend/pkg/logger"
 )
 
 func RequestIDMiddleware() gin.HandlerFunc {
@@ -17,6 +19,8 @@ func RequestIDMiddleware() gin.HandlerFunc {
 		}
 		c.Set("request_id", requestID)
 		c.Header("X-Request-ID", requestID)
+		ctx := logger.ContextWithFields(c.Request.Context(), map[string]interface{}{"request_id": requestID})
+		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}
 }
