@@ -588,12 +588,25 @@ func (s *PostService) fetchPostsByTag(tagSlug string, page, limit int) ([]models
 
 	cacheKey := fmt.Sprintf("posts:tag:%s:page:%d:limit:%d", tagSlug, page, limit)
 
+	logger.Debug("Fetching posts by tag", map[string]interface{}{
+		"tag_slug": tagSlug,
+		"page":     page,
+		"limit":    limit,
+		"offset":   offset,
+	})
+
 	if s.cache != nil {
 		var result struct {
 			Posts []models.Post
 			Total int64
 		}
 		if err := s.cache.Get(cacheKey, &result); err == nil {
+			logger.Debug("Loaded posts by tag from cache", map[string]interface{}{
+				"tag_slug": tagSlug,
+				"page":     page,
+				"limit":    limit,
+				"total":    result.Total,
+			})
 			return result.Posts, result.Total, nil
 		}
 	}
@@ -602,8 +615,21 @@ func (s *PostService) fetchPostsByTag(tagSlug string, page, limit int) ([]models
 
 	posts, total, err := s.postRepo.GetAll(offset, limit, nil, &tagSlug, nil, &published)
 	if err != nil {
+		logger.Error(err, "Failed to load posts by tag", map[string]interface{}{
+			"tag_slug": tagSlug,
+			"page":     page,
+			"limit":    limit,
+			"offset":   offset,
+		})
 		return nil, 0, err
 	}
+
+	logger.Debug("Fetched posts by tag from repository", map[string]interface{}{
+		"tag_slug": tagSlug,
+		"page":     page,
+		"limit":    limit,
+		"total":    total,
+	})
 
 	if s.cache != nil {
 		result := struct {
@@ -622,15 +648,40 @@ func (s *PostService) GetPostsByTag(tagSlug string, page, limit int) ([]models.P
 }
 
 func (s *PostService) GetTagWithPosts(tagSlug string, page, limit int) (*models.Tag, []models.Post, int64, error) {
+	logger.Debug("Loading tag with posts", map[string]interface{}{
+		"tag_slug": tagSlug,
+		"page":     page,
+		"limit":    limit,
+	})
+
 	tag, err := s.tagRepo.GetBySlug(tagSlug)
 	if err != nil {
+		logger.Error(err, "Failed to load tag by slug", map[string]interface{}{
+			"tag_slug": tagSlug,
+		})
 		return nil, nil, 0, err
 	}
 
+	logger.Debug("Tag loaded", map[string]interface{}{
+		"tag_id":   tag.ID,
+		"tag_slug": tag.Slug,
+	})
+
 	posts, total, err := s.fetchPostsByTag(tag.Slug, page, limit)
 	if err != nil {
+		logger.Error(err, "Failed to load posts for tag", map[string]interface{}{
+			"tag_slug": tag.Slug,
+			"page":     page,
+			"limit":    limit,
+		})
 		return nil, nil, 0, err
 	}
+
+	logger.Debug("Successfully loaded tag with posts", map[string]interface{}{
+		"tag_id":   tag.ID,
+		"tag_slug": tag.Slug,
+		"total":    total,
+	})
 
 	return tag, posts, total, nil
 }

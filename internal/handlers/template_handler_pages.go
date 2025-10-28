@@ -312,11 +312,9 @@ func (h *TemplateHandler) loadBlogCollections(page, limit int) ([]models.Post, i
 		return nil, 0, nil, nil, err
 	}
 
-	var tags []models.Tag
-	if loadedTags, tagErr := h.postService.GetTagsInUse(); tagErr != nil {
+	tags, tagErr := h.postService.GetTagsInUse()
+	if tagErr != nil {
 		logger.Error(tagErr, "Failed to load tags", nil)
-	} else {
-		tags = loadedTags
 	}
 
 	var categories []models.Category
@@ -709,8 +707,19 @@ func (h *TemplateHandler) RenderTag(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
 
+	logger.Debug("Rendering tag page", map[string]interface{}{
+		"slug":  slug,
+		"page":  page,
+		"limit": limit,
+	})
+
 	tag, posts, total, err := h.postService.GetTagWithPosts(slug, page, limit)
 	if err != nil {
+		logger.Error(err, "Failed to render tag", map[string]interface{}{
+			"slug":  slug,
+			"page":  page,
+			"limit": limit,
+		})
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			h.renderError(c, http.StatusNotFound, "404 - Page Not Found", "Requested tag not found")
 		} else {
@@ -719,11 +728,23 @@ func (h *TemplateHandler) RenderTag(c *gin.Context) {
 		return
 	}
 
+	logger.Debug("Tag page data loaded", map[string]interface{}{
+		"slug":        slug,
+		"page":        page,
+		"limit":       limit,
+		"posts_count": len(posts),
+		"total":       total,
+	})
+
 	var tags []models.Tag
 	if loadedTags, tagErr := h.postService.GetTagsInUse(); tagErr != nil {
 		logger.Error(tagErr, "Failed to load tags", nil)
 	} else {
 		tags = loadedTags
+		logger.Debug("Loaded sidebar tags", map[string]interface{}{
+			"slug":       slug,
+			"tags_count": len(tags),
+		})
 	}
 
 	totalCount := int(total)
