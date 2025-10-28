@@ -1928,7 +1928,6 @@
 .admin-analytics__summary-item {
     border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
     background: color-mix(in srgb, var(--color-bg-top) 92%, var(--color-primary-transparent));
-    border-radius: 12px;
     padding: var(--size-base);
     display: grid;
     gap: var(--size-xs);
