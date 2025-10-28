@@ -3,6 +3,8 @@
     --theme-transition-duration: 0.5s;
 
     /* Base colors (fallback) */
+    --modal-outside-bg: rgba(0, 0, 0, 0.88);
+
     --color-bg-bottom: #f2f2f2ff;
     --color-bg-top: #ffffff;
     --color-text: #1a1a1a;

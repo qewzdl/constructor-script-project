@@ -2120,7 +2120,7 @@
     align-items: center;
     justify-content: center;
     padding: var(--size-lg);
-    background: rgba(15, 23, 42, 0.55);
+    background: var(--modal-outside-bg);
 }
 
 .admin-media-library[hidden] {
@@ -2297,7 +2297,7 @@
 .admin-media-library__footer button[data-action='media-library-choose'] {
     background: var(--color-primary);
     border-color: var(--color-primary);
-    color: var(--color-on-primary);
+    color: var(--color-primary-opposite);
 }
 
 .admin-media-library__footer button[data-action='media-library-choose']:disabled {

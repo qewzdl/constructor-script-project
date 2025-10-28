@@ -1918,7 +1918,7 @@ body.post-image-modal-open .post-progress {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(10, 10, 20, 0.88);
+    background-color: var(--modal-outside-bg);
     backdrop-filter: blur(2px);
     z-index: 1000;
     opacity: 0;
