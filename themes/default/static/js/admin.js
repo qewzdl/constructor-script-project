@@ -551,6 +551,11 @@
                 label: 'Views',
                 color: 'var(--admin-chart-views)',
             },
+            {
+                key: 'users',
+                label: 'Users',
+                color: 'var(--admin-chart-users)',
+            },
         ];
 
         const postAnalyticsContainer = root.querySelector(

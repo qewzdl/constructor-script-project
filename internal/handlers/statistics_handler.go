@@ -103,6 +103,14 @@ func GetStatistics(db *gorm.DB) gin.HandlerFunc {
 			Order("period").
 			Scan(&viewBuckets)
 
+		var userBuckets []timeBucket
+		db.Model(&models.User{}).
+			Select("DATE_TRUNC('day', created_at) AS period, COUNT(*) AS count").
+			Where("created_at >= ?", windowStart).
+			Group("period").
+			Order("period").
+			Scan(&userBuckets)
+
 		postCounts := make(map[string]int64, len(postBuckets))
 		for _, bucket := range postBuckets {
 			key := bucket.Period.UTC().Format("2006-01-02")
@@ -121,6 +129,12 @@ func GetStatistics(db *gorm.DB) gin.HandlerFunc {
 			viewCounts[key] = bucket.Count
 		}
 
+		userCounts := make(map[string]int64, len(userBuckets))
+		for _, bucket := range userBuckets {
+			key := bucket.Period.UTC().Format("2006-01-02")
+			userCounts[key] = bucket.Count
+		}
+
 		activityTrend := make([]gin.H, 0, 30)
 		for day := 0; day < 30; day++ {
 			point := windowStart.AddDate(0, 0, day)
@@ -130,6 +144,7 @@ func GetStatistics(db *gorm.DB) gin.HandlerFunc {
 				"posts":    postCounts[key],
 				"comments": commentCounts[key],
 				"views":    viewCounts[key],
+				"users":    userCounts[key],
 			})
 		}
 
