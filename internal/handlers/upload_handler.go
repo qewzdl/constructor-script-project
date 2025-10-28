@@ -66,3 +66,14 @@ func (h *UploadHandler) UploadMultiple(c *gin.Context) {
 		"count": len(urls),
 	})
 }
+
+func (h *UploadHandler) List(c *gin.Context) {
+
+	uploads, err := h.uploadService.ListImages()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"uploads": uploads})
+}

@@ -733,6 +733,7 @@ func (a *Application) initRouter() error {
 			content.GET("/pages", a.handlers.Page.GetAllAdmin)
 
 			content.POST("/upload", a.handlers.Upload.UploadImage)
+			content.GET("/uploads", a.handlers.Upload.List)
 
 			content.POST("/categories", a.handlers.Category.Create)
 			content.PUT("/categories/:id", a.handlers.Category.Update)

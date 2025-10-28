@@ -318,6 +318,8 @@
             siteSettings: root.dataset.endpointSiteSettings,
             faviconUpload: root.dataset.endpointFaviconUpload,
             logoUpload: root.dataset.endpointLogoUpload,
+            upload: root.dataset.endpointUpload,
+            uploads: root.dataset.endpointUploads,
             themes: root.dataset.endpointThemes,
             socialLinks: root.dataset.endpointSocialLinks,
             menuItems: root.dataset.endpointMenuItems,
@@ -804,6 +806,140 @@
             postAnalyticsLoadingIds: new Set(),
             selectedPostId: '',
         };
+
+        const createMediaLibrary = () => {
+            if (!window.AdminMediaLibrary || !endpoints.uploads) {
+                return null;
+            }
+            try {
+                const fetchUploads = async () => {
+                    if (!endpoints.uploads) {
+                        throw new Error('Uploads endpoint is not configured.');
+                    }
+                    try {
+                        const response = await apiRequest(endpoints.uploads);
+                        const uploads = Array.isArray(response?.uploads)
+                            ? response.uploads
+                            : [];
+                        return uploads;
+                    } catch (error) {
+                        handleRequestError(error);
+                        throw error;
+                    }
+                };
+
+                const uploadFile = endpoints.upload
+                    ? async (file) => {
+                          if (!file) {
+                              throw new Error('Select a file to upload.');
+                          }
+                          if (!endpoints.upload) {
+                              throw new Error('Upload endpoint is not configured.');
+                          }
+                          const formData = new FormData();
+                          formData.append('image', file);
+                          try {
+                              const result = await apiRequest(endpoints.upload, {
+                                  method: 'POST',
+                                  body: formData,
+                              });
+                              return result;
+                          } catch (error) {
+                              handleRequestError(error);
+                              throw error;
+                          }
+                      }
+                    : null;
+
+                return window.AdminMediaLibrary.create({
+                    fetchUploads,
+                    uploadFile,
+                    onClose: () => {
+                        if (document.activeElement) {
+                            document.activeElement.blur?.();
+                        }
+                    },
+                });
+            } catch (error) {
+                console.error('Failed to initialise media library', error);
+                return null;
+            }
+        };
+
+        const mediaLibrary = createMediaLibrary();
+
+        const openMediaLibraryForInput = (input) => {
+            if (!(input instanceof HTMLElement)) {
+                return;
+            }
+
+            if (!mediaLibrary) {
+                showAlert('Media library is not available in this environment.', 'error');
+                return;
+            }
+
+            const currentValue = typeof input.value === 'string' ? input.value.trim() : '';
+            mediaLibrary
+                .open({
+                    currentUrl: currentValue,
+                    onSelect: (url) => {
+                        if (!url || typeof url !== 'string') {
+                            return;
+                        }
+                        input.value = url;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    },
+                })
+                .catch((error) => {
+                    if (error) {
+                        const message =
+                            typeof error.message === 'string'
+                                ? error.message
+                                : 'Failed to open media library.';
+                        showAlert(message, 'error');
+                    }
+                });
+        };
+
+        root.addEventListener('click', (event) => {
+            const target = event.target instanceof HTMLElement
+                ? event.target
+                : null;
+            if (!target) {
+                return;
+            }
+            const trigger = target.closest('[data-action="open-media-library"]');
+            if (!trigger) {
+                return;
+            }
+            event.preventDefault();
+
+            const selector = trigger.dataset.mediaTarget || '';
+            let input = null;
+
+            if (selector) {
+                try {
+                    input = document.querySelector(selector);
+                } catch (error) {
+                    input = null;
+                }
+            }
+
+            if (!(input instanceof HTMLElement)) {
+                const field = trigger.closest('label, .admin-form__label, .admin-builder__field');
+                if (field) {
+                    input = field.querySelector('input[type="url"], input, textarea');
+                }
+            }
+
+            if (!(input instanceof HTMLElement)) {
+                showAlert('Unable to locate the image field to update.', 'error');
+                return;
+            }
+
+            openMediaLibraryForInput(input);
+        });
 
         const updateFaviconPreview = (url) => {
             if (!faviconPreviewContainer || !faviconPreviewImage) {

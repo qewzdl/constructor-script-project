@@ -96,7 +96,22 @@
                     groupUrlInput.placeholder = 'https://example.com/gallery-image.jpg';
                     groupUrlInput.value = image.url || '';
                     groupUrlInput.dataset.field = 'group-image-url';
+                    const inputId = `admin-builder-group-image-${image.clientId}`;
+                    groupUrlInput.id = inputId;
                     groupUrlField.append(groupUrlInput);
+
+                    const groupUrlActions = createElement('div', {
+                        className: 'admin-builder__field-actions',
+                    });
+                    const browseButton = createElement('button', {
+                        className: 'admin-builder__media-button',
+                        textContent: 'Browse uploads',
+                    });
+                    browseButton.type = 'button';
+                    browseButton.dataset.action = 'open-media-library';
+                    browseButton.dataset.mediaTarget = `#${inputId}`;
+                    groupUrlActions.append(browseButton);
+                    groupUrlField.append(groupUrlActions);
                     groupItem.append(groupUrlField);
 
                     const groupAltField = createElement('label', {

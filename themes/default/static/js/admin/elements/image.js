@@ -51,7 +51,22 @@
             urlInput.placeholder = 'https://example.com/visual.png';
             urlInput.value = element.content?.url || '';
             urlInput.dataset.field = 'image-url';
+            const inputId = `admin-builder-image-${element.clientId}`;
+            urlInput.id = inputId;
             urlField.append(urlInput);
+
+            const urlActions = createElement('div', {
+                className: 'admin-builder__field-actions',
+            });
+            const browseButton = createElement('button', {
+                className: 'admin-builder__media-button',
+                textContent: 'Browse uploads',
+            });
+            browseButton.type = 'button';
+            browseButton.dataset.action = 'open-media-library';
+            browseButton.dataset.mediaTarget = `#${inputId}`;
+            urlActions.append(browseButton);
+            urlField.append(urlActions);
             elementNode.append(urlField);
 
             const altField = createElement('label', {

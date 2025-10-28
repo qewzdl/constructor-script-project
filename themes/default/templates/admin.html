@@ -14,6 +14,8 @@
     data-endpoint-site-settings="{{ index .AdminEndpoints "SiteSettings" }}"
     data-endpoint-favicon-upload="{{ index .AdminEndpoints "FaviconUpload" }}"
     data-endpoint-logo-upload="{{ index .AdminEndpoints "LogoUpload" }}"
+    data-endpoint-upload="{{ index .AdminEndpoints "Upload" }}"
+    data-endpoint-uploads="{{ index .AdminEndpoints "Uploads" }}"
     data-endpoint-themes="{{ index .AdminEndpoints "Themes" }}"
     data-endpoint-social-links="{{ index .AdminEndpoints "SocialLinks" }}"
     data-endpoint-menu-items="{{ index .AdminEndpoints "MenuItems" }}"
@@ -263,9 +265,20 @@
                                 <input
                                     type="url"
                                     name="featured_img"
+                                    id="admin-post-featured-image"
                                     class="admin-form__input"
                                     placeholder="https://example.com/image.jpg"
                                 />
+                                <div class="admin-form__upload-actions">
+                                    <button
+                                        type="button"
+                                        class="admin-form__upload-button"
+                                        data-action="open-media-library"
+                                        data-media-target="#admin-post-featured-image"
+                                    >
+                                        Browse uploads
+                                    </button>
+                                </div>
                                 <small class="admin-form__hint">
                                     Optional cover image displayed on listings and the post page.
                                 </small>
@@ -837,7 +850,13 @@
                         <legend class="admin-form__legend">Brand assets</legend>
                         <label class="admin-form__label">
                             Favicon
-                            <input type="url" name="favicon" class="admin-form__input" placeholder="/favicon.ico" />
+                            <input
+                                type="url"
+                                name="favicon"
+                                id="admin-settings-favicon"
+                                class="admin-form__input"
+                                placeholder="/favicon.ico"
+                            />
                             <div class="admin-form__upload-actions">
                                 <input
                                     type="file"
@@ -847,6 +866,14 @@
                                 />
                                 <button type="button" class="admin-form__upload-button" data-role="favicon-upload">
                                     Upload favicon
+                                </button>
+                                <button
+                                    type="button"
+                                    class="admin-form__upload-button"
+                                    data-action="open-media-library"
+                                    data-media-target="#admin-settings-favicon"
+                                >
+                                    Browse uploads
                                 </button>
                             </div>
                             <small class="admin-form__hint">
@@ -865,7 +892,13 @@
                         </label>
                         <label class="admin-form__label">
                             Logo
-                            <input type="url" name="logo" class="admin-form__input" placeholder="/static/icons/logo.svg" />
+                            <input
+                                type="url"
+                                name="logo"
+                                id="admin-settings-logo"
+                                class="admin-form__input"
+                                placeholder="/static/icons/logo.svg"
+                            />
                             <div class="admin-form__upload-actions">
                                 <input
                                     type="file"
@@ -875,6 +908,14 @@
                                 />
                                 <button type="button" class="admin-form__upload-button" data-role="logo-upload">
                                     Upload logo
+                                </button>
+                                <button
+                                    type="button"
+                                    class="admin-form__upload-button"
+                                    data-action="open-media-library"
+                                    data-media-target="#admin-settings-logo"
+                                >
+                                    Browse uploads
                                 </button>
                             </div>
                             <small class="admin-form__hint">

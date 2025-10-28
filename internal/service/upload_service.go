@@ -7,7 +7,9 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -18,6 +20,13 @@ type UploadService struct {
 	uploadDir    string
 	maxSize      int64
 	allowedTypes []string
+}
+
+type UploadInfo struct {
+	URL      string    `json:"url"`
+	Filename string    `json:"filename"`
+	Size     int64     `json:"size"`
+	ModTime  time.Time `json:"mod_time"`
 }
 
 func NewUploadService(uploadDir string) *UploadService {
@@ -153,4 +162,44 @@ func (s *UploadService) IsManagedURL(url string) bool {
 
 	trimmed := strings.TrimSpace(url)
 	return strings.HasPrefix(trimmed, "/uploads/")
+}
+
+func (s *UploadService) ListImages() ([]UploadInfo, error) {
+
+	entries, err := os.ReadDir(s.uploadDir)
+	if err != nil {
+		return nil, err
+	}
+
+	uploads := make([]UploadInfo, 0, len(entries))
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		ext := strings.ToLower(filepath.Ext(name))
+		if !s.isAllowedType(ext) {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		uploads = append(uploads, UploadInfo{
+			URL:      "/uploads/" + name,
+			Filename: name,
+			Size:     info.Size(),
+			ModTime:  info.ModTime(),
+		})
+	}
+
+	sort.Slice(uploads, func(i, j int) bool {
+		return uploads[i].ModTime.After(uploads[j].ModTime)
+	})
+
+	return uploads, nil
 }
