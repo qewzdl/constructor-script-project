@@ -38,7 +38,7 @@ func (r *searchRepository) SearchPosts(query string, limit int) ([]models.Post, 
 		Preload("Author").
 		Preload("Category").
 		Preload("Tags").
-		Order("created_at DESC").
+		Order("posts.created_at DESC").
 		Limit(limit).
 		Find(&posts).Error
 
@@ -53,7 +53,7 @@ func (r *searchRepository) SearchByTitle(query string, limit int) ([]models.Post
 		Preload("Author").
 		Preload("Category").
 		Preload("Tags").
-		Order("created_at DESC").
+		Order("posts.created_at DESC").
 		Limit(limit).
 		Find(&posts).Error
 
@@ -68,7 +68,7 @@ func (r *searchRepository) SearchByContent(query string, limit int) ([]models.Po
 		Preload("Author").
 		Preload("Category").
 		Preload("Tags").
-		Order("created_at DESC").
+		Order("posts.created_at DESC").
 		Limit(limit).
 		Find(&posts).Error
 

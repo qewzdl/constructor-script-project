@@ -73,7 +73,7 @@ func (r *postRepository) GetAll(offset, limit int, categoryID *uint, tagName *st
 	query.Count(&total)
 
 	err := query.Preload("Author").Preload("Category").Preload("Tags").
-		Order("COALESCE(publish_at, created_at) DESC").
+		Order("COALESCE(posts.publish_at, posts.created_at) DESC").
 		Offset(offset).Limit(limit).
 		Find(&posts).Error
 
@@ -108,7 +108,7 @@ func (r *postRepository) GetBySlug(slug string) (*models.Post, error) {
 		Preload("Category").
 		Preload("Tags").
 		Preload("Comments", func(db *gorm.DB) *gorm.DB {
-			return db.Where("parent_id IS NULL").Order("created_at DESC")
+			return db.Where("parent_id IS NULL").Order("comments.created_at DESC")
 		}).
 		First(&post).Error
 	return &post, err
@@ -138,7 +138,7 @@ func (r *postRepository) GetRecent(limit int) ([]models.Post, error) {
 		Preload("Author").
 		Preload("Category").
 		Preload("Tags").
-		Order("COALESCE(publish_at, created_at) DESC").
+		Order("COALESCE(posts.publish_at, posts.created_at) DESC").
 		Limit(limit).
 		Find(&posts).Error
 	return posts, err
@@ -153,7 +153,7 @@ func (r *postRepository) GetRelated(postID uint, categoryID uint, limit int) ([]
 		Preload("Author").
 		Preload("Category").
 		Preload("Tags").
-		Order("COALESCE(publish_at, created_at) DESC").
+		Order("COALESCE(posts.publish_at, posts.created_at) DESC").
 		Limit(limit).
 		Find(&posts).Error
 	return posts, err
@@ -184,7 +184,7 @@ func (r *postRepository) GetAllPublished() ([]models.Post, error) {
 	err := r.db.Select("id", "slug", "updated_at", "created_at", "publish_at", "published_at").
 		Where("published = ?", true).
 		Where("publish_at IS NULL OR publish_at <= ?", now).
-		Order("COALESCE(publish_at, updated_at, created_at) DESC").
+		Order("COALESCE(posts.publish_at, posts.updated_at, posts.created_at) DESC").
 		Find(&posts).Error
 	return posts, err
 }

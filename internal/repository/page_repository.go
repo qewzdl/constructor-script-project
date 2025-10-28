@@ -101,7 +101,7 @@ func (r *pageRepository) GetAll() ([]models.Page, error) {
 	if err := r.db.Where("published = ?", true).
 		Where("publish_at IS NULL OR publish_at <= ?", now).
 		Order(clause.OrderByColumn{Column: clause.Column{Name: "order"}}).
-		Order("COALESCE(publish_at, created_at) DESC").
+		Order("COALESCE(pages.publish_at, pages.created_at) DESC").
 		Find(&pages).Error; err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (r *pageRepository) GetAll() ([]models.Page, error) {
 
 func (r *pageRepository) GetAllAdmin() ([]models.Page, error) {
 	var pages []models.Page
-	if err := r.db.Order("created_at DESC").Find(&pages).Error; err != nil {
+	if err := r.db.Order("pages.created_at DESC").Find(&pages).Error; err != nil {
 		return nil, err
 	}
 	return pages, nil

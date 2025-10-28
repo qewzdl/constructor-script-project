@@ -38,21 +38,21 @@ func (r *commentRepository) GetByPostID(postID uint) ([]models.Comment, error) {
 	err := r.db.Where("post_id = ? AND parent_id IS NULL AND approved = ?", postID, true).
 		Preload("Author").
 		Preload("Replies", func(db *gorm.DB) *gorm.DB {
-			return db.Where("approved = ?", true).Order("created_at ASC")
+			return db.Where("approved = ?", true).Order("comments.created_at ASC")
 		}).
 		Preload("Replies.Author").
 		Preload("Replies.Replies", func(db *gorm.DB) *gorm.DB {
-			return db.Where("approved = ?", true).Order("created_at ASC")
+			return db.Where("approved = ?", true).Order("comments.created_at ASC")
 		}).
 		Preload("Replies.Replies.Author").
-		Order("created_at ASC").
+		Order("comments.created_at ASC").
 		Find(&comments).Error
 	return comments, err
 }
 
 func (r *commentRepository) GetAll() ([]models.Comment, error) {
 	var comments []models.Comment
-	err := r.db.Preload("Author").Preload("Post").Order("created_at DESC").Find(&comments).Error
+	err := r.db.Preload("Author").Preload("Post").Order("comments.created_at DESC").Find(&comments).Error
 	return comments, err
 }
 
@@ -94,7 +94,7 @@ func (r *commentRepository) GetPending() ([]models.Comment, error) {
 	err := r.db.Where("approved = ?", false).
 		Preload("Author").
 		Preload("Post").
-		Order("created_at DESC").
+		Order("comments.created_at DESC").
 		Find(&comments).Error
 	return comments, err
 }
@@ -103,7 +103,7 @@ func (r *commentRepository) GetByUserID(userID uint) ([]models.Comment, error) {
 	var comments []models.Comment
 	err := r.db.Where("author_id = ?", userID).
 		Preload("Post").
-		Order("created_at DESC").
+		Order("comments.created_at DESC").
 		Find(&comments).Error
 	return comments, err
 }
