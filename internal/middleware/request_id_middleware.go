@@ -21,6 +21,7 @@ func RequestIDMiddleware() gin.HandlerFunc {
 		c.Header("X-Request-ID", requestID)
 		ctx := logger.ContextWithFields(c.Request.Context(), map[string]interface{}{"request_id": requestID})
 		c.Request = c.Request.WithContext(ctx)
+		c.Set("logger", logger.FromContext(ctx))
 		c.Next()
 	}
 }

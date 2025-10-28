@@ -577,7 +577,7 @@ func (a *Application) initRouter() error {
 		return fmt.Errorf("failed to configure trusted proxies: %w", err)
 	}
 
-	router.Use(gin.Recovery())
+	router.Use(logger.GinRecovery(true))
 	router.Use(middleware.RequestIDMiddleware())
 	router.Use(logger.GinLogger())
 	router.Use(middleware.SecurityHeadersMiddleware(a.services.Advertising))
