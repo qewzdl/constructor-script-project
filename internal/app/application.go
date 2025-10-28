@@ -268,6 +268,7 @@ func (a *Application) runMigrations() error {
 		&models.User{},
 		&models.Category{},
 		&models.Post{},
+		&models.PostViewStat{},
 		&models.Page{},
 		&models.Tag{},
 		&models.Comment{},
@@ -363,6 +364,7 @@ func (a *Application) createIndexes() error {
 		"CREATE INDEX IF NOT EXISTS idx_pages_order ON pages(\"order\" ASC)",
 		"CREATE INDEX IF NOT EXISTS idx_posts_sections ON posts USING GIN (sections)",
 		"CREATE INDEX IF NOT EXISTS idx_pages_sections ON pages USING GIN (sections)",
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_post_view_stats_post_date ON post_view_stats(post_id, date)",
 	}
 
 	for _, stmt := range statements {
@@ -485,7 +487,14 @@ func (a *Application) initServices() {
 
 	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
 	categoryService := service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache)
-	postService := service.NewPostService(a.repositories.Post, a.repositories.Tag, a.repositories.Category, a.cache, a.repositories.Setting)
+	postService := service.NewPostService(
+		a.repositories.Post,
+		a.repositories.Tag,
+		a.repositories.Category,
+		a.repositories.Comment,
+		a.cache,
+		a.repositories.Setting,
+	)
 	commentService := service.NewCommentService(a.repositories.Comment)
 	searchService := service.NewSearchService(a.repositories.Search)
 	pageService := service.NewPageService(a.repositories.Page, a.cache)
@@ -716,6 +725,7 @@ func (a *Application) initRouter() error {
 			content.PUT("/posts/:id", a.handlers.Post.Update)
 			content.DELETE("/posts/:id", a.handlers.Post.Delete)
 			content.GET("/posts", a.handlers.Post.GetAllAdmin)
+			content.GET("/posts/:id/analytics", a.handlers.Post.GetAnalytics)
 
 			content.POST("/pages", a.handlers.Page.Create)
 			content.PUT("/pages/:id", a.handlers.Page.Update)

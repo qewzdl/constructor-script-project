@@ -75,6 +75,19 @@ type Post struct {
 	Comments []Comment `gorm:"foreignKey:PostID" json:"comments,omitempty"`
 }
 
+type PostViewStat struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	PostID uint      `gorm:"not null;index:idx_post_view_stats_post_date,priority:1" json:"post_id"`
+	Date   time.Time `gorm:"type:date;not null;index:idx_post_view_stats_post_date,priority:2" json:"date"`
+	Views  int64     `gorm:"not null;default:0" json:"views"`
+
+	Post Post `gorm:"foreignKey:PostID" json:"-"`
+}
+
 type Tag struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`

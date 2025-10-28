@@ -19,6 +19,11 @@ type PostRepository interface {
 	GetRecent(limit int) ([]models.Post, error)
 	GetRelated(postID uint, categoryID uint, limit int) ([]models.Post, error)
 	IncrementViews(id uint) error
+	GetViewStats(postID uint, start time.Time) ([]DailyCount, error)
+	GetAverageViews() (float64, error)
+	GetAverageComments() (float64, error)
+	GetViewRank(postID uint) (int64, int64, error)
+	GetCommentRank(postID uint) (int64, int64, error)
 	ExistsBySlug(slug string) (bool, error)
 	ReassignCategory(fromCategoryID, toCategoryID uint) error
 	GetAllPublished() ([]models.Post, error)
@@ -160,9 +165,158 @@ func (r *postRepository) GetRelated(postID uint, categoryID uint, limit int) ([]
 }
 
 func (r *postRepository) IncrementViews(id uint) error {
-	return r.db.Model(&models.Post{}).
-		Where("id = ?", id).
-		UpdateColumn("views", gorm.Expr("views + ?", 1)).Error
+	now := time.Now().UTC()
+	date := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.Post{}).
+			Where("id = ?", id).
+			UpdateColumn("views", gorm.Expr("views + ?", 1)).Error; err != nil {
+			return err
+		}
+
+		result := tx.Model(&models.PostViewStat{}).
+			Where("post_id = ? AND date = ?", id, date).
+			UpdateColumn("views", gorm.Expr("views + ?", 1))
+		if result.Error != nil {
+			return result.Error
+		}
+
+		if result.RowsAffected == 0 {
+			stat := models.PostViewStat{PostID: id, Date: date, Views: 1}
+			if err := tx.Create(&stat).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func (r *postRepository) GetViewStats(postID uint, start time.Time) ([]DailyCount, error) {
+	var stats []DailyCount
+
+	query := r.db.Model(&models.PostViewStat{}).
+		Select("date AS period, views AS count").
+		Where("post_id = ?", postID)
+
+	if !start.IsZero() {
+		query = query.Where("date >= ?", start)
+	}
+
+	if err := query.Order("date").Scan(&stats).Error; err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+func (r *postRepository) GetAverageViews() (float64, error) {
+	var result struct {
+		Avg float64
+	}
+
+	err := r.db.Model(&models.Post{}).
+		Where("published = ?", true).
+		Select("COALESCE(AVG(views), 0) AS avg").
+		Scan(&result).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return result.Avg, nil
+}
+
+func (r *postRepository) GetAverageComments() (float64, error) {
+	subQuery := r.db.Model(&models.Comment{}).
+		Select("post_id, COUNT(*) AS count").
+		Group("post_id")
+
+	var result struct {
+		Avg float64
+	}
+
+	err := r.db.Model(&models.Post{}).
+		Where("published = ?", true).
+		Joins("LEFT JOIN (?) AS comment_counts ON comment_counts.post_id = posts.id", subQuery).
+		Select("COALESCE(AVG(COALESCE(comment_counts.count, 0)), 0) AS avg").
+		Scan(&result).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return result.Avg, nil
+}
+
+func (r *postRepository) GetViewRank(postID uint) (int64, int64, error) {
+	var info struct {
+		Views     int64
+		Published bool
+	}
+
+	if err := r.db.Model(&models.Post{}).
+		Select("views, published").
+		Where("id = ?", postID).
+		Scan(&info).Error; err != nil {
+		return 0, 0, err
+	}
+
+	if !info.Published {
+		return 0, 0, gorm.ErrRecordNotFound
+	}
+
+	var result struct {
+		Rank  int64
+		Total int64
+	}
+
+	err := r.db.Raw(`
+                SELECT
+                        (SELECT COUNT(*) FROM posts WHERE published = TRUE AND views > ?) + 1 AS rank,
+                        (SELECT COUNT(*) FROM posts WHERE published = TRUE) AS total
+        `, info.Views).Scan(&result).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return result.Rank, result.Total, nil
+}
+
+func (r *postRepository) GetCommentRank(postID uint) (int64, int64, error) {
+	var result struct {
+		Rank  int64
+		Total int64
+	}
+
+	query := r.db.Raw(`
+WITH comment_counts AS (
+        SELECT p.id, COALESCE(c.count, 0) AS comment_count
+        FROM posts p
+        LEFT JOIN (
+                SELECT post_id, COUNT(*) AS count
+                FROM comments
+                GROUP BY post_id
+        ) c ON c.post_id = p.id
+        WHERE p.published = TRUE
+),
+target AS (
+        SELECT * FROM comment_counts WHERE id = ?
+)
+SELECT
+        (SELECT COUNT(*) FROM comment_counts WHERE comment_count > target.comment_count) + 1 AS rank,
+        (SELECT COUNT(*) FROM comment_counts) AS total
+FROM target
+        `, postID)
+
+	if err := query.Scan(&result).Error; err != nil {
+		return 0, 0, err
+	}
+
+	if query.RowsAffected == 0 {
+		return 0, 0, gorm.ErrRecordNotFound
+	}
+
+	return result.Rank, result.Total, nil
 }
 
 func (r *postRepository) ExistsBySlug(slug string) (bool, error) {

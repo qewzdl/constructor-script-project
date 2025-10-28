@@ -183,6 +183,36 @@ func (h *PostHandler) DeleteTag(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "tag deleted successfully"})
 }
 
+func (h *PostHandler) GetAnalytics(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
+		return
+	}
+
+	days, err := strconv.Atoi(c.DefaultQuery("days", "30"))
+	if err != nil {
+		days = 30
+	}
+
+	analytics, err := h.postService.GetAnalytics(uint(id), days)
+	if err != nil {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+			return
+		case errors.Is(err, service.ErrPostNotPublished):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "analytics available only for published posts"})
+			return
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"analytics": analytics})
+}
+
 func (h *PostHandler) GetPostsByTag(c *gin.Context) {
 	slug := c.Param("slug")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))

@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"constructor-script-backend/internal/models"
 
 	"gorm.io/gorm"
@@ -13,6 +15,10 @@ type CommentRepository interface {
 	GetAll() ([]models.Comment, error)
 	Update(comment *models.Comment) error
 	Delete(id uint) error
+	GetPending() ([]models.Comment, error)
+	GetByUserID(userID uint) ([]models.Comment, error)
+	CountByPostID(postID uint) (int64, error)
+	DailyCountsByPostID(postID uint, start time.Time) ([]DailyCount, error)
 }
 
 type commentRepository struct {
@@ -114,4 +120,22 @@ func (r *commentRepository) CountByPostID(postID uint) (int64, error) {
 		Where("post_id = ?", postID).
 		Count(&count).Error
 	return count, err
+}
+
+func (r *commentRepository) DailyCountsByPostID(postID uint, start time.Time) ([]DailyCount, error) {
+	var counts []DailyCount
+
+	query := r.db.Model(&models.Comment{}).
+		Select("DATE_TRUNC('day', created_at) AS period, COUNT(*) AS count").
+		Where("post_id = ?", postID)
+
+	if !start.IsZero() {
+		query = query.Where("created_at >= ?", start)
+	}
+
+	if err := query.Group("period").Order("period").Scan(&counts).Error; err != nil {
+		return nil, err
+	}
+
+	return counts, nil
 }

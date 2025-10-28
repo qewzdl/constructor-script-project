@@ -341,6 +341,66 @@
                             </div>
                         </fieldset>
                     </form>
+                    <section class="admin-panel__aside admin-post-analytics" aria-labelledby="admin-post-analytics-title">
+                        <header class="admin-post-analytics__header">
+                            <h3 id="admin-post-analytics-title" class="admin-post-analytics__title">Post analytics</h3>
+                            <p class="admin-post-analytics__description">
+                                Track how each post performs over time to spot growth or declines in engagement.
+                            </p>
+                        </header>
+                        <div class="admin-analytics" data-role="post-analytics" hidden>
+                            <ul class="admin-analytics__summary" data-role="post-analytics-summary">
+                                <li class="admin-analytics__summary-item" data-metric="views">
+                                    <p class="admin-analytics__summary-label">Views</p>
+                                    <p class="admin-analytics__summary-value" data-role="summary-value">—</p>
+                                    <p class="admin-analytics__summary-subvalue" data-role="summary-subvalue">—</p>
+                                    <p class="admin-analytics__summary-delta" data-role="summary-delta" hidden></p>
+                                </li>
+                                <li class="admin-analytics__summary-item" data-metric="comments">
+                                    <p class="admin-analytics__summary-label">Comments</p>
+                                    <p class="admin-analytics__summary-value" data-role="summary-value">—</p>
+                                    <p class="admin-analytics__summary-subvalue" data-role="summary-subvalue">—</p>
+                                    <p class="admin-analytics__summary-delta" data-role="summary-delta" hidden></p>
+                                </li>
+                                <li class="admin-analytics__summary-item" data-metric="engagement">
+                                    <p class="admin-analytics__summary-label">Engagement</p>
+                                    <p class="admin-analytics__summary-value" data-role="summary-value">—</p>
+                                    <p class="admin-analytics__summary-subvalue" data-role="summary-subvalue">—</p>
+                                    <p class="admin-analytics__summary-delta" data-role="summary-delta" hidden></p>
+                                </li>
+                            </ul>
+                            <div
+                                class="admin__chart admin__chart--compact"
+                                data-role="post-analytics-chart"
+                                role="img"
+                                aria-labelledby="admin-post-analytics-title admin-post-analytics-caption"
+                            >
+                                <div class="admin-chart__viewport">
+                                    <svg class="admin-chart__svg" viewBox="0 0 600 260" preserveAspectRatio="none" focusable="false"></svg>
+                                </div>
+                                <div class="admin-chart__footer">
+                                    <ul class="admin-chart__legend" data-role="chart-legend"></ul>
+                                    <ol
+                                        class="admin-chart__summary"
+                                        id="admin-post-analytics-caption"
+                                        data-role="chart-summary"
+                                        aria-live="polite"
+                                    ></ol>
+                                </div>
+                                <p class="admin-chart__empty" data-role="chart-empty" hidden>
+                                    Not enough recent data to display a trend yet.
+                                </p>
+                            </div>
+                            <dl class="admin-analytics__comparisons" data-role="post-analytics-comparisons"></dl>
+                            <p class="admin-analytics__message" data-role="post-analytics-comparisons-empty" hidden>
+                                Not enough data for comparisons yet.
+                            </p>
+                        </div>
+                        <p class="admin-analytics__message" data-role="post-analytics-loading" hidden>Loading analytics…</p>
+                        <p class="admin-analytics__message" data-role="post-analytics-empty">
+                            Select a published post to view analytics.
+                        </p>
+                    </section>
                     <section class="admin-panel__aside admin-tags" aria-labelledby="admin-tags-title">
                         <header class="admin-tags__header">
                             <h3 id="admin-tags-title" class="admin-tags__title">Tags</h3>

@@ -23,9 +23,12 @@ type PostService struct {
 	postRepo     repository.PostRepository
 	tagRepo      repository.TagRepository
 	categoryRepo repository.CategoryRepository
+	commentRepo  repository.CommentRepository
 	cache        *cache.Cache
 	settingRepo  repository.SettingRepository
 }
+
+var ErrPostNotPublished = errors.New("post is not published")
 
 func (s *PostService) invalidateTagCaches() {
 	if s.cache == nil {
@@ -92,6 +95,7 @@ func NewPostService(
 	postRepo repository.PostRepository,
 	tagRepo repository.TagRepository,
 	categoryRepo repository.CategoryRepository,
+	commentRepo repository.CommentRepository,
 	cacheService *cache.Cache,
 	settingRepo repository.SettingRepository,
 ) *PostService {
@@ -99,6 +103,7 @@ func NewPostService(
 		postRepo:     postRepo,
 		tagRepo:      tagRepo,
 		categoryRepo: categoryRepo,
+		commentRepo:  commentRepo,
 		cache:        cacheService,
 		settingRepo:  settingRepo,
 	}
@@ -476,8 +481,7 @@ func (s *PostService) GetByID(id uint) (*models.Post, error) {
 	if s.cache != nil {
 		var post models.Post
 		if err := s.cache.GetCachedPost(id, &post); err == nil {
-
-			s.cache.IncrementViews(id)
+			s.trackPostView(&post)
 			return &post, nil
 		}
 	}
@@ -487,14 +491,7 @@ func (s *PostService) GetByID(id uint) (*models.Post, error) {
 		return nil, err
 	}
 
-	go func() {
-		post.Views++
-		s.postRepo.Update(post)
-	}()
-
-	if s.cache != nil {
-		s.cache.CachePost(id, post)
-	}
+	s.trackPostView(post)
 
 	return post, nil
 }
@@ -505,6 +502,7 @@ func (s *PostService) GetBySlug(slug string) (*models.Post, error) {
 		var post models.Post
 		cacheKey := fmt.Sprintf("post:slug:%s", slug)
 		if err := s.cache.Get(cacheKey, &post); err == nil {
+			s.trackPostView(&post)
 			return &post, nil
 		}
 	}
@@ -514,18 +512,39 @@ func (s *PostService) GetBySlug(slug string) (*models.Post, error) {
 		return nil, err
 	}
 
-	go func() {
-		post.Views++
-		s.postRepo.Update(post)
-	}()
-
-	if s.cache != nil {
-		cacheKey := fmt.Sprintf("post:slug:%s", slug)
-		s.cache.Set(cacheKey, post, 1*time.Hour)
-		s.cache.CachePost(post.ID, post)
-	}
+	s.trackPostView(post)
 
 	return post, nil
+}
+
+func (s *PostService) trackPostView(post *models.Post) {
+	if post == nil {
+		return
+	}
+
+	now := time.Now().UTC()
+	if !post.Published {
+		return
+	}
+	if post.PublishAt != nil && post.PublishAt.After(now) {
+		return
+	}
+
+	post.Views++
+
+	go func(postID uint) {
+		if err := s.postRepo.IncrementViews(postID); err != nil {
+			logger.Error(err, "Failed to increment post views", map[string]interface{}{"post_id": postID})
+		}
+	}(post.ID)
+
+	if s.cache != nil {
+		s.cache.CachePost(post.ID, post)
+		if slug := strings.TrimSpace(post.Slug); slug != "" {
+			cacheKey := fmt.Sprintf("post:slug:%s", slug)
+			s.cache.Set(cacheKey, post, time.Hour)
+		}
+	}
 }
 
 func (s *PostService) GetAll(page, limit int, categoryID *uint, tagName *string, authorID *uint) ([]models.Post, int64, error) {
@@ -864,6 +883,212 @@ func (s *PostService) UnpublishPost(postID uint) error {
 
 func (s *PostService) IncrementViews(postID uint) error {
 	return s.postRepo.IncrementViews(postID)
+}
+
+type PostAnalyticsPoint struct {
+	Period   time.Time `json:"period"`
+	Views    int64     `json:"views"`
+	Comments int64     `json:"comments"`
+}
+
+type PostAnalyticsMetrics struct {
+	TotalViews            int64   `json:"total_views"`
+	TotalComments         int64   `json:"total_comments"`
+	ViewsLast7Days        int64   `json:"views_last_7_days"`
+	ViewsPrevious7Days    int64   `json:"views_previous_7_days"`
+	CommentsLast7Days     int64   `json:"comments_last_7_days"`
+	CommentsPrevious7Days int64   `json:"comments_previous_7_days"`
+	ViewsChangePercent    float64 `json:"views_change_percent"`
+	CommentsChangePercent float64 `json:"comments_change_percent"`
+	EngagementRate        float64 `json:"engagement_rate"`
+}
+
+type PostAnalyticsComparisons struct {
+	AverageViews                float64 `json:"average_views"`
+	AverageComments             float64 `json:"average_comments"`
+	ViewsVsAverageDifference    float64 `json:"views_vs_average_difference"`
+	ViewsVsAveragePercent       float64 `json:"views_vs_average_percent"`
+	CommentsVsAverageDifference float64 `json:"comments_vs_average_difference"`
+	CommentsVsAveragePercent    float64 `json:"comments_vs_average_percent"`
+	ViewsRankPosition           int64   `json:"views_rank_position"`
+	ViewsRankTotal              int64   `json:"views_rank_total"`
+	CommentsRankPosition        int64   `json:"comments_rank_position"`
+	CommentsRankTotal           int64   `json:"comments_rank_total"`
+}
+
+type PostAnalytics struct {
+	Metrics     PostAnalyticsMetrics     `json:"metrics"`
+	Trend       []PostAnalyticsPoint     `json:"trend"`
+	Comparisons PostAnalyticsComparisons `json:"comparisons"`
+}
+
+func (s *PostService) GetAnalytics(postID uint, days int) (*PostAnalytics, error) {
+	if s.postRepo == nil {
+		return nil, errors.New("post repository not configured")
+	}
+
+	post, err := s.postRepo.GetByID(postID)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+	if !post.Published || (post.PublishAt != nil && post.PublishAt.After(now)) {
+		return nil, ErrPostNotPublished
+	}
+
+	if days <= 0 {
+		days = 30
+	}
+	if days > 90 {
+		days = 90
+	}
+
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	start := today.AddDate(0, 0, -(days - 1))
+
+	viewStats, err := s.postRepo.GetViewStats(postID, start)
+	if err != nil {
+		return nil, err
+	}
+
+	var commentStats []repository.DailyCount
+	if s.commentRepo != nil {
+		commentStats, err = s.commentRepo.DailyCountsByPostID(postID, start)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	viewMap := make(map[string]int64, len(viewStats))
+	for _, entry := range viewStats {
+		key := entry.Period.UTC().Format("2006-01-02")
+		viewMap[key] = entry.Count
+	}
+
+	commentMap := make(map[string]int64, len(commentStats))
+	for _, entry := range commentStats {
+		key := entry.Period.UTC().Format("2006-01-02")
+		commentMap[key] = entry.Count
+	}
+
+	trend := make([]PostAnalyticsPoint, 0, days)
+	for index := 0; index < days; index++ {
+		day := start.AddDate(0, 0, index)
+		key := day.Format("2006-01-02")
+		trend = append(trend, PostAnalyticsPoint{
+			Period:   day,
+			Views:    viewMap[key],
+			Comments: commentMap[key],
+		})
+	}
+
+	window := 7
+	if days < window {
+		window = days
+	}
+
+	var viewsLast, viewsPrev, commentsLast, commentsPrev int64
+	if window > 0 {
+		startLast := len(trend) - window
+		if startLast < 0 {
+			startLast = 0
+		}
+		for i := startLast; i < len(trend); i++ {
+			viewsLast += trend[i].Views
+			commentsLast += trend[i].Comments
+		}
+
+		startPrev := startLast - window
+		if startPrev < 0 {
+			startPrev = 0
+		}
+		for i := startPrev; i < startLast; i++ {
+			viewsPrev += trend[i].Views
+			commentsPrev += trend[i].Comments
+		}
+	}
+
+	var totalComments int64
+	if s.commentRepo != nil {
+		totalComments, err = s.commentRepo.CountByPostID(postID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	totalViews := int64(post.Views)
+
+	metrics := PostAnalyticsMetrics{
+		TotalViews:            totalViews,
+		TotalComments:         totalComments,
+		ViewsLast7Days:        viewsLast,
+		ViewsPrevious7Days:    viewsPrev,
+		CommentsLast7Days:     commentsLast,
+		CommentsPrevious7Days: commentsPrev,
+		ViewsChangePercent:    calculatePercentChange(viewsLast, viewsPrev),
+		CommentsChangePercent: calculatePercentChange(commentsLast, commentsPrev),
+	}
+
+	if totalViews > 0 {
+		metrics.EngagementRate = (float64(totalComments) / float64(totalViews)) * 100
+	}
+
+	avgViews, err := s.postRepo.GetAverageViews()
+	if err != nil {
+		return nil, err
+	}
+
+	avgComments, err := s.postRepo.GetAverageComments()
+	if err != nil {
+		return nil, err
+	}
+
+	comparisons := PostAnalyticsComparisons{
+		AverageViews:                avgViews,
+		AverageComments:             avgComments,
+		ViewsVsAverageDifference:    float64(totalViews) - avgViews,
+		CommentsVsAverageDifference: float64(totalComments) - avgComments,
+	}
+
+	if avgViews > 0 {
+		comparisons.ViewsVsAveragePercent = ((float64(totalViews) - avgViews) / avgViews) * 100
+	}
+	if avgComments > 0 {
+		comparisons.CommentsVsAveragePercent = ((float64(totalComments) - avgComments) / avgComments) * 100
+	}
+
+	if rank, total, err := s.postRepo.GetViewRank(postID); err == nil {
+		comparisons.ViewsRankPosition = rank
+		comparisons.ViewsRankTotal = total
+	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	if rank, total, err := s.postRepo.GetCommentRank(postID); err == nil {
+		comparisons.CommentsRankPosition = rank
+		comparisons.CommentsRankTotal = total
+	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	analytics := &PostAnalytics{
+		Metrics:     metrics,
+		Trend:       trend,
+		Comparisons: comparisons,
+	}
+
+	return analytics, nil
+}
+
+func calculatePercentChange(current, previous int64) float64 {
+	if previous == 0 {
+		if current == 0 {
+			return 0
+		}
+		return 100
+	}
+	return (float64(current-previous) / float64(previous)) * 100
 }
 
 func (s *PostService) fetchPostsByCategory(categorySlug string, categoryID uint, page, limit int) ([]models.Post, int64, error) {
