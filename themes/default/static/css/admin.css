@@ -2186,6 +2186,24 @@
     align-items: center;
 }
 
+.admin-media-library__search {
+    flex: 1 1 240px;
+    min-width: 200px;
+    max-width: 100%;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    color: inherit;
+    font: inherit;
+}
+
+.admin-media-library__search:focus,
+.admin-media-library__search:focus-visible {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
 .admin-media-library__action-button,
 .admin-media-library__upload-label {
     display: inline-flex;

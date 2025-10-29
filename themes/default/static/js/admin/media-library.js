@@ -24,6 +24,8 @@
                 renameSuccess: 'Image renamed successfully.',
                 renameError: 'Failed to rename image.',
                 renameEmpty: 'Image name cannot be empty.',
+                searchPlaceholder: 'Search uploads…',
+                emptySearch: 'No uploads match your search.',
                 empty: 'No uploads found yet.',
                 error: 'Failed to load uploads. Try again shortly.',
                 close: 'Close',
@@ -39,8 +41,11 @@
             this.chooseButton = null;
             this.fileInput = null;
             this.renameButton = null;
+            this.searchInput = null;
             this.currentSelection = null;
             this.currentUploads = [];
+            this.allUploads = [];
+            this.searchQuery = '';
             this.pendingFetch = null;
             this.pendingUpload = null;
             this.pendingRename = null;
@@ -84,6 +89,14 @@
 
             const actions = document.createElement('div');
             actions.className = 'admin-media-library__actions';
+
+            const searchInput = document.createElement('input');
+            searchInput.type = 'search';
+            searchInput.className = 'admin-media-library__search';
+            searchInput.placeholder = this.texts.searchPlaceholder;
+            searchInput.setAttribute('aria-label', this.texts.searchPlaceholder);
+            actions.append(searchInput);
+            this.searchInput = searchInput;
 
             const refreshButton = document.createElement('button');
             refreshButton.type = 'button';
@@ -246,6 +259,14 @@
                 }
             });
 
+            this.searchInput?.addEventListener('input', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement)) {
+                    return;
+                }
+                this.setSearchQuery(target.value || '');
+            });
+
             document.body.append(root);
             this.root = root;
         }
@@ -291,11 +312,8 @@
             this.showStatus('');
             this.pendingFetch = this.fetchUploads()
                 .then((uploads) => {
-                    this.currentUploads = Array.isArray(uploads) ? uploads : [];
-                    this.renderUploads();
-                    if (!this.currentUploads.length) {
-                        this.showStatus(this.texts.empty, 'info');
-                    }
+                    this.allUploads = Array.isArray(uploads) ? uploads : [];
+                    this.applyFilters();
                 })
                 .catch((error) => {
                     const message =
@@ -352,6 +370,56 @@
                 item.append(meta);
                 this.grid.append(item);
             });
+        }
+
+        setSearchQuery(value) {
+            const query = typeof value === 'string' ? value.trim().toLowerCase() : '';
+            if (query === this.searchQuery) {
+                return;
+            }
+            this.searchQuery = query;
+            this.applyFilters();
+        }
+
+        applyFilters(options = {}) {
+            const { preserveStatus = false } = options;
+            const allUploads = Array.isArray(this.allUploads) ? this.allUploads : [];
+            const query = this.searchQuery;
+            let filteredUploads = allUploads;
+            if (query) {
+                filteredUploads = allUploads.filter((upload) => {
+                    if (!upload || typeof upload !== 'object') {
+                        return false;
+                    }
+                    const filename =
+                        (typeof upload.filename === 'string' && upload.filename) ||
+                        (typeof upload.Filename === 'string' && upload.Filename) ||
+                        '';
+                    const url =
+                        (typeof upload.url === 'string' && upload.url) ||
+                        (typeof upload.URL === 'string' && upload.URL) ||
+                        '';
+                    const haystacks = [filename, url]
+                        .map((value) => value.toLowerCase())
+                        .filter(Boolean);
+                    return haystacks.some((value) => value.includes(query));
+                });
+            }
+            this.currentUploads = filteredUploads;
+            this.renderUploads();
+            if (!filteredUploads.length) {
+                if (!preserveStatus) {
+                    const message = query ? this.texts.emptySearch : this.texts.empty;
+                    this.showStatus(message, 'info');
+                }
+            } else if (!preserveStatus) {
+                const hasPersistentStatus =
+                    this.status?.classList.contains('admin-media-library__status--error') ||
+                    this.status?.classList.contains('admin-media-library__status--success');
+                if (!hasPersistentStatus) {
+                    this.showStatus('');
+                }
+            }
         }
 
         formatSize(size) {
@@ -579,6 +647,11 @@
             this.currentSelection = null;
             this.updateChooseState();
             this.showStatus('');
+            this.searchQuery = '';
+            if (this.searchInput) {
+                this.searchInput.value = '';
+            }
+            this.applyFilters({ preserveStatus: true });
             if (typeof this.onOpen === 'function') {
                 this.onOpen();
             }
