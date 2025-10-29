@@ -319,6 +319,7 @@
             faviconUpload: root.dataset.endpointFaviconUpload,
             logoUpload: root.dataset.endpointLogoUpload,
             upload: root.dataset.endpointUpload,
+            uploadRename: root.dataset.endpointUploadRename,
             uploads: root.dataset.endpointUploads,
             themes: root.dataset.endpointThemes,
             socialLinks: root.dataset.endpointSocialLinks,
@@ -858,9 +859,86 @@
                       }
                     : null;
 
+                const renameUpload = endpoints.uploadRename
+                    ? async (upload, newName) => {
+                          if (!upload) {
+                              throw new Error('Select an image to rename.');
+                          }
+                          const desiredName =
+                              typeof newName === 'string' ? newName.trim() : '';
+                          if (!desiredName) {
+                              throw new Error('Image name cannot be empty.');
+                          }
+                          if (!endpoints.uploadRename) {
+                              throw new Error('Rename endpoint is not configured.');
+                          }
+
+                          const uploadUrl =
+                              (upload && typeof upload.url === 'string' && upload.url) ||
+                              (upload && typeof upload.URL === 'string' && upload.URL) ||
+                              '';
+                          const uploadFilename =
+                              (upload &&
+                                  typeof upload.filename === 'string' &&
+                                  upload.filename) ||
+                              (upload &&
+                                  typeof upload.Filename === 'string' &&
+                                  upload.Filename) ||
+                              '';
+
+                          let currentValue = uploadUrl || uploadFilename;
+                          if (currentValue.includes('/uploads/')) {
+                              const index = currentValue.lastIndexOf('/uploads/');
+                              currentValue = currentValue.slice(index);
+                          }
+                          currentValue = (currentValue || '').trim();
+                          if (!currentValue) {
+                              throw new Error('Unable to determine the current file name.');
+                          }
+
+                          try {
+                              const result = await apiRequest(endpoints.uploadRename, {
+                                  method: 'PUT',
+                                  headers: {
+                                      'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                      current: currentValue,
+                                      name: desiredName,
+                                  }),
+                              });
+
+                              if (result && typeof result === 'object') {
+                                  if (result.upload && typeof result.upload === 'object') {
+                                      return result.upload;
+                                  }
+                                  return {
+                                      url:
+                                          result.url ||
+                                          result.URL ||
+                                          (result.upload && result.upload.url) ||
+                                          uploadUrl ||
+                                          currentValue,
+                                      filename:
+                                          result.filename ||
+                                          result.Filename ||
+                                          (result.upload && result.upload.filename) ||
+                                          uploadFilename,
+                                  };
+                              }
+
+                              return null;
+                          } catch (error) {
+                              handleRequestError(error);
+                              throw error;
+                          }
+                      }
+                    : null;
+
                 return window.AdminMediaLibrary.create({
                     fetchUploads,
                     uploadFile,
+                    renameUpload,
                     onClose: () => {
                         if (document.activeElement) {
                             document.activeElement.blur?.();

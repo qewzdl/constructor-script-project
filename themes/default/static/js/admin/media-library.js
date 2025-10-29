@@ -4,6 +4,7 @@
             const {
                 fetchUploads,
                 uploadFile,
+                renameUpload,
                 onOpen,
                 onClose,
                 texts = {},
@@ -11,12 +12,18 @@
 
             this.fetchUploads = typeof fetchUploads === 'function' ? fetchUploads : null;
             this.uploadFile = typeof uploadFile === 'function' ? uploadFile : null;
+            this.renameUpload = typeof renameUpload === 'function' ? renameUpload : null;
             this.onOpen = typeof onOpen === 'function' ? onOpen : null;
             this.onClose = typeof onClose === 'function' ? onClose : null;
             this.texts = {
                 title: 'Select image',
                 upload: 'Upload image',
                 refresh: 'Refresh',
+                rename: 'Rename image',
+                renamePrompt: 'Enter a new name for the image',
+                renameSuccess: 'Image renamed successfully.',
+                renameError: 'Failed to rename image.',
+                renameEmpty: 'Image name cannot be empty.',
                 empty: 'No uploads found yet.',
                 error: 'Failed to load uploads. Try again shortly.',
                 close: 'Close',
@@ -31,10 +38,12 @@
             this.status = null;
             this.chooseButton = null;
             this.fileInput = null;
+            this.renameButton = null;
             this.currentSelection = null;
             this.currentUploads = [];
             this.pendingFetch = null;
             this.pendingUpload = null;
+            this.pendingRename = null;
             this.resolveClose = null;
         }
 
@@ -82,6 +91,19 @@
             refreshButton.dataset.action = 'media-library-refresh';
             refreshButton.textContent = this.texts.refresh;
             actions.append(refreshButton);
+
+            const renameButton = document.createElement('button');
+            renameButton.type = 'button';
+            renameButton.className = 'admin-media-library__action-button';
+            renameButton.dataset.action = 'media-library-rename';
+            renameButton.textContent = this.texts.rename;
+            if (!this.renameUpload) {
+                renameButton.hidden = true;
+            } else {
+                renameButton.disabled = true;
+            }
+            actions.append(renameButton);
+            this.renameButton = renameButton;
 
             const uploadLabel = document.createElement('label');
             uploadLabel.className = 'admin-media-library__upload-label';
@@ -149,6 +171,11 @@
                 if (target.dataset.action === 'media-library-refresh') {
                     event.preventDefault();
                     this.refresh();
+                    return;
+                }
+                if (target.dataset.action === 'media-library-rename') {
+                    event.preventDefault();
+                    this.handleRename();
                     return;
                 }
                 if (target.dataset.action === 'media-library-cancel') {
@@ -383,10 +410,15 @@
         }
 
         updateChooseState() {
-            if (!this.chooseButton) {
-                return;
+            const hasSelection = Boolean(this.currentSelection);
+            if (this.chooseButton) {
+                this.chooseButton.disabled = !hasSelection;
             }
-            this.chooseButton.disabled = !this.currentSelection;
+            if (this.renameButton && this.renameUpload) {
+                const shouldDisable =
+                    !hasSelection || this.isUploading() || this.isRenaming();
+                this.renameButton.disabled = shouldDisable;
+            }
         }
 
         confirmSelection() {
@@ -440,12 +472,97 @@
                 })
                 .finally(() => {
                     this.pendingUpload = null;
+                    this.updateChooseState();
                 });
+            this.updateChooseState();
             await this.pendingUpload;
+        }
+
+        async handleRename() {
+            if (!this.renameUpload || !this.currentSelection || this.isRenaming()) {
+                return;
+            }
+
+            const current = this.currentSelection;
+            const currentName =
+                (current && typeof current.filename === 'string' && current.filename) ||
+                (current && typeof current.Filename === 'string' && current.Filename) ||
+                '';
+            const defaultName = currentName.replace(/\.[^/.]+$/, '');
+
+            let newName = defaultName;
+            if (typeof window !== 'undefined' && typeof window.prompt === 'function') {
+                const promptValue = window.prompt(this.texts.renamePrompt, defaultName);
+                if (promptValue === null) {
+                    return;
+                }
+                newName = promptValue.trim();
+            } else {
+                newName = (newName || '').trim();
+            }
+
+            if (!newName) {
+                this.showStatus(this.texts.renameEmpty, 'error');
+                return;
+            }
+
+            this.pendingRename = this.renameUpload(current, newName)
+                .then((updated) => {
+                    this.showStatus(this.texts.renameSuccess, 'success');
+                    return this.refresh().then(() => updated);
+                })
+                .then((updated) => {
+                    if (!updated) {
+                        return;
+                    }
+                    const updatedUrl =
+                        (updated && typeof updated.url === 'string' && updated.url) ||
+                        (updated && typeof updated.URL === 'string' && updated.URL) ||
+                        '';
+                    const updatedFilename =
+                        (updated &&
+                            typeof updated.filename === 'string' &&
+                            updated.filename) ||
+                        (updated &&
+                            typeof updated.Filename === 'string' &&
+                            updated.Filename) ||
+                        '';
+                    let index = -1;
+                    if (updatedUrl) {
+                        index = this.currentUploads.findIndex(
+                            (upload) => upload.url === updatedUrl
+                        );
+                    }
+                    if (index < 0 && updatedFilename) {
+                        index = this.currentUploads.findIndex(
+                            (upload) => upload.filename === updatedFilename
+                        );
+                    }
+                    if (index >= 0) {
+                        this.setSelection(index);
+                    }
+                })
+                .catch((error) => {
+                    const message =
+                        error && typeof error.message === 'string'
+                            ? error.message
+                            : this.texts.renameError;
+                    this.showStatus(message, 'error');
+                })
+                .finally(() => {
+                    this.pendingRename = null;
+                    this.updateChooseState();
+                });
+            this.updateChooseState();
+            await this.pendingRename;
         }
 
         isUploading() {
             return Boolean(this.pendingUpload);
+        }
+
+        isRenaming() {
+            return Boolean(this.pendingRename);
         }
 
         async open(options = {}) {

@@ -30,6 +30,11 @@ type UploadInfo struct {
 	ModTime  time.Time `json:"mod_time"`
 }
 
+var (
+	ErrUploadNotFound    = errors.New("upload not found")
+	ErrInvalidUploadName = errors.New("invalid image name")
+)
+
 func NewUploadService(uploadDir string) *UploadService {
 
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
@@ -160,6 +165,40 @@ func (s *UploadService) generateFilename(originalName, preferredName, ext string
 	return fmt.Sprintf("%s%s", uuid.New().String(), ext)
 }
 
+func (s *UploadService) generateFilenameForRename(preferredName, ext, currentFilename string) string {
+
+	cleaned := utils.GenerateSlug(preferredName)
+	if cleaned == "" {
+		cleaned = uuid.New().String()
+	}
+
+	candidate := fmt.Sprintf("%s%s", cleaned, ext)
+	if candidate == currentFilename {
+		return candidate
+	}
+
+	if !s.fileExists(candidate) {
+		return candidate
+	}
+
+	for i := 1; i < 1000; i++ {
+		candidate = fmt.Sprintf("%s-%d%s", cleaned, i, ext)
+		if candidate == currentFilename {
+			return candidate
+		}
+		if !s.fileExists(candidate) {
+			return candidate
+		}
+	}
+
+	fallback := fmt.Sprintf("%s%s", uuid.New().String(), ext)
+	if fallback == currentFilename {
+		fallback = fmt.Sprintf("%s-%s%s", uuid.New().String(), uuid.New().String(), ext)
+	}
+
+	return fallback
+}
+
 func (s *UploadService) fileExists(name string) bool {
 	path := filepath.Join(s.uploadDir, name)
 	_, err := os.Stat(path)
@@ -170,6 +209,92 @@ func (s *UploadService) GetFileInfo(url string) (os.FileInfo, error) {
 	filename := filepath.Base(url)
 	filePath := filepath.Join(s.uploadDir, filename)
 	return os.Stat(filePath)
+}
+
+func (s *UploadService) RenameImage(current string, newName string) (UploadInfo, error) {
+
+	trimmedName := strings.TrimSpace(newName)
+	if trimmedName == "" {
+		return UploadInfo{}, ErrInvalidUploadName
+	}
+
+	filename := filepath.Base(strings.TrimSpace(current))
+	if filename == "" || filename == "." || filename == string(filepath.Separator) {
+		return UploadInfo{}, ErrUploadNotFound
+	}
+
+	ext := strings.ToLower(filepath.Ext(filename))
+	if !s.isAllowedType(ext) {
+		return UploadInfo{}, ErrUploadNotFound
+	}
+
+	uploadDirAbs, err := filepath.Abs(s.uploadDir)
+	if err != nil {
+		return UploadInfo{}, err
+	}
+
+	currentPath := filepath.Join(s.uploadDir, filename)
+	currentAbs, err := filepath.Abs(currentPath)
+	if err != nil {
+		return UploadInfo{}, err
+	}
+
+	if !strings.HasPrefix(currentAbs, uploadDirAbs) {
+		return UploadInfo{}, ErrUploadNotFound
+	}
+
+	if _, err := os.Stat(currentAbs); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return UploadInfo{}, ErrUploadNotFound
+		}
+		return UploadInfo{}, err
+	}
+
+	newFilename := s.generateFilenameForRename(trimmedName, ext, filename)
+
+	if newFilename == "" {
+		return UploadInfo{}, ErrInvalidUploadName
+	}
+
+	if newFilename == filename {
+		info, err := os.Stat(currentAbs)
+		if err != nil {
+			return UploadInfo{}, err
+		}
+
+		return UploadInfo{
+			URL:      "/uploads/" + filename,
+			Filename: filename,
+			Size:     info.Size(),
+			ModTime:  info.ModTime(),
+		}, nil
+	}
+
+	newPath := filepath.Join(s.uploadDir, newFilename)
+	newAbs, err := filepath.Abs(newPath)
+	if err != nil {
+		return UploadInfo{}, err
+	}
+
+	if !strings.HasPrefix(newAbs, uploadDirAbs) {
+		return UploadInfo{}, ErrInvalidUploadName
+	}
+
+	if err := os.Rename(currentAbs, newAbs); err != nil {
+		return UploadInfo{}, err
+	}
+
+	info, err := os.Stat(newAbs)
+	if err != nil {
+		return UploadInfo{}, err
+	}
+
+	return UploadInfo{
+		URL:      "/uploads/" + newFilename,
+		Filename: newFilename,
+		Size:     info.Size(),
+		ModTime:  info.ModTime(),
+	}, nil
 }
 
 func (s *UploadService) ValidateImage(file *multipart.FileHeader) error {

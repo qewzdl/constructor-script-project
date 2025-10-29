@@ -1,9 +1,11 @@
 package handlers
 
 import (
-	"constructor-script-backend/internal/service"
+	"errors"
 	"net/http"
 	"strings"
+
+	"constructor-script-backend/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -79,4 +81,31 @@ func (h *UploadHandler) List(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"uploads": uploads})
+}
+
+func (h *UploadHandler) Rename(c *gin.Context) {
+	var request struct {
+		Current string `json:"current"`
+		Name    string `json:"name"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		return
+	}
+
+	upload, err := h.uploadService.RenameImage(request.Current, request.Name)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidUploadName):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrUploadNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"upload": upload})
 }
