@@ -837,7 +837,8 @@
     gap: var(--size-sm);
 }
 
-.admin-form__upload-button[disabled] {
+.admin-form__upload-button[disabled],
+.section-field__media-button[disabled] {
     opacity: 0.6;
     cursor: not-allowed;
 }
@@ -1479,7 +1480,8 @@
 .admin-social__button,
 .admin-navigation__button,
 .admin-navigation__reorder-button,
-.admin-form__upload-button {
+.admin-form__upload-button,
+.section-field__media-button {
     border: 1px solid var(--color-border);
     background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-sm);
@@ -1514,7 +1516,10 @@
 .admin-navigation__reorder-button:focus-visible,
 
 .admin-form__upload-button:hover,
-.admin-form__upload-button:focus-visible {
+.admin-form__upload-button:focus-visible,
+
+.section-field__media-button:hover,
+.section-field__media-button:focus-visible {
     background: var(--color-primary-transparent);
     border-color: var(--color-primary);
     color: var(--color-primary);
@@ -1691,6 +1696,12 @@
 .section-field {
     display: grid;
     gap: var(--size-xs);
+}
+
+.section-field__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .section-field.section-field--checkbox {

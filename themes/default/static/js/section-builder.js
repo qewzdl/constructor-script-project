@@ -191,6 +191,27 @@
         return element;
     };
 
+    const createMediaBrowseActions = (input) => {
+        if (!(input instanceof HTMLElement)) {
+            return null;
+        }
+
+        const actions = createElement('div', {
+            className: 'section-field__actions',
+        });
+        const button = createElement('button', {
+            className: 'section-field__media-button',
+            type: 'button',
+            textContent: 'Browse uploads',
+        });
+        button.dataset.action = 'open-media-library';
+        if (input.id) {
+            button.dataset.mediaTarget = `#${input.id}`;
+        }
+        actions.appendChild(button);
+        return actions;
+    };
+
     const normaliseImageContent = (content = {}) => ({
         url: content.url || content.URL || '',
         alt: content.alt || content.Alt || '',
@@ -1121,6 +1142,10 @@
             });
             imageField.appendChild(imageLabel);
             imageField.appendChild(imageInput);
+            const imageActions = createMediaBrowseActions(imageInput);
+            if (imageActions) {
+                imageField.appendChild(imageActions);
+            }
             body.appendChild(imageField);
 
             if (section.type === 'grid') {
@@ -1487,6 +1512,10 @@
                 });
                 urlField.appendChild(urlLabel);
                 urlField.appendChild(urlInput);
+                const urlActions = createMediaBrowseActions(urlInput);
+                if (urlActions) {
+                    urlField.appendChild(urlActions);
+                }
                 body.appendChild(urlField);
 
                 const altId = `${section.id}-${element.id}-alt`;
@@ -2076,6 +2105,10 @@
                         });
                         urlField.appendChild(urlLabel);
                         urlField.appendChild(urlInput);
+                        const urlActions = createMediaBrowseActions(urlInput);
+                        if (urlActions) {
+                            urlField.appendChild(urlActions);
+                        }
                         item.appendChild(urlField);
 
                         const altId = `${section.id}-${element.id}-image-${imageIndex}-alt`;
