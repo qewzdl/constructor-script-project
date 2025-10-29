@@ -81,7 +81,12 @@
     <header class="post__header">
         {{ if .Post.FeaturedImg }}
         <figure class="post__image-wrapper">
-            <img src="{{ .Post.FeaturedImg }}" alt="{{ .Post.Title }}" class="post__image" />
+            <img
+                src="{{ .Post.FeaturedImg }}"
+                alt="{{ .Post.Title }}"
+                class="post__image"
+                loading="lazy"
+            />
         </figure>
         {{ end }}
 
