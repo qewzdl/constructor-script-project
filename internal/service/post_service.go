@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"constructor-script-backend/internal/background"
 	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
@@ -26,7 +28,11 @@ type PostService struct {
 	commentRepo  repository.CommentRepository
 	cache        *cache.Cache
 	settingRepo  repository.SettingRepository
+	scheduler    *background.Scheduler
 }
+
+const unusedTagCleanupJobName = "unused_tag_cleanup"
+const unusedTagCleanupDelay = 30 * time.Second
 
 var ErrPostNotPublished = errors.New("post is not published")
 
@@ -44,25 +50,61 @@ func (s *PostService) handleTagChanges() {
 }
 
 func (s *PostService) scheduleUnusedTagCleanup() {
-	if s.tagRepo == nil {
+	if s.tagRepo == nil || s.scheduler == nil {
 		return
 	}
 
-	go func() {
-		now := time.Now().UTC()
-		if err := s.tagRepo.MarkUnused(now); err != nil {
-			logger.Error(err, "Failed to mark unused tags", nil)
-			return
-		}
+	job := background.Job{
+		Name:    unusedTagCleanupJobName,
+		Delay:   unusedTagCleanupDelay,
+		Timeout: 2 * time.Minute,
+		RetryPolicy: background.RetryPolicy{
+			MaxRetries: 3,
+			Backoff:    time.Minute,
+		},
+		Run: func(ctx context.Context) error {
+			return s.cleanupUnusedTags(ctx)
+		},
+	}
 
-		retention := s.unusedTagRetentionDuration()
-		cutoff := now.Add(-retention)
-		if deleted, err := s.tagRepo.DeleteUnusedBefore(cutoff); err != nil {
-			logger.Error(err, "Failed to delete unused tags", nil)
-		} else if deleted > 0 {
-			logger.Info("Removed unused tags", map[string]interface{}{"count": deleted})
-		}
-	}()
+	if err := s.scheduler.ScheduleUnique(job); err != nil && !errors.Is(err, background.ErrJobAlreadyScheduled) {
+		logger.Error(err, "Failed to schedule unused tag cleanup", map[string]interface{}{"job": job.Name})
+	}
+}
+
+func (s *PostService) cleanupUnusedTags(ctx context.Context) error {
+	if s.tagRepo == nil {
+		return nil
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	now := time.Now().UTC()
+	if err := s.tagRepo.MarkUnused(now); err != nil {
+		return fmt.Errorf("mark unused tags: %w", err)
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	retention := s.unusedTagRetentionDuration()
+	cutoff := now.Add(-retention)
+	deleted, err := s.tagRepo.DeleteUnusedBefore(cutoff)
+	if err != nil {
+		return fmt.Errorf("delete unused tags: %w", err)
+	}
+	if deleted > 0 {
+		logger.Info("Removed unused tags", map[string]interface{}{"count": deleted})
+	}
+
+	return nil
 }
 
 func (s *PostService) unusedTagRetentionDuration() time.Duration {
@@ -98,6 +140,7 @@ func NewPostService(
 	commentRepo repository.CommentRepository,
 	cacheService *cache.Cache,
 	settingRepo repository.SettingRepository,
+	scheduler *background.Scheduler,
 ) *PostService {
 	return &PostService{
 		postRepo:     postRepo,
@@ -106,6 +149,7 @@ func NewPostService(
 		commentRepo:  commentRepo,
 		cache:        cacheService,
 		settingRepo:  settingRepo,
+		scheduler:    scheduler,
 	}
 }
 

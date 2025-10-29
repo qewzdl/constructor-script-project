@@ -18,6 +18,7 @@ import (
 	"gorm.io/gorm"
 
 	"constructor-script-backend/internal/authorization"
+	"constructor-script-backend/internal/background"
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/handlers"
 	"constructor-script-backend/internal/middleware"
@@ -39,8 +40,9 @@ type Application struct {
 	cfg     *config.Config
 	options Options
 
-	db    *gorm.DB
-	cache *cache.Cache
+	db        *gorm.DB
+	cache     *cache.Cache
+	scheduler *background.Scheduler
 
 	repositories repositoryContainer
 	services     serviceContainer
@@ -138,6 +140,23 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 	app.initCache()
 	app.initRepositories()
 
+	app.scheduler = background.NewScheduler(background.SchedulerConfig{})
+	app.scheduler.Start(context.Background())
+
+	cleanupNeeded := true
+	defer func() {
+		if !cleanupNeeded {
+			return
+		}
+		if app.scheduler != nil {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := app.scheduler.Shutdown(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) {
+				logger.Error(err, "Failed to stop background scheduler during initialization", nil)
+			}
+		}
+	}()
+
 	if err := app.initThemeManager(); err != nil {
 		return nil, err
 	}
@@ -186,6 +205,7 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	cleanupNeeded = false
 	return app, nil
 }
 
@@ -202,6 +222,12 @@ func (a *Application) Shutdown(ctx context.Context) error {
 	if a.server != nil {
 		if err := a.server.Shutdown(ctx); err != nil {
 			return err
+		}
+	}
+
+	if a.scheduler != nil {
+		if err := a.scheduler.Shutdown(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error(err, "Failed to shut down background scheduler", nil)
 		}
 	}
 
@@ -496,6 +522,7 @@ func (a *Application) initServices() {
 		a.repositories.Comment,
 		a.cache,
 		a.repositories.Setting,
+		a.scheduler,
 	)
 	commentService := service.NewCommentService(a.repositories.Comment)
 	searchService := service.NewSearchService(a.repositories.Search)
