@@ -642,14 +642,14 @@ func (a *Application) initRouter() error {
 		}
 	}
 
-	router.GET("/health", func(c *gin.Context) {
+	router.GET("/health", middleware.NoIndexMiddleware(), func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "healthy",
 			"time":   time.Now().Format(time.RFC3339),
 		})
 	})
 
-	router.GET("/metrics", a.metricsHandler())
+	router.GET("/metrics", middleware.NoIndexMiddleware(), a.metricsHandler())
 
 	if a.themeManager != nil {
 		router.StaticFS("/static", theme.NewFileSystem(a.themeManager))
@@ -664,7 +664,7 @@ func (a *Application) initRouter() error {
 		router.GET("/robots.txt", a.handlers.SEO.Robots)
 	}
 
-	router.GET("/debug-templates", func(c *gin.Context) {
+	router.GET("/debug-templates", middleware.NoIndexMiddleware(), func(c *gin.Context) {
 		if a.themeManager == nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "theme manager unavailable"})
 			return
@@ -705,6 +705,7 @@ func (a *Application) initRouter() error {
 	router.GET("/tag/:slug", a.templateHandler.RenderTag)
 
 	v1 := router.Group("/api/v1")
+	v1.Use(middleware.NoIndexMiddleware())
 	{
 		public := v1.Group("")
 		{
@@ -850,6 +851,7 @@ func (a *Application) initRouter() error {
 
 	router.NoRoute(func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/api") {
+			c.Header("X-Robots-Tag", "noindex, nofollow")
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "Route not found",
 				"path":  c.Request.URL.Path,

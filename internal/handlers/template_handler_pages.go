@@ -567,6 +567,7 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 		"Result":      result,
 		"SearchQuery": query,
 		"Scripts":     []string{"/static/js/search.js"},
+		"NoIndex":     true,
 	}
 
 	if result != nil {
@@ -793,6 +794,7 @@ func (h *TemplateHandler) RenderLogin(c *gin.Context) {
 	h.renderTemplate(c, "login", "Sign in", "Access your dashboard and manage your content.", gin.H{
 		"AuthAction": "/api/v1/login",
 		"RedirectTo": redirectTo,
+		"NoIndex":    true,
 	})
 }
 
