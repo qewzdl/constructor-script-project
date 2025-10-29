@@ -1105,14 +1105,14 @@ func (s *PostService) GetAnalytics(postID uint, days int) (*PostAnalytics, error
 	if rank, total, err := s.postRepo.GetViewRank(postID); err == nil {
 		comparisons.ViewsRankPosition = rank
 		comparisons.ViewsRankTotal = total
-	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
 	if rank, total, err := s.postRepo.GetCommentRank(postID); err == nil {
 		comparisons.CommentsRankPosition = rank
 		comparisons.CommentsRankTotal = total
-	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
