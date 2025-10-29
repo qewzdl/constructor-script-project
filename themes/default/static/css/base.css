@@ -1408,7 +1408,8 @@ body.post-image-modal-open .post-progress {
     background-color: var(--color-bg-top);
     display: inline-grid;
     gap: 0;
-    flex: 0 0 auto;
+    flex: 0 0 min(100%, 20rem);
+    width: min(100%, 20rem);
     margin-bottom: var(--size-sm);
     color: var(--color-text);
     text-decoration: none;
