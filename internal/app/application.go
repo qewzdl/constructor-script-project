@@ -529,11 +529,13 @@ func (a *Application) initServices() {
 }
 
 func (a *Application) initHandlers() error {
+	commentGuard := handlers.NewCommentGuard(a.cfg)
+
 	a.handlers = handlerContainer{
 		Auth:        handlers.NewAuthHandler(a.services.Auth),
 		Category:    handlers.NewCategoryHandler(a.services.Category),
 		Post:        handlers.NewPostHandler(a.services.Post),
-		Comment:     handlers.NewCommentHandler(a.services.Comment),
+		Comment:     handlers.NewCommentHandler(a.services.Comment, a.services.Auth, commentGuard),
 		Search:      handlers.NewSearchHandler(a.services.Search),
 		Upload:      handlers.NewUploadHandler(a.services.Upload),
 		Backup:      handlers.NewBackupHandler(a.services.Backup),

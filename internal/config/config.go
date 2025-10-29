@@ -50,6 +50,15 @@ type Config struct {
 	RateLimitWindow   int
 	RateLimitBurst    int
 
+	// Comment Safety
+	CommentRateLimitRequests        int
+	CommentRateLimitWindow          int
+	CommentNewUserRateLimitRequests int
+	CommentNewUserRateLimitWindow   int
+	CommentNewUserAgeHours          int
+	CommentMinContentLength         int
+	CommentMaxLinks                 int
+
 	// Features
 	EnableCache       bool
 	EnableEmail       bool
@@ -118,6 +127,15 @@ func New() *Config {
 		RateLimitWindow:   getEnvAsInt("RATE_LIMIT_WINDOW", 60),
 		RateLimitBurst:    getEnvAsInt("RATE_LIMIT_BURST", 0),
 
+		// Comment Safety
+		CommentRateLimitRequests:        getEnvAsInt("COMMENT_RATE_LIMIT_REQUESTS", 12),
+		CommentRateLimitWindow:          getEnvAsInt("COMMENT_RATE_LIMIT_WINDOW", 60),
+		CommentNewUserRateLimitRequests: getEnvAsInt("COMMENT_NEW_USER_RATE_LIMIT_REQUESTS", 4),
+		CommentNewUserRateLimitWindow:   getEnvAsInt("COMMENT_NEW_USER_RATE_LIMIT_WINDOW", 300),
+		CommentNewUserAgeHours:          getEnvAsInt("COMMENT_NEW_USER_AGE_HOURS", 24),
+		CommentMinContentLength:         getEnvAsInt("COMMENT_MIN_CONTENT_LENGTH", 10),
+		CommentMaxLinks:                 getEnvAsInt("COMMENT_MAX_LINKS", 2),
+
 		// Features
 		EnableCache:       getEnvAsBool("ENABLE_CACHE", true),
 		EnableEmail:       getEnvAsBool("ENABLE_EMAIL", false),
@@ -166,6 +184,34 @@ func New() *Config {
 
 	if c.RateLimitBurst > 0 && c.RateLimitRequests > 0 && c.RateLimitBurst < c.RateLimitRequests {
 		c.RateLimitBurst = c.RateLimitRequests
+	}
+
+	if c.CommentRateLimitRequests < 0 {
+		c.CommentRateLimitRequests = 0
+	}
+
+	if c.CommentRateLimitWindow <= 0 {
+		c.CommentRateLimitWindow = 60
+	}
+
+	if c.CommentNewUserRateLimitRequests < 0 {
+		c.CommentNewUserRateLimitRequests = c.CommentRateLimitRequests
+	}
+
+	if c.CommentNewUserRateLimitWindow <= 0 {
+		c.CommentNewUserRateLimitWindow = c.CommentRateLimitWindow
+	}
+
+	if c.CommentNewUserAgeHours < 0 {
+		c.CommentNewUserAgeHours = 24
+	}
+
+	if c.CommentMinContentLength < 1 {
+		c.CommentMinContentLength = 3
+	}
+
+	if c.CommentMaxLinks < -1 {
+		c.CommentMaxLinks = -1
 	}
 
 	return c

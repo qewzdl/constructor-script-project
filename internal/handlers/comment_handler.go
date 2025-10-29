@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"errors"
+	"math"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
@@ -13,10 +16,16 @@ import (
 
 type CommentHandler struct {
 	commentService *service.CommentService
+	authService    *service.AuthService
+	guard          *CommentGuard
 }
 
-func NewCommentHandler(commentService *service.CommentService) *CommentHandler {
-	return &CommentHandler{commentService: commentService}
+func NewCommentHandler(commentService *service.CommentService, authService *service.AuthService, guard *CommentGuard) *CommentHandler {
+	return &CommentHandler{
+		commentService: commentService,
+		authService:    authService,
+		guard:          guard,
+	}
 }
 
 func (h *CommentHandler) Create(c *gin.Context) {
@@ -33,6 +42,36 @@ func (h *CommentHandler) Create(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
+
+	if h.authService != nil && h.guard != nil {
+		user, err := h.authService.GetUserByID(userID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "user account not found"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to verify commenting permissions"})
+			}
+			return
+		}
+
+		decision := h.guard.Evaluate(user, req.Content)
+		if decision.Err != nil {
+			switch {
+			case errors.Is(decision.Err, ErrCommentContentInvalid):
+				c.JSON(http.StatusBadRequest, gin.H{"error": decision.Err.Error()})
+			case errors.Is(decision.Err, ErrCommentRateLimited):
+				payload := gin.H{"error": decision.Err.Error()}
+				if decision.RetryAfter > 0 {
+					payload["retry_after_seconds"] = int(math.Ceil(decision.RetryAfter.Seconds()))
+				}
+				c.JSON(http.StatusTooManyRequests, payload)
+			default:
+				c.JSON(http.StatusForbidden, gin.H{"error": decision.Err.Error()})
+			}
+			return
+		}
+	}
+
 	comment, err := h.commentService.Create(uint(postID), userID, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
