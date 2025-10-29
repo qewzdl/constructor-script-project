@@ -1427,6 +1427,14 @@ body.post-image-modal-open .post-progress {
     gap: var(--size-xs);
 }
 
+.post__related-heading {
+    font-size: clamp(1.05rem, 2.8vw, 1.2rem);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .post__related-link {
     color: var(--color-text);
     font-weight: 600;
