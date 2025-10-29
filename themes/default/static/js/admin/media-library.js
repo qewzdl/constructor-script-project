@@ -180,6 +180,26 @@
                 }
             });
 
+            root.addEventListener('dblclick', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLElement)) {
+                    return;
+                }
+                const itemNode = target.closest('[data-media-index]');
+                if (!itemNode || !this.grid || !this.grid.contains(itemNode)) {
+                    return;
+                }
+                event.preventDefault();
+                const index = Number.parseInt(itemNode.dataset.mediaIndex || '', 10);
+                if (!Number.isFinite(index)) {
+                    return;
+                }
+                this.setSelection(index);
+                if (this.currentSelection) {
+                    this.confirmSelection();
+                }
+            });
+
             root.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape') {
                     event.preventDefault();
