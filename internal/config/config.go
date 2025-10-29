@@ -65,6 +65,11 @@ type Config struct {
 	EnableMetrics     bool
 	EnableCompression bool
 
+	// Metrics security
+	MetricsBasicAuthUsername string
+	MetricsBasicAuthPassword string
+	MetricsAllowedIPs        []string
+
 	// Site Meta
 	SiteName        string
 	SiteDescription string
@@ -141,6 +146,11 @@ func New() *Config {
 		EnableEmail:       getEnvAsBool("ENABLE_EMAIL", false),
 		EnableMetrics:     getEnvAsBool("ENABLE_METRICS", true),
 		EnableCompression: getEnvAsBool("ENABLE_COMPRESSION", true),
+
+		// Metrics security
+		MetricsBasicAuthUsername: getEnv("METRICS_BASIC_AUTH_USERNAME", ""),
+		MetricsBasicAuthPassword: getEnv("METRICS_BASIC_AUTH_PASSWORD", ""),
+		MetricsAllowedIPs:        getEnvAsSlice("METRICS_ALLOWED_IPS"),
 
 		// Site Meta
 		SiteName:        getEnv("SITE_NAME", "Constructor Script"),
@@ -279,6 +289,24 @@ func getEnvAsBool(key string, defaultValue bool) bool {
 		return defaultValue
 	}
 	return valueStr == "true" || valueStr == "1"
+}
+
+func getEnvAsSlice(key string) []string {
+	value, ok := getEnvWithPresence(key)
+	if !ok {
+		return nil
+	}
+
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+
+	return result
 }
 
 func (c *Config) IsDevelopment() bool {

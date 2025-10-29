@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -620,7 +622,7 @@ func (a *Application) initRouter() error {
 		})
 	})
 
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	router.GET("/metrics", a.metricsHandler())
 
 	if a.themeManager != nil {
 		router.StaticFS("/static", theme.NewFileSystem(a.themeManager))
@@ -844,4 +846,100 @@ func (a *Application) initRouter() error {
 
 	a.router = router
 	return nil
+}
+
+func (a *Application) metricsHandler() gin.HandlerFunc {
+	promHandler := promhttp.Handler()
+
+	allowedExact := make(map[string]struct{})
+	var allowedNetworks []*net.IPNet
+
+	for _, value := range a.cfg.MetricsAllowedIPs {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+
+		if strings.Contains(trimmed, "/") {
+			if _, network, err := net.ParseCIDR(trimmed); err == nil {
+				allowedNetworks = append(allowedNetworks, network)
+			} else {
+				logger.Warn("Invalid metrics allowed IP entry", map[string]interface{}{
+					"value": trimmed,
+					"error": err.Error(),
+				})
+			}
+			continue
+		}
+
+		ip := net.ParseIP(trimmed)
+		if ip == nil {
+			logger.Warn("Invalid metrics allowed IP entry", map[string]interface{}{
+				"value": trimmed,
+			})
+			continue
+		}
+
+		allowedExact[ip.String()] = struct{}{}
+	}
+
+	authUser := strings.TrimSpace(a.cfg.MetricsBasicAuthUsername)
+	authPassword := a.cfg.MetricsBasicAuthPassword
+	authConfigured := authUser != "" && authPassword != ""
+	ipConfigured := len(allowedExact) > 0 || len(allowedNetworks) > 0
+
+	return func(c *gin.Context) {
+		if !a.cfg.EnableMetrics {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		clientIPStr := c.ClientIP()
+		clientIP := net.ParseIP(clientIPStr)
+
+		if ipConfigured {
+			if clientIP != nil {
+				if _, ok := allowedExact[clientIP.String()]; ok {
+					promHandler.ServeHTTP(c.Writer, c.Request)
+					c.Abort()
+					return
+				}
+
+				for _, network := range allowedNetworks {
+					if network.Contains(clientIP) {
+						promHandler.ServeHTTP(c.Writer, c.Request)
+						c.Abort()
+						return
+					}
+				}
+			}
+
+			if !authConfigured {
+				c.AbortWithStatus(http.StatusForbidden)
+				return
+			}
+		}
+
+		if authConfigured {
+			username, password, ok := c.Request.BasicAuth()
+			if ok && subtle.ConstantTimeCompare([]byte(username), []byte(authUser)) == 1 &&
+				subtle.ConstantTimeCompare([]byte(password), []byte(authPassword)) == 1 {
+				promHandler.ServeHTTP(c.Writer, c.Request)
+				c.Abort()
+				return
+			}
+
+			c.Header("WWW-Authenticate", `Basic realm="metrics"`)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		if clientIP != nil && clientIP.IsLoopback() {
+			promHandler.ServeHTTP(c.Writer, c.Request)
+			c.Abort()
+			return
+		}
+
+		c.AbortWithStatus(http.StatusForbidden)
+	}
 }
