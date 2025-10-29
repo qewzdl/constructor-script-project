@@ -829,7 +829,7 @@
                 };
 
                 const uploadFile = endpoints.upload
-                    ? async (file) => {
+                    ? async (file, options = {}) => {
                           if (!file) {
                               throw new Error('Select a file to upload.');
                           }
@@ -838,6 +838,13 @@
                           }
                           const formData = new FormData();
                           formData.append('image', file);
+                          const preferredName =
+                              options && typeof options.name === 'string'
+                                  ? options.name.trim()
+                                  : '';
+                          if (preferredName) {
+                              formData.append('name', preferredName);
+                          }
                           try {
                               const result = await apiRequest(endpoints.upload, {
                                   method: 'POST',

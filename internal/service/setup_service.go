@@ -247,7 +247,7 @@ func (s *SetupService) ReplaceFavicon(file *multipart.FileHeader) (string, strin
 		hadExisting = true
 	}
 
-	newURL, err := s.uploadService.UploadImage(file)
+	newURL, _, err := s.uploadService.UploadImage(file, "")
 	if err != nil {
 		return "", "", err
 	}
@@ -302,7 +302,7 @@ func (s *SetupService) ReplaceLogo(file *multipart.FileHeader) (string, error) {
 		hadExisting = true
 	}
 
-	newURL, err := s.uploadService.UploadImage(file)
+	newURL, _, err := s.uploadService.UploadImage(file, "")
 	if err != nil {
 		return "", err
 	}

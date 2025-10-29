@@ -3,6 +3,7 @@ package handlers
 import (
 	"constructor-script-backend/internal/service"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,8 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 		return
 	}
 
+	preferredName := strings.TrimSpace(c.PostForm("name"))
+
 	// Validation
 	if err := h.uploadService.ValidateImage(file); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -29,7 +32,7 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 	}
 
 	// Upload
-	url, err := h.uploadService.UploadImage(file)
+	url, filename, err := h.uploadService.UploadImage(file, preferredName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -37,7 +40,7 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"url":      url,
-		"filename": file.Filename,
+		"filename": filename,
 		"size":     file.Size,
 	})
 }

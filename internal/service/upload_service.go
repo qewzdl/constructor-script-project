@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"constructor-script-backend/pkg/utils"
 	"constructor-script-backend/pkg/validator"
 )
 
@@ -42,45 +43,45 @@ func NewUploadService(uploadDir string) *UploadService {
 	}
 }
 
-func (s *UploadService) UploadImage(file *multipart.FileHeader) (string, error) {
+func (s *UploadService) UploadImage(file *multipart.FileHeader, preferredName string) (string, string, error) {
 
 	if file.Size > s.maxSize {
-		return "", errors.New("file size exceeds maximum allowed size")
+		return "", "", errors.New("file size exceeds maximum allowed size")
 	}
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if !s.isAllowedType(ext) {
-		return "", errors.New("file type not allowed")
+		return "", "", errors.New("file type not allowed")
 	}
 
-	filename := s.generateFilename(ext)
+	filename := s.generateFilename(file.Filename, preferredName, ext)
 	filePath := filepath.Join(s.uploadDir, filename)
 
 	src, err := file.Open()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer src.Close()
 
 	dst, err := os.Create(filePath)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, src); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	url := "/uploads/" + filename
-	return url, nil
+	return url, filename, nil
 }
 
 func (s *UploadService) UploadMultipleImages(files []*multipart.FileHeader) ([]string, error) {
 	var urls []string
 
 	for _, file := range files {
-		url, err := s.UploadImage(file)
+		url, _, err := s.UploadImage(file, "")
 		if err != nil {
 
 			for _, u := range urls {
@@ -132,8 +133,37 @@ func (s *UploadService) isAllowedType(ext string) bool {
 	return false
 }
 
-func (s *UploadService) generateFilename(ext string) string {
+func (s *UploadService) generateFilename(originalName, preferredName, ext string) string {
+
+	baseName := strings.TrimSpace(preferredName)
+	if baseName == "" {
+		baseName = strings.TrimSuffix(filepath.Base(originalName), filepath.Ext(originalName))
+	}
+
+	cleaned := utils.GenerateSlug(baseName)
+	if cleaned == "" {
+		cleaned = uuid.New().String()
+	}
+
+	candidate := fmt.Sprintf("%s%s", cleaned, ext)
+	if !s.fileExists(candidate) {
+		return candidate
+	}
+
+	for i := 1; i < 1000; i++ {
+		candidate = fmt.Sprintf("%s-%d%s", cleaned, i, ext)
+		if !s.fileExists(candidate) {
+			return candidate
+		}
+	}
+
 	return fmt.Sprintf("%s%s", uuid.New().String(), ext)
+}
+
+func (s *UploadService) fileExists(name string) bool {
+	path := filepath.Join(s.uploadDir, name)
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func (s *UploadService) GetFileInfo(url string) (os.FileInfo, error) {

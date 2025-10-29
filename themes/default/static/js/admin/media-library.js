@@ -401,7 +401,21 @@
             if (!this.uploadFile || this.pendingUpload) {
                 return;
             }
-            this.pendingUpload = this.uploadFile(file)
+
+            let preferredName = '';
+            if (file && typeof file.name === 'string') {
+                preferredName = file.name.replace(/\.[^/.]+$/, '').trim();
+            }
+            if (typeof window !== 'undefined' && typeof window.prompt === 'function') {
+                const promptValue = window.prompt('Enter image name (optional)', preferredName);
+                if (typeof promptValue === 'string') {
+                    preferredName = promptValue.trim();
+                }
+            }
+
+            const uploadOptions = preferredName ? { name: preferredName } : {};
+
+            this.pendingUpload = this.uploadFile(file, uploadOptions)
                 .then((result) => {
                     let url = '';
                     if (result && typeof result === 'object') {
