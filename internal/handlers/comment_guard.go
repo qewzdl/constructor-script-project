@@ -80,7 +80,7 @@ func (g *CommentGuard) Evaluate(user *models.User, content string) CommentGuardD
 		return CommentGuardDecision{}
 	}
 
-	if reason := g.validateContent(content, user); reason != "" {
+	if reason := g.validateContent(content); reason != "" {
 		return CommentGuardDecision{Err: fmt.Errorf("%w: %s", ErrCommentContentInvalid, reason)}
 	}
 
@@ -110,7 +110,7 @@ func (g *CommentGuard) Evaluate(user *models.User, content string) CommentGuardD
 	return CommentGuardDecision{}
 }
 
-func (g *CommentGuard) validateContent(content string, user *models.User) string {
+func (g *CommentGuard) validateContent(content string) string {
 	trimmed := strings.TrimSpace(content)
 	if trimmed == "" {
 		return "comment cannot be empty"
