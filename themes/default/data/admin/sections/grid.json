@@ -1,0 +1,7 @@
+{
+    "type": "grid",
+    "label": "Grid section",
+    "order": 15,
+    "description": "Displays content blocks in a responsive grid layout.",
+    "supports_elements": true
+}

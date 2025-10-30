@@ -1,0 +1,7 @@
+{
+    "type": "standard",
+    "label": "Standard section",
+    "order": 0,
+    "description": "Flexible content area for combining paragraphs, media, and lists.",
+    "supports_elements": true
+}

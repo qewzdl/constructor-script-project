@@ -1,0 +1,6 @@
+{
+    "type": "list",
+    "label": "List",
+    "order": 40,
+    "description": "Bulleted or numbered list of key points."
+}

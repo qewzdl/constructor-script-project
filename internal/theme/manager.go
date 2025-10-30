@@ -32,6 +32,7 @@ type Theme struct {
 	Metadata     Metadata
 	sections     map[string]SectionDefinition
 	elements     map[string]ElementDefinition
+	assets       BuilderAssets
 }
 
 type Manager struct {
@@ -184,6 +185,7 @@ func loadTheme(themePath, slug string) (*Theme, error) {
 		Metadata:     metadata,
 		sections:     sectionDefinitions,
 		elements:     elementDefinitions,
+		assets:       discoverBuilderAssets(filepath.Join(themePath, "static")),
 	}
 
 	if _, err := os.Stat(theme.TemplatesDir); err != nil {
@@ -322,6 +324,25 @@ func (t *Theme) ElementDefinitions() map[string]ElementDefinition {
 		clone[key] = value
 	}
 	return clone
+}
+
+func (t *Theme) BuilderAssets() BuilderAssets {
+	if t == nil {
+		return BuilderAssets{}
+	}
+
+	assets := t.assets
+	if len(assets.ElementScripts) > 0 {
+		clone := make([]string, len(assets.ElementScripts))
+		copy(clone, assets.ElementScripts)
+		assets.ElementScripts = clone
+	}
+	if len(assets.SectionScripts) > 0 {
+		clone := make([]string, len(assets.SectionScripts))
+		copy(clone, assets.SectionScripts)
+		assets.SectionScripts = clone
+	}
+	return assets
 }
 
 func humanizeSlug(value string) string {

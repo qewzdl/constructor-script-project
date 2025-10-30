@@ -1,34 +1,3 @@
 {
-    "types": [
-        {
-            "type": "paragraph",
-            "label": "Paragraph",
-            "order": 10,
-            "description": "Text block for paragraphs and rich content."
-        },
-        {
-            "type": "image",
-            "label": "Image",
-            "order": 20,
-            "description": "Single image with optional alt text and caption."
-        },
-        {
-            "type": "image_group",
-            "label": "Image group",
-            "order": 30,
-            "description": "Collection of related images displayed together."
-        },
-        {
-            "type": "list",
-            "label": "List",
-            "order": 40,
-            "description": "Bulleted or numbered list of key points."
-        },
-        {
-            "type": "search",
-            "label": "Search",
-            "order": 50,
-            "description": "Embeds a search form within the section."
-        }
-    ]
+    "types": []
 }

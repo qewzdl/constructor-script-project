@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,94 +61,41 @@ func loadDefinitions(themePath string) (map[string]SectionDefinition, map[string
 }
 
 func loadSectionDefinitions(themePath string) (map[string]SectionDefinition, error) {
-	defaults := defaultSectionDefinitions()
+	result := defaultSectionDefinitions()
 
 	filePath := filepath.Join(themePath, "data", "admin", "sections.json")
-	content, err := os.ReadFile(filePath)
+	definitions, err := readSectionDefinitionFile(filePath)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return defaults, nil
-		}
-		return nil, fmt.Errorf("read section definitions: %w", err)
+		return nil, err
 	}
+	applySectionDefinitions(result, definitions)
 
-	var file sectionDefinitionFile
-	if err := json.Unmarshal(content, &file); err != nil {
-		return nil, fmt.Errorf("parse section definitions: %w", err)
+	directoryPath := filepath.Join(themePath, "data", "admin", "sections")
+	definitions, err = readSectionDefinitionDirectory(directoryPath)
+	if err != nil {
+		return nil, err
 	}
-
-	if len(file.Types) == 0 {
-		return defaults, nil
-	}
-
-	result := make(map[string]SectionDefinition, len(file.Types))
-	for _, def := range file.Types {
-		normalised := strings.ToLower(strings.TrimSpace(def.Type))
-		if normalised == "" {
-			continue
-		}
-
-		def.Type = normalised
-
-		if existing, ok := defaults[normalised]; ok {
-			def = mergeSectionDefinition(existing, def)
-		} else {
-			def = mergeSectionDefinition(SectionDefinition{Type: normalised}, def)
-		}
-
-		result[normalised] = def
-	}
-
-	// Ensure defaults are always available.
-	for key, def := range defaults {
-		if _, ok := result[key]; !ok {
-			result[key] = def
-		}
-	}
+	applySectionDefinitions(result, definitions)
 
 	return result, nil
 }
 
 func loadElementDefinitions(themePath string) (map[string]ElementDefinition, error) {
-	defaults := defaultElementDefinitions()
+	result := defaultElementDefinitions()
 
 	filePath := filepath.Join(themePath, "data", "admin", "elements.json")
-	content, err := os.ReadFile(filePath)
+	definitions, err := readElementDefinitionFile(filePath)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return defaults, nil
-		}
-		return nil, fmt.Errorf("read element definitions: %w", err)
+		return nil, err
 	}
+	applyElementDefinitions(result, definitions)
 
-	var file elementDefinitionFile
-	if err := json.Unmarshal(content, &file); err != nil {
-		return nil, fmt.Errorf("parse element definitions: %w", err)
+	directoryPath := filepath.Join(themePath, "data", "admin", "elements")
+	definitions, err = readElementDefinitionDirectory(directoryPath)
+	if err != nil {
+		return nil, err
 	}
-
-	if len(file.Types) == 0 {
-		return defaults, nil
-	}
-
-	result := make(map[string]ElementDefinition, len(file.Types))
-	for _, def := range file.Types {
-		normalised := strings.ToLower(strings.TrimSpace(def.Type))
-		if normalised == "" {
-			continue
-		}
-		def.Type = normalised
-		if existing, ok := defaults[normalised]; ok {
-			result[normalised] = mergeElementDefinition(existing, def)
-		} else {
-			result[normalised] = def
-		}
-	}
-
-	for key, def := range defaults {
-		if _, ok := result[key]; !ok {
-			result[key] = def
-		}
-	}
+	applyElementDefinitions(result, definitions)
 
 	return result, nil
 }
@@ -197,6 +145,223 @@ func mergeSectionSetting(base, override SectionSettingDefinition) SectionSetting
 	}
 
 	return result
+}
+
+func readSectionDefinitionFile(filePath string) ([]SectionDefinition, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("read section definitions: %w", err)
+	}
+
+	definitions, err := parseSectionDefinitions(content)
+	if err != nil {
+		return nil, fmt.Errorf("parse section definitions: %w", err)
+	}
+	return definitions, nil
+}
+
+func readSectionDefinitionDirectory(dirPath string) ([]SectionDefinition, error) {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("list section definitions: %w", err)
+	}
+
+	var definitions []SectionDefinition
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+
+		filePath := filepath.Join(dirPath, entry.Name())
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("read section definition %s: %w", entry.Name(), err)
+		}
+
+		parsed, err := parseSectionDefinitions(content)
+		if err != nil {
+			return nil, fmt.Errorf("parse section definition %s: %w", entry.Name(), err)
+		}
+
+		if len(parsed) > 0 {
+			definitions = append(definitions, parsed...)
+		}
+	}
+
+	return definitions, nil
+}
+
+func parseSectionDefinitions(content []byte) ([]SectionDefinition, error) {
+	trimmed := bytes.TrimSpace(content)
+	if len(trimmed) == 0 {
+		return nil, nil
+	}
+
+	switch trimmed[0] {
+	case '{':
+		var file sectionDefinitionFile
+		if err := json.Unmarshal(trimmed, &file); err == nil {
+			if len(file.Types) > 0 {
+				return file.Types, nil
+			}
+		}
+
+		var single SectionDefinition
+		if err := json.Unmarshal(trimmed, &single); err == nil {
+			if strings.TrimSpace(single.Type) == "" {
+				return nil, nil
+			}
+			return []SectionDefinition{single}, nil
+		}
+		return nil, fmt.Errorf("unsupported section definition format")
+	case '[':
+		var list []SectionDefinition
+		if err := json.Unmarshal(trimmed, &list); err != nil {
+			return nil, fmt.Errorf("parse section definition array: %w", err)
+		}
+		return list, nil
+	default:
+		return nil, fmt.Errorf("invalid section definition content")
+	}
+}
+
+func applySectionDefinitions(target map[string]SectionDefinition, definitions []SectionDefinition) {
+	if len(definitions) == 0 {
+		return
+	}
+
+	for _, definition := range definitions {
+		normalised := strings.ToLower(strings.TrimSpace(definition.Type))
+		if normalised == "" {
+			continue
+		}
+
+		definition.Type = normalised
+		base, ok := target[normalised]
+		if !ok {
+			base = SectionDefinition{Type: normalised}
+		}
+
+		target[normalised] = mergeSectionDefinition(base, definition)
+	}
+}
+
+func readElementDefinitionFile(filePath string) ([]ElementDefinition, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("read element definitions: %w", err)
+	}
+
+	definitions, err := parseElementDefinitions(content)
+	if err != nil {
+		return nil, fmt.Errorf("parse element definitions: %w", err)
+	}
+	return definitions, nil
+}
+
+func readElementDefinitionDirectory(dirPath string) ([]ElementDefinition, error) {
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("list element definitions: %w", err)
+	}
+
+	var definitions []ElementDefinition
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		if filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+
+		filePath := filepath.Join(dirPath, entry.Name())
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("read element definition %s: %w", entry.Name(), err)
+		}
+
+		parsed, err := parseElementDefinitions(content)
+		if err != nil {
+			return nil, fmt.Errorf("parse element definition %s: %w", entry.Name(), err)
+		}
+
+		if len(parsed) > 0 {
+			definitions = append(definitions, parsed...)
+		}
+	}
+
+	return definitions, nil
+}
+
+func parseElementDefinitions(content []byte) ([]ElementDefinition, error) {
+	trimmed := bytes.TrimSpace(content)
+	if len(trimmed) == 0 {
+		return nil, nil
+	}
+
+	switch trimmed[0] {
+	case '{':
+		var file elementDefinitionFile
+		if err := json.Unmarshal(trimmed, &file); err == nil {
+			if len(file.Types) > 0 {
+				return file.Types, nil
+			}
+		}
+
+		var single ElementDefinition
+		if err := json.Unmarshal(trimmed, &single); err == nil {
+			if strings.TrimSpace(single.Type) == "" {
+				return nil, nil
+			}
+			return []ElementDefinition{single}, nil
+		}
+		return nil, fmt.Errorf("unsupported element definition format")
+	case '[':
+		var list []ElementDefinition
+		if err := json.Unmarshal(trimmed, &list); err != nil {
+			return nil, fmt.Errorf("parse element definition array: %w", err)
+		}
+		return list, nil
+	default:
+		return nil, fmt.Errorf("invalid element definition content")
+	}
+}
+
+func applyElementDefinitions(target map[string]ElementDefinition, definitions []ElementDefinition) {
+	if len(definitions) == 0 {
+		return
+	}
+
+	for _, definition := range definitions {
+		normalised := strings.ToLower(strings.TrimSpace(definition.Type))
+		if normalised == "" {
+			continue
+		}
+
+		definition.Type = normalised
+
+		base, ok := target[normalised]
+		if !ok {
+			base = ElementDefinition{Type: normalised}
+		}
+
+		target[normalised] = mergeElementDefinition(base, definition)
+	}
 }
 
 func mergeElementDefinition(base, override ElementDefinition) ElementDefinition {

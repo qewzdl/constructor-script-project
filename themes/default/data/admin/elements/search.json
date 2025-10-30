@@ -1,0 +1,6 @@
+{
+    "type": "search",
+    "label": "Search",
+    "order": 50,
+    "description": "Embeds a search form within the section."
+}

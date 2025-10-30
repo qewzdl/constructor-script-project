@@ -1,0 +1,6 @@
+{
+    "type": "image_group",
+    "label": "Image group",
+    "order": 30,
+    "description": "Collection of related images displayed together."
+}

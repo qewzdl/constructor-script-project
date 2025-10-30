@@ -874,24 +874,8 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 	sectionJSON, elementJSON := h.builderDefinitionsJSON()
 
 	h.renderTemplate(c, "admin", "Admin dashboard", "Monitor site activity, review content performance, and manage published resources in one place.", gin.H{
-		"Styles": []string{"/static/css/admin.css"},
-		"Scripts": []string{
-			"/static/js/admin/utils.js",
-			"/static/js/admin/elements/registry.js",
-			"/static/js/admin/elements/paragraph.js",
-			"/static/js/admin/elements/image.js",
-			"/static/js/admin/elements/image-group.js",
-			"/static/js/admin/elements/list.js",
-			"/static/js/admin/elements/search.js",
-			"/static/js/admin/sections/registry.js",
-			"/static/js/admin/builder/section-state.js",
-			"/static/js/admin/builder/section-view.js",
-			"/static/js/admin/builder/section-events.js",
-			"/static/js/admin/builder/section-builder.js",
-			"/static/js/admin/media-library.js",
-			"/static/js/section-builder.js",
-			"/static/js/admin.js",
-		},
+		"Styles":                 []string{"/static/css/admin.css"},
+		"Scripts":                h.builderScripts(),
 		"SectionDefinitionsJSON": sectionJSON,
 		"ElementDefinitionsJSON": elementJSON,
 		"AdminEndpoints": gin.H{
@@ -920,6 +904,50 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		},
 		"NoIndex": true,
 	})
+}
+
+func (h *TemplateHandler) builderScripts() []string {
+	scripts := []string{
+		"/static/js/admin/utils.js",
+		"/static/js/admin/elements/registry.js",
+	}
+
+	var assets theme.BuilderAssets
+	if h.themeManager != nil {
+		if active := h.themeManager.Active(); active != nil {
+			assets = active.BuilderAssets()
+		}
+	}
+
+	if len(assets.ElementScripts) > 0 {
+		scripts = append(scripts, assets.ElementScripts...)
+	} else {
+		scripts = append(scripts,
+			"/static/js/admin/elements/paragraph.js",
+			"/static/js/admin/elements/image.js",
+			"/static/js/admin/elements/image-group.js",
+			"/static/js/admin/elements/list.js",
+			"/static/js/admin/elements/search.js",
+		)
+	}
+
+	scripts = append(scripts, "/static/js/admin/sections/registry.js")
+
+	if len(assets.SectionScripts) > 0 {
+		scripts = append(scripts, assets.SectionScripts...)
+	}
+
+	scripts = append(scripts,
+		"/static/js/admin/builder/section-state.js",
+		"/static/js/admin/builder/section-view.js",
+		"/static/js/admin/builder/section-events.js",
+		"/static/js/admin/builder/section-builder.js",
+		"/static/js/admin/media-library.js",
+		"/static/js/section-builder.js",
+		"/static/js/admin.js",
+	)
+
+	return scripts
 }
 
 func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {

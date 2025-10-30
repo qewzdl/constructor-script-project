@@ -1,0 +1,6 @@
+{
+    "type": "image",
+    "label": "Image",
+    "order": 20,
+    "description": "Single image with optional alt text and caption."
+}
