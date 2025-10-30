@@ -13,6 +13,7 @@ import (
 	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
@@ -29,6 +30,7 @@ type PostService struct {
 	cache        *cache.Cache
 	settingRepo  repository.SettingRepository
 	scheduler    *background.Scheduler
+	themes       *theme.Manager
 }
 
 const unusedTagCleanupJobName = "unused_tag_cleanup"
@@ -141,6 +143,7 @@ func NewPostService(
 	cacheService *cache.Cache,
 	settingRepo repository.SettingRepository,
 	scheduler *background.Scheduler,
+	themeManager *theme.Manager,
 ) *PostService {
 	return &PostService{
 		postRepo:     postRepo,
@@ -150,6 +153,7 @@ func NewPostService(
 		cache:        cacheService,
 		settingRepo:  settingRepo,
 		scheduler:    scheduler,
+		themes:       themeManager,
 	}
 }
 
@@ -323,6 +327,8 @@ func (s *PostService) prepareSections(sections []models.Section) (models.PostSec
 	}
 
 	prepared := make(models.PostSections, 0, len(sections))
+	sectionDefinitions := sectionDefinitionsFromManager(s.themes)
+	elementDefinitions := elementDefinitionsFromManager(s.themes)
 
 	for i, section := range sections {
 
@@ -331,29 +337,37 @@ func (s *PostService) prepareSections(sections []models.Section) (models.PostSec
 		if sectionType == "" {
 			sectionType = "standard"
 		}
-		switch sectionType {
-		case "standard", "grid":
+
+		definition, ok := sectionDefinitions[sectionType]
+		if !ok {
+			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
+		}
+
+		allowElements := true
+		if definition.SupportsElements != nil {
+			allowElements = *definition.SupportsElements
+		}
+
+		if allowElements {
 			if len(section.Elements) > 0 {
-				preparedElements, err := s.prepareSectionElements(section.Elements)
+				preparedElements, err := s.prepareSectionElements(section.Elements, elementDefinitions)
 				if err != nil {
 					return nil, fmt.Errorf("section %d: %w", i, err)
 				}
 				section.Elements = preparedElements
 			}
-		case "hero":
+		} else {
 			section.Elements = nil
-		case "posts_list":
-			section.Elements = nil
-			limit := section.Limit
-			if limit <= 0 {
-				limit = constants.DefaultPostListSectionLimit
-			}
-			if limit > constants.MaxPostListSectionLimit {
-				limit = constants.MaxPostListSectionLimit
-			}
-			section.Limit = limit
-		default:
-			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
+		}
+
+		if limitSetting, ok := definition.Settings["limit"]; ok {
+			section.Limit = clampSectionLimit(section.Limit, limitSetting)
+		} else if sectionType == "posts_list" {
+			section.Limit = clampSectionLimit(section.Limit, theme.SectionSettingDefinition{
+				Default: intPtr(constants.DefaultPostListSectionLimit),
+				Min:     intPtr(1),
+				Max:     intPtr(constants.MaxPostListSectionLimit),
+			})
 		}
 
 		if section.ID == "" {
@@ -372,7 +386,7 @@ func (s *PostService) prepareSections(sections []models.Section) (models.PostSec
 	return prepared, nil
 }
 
-func (s *PostService) prepareSectionElements(elements []models.SectionElement) ([]models.SectionElement, error) {
+func (s *PostService) prepareSectionElements(elements []models.SectionElement, definitions map[string]theme.ElementDefinition) ([]models.SectionElement, error) {
 	prepared := make([]models.SectionElement, 0, len(elements))
 
 	for i, elem := range elements {
@@ -385,12 +399,14 @@ func (s *PostService) prepareSectionElements(elements []models.SectionElement) (
 			elem.Order = i + 1
 		}
 
-		switch elem.Type {
-		case "paragraph", "image", "image_group", "list", "search":
-
-		default:
+		elemType := strings.ToLower(strings.TrimSpace(elem.Type))
+		if elemType == "" {
+			return nil, fmt.Errorf("element %d: type is required", i)
+		}
+		if _, ok := definitions[elemType]; !ok {
 			return nil, fmt.Errorf("element %d: unknown type '%s'", i, elem.Type)
 		}
+		elem.Type = elemType
 
 		if elem.Content == nil {
 			return nil, fmt.Errorf("element %d: content is required", i)

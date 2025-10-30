@@ -1,0 +1,40 @@
+{
+    "types": [
+        {
+            "type": "standard",
+            "label": "Standard section",
+            "order": 0,
+            "supports_elements": true,
+            "description": "Flexible content area for combining paragraphs, media, and lists."
+        },
+        {
+            "type": "hero",
+            "label": "Hero section",
+            "order": 10,
+            "supports_elements": false,
+            "description": "Prominent introduction block without additional content elements."
+        },
+        {
+            "type": "grid",
+            "label": "Grid section",
+            "order": 15,
+            "supports_elements": true,
+            "description": "Displays content blocks in a responsive grid."
+        },
+        {
+            "type": "posts_list",
+            "label": "Posts list",
+            "order": 20,
+            "supports_elements": false,
+            "description": "Automatically displays the most recent blog posts.",
+            "settings": {
+                "limit": {
+                    "label": "Number of posts to display",
+                    "min": 1,
+                    "max": 24,
+                    "default": 6
+                }
+            }
+        }
+    ]
+}

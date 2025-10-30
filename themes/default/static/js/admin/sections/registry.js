@@ -54,6 +54,33 @@
         return ordered.length ? ordered[0] : 'standard';
     };
 
+    const parseDefinitionJSON = (elementId) => {
+        if (typeof document === 'undefined') {
+            return null;
+        }
+        const node = document.getElementById(elementId);
+        if (!node) {
+            return null;
+        }
+        const raw = node.textContent || node.innerText || '';
+        if (!raw.trim()) {
+            return null;
+        }
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            console.error('Failed to parse section definitions', error);
+            return null;
+        }
+    };
+
+    const initialDefinitions = parseDefinitionJSON('section-definitions-data');
+    if (initialDefinitions && typeof initialDefinitions === 'object') {
+        Object.entries(initialDefinitions).forEach(([type, definition]) => {
+            register(type, definition);
+        });
+    }
+
     const ensureRegistered = (type, definition) => {
         if (!definitions.has(normaliseType(type))) {
             register(type, definition);

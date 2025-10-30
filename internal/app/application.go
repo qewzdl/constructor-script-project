@@ -523,10 +523,11 @@ func (a *Application) initServices() {
 		a.cache,
 		a.repositories.Setting,
 		a.scheduler,
+		a.themeManager,
 	)
 	commentService := service.NewCommentService(a.repositories.Comment)
 	searchService := service.NewSearchService(a.repositories.Search)
-	pageService := service.NewPageService(a.repositories.Page, a.cache)
+	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
 	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService)
 	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
 	menuService := service.NewMenuService(a.repositories.Menu)

@@ -31,6 +31,33 @@
             })
             .map(([type]) => type);
 
+    const parseDefinitionJSON = (elementId) => {
+        if (typeof document === 'undefined') {
+            return null;
+        }
+        const node = document.getElementById(elementId);
+        if (!node) {
+            return null;
+        }
+        const raw = node.textContent || node.innerText || '';
+        if (!raw.trim()) {
+            return null;
+        }
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            console.error('Failed to parse element definitions', error);
+            return null;
+        }
+    };
+
+    const initialDefinitions = parseDefinitionJSON('element-definitions-data');
+    if (initialDefinitions && typeof initialDefinitions === 'object') {
+        Object.entries(initialDefinitions).forEach(([type, definition]) => {
+            register(type, definition);
+        });
+    }
+
     window.AdminElementRegistry = {
         register,
         get,

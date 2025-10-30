@@ -30,6 +30,8 @@ type Theme struct {
 	StaticDir    string
 	DataDir      string
 	Metadata     Metadata
+	sections     map[string]SectionDefinition
+	elements     map[string]ElementDefinition
 }
 
 type Manager struct {
@@ -168,6 +170,11 @@ func loadTheme(themePath, slug string) (*Theme, error) {
 		metadata.Name = humanizeSlug(slugValue)
 	}
 
+	sectionDefinitions, elementDefinitions, err := loadDefinitions(themePath)
+	if err != nil {
+		return nil, err
+	}
+
 	theme := &Theme{
 		Slug:         slugValue,
 		Path:         themePath,
@@ -175,6 +182,8 @@ func loadTheme(themePath, slug string) (*Theme, error) {
 		StaticDir:    filepath.Join(themePath, "static"),
 		DataDir:      filepath.Join(themePath, "data"),
 		Metadata:     metadata,
+		sections:     sectionDefinitions,
+		elements:     elementDefinitions,
 	}
 
 	if _, err := os.Stat(theme.TemplatesDir); err != nil {
@@ -289,6 +298,30 @@ func (t *Theme) DataPath() string {
 
 func (t *Theme) MetadataOrDefault() Metadata {
 	return t.Metadata
+}
+
+func (t *Theme) SectionDefinitions() map[string]SectionDefinition {
+	if t == nil || len(t.sections) == 0 {
+		return DefaultSectionDefinitions()
+	}
+
+	clone := make(map[string]SectionDefinition, len(t.sections))
+	for key, value := range t.sections {
+		clone[key] = value
+	}
+	return clone
+}
+
+func (t *Theme) ElementDefinitions() map[string]ElementDefinition {
+	if t == nil || len(t.elements) == 0 {
+		return DefaultElementDefinitions()
+	}
+
+	clone := make(map[string]ElementDefinition, len(t.elements))
+	for key, value := range t.elements {
+		clone[key] = value
+	}
+	return clone
 }
 
 func humanizeSlug(value string) string {

@@ -17,6 +17,7 @@ import (
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
+	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
 )
 
@@ -870,6 +871,8 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		return
 	}
 
+	sectionJSON, elementJSON := h.builderDefinitionsJSON()
+
 	h.renderTemplate(c, "admin", "Admin dashboard", "Monitor site activity, review content performance, and manage published resources in one place.", gin.H{
 		"Styles": []string{"/static/css/admin.css"},
 		"Scripts": []string{
@@ -889,6 +892,8 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"/static/js/section-builder.js",
 			"/static/js/admin.js",
 		},
+		"SectionDefinitionsJSON": sectionJSON,
+		"ElementDefinitionsJSON": elementJSON,
 		"AdminEndpoints": gin.H{
 			"Stats":           "/api/v1/admin/stats",
 			"Posts":           "/api/v1/admin/posts",
@@ -915,6 +920,35 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		},
 		"NoIndex": true,
 	})
+}
+
+func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
+	sectionDefs := theme.DefaultSectionDefinitions()
+	elementDefs := theme.DefaultElementDefinitions()
+
+	if h.themeManager != nil {
+		if active := h.themeManager.Active(); active != nil {
+			if defs := active.SectionDefinitions(); len(defs) > 0 {
+				sectionDefs = defs
+			}
+			if defs := active.ElementDefinitions(); len(defs) > 0 {
+				elementDefs = defs
+			}
+		}
+	}
+
+	sectionJSON, err := json.Marshal(sectionDefs)
+	if err != nil {
+		logger.Error(err, "Failed to marshal section definitions", nil)
+		sectionJSON = []byte("{}")
+	}
+	elementJSON, err := json.Marshal(elementDefs)
+	if err != nil {
+		logger.Error(err, "Failed to marshal element definitions", nil)
+		elementJSON = []byte("{}")
+	}
+
+	return template.JS(sectionJSON), template.JS(elementJSON)
 }
 
 func (h *TemplateHandler) buildPagination(current, total int, buildURL func(page int) string) gin.H {

@@ -10,6 +10,7 @@ import (
 	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/utils"
 
@@ -20,6 +21,7 @@ import (
 type PageService struct {
 	pageRepo repository.PageRepository
 	cache    *cache.Cache
+	themes   *theme.Manager
 }
 
 func normalizePagePath(value string) (string, error) {
@@ -77,10 +79,11 @@ func (s *PageService) cachePage(page *models.Page) {
 	}
 }
 
-func NewPageService(pageRepo repository.PageRepository, cacheService *cache.Cache) *PageService {
+func NewPageService(pageRepo repository.PageRepository, cacheService *cache.Cache, themeManager *theme.Manager) *PageService {
 	return &PageService{
 		pageRepo: pageRepo,
 		cache:    cacheService,
+		themes:   themeManager,
 	}
 }
 
@@ -561,6 +564,8 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 	}
 
 	prepared := make(models.PostSections, 0, len(sections))
+	sectionDefinitions := sectionDefinitionsFromManager(s.themes)
+	elementDefinitions := elementDefinitionsFromManager(s.themes)
 
 	for i, section := range sections {
 		sectionType := strings.TrimSpace(section.Type)
@@ -569,29 +574,36 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 			sectionType = "standard"
 		}
 
-		switch sectionType {
-		case "standard", "grid":
+		definition, ok := sectionDefinitions[sectionType]
+		if !ok {
+			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
+		}
+
+		allowElements := true
+		if definition.SupportsElements != nil {
+			allowElements = *definition.SupportsElements
+		}
+
+		if allowElements {
 			if len(section.Elements) > 0 {
-				preparedElements, err := s.prepareSectionElements(section.Elements)
+				preparedElements, err := s.prepareSectionElements(section.Elements, elementDefinitions)
 				if err != nil {
 					return nil, fmt.Errorf("section %d: %w", i, err)
 				}
 				section.Elements = preparedElements
 			}
-		case "hero":
+		} else {
 			section.Elements = nil
-		case "posts_list":
-			section.Elements = nil
-			limit := section.Limit
-			if limit <= 0 {
-				limit = constants.DefaultPostListSectionLimit
-			}
-			if limit > constants.MaxPostListSectionLimit {
-				limit = constants.MaxPostListSectionLimit
-			}
-			section.Limit = limit
-		default:
-			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
+		}
+
+		if limitSetting, ok := definition.Settings["limit"]; ok {
+			section.Limit = clampSectionLimit(section.Limit, limitSetting)
+		} else if sectionType == "posts_list" {
+			section.Limit = clampSectionLimit(section.Limit, theme.SectionSettingDefinition{
+				Default: intPtr(constants.DefaultPostListSectionLimit),
+				Min:     intPtr(1),
+				Max:     intPtr(constants.MaxPostListSectionLimit),
+			})
 		}
 
 		if section.ID == "" {
@@ -610,7 +622,7 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 	return prepared, nil
 }
 
-func (s *PageService) prepareSectionElements(elements []models.SectionElement) ([]models.SectionElement, error) {
+func (s *PageService) prepareSectionElements(elements []models.SectionElement, definitions map[string]theme.ElementDefinition) ([]models.SectionElement, error) {
 	prepared := make([]models.SectionElement, 0, len(elements))
 
 	for i, elem := range elements {
@@ -622,12 +634,14 @@ func (s *PageService) prepareSectionElements(elements []models.SectionElement) (
 			elem.Order = i + 1
 		}
 
-		switch elem.Type {
-		case "paragraph", "image", "image_group", "list", "search":
-
-		default:
+		elemType := strings.ToLower(strings.TrimSpace(elem.Type))
+		if elemType == "" {
+			return nil, fmt.Errorf("element %d: type is required", i)
+		}
+		if _, ok := definitions[elemType]; !ok {
 			return nil, fmt.Errorf("element %d: unknown type '%s'", i, elem.Type)
 		}
+		elem.Type = elemType
 
 		if elem.Content == nil {
 			return nil, fmt.Errorf("element %d: content is required", i)

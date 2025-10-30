@@ -27,6 +27,12 @@
     data-endpoint-backup-settings="{{ index .AdminEndpoints "BackupSettings" }}"
     data-current-user-id="{{ if .CurrentUser }}{{ .CurrentUser.ID }}{{ end }}"
 >
+    <script type="application/json" id="section-definitions-data">
+        {{ .SectionDefinitionsJSON }}
+    </script>
+    <script type="application/json" id="element-definitions-data">
+        {{ .ElementDefinitionsJSON }}
+    </script>
     <header class="admin__header">
         <div class="admin__intro">
             <h1 id="admin-title" class="admin__title">Site administration</h1>
