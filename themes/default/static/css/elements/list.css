@@ -1,0 +1,28 @@
+.post__list,
+.page-view__list {
+    margin: var(--size-mid) 0;
+    padding-left: 1.75rem;
+    font-size: var(--font-size-base);
+}
+
+.post__list:not(.post__list--ordered),
+.page-view__list:not(.page-view__list--ordered) {
+    list-style: disc;
+}
+
+.post__list--ordered,
+.page-view__list--ordered {
+    list-style: decimal;
+}
+
+.post__list-item,
+.page-view__list-item {
+    color: var(--color-text);
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+.post__content li,
+.page-view__body li {
+    position: relative;
+}

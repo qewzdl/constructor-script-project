@@ -1,0 +1,7 @@
+.post__content a,
+.page-view__body a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+}

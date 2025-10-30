@@ -51,10 +51,11 @@
         </script>
 
         <!-- Core CSS stylesheets -->
-         <link rel="stylesheet" href="{{ asset "/static/css/root.css" }}" />
-        <link rel="stylesheet" href="{{ asset "/static/css/layout.css" }}" />
-        <link rel="stylesheet" href="{{ asset "/static/css/base.css" }}" />
-        <link rel="stylesheet" href="{{ asset "/static/css/sections.css" }}" />
+         <link rel="stylesheet" href="{{ asset "/static/css/core/root.css" }}" />
+        <link rel="stylesheet" href="{{ asset "/static/css/core/layout.css" }}" />
+        <link rel="stylesheet" href="{{ asset "/static/css/core/base.css" }}" />
+        <link rel="stylesheet" href="{{ asset "/static/css/elements/index.css" }}" />
+        <link rel="stylesheet" href="{{ asset "/static/css/sections/index.css" }}" />
 
         {{ if .Styles }} {{ range .Styles }}
         <link rel="stylesheet" href="{{ asset . }}" />

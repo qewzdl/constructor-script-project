@@ -1,0 +1,31 @@
+.page-view__content,
+.page-view__sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-lg);
+}
+
+.post__post-list,
+.page-view__post-list {
+    display: grid;
+    gap: var(--common-gap);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.page-view__section :nth-child(2) {
+    margin-top: 0 !important;
+}
+
+.page-view__section > *:last-child {
+    margin-bottom: 0 !important;
+}
+
+.page-view__section-title {
+    margin-bottom: var(--size-base);
+}
+
+.post__post-list-empty,
+.page-view__post-list-empty {
+    color: var(--color-secondary);
+    font-size: var(--font-size-base);
+}
