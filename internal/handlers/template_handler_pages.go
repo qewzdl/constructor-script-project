@@ -937,6 +937,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 	}
 
 	h.renderTemplate(c, "admin", "Admin dashboard", "Monitor site activity, review content performance, and manage published resources in one place.", gin.H{
+		"Layout":                 "admin_base.html",
 		"Styles":                 []string{"/static/css/admin.css"},
 		"Scripts":                h.builderScripts(),
 		"SectionDefinitionsJSON": sectionJSON,

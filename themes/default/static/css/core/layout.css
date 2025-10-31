@@ -8,3 +8,14 @@
         "main"
         "footer";
 }
+
+.layout--admin {
+    grid-template-rows: 1fr;
+    grid-template-areas:
+        "main";
+}
+
+.layout--admin .main {
+    padding-top: var(--size-max);
+    padding-bottom: var(--size-max);
+}

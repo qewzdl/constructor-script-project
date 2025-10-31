@@ -347,7 +347,13 @@ func (h *TemplateHandler) renderTemplate(c *gin.Context, templateName, title, de
 	if templateName == "" {
 		templateName = "page"
 	}
-	h.renderWithLayout(c, "base.html", templateName+".html", data)
+
+	layout := "base.html"
+	if value, ok := data["Layout"].(string); ok && value != "" {
+		layout = value
+	}
+
+	h.renderWithLayout(c, layout, templateName+".html", data)
 }
 
 func (h *TemplateHandler) renderWithLayout(c *gin.Context, layout, content string, data gin.H) {
