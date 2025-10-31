@@ -9,17 +9,13 @@ import (
 type UserRole string
 
 const (
-	RoleAdmin  UserRole = "admin"
-	RoleEditor UserRole = "editor"
-	RoleAuthor UserRole = "author"
-	RoleUser   UserRole = "user"
+	RoleAdmin UserRole = "admin"
+	RoleUser  UserRole = "user"
 )
 
 var validRoles = map[UserRole]struct{}{
-	RoleAdmin:  {},
-	RoleEditor: {},
-	RoleAuthor: {},
-	RoleUser:   {},
+	RoleAdmin: {},
+	RoleUser:  {},
 }
 
 func (r UserRole) String() string {
@@ -95,14 +91,6 @@ var rolePermissions = map[UserRole]map[Permission]struct{}{
 		PermissionManageBackups:      {},
 		PermissionManageNavigation:   {},
 		PermissionManageIntegrations: {},
-	},
-	RoleEditor: {
-		PermissionManageAllContent: {},
-		PermissionPublishContent:   {},
-		PermissionModerateComments: {},
-	},
-	RoleAuthor: {
-		PermissionManageOwnContent: {},
 	},
 	RoleUser: {},
 }
