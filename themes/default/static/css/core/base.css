@@ -256,7 +256,11 @@ textarea {
 }
 
 #logout-button:hover {
-    border-color: var(--color-error);
+    background-color: color-mix(
+        in srgb,
+        var(--color-error) 12%,
+        transparent 88%
+    );
 }
 
 .main {
