@@ -465,7 +465,7 @@
     display: grid;
     gap: var(--size-sm);
     padding: var(--size-base);
-    border-top: 1px solid var(--color-border);
+    border-block: 1px solid var(--color-border);
     background: var(--color-bg-top);
 }
 
@@ -608,6 +608,7 @@
 
     .admin__shortcuts {
         margin-top: auto;
+        border-bottom: none;
     }
 }
 
