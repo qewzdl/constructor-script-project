@@ -1,4 +1,4 @@
-package service
+package postsservice
 
 import (
 	"context"
@@ -33,8 +33,14 @@ type PostService struct {
 	themes       *theme.Manager
 }
 
-const unusedTagCleanupJobName = "unused_tag_cleanup"
-const unusedTagCleanupDelay = 30 * time.Second
+const (
+	unusedTagCleanupJobName        = "unused_tag_cleanup"
+	unusedTagCleanupDelay          = 30 * time.Second
+	DefaultUnusedTagRetentionHours = 48
+	SettingKeyTagRetentionHours    = "tags.cleanup_hours"
+)
+
+const settingKeyTagRetentionHours = SettingKeyTagRetentionHours
 
 var ErrPostNotPublished = errors.New("post is not published")
 

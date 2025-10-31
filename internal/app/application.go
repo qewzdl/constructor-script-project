@@ -31,6 +31,9 @@ import (
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/logger"
+	posthandlers "constructor-script-backend/plugins/posts/handlers"
+	postseed "constructor-script-backend/plugins/posts/seed"
+	postservice "constructor-script-backend/plugins/posts/service"
 )
 
 type Options struct {
@@ -75,10 +78,10 @@ type repositoryContainer struct {
 
 type serviceContainer struct {
 	Auth        *service.AuthService
-	Category    *service.CategoryService
-	Post        *service.PostService
-	Comment     *service.CommentService
-	Search      *service.SearchService
+	Category    *postservice.CategoryService
+	Post        *postservice.PostService
+	Comment     *postservice.CommentService
+	Search      *postservice.SearchService
 	Upload      *service.UploadService
 	Backup      *service.BackupService
 	Page        *service.PageService
@@ -92,10 +95,10 @@ type serviceContainer struct {
 
 type handlerContainer struct {
 	Auth        *handlers.AuthHandler
-	Category    *handlers.CategoryHandler
-	Post        *handlers.PostHandler
-	Comment     *handlers.CommentHandler
-	Search      *handlers.SearchHandler
+	Category    *posthandlers.CategoryHandler
+	Post        *posthandlers.PostHandler
+	Comment     *posthandlers.CommentHandler
+	Search      *posthandlers.SearchHandler
 	Upload      *handlers.UploadHandler
 	Backup      *handlers.BackupHandler
 	Page        *handlers.PageHandler
@@ -195,7 +198,7 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 		if applyDefaults {
 			seed.EnsureDefaultPages(app.services.Page, theme.PagesFS())
 			seed.EnsureDefaultMenu(app.services.Menu, theme.MenuFS())
-			seed.EnsureDefaultPosts(app.services.Post, app.repositories.User, theme.PostsFS())
+			postseed.EnsureDefaultPosts(app.services.Post, app.repositories.User, theme.PostsFS())
 
 			if app.services.Theme != nil {
 				if err := app.services.Theme.MarkInitialized(theme.Slug); err != nil {
@@ -585,14 +588,14 @@ func (a *Application) initServices() {
 }
 
 func (a *Application) initHandlers() error {
-	commentGuard := handlers.NewCommentGuard(a.cfg)
+	commentGuard := posthandlers.NewCommentGuard(a.cfg)
 
 	a.handlers = handlerContainer{
 		Auth:        handlers.NewAuthHandler(a.services.Auth),
-		Category:    handlers.NewCategoryHandler(nil),
-		Post:        handlers.NewPostHandler(nil),
-		Comment:     handlers.NewCommentHandler(nil, a.services.Auth, commentGuard),
-		Search:      handlers.NewSearchHandler(nil),
+		Category:    posthandlers.NewCategoryHandler(nil),
+		Post:        posthandlers.NewPostHandler(nil),
+		Comment:     posthandlers.NewCommentHandler(nil, a.services.Auth, commentGuard),
+		Search:      posthandlers.NewSearchHandler(nil),
 		Upload:      handlers.NewUploadHandler(a.services.Upload),
 		Backup:      handlers.NewBackupHandler(a.services.Backup),
 		Page:        handlers.NewPageHandler(a.services.Page),
@@ -944,10 +947,10 @@ func (a *Application) enablePostFeature() error {
 	}
 
 	if a.services.Category == nil {
-		a.services.Category = service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache)
+		a.services.Category = postservice.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache)
 	}
 	if a.services.Post == nil {
-		a.services.Post = service.NewPostService(
+		a.services.Post = postservice.NewPostService(
 			a.repositories.Post,
 			a.repositories.Tag,
 			a.repositories.Category,
@@ -959,30 +962,30 @@ func (a *Application) enablePostFeature() error {
 		)
 	}
 	if a.services.Comment == nil {
-		a.services.Comment = service.NewCommentService(a.repositories.Comment)
+		a.services.Comment = postservice.NewCommentService(a.repositories.Comment)
 	}
 	if a.services.Search == nil {
-		a.services.Search = service.NewSearchService(a.repositories.Search)
+		a.services.Search = postservice.NewSearchService(a.repositories.Search)
 	}
 
 	if a.handlers.Post == nil {
-		a.handlers.Post = handlers.NewPostHandler(a.services.Post)
+		a.handlers.Post = posthandlers.NewPostHandler(a.services.Post)
 	} else {
 		a.handlers.Post.SetService(a.services.Post)
 	}
 	if a.handlers.Category == nil {
-		a.handlers.Category = handlers.NewCategoryHandler(a.services.Category)
+		a.handlers.Category = posthandlers.NewCategoryHandler(a.services.Category)
 	} else {
 		a.handlers.Category.SetService(a.services.Category)
 	}
 	if a.handlers.Comment == nil {
-		commentGuard := handlers.NewCommentGuard(a.cfg)
-		a.handlers.Comment = handlers.NewCommentHandler(a.services.Comment, a.services.Auth, commentGuard)
+		commentGuard := posthandlers.NewCommentGuard(a.cfg)
+		a.handlers.Comment = posthandlers.NewCommentHandler(a.services.Comment, a.services.Auth, commentGuard)
 	} else {
 		a.handlers.Comment.SetService(a.services.Comment)
 	}
 	if a.handlers.Search == nil {
-		a.handlers.Search = handlers.NewSearchHandler(a.services.Search)
+		a.handlers.Search = posthandlers.NewSearchHandler(a.services.Search)
 	} else {
 		a.handlers.Search.SetService(a.services.Search)
 	}
@@ -998,11 +1001,11 @@ func (a *Application) enablePostFeature() error {
 	}
 
 	if a.services.Category != nil {
-		seed.EnsureDefaultCategory(a.services.Category)
+		postseed.EnsureDefaultCategory(a.services.Category)
 	}
 	if a.themeManager != nil && a.services.Post != nil && a.repositories.User != nil {
 		if theme := a.themeManager.Active(); theme != nil {
-			seed.EnsureDefaultPosts(a.services.Post, a.repositories.User, theme.PostsFS())
+			postseed.EnsureDefaultPosts(a.services.Post, a.repositories.User, theme.PostsFS())
 		}
 	}
 

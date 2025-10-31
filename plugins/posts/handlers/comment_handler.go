@@ -1,4 +1,4 @@
-package handlers
+package postshandlers
 
 import (
 	"errors"
@@ -11,16 +11,17 @@ import (
 
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
-	"constructor-script-backend/internal/service"
+	coreservice "constructor-script-backend/internal/service"
+	postservice "constructor-script-backend/plugins/posts/service"
 )
 
 type CommentHandler struct {
-	commentService *service.CommentService
-	authService    *service.AuthService
+	commentService *postservice.CommentService
+	authService    *coreservice.AuthService
 	guard          *CommentGuard
 }
 
-func NewCommentHandler(commentService *service.CommentService, authService *service.AuthService, guard *CommentGuard) *CommentHandler {
+func NewCommentHandler(commentService *postservice.CommentService, authService *coreservice.AuthService, guard *CommentGuard) *CommentHandler {
 	return &CommentHandler{
 		commentService: commentService,
 		authService:    authService,
@@ -29,7 +30,7 @@ func NewCommentHandler(commentService *service.CommentService, authService *serv
 }
 
 // SetService updates the comment service reference.
-func (h *CommentHandler) SetService(commentService *service.CommentService) {
+func (h *CommentHandler) SetService(commentService *postservice.CommentService) {
 	if h == nil {
 		return
 	}

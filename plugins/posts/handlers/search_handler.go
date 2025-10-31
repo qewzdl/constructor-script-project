@@ -1,23 +1,24 @@
-package handlers
+package postshandlers
 
 import (
-	"constructor-script-backend/internal/service"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	postservice "constructor-script-backend/plugins/posts/service"
 )
 
 type SearchHandler struct {
-	searchService *service.SearchService
+	searchService *postservice.SearchService
 }
 
-func NewSearchHandler(searchService *service.SearchService) *SearchHandler {
+func NewSearchHandler(searchService *postservice.SearchService) *SearchHandler {
 	return &SearchHandler{searchService: searchService}
 }
 
 // SetService updates the search service reference.
-func (h *SearchHandler) SetService(searchService *service.SearchService) {
+func (h *SearchHandler) SetService(searchService *postservice.SearchService) {
 	if h == nil {
 		return
 	}
@@ -39,11 +40,11 @@ func (h *SearchHandler) Search(c *gin.Context) {
 
 	query := c.Query("q")
 	searchType := c.DefaultQuery("type", "all")
-	limitStr := c.DefaultQuery("limit", strconv.Itoa(service.DefaultSearchLimit))
+	limitStr := c.DefaultQuery("limit", strconv.Itoa(postservice.DefaultSearchLimit))
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		limit = service.DefaultSearchLimit
+		limit = postservice.DefaultSearchLimit
 	}
 
 	if query == "" {
@@ -66,11 +67,11 @@ func (h *SearchHandler) SuggestTags(c *gin.Context) {
 	}
 
 	query := c.Query("q")
-	limitStr := c.DefaultQuery("limit", strconv.Itoa(service.DefaultSuggestionLimit))
+	limitStr := c.DefaultQuery("limit", strconv.Itoa(postservice.DefaultSuggestionLimit))
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		limit = service.DefaultSuggestionLimit
+		limit = postservice.DefaultSuggestionLimit
 	}
 
 	tags, err := h.searchService.SuggestTags(query, limit)

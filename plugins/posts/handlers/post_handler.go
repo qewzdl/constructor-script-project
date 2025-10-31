@@ -1,4 +1,4 @@
-package handlers
+package postshandlers
 
 import (
 	"errors"
@@ -10,19 +10,19 @@ import (
 
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
-	"constructor-script-backend/internal/service"
+	postservice "constructor-script-backend/plugins/posts/service"
 )
 
 type PostHandler struct {
-	postService *service.PostService
+	postService *postservice.PostService
 }
 
-func NewPostHandler(postService *service.PostService) *PostHandler {
+func NewPostHandler(postService *postservice.PostService) *PostHandler {
 	return &PostHandler{postService: postService}
 }
 
 // SetService updates the underlying post service reference.
-func (h *PostHandler) SetService(postService *service.PostService) {
+func (h *PostHandler) SetService(postService *postservice.PostService) {
 	if h == nil {
 		return
 	}
@@ -253,7 +253,7 @@ func (h *PostHandler) GetAnalytics(c *gin.Context) {
 		case errors.Is(err, gorm.ErrRecordNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
 			return
-		case errors.Is(err, service.ErrPostNotPublished):
+		case errors.Is(err, postservice.ErrPostNotPublished):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "analytics available only for published posts"})
 			return
 		default:

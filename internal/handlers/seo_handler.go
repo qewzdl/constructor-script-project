@@ -11,6 +11,7 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
+	postservice "constructor-script-backend/plugins/posts/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,18 +32,18 @@ type sitemapURLSet struct {
 // SEOHandler provides responses for SEO-focused endpoints like sitemap.xml and
 // robots.txt.
 type SEOHandler struct {
-	postService     *service.PostService
+	postService     *postservice.PostService
 	pageService     *service.PageService
-	categoryService *service.CategoryService
+	categoryService *postservice.CategoryService
 	setupService    *service.SetupService
 	config          *config.Config
 }
 
 // NewSEOHandler creates a new SEO handler with the required dependencies.
 func NewSEOHandler(
-	postService *service.PostService,
+	postService *postservice.PostService,
 	pageService *service.PageService,
-	categoryService *service.CategoryService,
+	categoryService *postservice.CategoryService,
 	setupService *service.SetupService,
 	cfg *config.Config,
 ) *SEOHandler {
@@ -56,7 +57,7 @@ func NewSEOHandler(
 }
 
 // SetBlogServices updates the services backing post and category lookups.
-func (h *SEOHandler) SetBlogServices(postService *service.PostService, categoryService *service.CategoryService) {
+func (h *SEOHandler) SetBlogServices(postService *postservice.PostService, categoryService *postservice.CategoryService) {
 	if h == nil {
 		return
 	}

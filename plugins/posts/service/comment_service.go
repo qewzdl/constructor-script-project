@@ -1,4 +1,4 @@
-package service
+package postsservice
 
 import (
 	"constructor-script-backend/internal/models"

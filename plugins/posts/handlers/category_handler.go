@@ -1,24 +1,25 @@
-package handlers
+package postshandlers
 
 import (
-	"constructor-script-backend/internal/models"
-	"constructor-script-backend/internal/service"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"constructor-script-backend/internal/models"
+	postservice "constructor-script-backend/plugins/posts/service"
 )
 
 type CategoryHandler struct {
-	categoryService *service.CategoryService
+	categoryService *postservice.CategoryService
 }
 
-func NewCategoryHandler(categoryService *service.CategoryService) *CategoryHandler {
+func NewCategoryHandler(categoryService *postservice.CategoryService) *CategoryHandler {
 	return &CategoryHandler{categoryService: categoryService}
 }
 
 // SetService updates the category service reference.
-func (h *CategoryHandler) SetService(categoryService *service.CategoryService) {
+func (h *CategoryHandler) SetService(categoryService *postservice.CategoryService) {
 	if h == nil {
 		return
 	}

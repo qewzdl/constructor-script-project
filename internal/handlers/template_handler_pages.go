@@ -16,9 +16,9 @@ import (
 
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
-	"constructor-script-backend/internal/service"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
+	postservice "constructor-script-backend/plugins/posts/service"
 )
 
 func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
@@ -563,7 +563,7 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 		limit = 50
 	}
 
-	var result *service.SearchResult
+	var result *postservice.SearchResult
 	if query != "" {
 		searchResult, searchErr := h.searchService.Search(query, searchType, limit)
 		if searchErr != nil {
@@ -573,7 +573,7 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 		}
 		result = searchResult
 	} else {
-		result = &service.SearchResult{Posts: []models.Post{}, Total: 0, Query: query}
+		result = &postservice.SearchResult{Posts: []models.Post{}, Total: 0, Query: query}
 	}
 
 	hasQuery := query != ""

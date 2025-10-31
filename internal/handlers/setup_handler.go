@@ -8,6 +8,7 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
+	postservice "constructor-script-backend/plugins/posts/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -83,7 +84,7 @@ func (h *SetupHandler) Complete(c *gin.Context) {
 func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 	logo := "/static/icons/logo.svg"
 	if h.config == nil {
-		return models.SiteSettings{Logo: logo, UnusedTagRetentionHours: service.DefaultUnusedTagRetentionHours}
+		return models.SiteSettings{Logo: logo, UnusedTagRetentionHours: postservice.DefaultUnusedTagRetentionHours}
 	}
 
 	return models.SiteSettings{
@@ -93,7 +94,7 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 		Favicon:                 h.config.SiteFavicon,
 		FaviconType:             models.DetectFaviconType(h.config.SiteFavicon),
 		Logo:                    logo,
-		UnusedTagRetentionHours: service.DefaultUnusedTagRetentionHours,
+		UnusedTagRetentionHours: postservice.DefaultUnusedTagRetentionHours,
 	}
 }
 

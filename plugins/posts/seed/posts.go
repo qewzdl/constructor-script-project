@@ -1,4 +1,4 @@
-package seed
+package postseed
 
 import (
 	"bytes"
@@ -13,9 +13,9 @@ import (
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
-	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
+	postservice "constructor-script-backend/plugins/posts/service"
 )
 
 type postDefinition struct {
@@ -26,7 +26,7 @@ type postDefinition struct {
 
 var errNoDefaultPostAuthor = errors.New("no author available for default posts")
 
-func EnsureDefaultPosts(postService *service.PostService, userRepo repository.UserRepository, dataFS fs.FS) {
+func EnsureDefaultPosts(postService *postservice.PostService, userRepo repository.UserRepository, dataFS fs.FS) {
 	if postService == nil || userRepo == nil || dataFS == nil {
 		return
 	}
@@ -91,7 +91,7 @@ func parsePostDefinitions(data []byte) ([]postDefinition, error) {
 	return []postDefinition{definition}, nil
 }
 
-func ensureDefaultPost(postService *service.PostService, userRepo repository.UserRepository, definition postDefinition, source string) {
+func ensureDefaultPost(postService *postservice.PostService, userRepo repository.UserRepository, definition postDefinition, source string) {
 	title := strings.TrimSpace(definition.Title)
 	if title == "" {
 		return

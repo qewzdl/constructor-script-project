@@ -4,6 +4,7 @@ import (
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
+	postservice "constructor-script-backend/plugins/posts/service"
 )
 
 func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService) (models.SiteSettings, error) {
@@ -14,7 +15,7 @@ func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService)
 		Favicon:                 cfg.SiteFavicon,
 		FaviconType:             models.DetectFaviconType(cfg.SiteFavicon),
 		Logo:                    "/static/icons/logo.svg",
-		UnusedTagRetentionHours: service.DefaultUnusedTagRetentionHours,
+		UnusedTagRetentionHours: postservice.DefaultUnusedTagRetentionHours,
 	}
 
 	if setupService == nil {

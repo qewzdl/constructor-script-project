@@ -13,18 +13,19 @@ import (
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
+	postservice "constructor-script-backend/plugins/posts/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/microcosm-cc/bluemonday"
 )
 
 type TemplateHandler struct {
-	postService        *service.PostService
-	categoryService    *service.CategoryService
+	postService        *postservice.PostService
+	categoryService    *postservice.CategoryService
 	pageService        *service.PageService
 	authService        *service.AuthService
-	commentService     *service.CommentService
-	searchService      *service.SearchService
+	commentService     *postservice.CommentService
+	searchService      *postservice.SearchService
 	setupService       *service.SetupService
 	socialLinkService  *service.SocialLinkService
 	menuService        *service.MenuService
@@ -39,13 +40,13 @@ type TemplateHandler struct {
 }
 
 func NewTemplateHandler(
-	postService *service.PostService,
+	postService *postservice.PostService,
 	pageService *service.PageService,
 	authService *service.AuthService,
-	commentService *service.CommentService,
-	searchService *service.SearchService,
+	commentService *postservice.CommentService,
+	searchService *postservice.SearchService,
 	setupService *service.SetupService,
-	categoryService *service.CategoryService,
+	categoryService *postservice.CategoryService,
 	socialLinkService *service.SocialLinkService,
 	menuService *service.MenuService,
 	advertisingService *service.AdvertisingService,
@@ -83,10 +84,10 @@ func NewTemplateHandler(
 
 // SetBlogServices swaps the blog-related services used by the template handler.
 func (h *TemplateHandler) SetBlogServices(
-	postService *service.PostService,
-	categoryService *service.CategoryService,
-	commentService *service.CommentService,
-	searchService *service.SearchService,
+	postService *postservice.PostService,
+	categoryService *postservice.CategoryService,
+	commentService *postservice.CommentService,
+	searchService *postservice.SearchService,
 ) {
 	if h == nil {
 		return
