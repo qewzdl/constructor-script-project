@@ -87,6 +87,7 @@ type serviceContainer struct {
 	Backup      *service.BackupService
 	Page        *service.PageService
 	Setup       *service.SetupService
+	Homepage    *service.HomepageService
 	SocialLink  *service.SocialLinkService
 	Menu        *service.MenuService
 	Theme       *service.ThemeService
@@ -104,6 +105,7 @@ type handlerContainer struct {
 	Backup      *handlers.BackupHandler
 	Page        *handlers.PageHandler
 	Setup       *handlers.SetupHandler
+	Homepage    *handlers.HomepageHandler
 	SocialLink  *handlers.SocialLinkHandler
 	Menu        *handlers.MenuHandler
 	SEO         *handlers.SEOHandler
@@ -550,6 +552,7 @@ func (a *Application) initServices() {
 	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
 	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
 	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService)
+	homepageService := service.NewHomepageService(a.repositories.Setting, a.repositories.Page)
 	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
 	menuService := service.NewMenuService(a.repositories.Menu)
 	advertisingService := service.NewAdvertisingService(a.repositories.Setting)
@@ -576,6 +579,7 @@ func (a *Application) initServices() {
 		Backup:      backupService,
 		Page:        pageService,
 		Setup:       setupService,
+		Homepage:    homepageService,
 		SocialLink:  socialLinkService,
 		Menu:        menuService,
 		Theme:       themeService,
@@ -599,6 +603,7 @@ func (a *Application) initHandlers() error {
 		Backup:      handlers.NewBackupHandler(a.services.Backup),
 		Page:        handlers.NewPageHandler(a.services.Page),
 		Setup:       handlers.NewSetupHandler(a.services.Setup, a.cfg),
+		Homepage:    handlers.NewHomepageHandler(a.services.Homepage),
 		SocialLink:  handlers.NewSocialLinkHandler(a.services.SocialLink),
 		Menu:        handlers.NewMenuHandler(a.services.Menu),
 		SEO:         handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.cfg),
@@ -613,6 +618,7 @@ func (a *Application) initHandlers() error {
 		nil,
 		nil,
 		a.services.Setup,
+		a.services.Homepage,
 		nil,
 		a.services.SocialLink,
 		a.services.Menu,
@@ -838,6 +844,8 @@ func (a *Application) initRouter() error {
 		{
 			settings.GET("/settings/site", a.handlers.Setup.GetSiteSettings)
 			settings.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
+			settings.GET("/settings/homepage", a.handlers.Homepage.Get)
+			settings.PUT("/settings/homepage", a.handlers.Homepage.Update)
 			settings.POST("/settings/favicon", a.handlers.Setup.UploadFavicon)
 			settings.POST("/settings/logo", a.handlers.Setup.UploadLogo)
 			settings.GET("/settings/advertising", a.handlers.Advertising.Get)

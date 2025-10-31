@@ -316,6 +316,7 @@
             tags: root.dataset.endpointTags,
             tagsAdmin: root.dataset.endpointTagsAdmin,
             siteSettings: root.dataset.endpointSiteSettings,
+            homepage: root.dataset.endpointHomepage,
             faviconUpload: root.dataset.endpointFaviconUpload,
             logoUpload: root.dataset.endpointLogoUpload,
             upload: root.dataset.endpointUpload,
@@ -624,6 +625,12 @@
         const categoryForm = root.querySelector('#admin-category-form');
         const userForm = root.querySelector('#admin-user-form');
         const settingsForm = root.querySelector('#admin-settings-form');
+        const homepageForm = root.querySelector('#admin-homepage-form');
+        const homepageSelect = homepageForm?.querySelector('[data-role="homepage-select"]');
+        const homepageStatus = homepageForm?.querySelector('[data-role="homepage-status"]');
+        const homepageSubmitButton = homepageForm?.querySelector('[data-role="homepage-submit"]');
+        const homepageOptionsContainer = root.querySelector('[data-role="homepage-options"]');
+        const homepageEmptyState = root.querySelector('[data-role="homepage-empty"]');
         const socialList = root.querySelector('[data-role="social-list"]');
         const socialEmpty = root.querySelector('[data-role="social-empty"]');
         const socialForm = document.getElementById('admin-social-form');
@@ -813,6 +820,24 @@
             postAnalytics: new Map(),
             postAnalyticsLoadingIds: new Set(),
             selectedPostId: '',
+            homepage: {
+                options: [],
+                selected: null,
+                selectedId: '',
+                hasLoaded: false,
+            },
+        };
+
+        const ensureHomepageState = () => {
+            if (!state.homepage) {
+                state.homepage = {
+                    options: [],
+                    selected: null,
+                    selectedId: '',
+                    hasLoaded: false,
+                };
+            }
+            return state.homepage;
         };
 
         const createMediaLibrary = () => {
@@ -3409,6 +3434,274 @@
 
             updateFaviconPreview(site?.favicon || site?.Favicon || '');
             updateLogoPreview(site?.logo || site?.Logo || '');
+        };
+
+        const getHomepageStatusInfo = (page) => {
+            const title = typeof page?.title === 'string' ? page.title.trim() : '';
+            if (!page) {
+                return {
+                    state: 'none',
+                    label: 'Not selected',
+                    description:
+                        'No homepage override selected. The site uses the page assigned to the "/" path.',
+                };
+            }
+
+            const publishAt = extractDateValue(page, 'publish_at', 'PublishAt');
+            const published = Boolean(page.published);
+            if (!published) {
+                return {
+                    state: 'draft',
+                    label: 'Draft',
+                    description:
+                        `${title || 'The selected page'} is not published. Visitors will continue to see the default homepage.`,
+                };
+            }
+
+            if (publishAt && Number.isFinite(publishAt.getTime()) && publishAt.getTime() > Date.now()) {
+                return {
+                    state: 'scheduled',
+                    label: `Scheduled for ${formatDate(publishAt)}`,
+                    description:
+                        `${title || 'The selected page'} is scheduled and will become the homepage once it is published.`,
+                };
+            }
+
+            return {
+                state: 'published',
+                label: 'Published',
+                description: `${title || 'The selected page'} is published and will be shown as the homepage.`,
+            };
+        };
+
+        const populateHomepageSelect = () => {
+            if (!homepageSelect) {
+                return;
+            }
+
+            const homepageState = ensureHomepageState();
+            const options = Array.isArray(homepageState.options) ? homepageState.options : [];
+            const selectedId = homepageState.selectedId || '';
+
+            homepageSelect.innerHTML = '';
+
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Use page assigned to "/" path';
+            homepageSelect.appendChild(defaultOption);
+
+            options.forEach((option) => {
+                if (!option || option.id === undefined || option.id === null) {
+                    return;
+                }
+                const optionId = String(option.id);
+                const statusInfo = getHomepageStatusInfo(option);
+                const optionElement = document.createElement('option');
+                optionElement.value = optionId;
+                const label = option.title || `Untitled page #${option.id}`;
+                optionElement.textContent = `${label} — ${statusInfo.label}`;
+                homepageSelect.appendChild(optionElement);
+            });
+
+            if (selectedId) {
+                const exists = options.some((option) => String(option?.id ?? '') === selectedId);
+                homepageSelect.value = exists ? selectedId : '';
+            } else {
+                homepageSelect.value = '';
+            }
+        };
+
+        const updateHomepageStatus = () => {
+            if (!homepageStatus) {
+                return;
+            }
+
+            const homepageState = ensureHomepageState();
+            const statusInfo = getHomepageStatusInfo(homepageState.selected);
+            homepageStatus.textContent = statusInfo.description;
+            homepageStatus.dataset.status = statusInfo.state || '';
+        };
+
+        const renderHomepageOptions = () => {
+            if (!homepageOptionsContainer) {
+                return;
+            }
+
+            const homepageState = ensureHomepageState();
+            const options = Array.isArray(homepageState.options) ? homepageState.options : [];
+            const selectedId = homepageState.selectedId || '';
+
+            homepageOptionsContainer.innerHTML = '';
+            if (homepageEmptyState) {
+                homepageEmptyState.hidden = true;
+            }
+
+            if (options.length === 0) {
+                if (homepageEmptyState) {
+                    homepageEmptyState.hidden = false;
+                    homepageOptionsContainer.appendChild(homepageEmptyState);
+                }
+                return;
+            }
+
+            const list = createElement('ul', {
+                className: 'admin-homepage__list',
+            });
+
+            options.forEach((option) => {
+                if (!option || option.id === undefined || option.id === null) {
+                    return;
+                }
+
+                const optionId = String(option.id);
+                const statusInfo = getHomepageStatusInfo(option);
+
+                const item = createElement('li', {
+                    className: 'admin-homepage__item',
+                });
+
+                if (optionId === selectedId && selectedId) {
+                    item.classList.add('admin-homepage__item--selected');
+                }
+
+                item.appendChild(
+                    createElement('h4', {
+                        className: 'admin-homepage__title',
+                        textContent: option.title || `Untitled page #${option.id}`,
+                    })
+                );
+
+                const meta = createElement('p', {
+                    className: 'admin-homepage__meta',
+                });
+
+                const statusClass = statusInfo.state
+                    ? `admin-homepage__status admin-homepage__status--${statusInfo.state}`
+                    : 'admin-homepage__status';
+                meta.appendChild(
+                    createElement('span', {
+                        className: statusClass,
+                        textContent: statusInfo.label,
+                    })
+                );
+
+                meta.appendChild(
+                    createElement('span', {
+                        className: 'admin-homepage__path',
+                        textContent: option.path || '/',
+                    })
+                );
+
+                const updatedAt = extractDateValue(option, 'updated_at', 'UpdatedAt');
+                if (updatedAt) {
+                    meta.appendChild(
+                        createElement('span', {
+                            className: 'admin-homepage__updated',
+                            textContent: `Updated ${formatDate(updatedAt)}`,
+                        })
+                    );
+                }
+
+                item.appendChild(meta);
+
+                if (optionId === selectedId && selectedId) {
+                    item.appendChild(
+                        createElement('p', {
+                            className: 'admin-homepage__selected-note',
+                            textContent: 'Currently selected homepage',
+                        })
+                    );
+                }
+
+                list.appendChild(item);
+            });
+
+            homepageOptionsContainer.appendChild(list);
+        };
+
+        const loadHomepageSettings = async () => {
+            if (!homepageForm || !endpoints.homepage) {
+                return;
+            }
+
+            try {
+                const payload = await apiRequest(endpoints.homepage);
+                const homepageState = ensureHomepageState();
+                homepageState.options = Array.isArray(payload?.options) ? payload.options : [];
+                homepageState.selected = payload?.homepage || null;
+                homepageState.selectedId = homepageState.selected?.id
+                    ? String(homepageState.selected.id)
+                    : '';
+                homepageState.hasLoaded = true;
+                populateHomepageSelect();
+                updateHomepageStatus();
+                renderHomepageOptions();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleHomepageSubmit = async (event) => {
+            event.preventDefault();
+
+            if (!homepageForm || !endpoints.homepage) {
+                return;
+            }
+
+            const homepageState = ensureHomepageState();
+            const rawValue = homepageSelect ? homepageSelect.value.trim() : '';
+            let payload;
+
+            if (!rawValue) {
+                payload = { page_id: null };
+            } else {
+                const parsedId = Number.parseInt(rawValue, 10);
+                if (!Number.isFinite(parsedId)) {
+                    showAlert('Select a valid page to use as the homepage.', 'error');
+                    return;
+                }
+                payload = { page_id: parsedId };
+            }
+
+            disableForm(homepageForm, true);
+            const originalLabel = homepageSubmitButton?.textContent;
+            if (homepageSubmitButton) {
+                homepageSubmitButton.disabled = true;
+                homepageSubmitButton.textContent = 'Saving…';
+            }
+
+            clearAlert();
+
+            try {
+                const response = await apiRequest(endpoints.homepage, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload),
+                });
+
+                homepageState.options = Array.isArray(response?.options) ? response.options : [];
+                homepageState.selected = response?.homepage || null;
+                homepageState.selectedId = homepageState.selected?.id
+                    ? String(homepageState.selected.id)
+                    : '';
+                homepageState.hasLoaded = true;
+
+                populateHomepageSelect();
+                updateHomepageStatus();
+                renderHomepageOptions();
+
+                const message = typeof response?.message === 'string' && response.message.trim() !== ''
+                    ? response.message
+                    : 'Homepage updated successfully.';
+                showAlert(message, 'success');
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(homepageForm, false);
+                if (homepageSubmitButton) {
+                    homepageSubmitButton.disabled = false;
+                    homepageSubmitButton.textContent = originalLabel || 'Save homepage';
+                }
+            }
         };
 
         const trimString = (value) => (typeof value === 'string' ? value.trim() : '');
@@ -6973,7 +7266,9 @@
         menuLocationField?.addEventListener('change', handleMenuLocationChange);
         menuList?.addEventListener('click', handleMenuListClick);
         postTagsInput?.addEventListener('input', renderTagSuggestions);
+        homepageForm?.addEventListener('submit', handleHomepageSubmit);
 
+        updateHomepageStatus();
         handleBackupAutoToggleChange();
         showPostAnalyticsEmpty();
         clearAlert();
@@ -6989,6 +7284,7 @@
         loadUsers();
         loadBackupSettings();
         loadSiteSettings();
+        loadHomepageSettings();
         loadAdvertisingSettings();
         loadPlugins();
         loadThemes();

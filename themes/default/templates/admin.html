@@ -16,6 +16,7 @@
     {{- end }}
     data-endpoint-pages="{{ index $endpoints "Pages" }}"
     data-endpoint-site-settings="{{ index $endpoints "SiteSettings" }}"
+    data-endpoint-homepage="{{ index $endpoints "Homepage" }}"
     data-endpoint-favicon-upload="{{ index $endpoints "FaviconUpload" }}"
     data-endpoint-logo-upload="{{ index $endpoints "LogoUpload" }}"
     data-endpoint-upload="{{ index $endpoints "Upload" }}"
@@ -956,6 +957,65 @@
                     </fieldset>
                 </form>
             </div>
+            </section>
+
+            <section
+                id="admin-panel-homepage"
+                class="admin-panel"
+                data-panel="homepage"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Homepage"
+                data-nav-order="1.5"
+                role="tabpanel"
+                aria-labelledby="admin-tab-homepage"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Homepage</h2>
+                        <p class="admin-panel__description">
+                            Choose which published page visitors see when they land on the root URL.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body">
+                    <form id="admin-homepage-form" class="admin-form" novalidate>
+                        <fieldset class="admin-form__fieldset">
+                            <legend class="admin-form__legend">Homepage selection</legend>
+                            <p class="admin-form__hint">
+                                Select a published page to use as the homepage. Leave blank to continue using the page
+                                assigned to the "/" path.
+                            </p>
+                            <label class="admin-form__label">
+                                Homepage page
+                                <select class="admin-form__input" name="page_id" data-role="homepage-select">
+                                    <option value="">Use page assigned to "/" path</option>
+                                </select>
+                            </label>
+                            <p class="admin-form__hint" data-role="homepage-status"></p>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="homepage-submit">
+                                    Save homepage
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                    <section class="admin__section" aria-labelledby="admin-homepage-options-title">
+                        <div class="admin__section-header">
+                            <h3 id="admin-homepage-options-title" class="admin__section-title">Available pages</h3>
+                            <p class="admin__section-description">
+                                Review each page’s status before selecting it as the homepage.
+                            </p>
+                        </div>
+                        <div class="admin-homepage__options" data-role="homepage-options">
+                            <p class="admin-homepage__empty" data-role="homepage-empty">
+                                No pages available yet. Create and publish a page to select it as the homepage.
+                            </p>
+                        </div>
+                    </section>
+                </div>
             </section>
 
             <section

@@ -264,6 +264,16 @@ func (h *TemplateHandler) TryRenderPage(c *gin.Context) bool {
 }
 
 func (h *TemplateHandler) RenderIndex(c *gin.Context) {
+	if h.homepageService != nil {
+		page, err := h.homepageService.GetActiveHomepage()
+		if err != nil {
+			logger.Error(err, "Failed to load configured homepage", nil)
+		} else if page != nil {
+			h.renderPageByTemplate(c, page)
+			return
+		}
+	}
+
 	if h.renderPageForPath(c, "/") {
 		return
 	}
@@ -911,6 +921,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"Stats":          "/api/v1/admin/stats",
 		"Pages":          "/api/v1/admin/pages",
 		"SiteSettings":   "/api/v1/admin/settings/site",
+		"Homepage":       "/api/v1/admin/settings/homepage",
 		"FaviconUpload":  "/api/v1/admin/settings/favicon",
 		"LogoUpload":     "/api/v1/admin/settings/logo",
 		"Upload":         "/api/v1/admin/upload",

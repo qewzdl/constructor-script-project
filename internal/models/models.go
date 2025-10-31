@@ -408,6 +408,21 @@ type UpdateSiteSettingsRequest struct {
 	UnusedTagRetentionHours int    `json:"unused_tag_retention_hours" binding:"required,min=1"`
 }
 
+type HomepagePage struct {
+	ID        uint       `json:"id"`
+	Title     string     `json:"title"`
+	Slug      string     `json:"slug"`
+	Path      string     `json:"path"`
+	Published bool       `json:"published"`
+	PublishAt *time.Time `json:"publish_at,omitempty"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
+type UpdateHomepageRequest struct {
+	PageID *uint `json:"page_id"`
+}
+
 type AdvertisingSettings struct {
 	Enabled   bool               `json:"enabled"`
 	Provider  string             `json:"provider"`

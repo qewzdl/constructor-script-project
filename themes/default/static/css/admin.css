@@ -1481,6 +1481,110 @@
     padding: 0 var(--size-2xs);
 }
 
+.admin-homepage__options {
+    display: block;
+}
+
+.admin-homepage__empty {
+    margin: 0;
+    padding: var(--size-base);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-secondary);
+    text-align: center;
+}
+
+.admin-homepage__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--size-base);
+}
+
+.admin-homepage__item {
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--size-base);
+    background: var(--color-surface-elevated);
+    display: grid;
+    gap: var(--size-sm);
+}
+
+.admin-homepage__item--selected {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.admin-homepage__title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.admin-homepage__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-sm);
+    align-items: center;
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-secondary);
+}
+
+.admin-homepage__status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-2xs);
+    padding: 0 var(--size-xs);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    background: color-mix(in srgb, var(--color-border) 20%, transparent);
+    color: var(--color-secondary);
+}
+
+.admin-homepage__status--published {
+    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    color: var(--color-text-accent);
+}
+
+.admin-homepage__status--scheduled {
+    background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+    color: var(--color-primary);
+}
+
+.admin-homepage__status--draft {
+    background: color-mix(in srgb, var(--color-error) 12%, transparent);
+    color: var(--color-error);
+}
+
+.admin-homepage__path,
+.admin-homepage__updated {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-2xs);
+}
+
+.admin-homepage__path::before {
+    content: 'Path:';
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.admin-homepage__updated::before {
+    content: 'Updated:';
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.admin-homepage__selected-note {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
 .admin-navigation__step-description {
     margin: 0;
     color: var(--color-secondary);
