@@ -4168,6 +4168,16 @@
             }
         };
 
+        let siteReloadTimer = null;
+        const scheduleSiteReload = () => {
+            if (siteReloadTimer !== null) {
+                return;
+            }
+            siteReloadTimer = window.setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        };
+
         const handlePluginListClick = async (event) => {
             const activateButton = event.target?.closest('[data-role="plugin-activate"]');
             if (activateButton && pluginList?.contains(activateButton)) {
@@ -4199,6 +4209,8 @@
                     await apiRequest(url, { method: 'PUT' });
                     await loadPlugins();
                     showAlert(`Plugin "${pluginName}" activated.`, 'success');
+                    scheduleSiteReload();
+                    return;
                 } catch (error) {
                     activateButton.disabled = false;
                     activateButton.textContent = originalText || 'Activate';
@@ -4240,6 +4252,8 @@
                     await apiRequest(url, { method: 'PUT' });
                     await loadPlugins();
                     showAlert(`Plugin "${pluginName}" deactivated.`, 'success');
+                    scheduleSiteReload();
+                    return;
                 } catch (error) {
                     deactivateButton.disabled = false;
                     deactivateButton.textContent = originalText || 'Deactivate';
