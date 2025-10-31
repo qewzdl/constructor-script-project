@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"constructor-script-backend/internal/config"
+	"constructor-script-backend/internal/sections"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
@@ -32,7 +33,7 @@ type TemplateHandler struct {
 	themeManager       *theme.Manager
 	config             *config.Config
 	sanitizer          *bluemonday.Policy
-	sectionRenderers   map[string]SectionRenderer
+	sectionRegistry    *sections.Registry
 }
 
 func NewTemplateHandler(
@@ -69,7 +70,7 @@ func NewTemplateHandler(
 		sanitizer:          policy,
 	}
 
-	handler.registerDefaultSectionRenderers()
+	handler.sectionRegistry = sections.DefaultRegistry()
 
 	if err := handler.reloadTemplates(); err != nil {
 		return nil, err
@@ -141,4 +142,17 @@ func (h *TemplateHandler) templateClone() (*template.Template, error) {
 	}
 
 	return h.templates.Clone()
+}
+
+// SanitizeHTML makes TemplateHandler compatible with sections.RenderContext.
+func (h *TemplateHandler) SanitizeHTML(input string) string {
+	if h == nil || h.sanitizer == nil {
+		return input
+	}
+	return h.sanitizer.Sanitize(input)
+}
+
+// CloneTemplates makes TemplateHandler compatible with sections.RenderContext.
+func (h *TemplateHandler) CloneTemplates() (*template.Template, error) {
+	return h.templateClone()
 }

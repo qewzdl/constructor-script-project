@@ -8,6 +8,7 @@ import (
 
 	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/sections"
 	"constructor-script-backend/pkg/logger"
 )
 
@@ -183,11 +184,15 @@ func (h *TemplateHandler) renderPostCard(tmpl *template.Template, post *models.P
 }
 
 func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement) (string, []string) {
-	if h.sectionRenderers == nil {
+	if h == nil {
 		return "", nil
 	}
 
-	if renderer, ok := h.sectionRenderers[elem.Type]; ok {
+	if h.sectionRegistry == nil {
+		h.sectionRegistry = sections.DefaultRegistry()
+	}
+
+	if renderer, ok := h.sectionRegistry.Get(elem.Type); ok {
 		return renderer(h, prefix, elem)
 	}
 
