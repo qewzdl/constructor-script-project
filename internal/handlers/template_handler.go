@@ -13,19 +13,19 @@ import (
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
-	postservice "constructor-script-backend/plugins/posts/service"
+	blogservice "constructor-script-backend/plugins/blog/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/microcosm-cc/bluemonday"
 )
 
 type TemplateHandler struct {
-	postService        *postservice.PostService
-	categoryService    *postservice.CategoryService
+	postService        *blogservice.PostService
+	categoryService    *blogservice.CategoryService
 	pageService        *service.PageService
 	authService        *service.AuthService
-	commentService     *postservice.CommentService
-	searchService      *postservice.SearchService
+	commentService     *blogservice.CommentService
+	searchService      *blogservice.SearchService
 	setupService       *service.SetupService
 	socialLinkService  *service.SocialLinkService
 	menuService        *service.MenuService
@@ -40,13 +40,13 @@ type TemplateHandler struct {
 }
 
 func NewTemplateHandler(
-	postService *postservice.PostService,
+	postService *blogservice.PostService,
 	pageService *service.PageService,
 	authService *service.AuthService,
-	commentService *postservice.CommentService,
-	searchService *postservice.SearchService,
+	commentService *blogservice.CommentService,
+	searchService *blogservice.SearchService,
 	setupService *service.SetupService,
-	categoryService *postservice.CategoryService,
+	categoryService *blogservice.CategoryService,
 	socialLinkService *service.SocialLinkService,
 	menuService *service.MenuService,
 	advertisingService *service.AdvertisingService,
@@ -84,10 +84,10 @@ func NewTemplateHandler(
 
 // SetBlogServices swaps the blog-related services used by the template handler.
 func (h *TemplateHandler) SetBlogServices(
-	postService *postservice.PostService,
-	categoryService *postservice.CategoryService,
-	commentService *postservice.CommentService,
-	searchService *postservice.SearchService,
+	postService *blogservice.PostService,
+	categoryService *blogservice.CategoryService,
+	commentService *blogservice.CommentService,
+	searchService *blogservice.SearchService,
 ) {
 	if h == nil {
 		return
@@ -106,7 +106,7 @@ func (h *TemplateHandler) blogEnabled() bool {
 func (h *TemplateHandler) ensureBlogAvailable(c *gin.Context) bool {
 	if h == nil || h.postService == nil {
 		if c != nil {
-			h.renderError(c, http.StatusServiceUnavailable, "Posts unavailable", "The posts plugin is not active.")
+			h.renderError(c, http.StatusServiceUnavailable, "Blog unavailable", "The blog plugin is not active.")
 		}
 		return false
 	}

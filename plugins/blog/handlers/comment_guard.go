@@ -1,4 +1,4 @@
-package postshandlers
+package bloghandlers
 
 import (
 	"errors"

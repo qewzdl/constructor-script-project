@@ -1,6 +1,6 @@
 {
-  "name": "Blog Posts",
-  "slug": "posts",
+  "name": "Blog",
+  "slug": "blog",
   "version": "1.0.0",
   "description": "Provides post management, public blog views, search, categories, and comments.",
   "author": "Constructor Script",

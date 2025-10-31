@@ -1,4 +1,4 @@
-package postshandlers
+package bloghandlers
 
 import (
 	"net/http"
@@ -7,19 +7,19 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"constructor-script-backend/internal/models"
-	postservice "constructor-script-backend/plugins/posts/service"
+	blogservice "constructor-script-backend/plugins/blog/service"
 )
 
 type CategoryHandler struct {
-	categoryService *postservice.CategoryService
+	categoryService *blogservice.CategoryService
 }
 
-func NewCategoryHandler(categoryService *postservice.CategoryService) *CategoryHandler {
+func NewCategoryHandler(categoryService *blogservice.CategoryService) *CategoryHandler {
 	return &CategoryHandler{categoryService: categoryService}
 }
 
 // SetService updates the category service reference.
-func (h *CategoryHandler) SetService(categoryService *postservice.CategoryService) {
+func (h *CategoryHandler) SetService(categoryService *blogservice.CategoryService) {
 	if h == nil {
 		return
 	}
@@ -28,7 +28,7 @@ func (h *CategoryHandler) SetService(categoryService *postservice.CategoryServic
 
 func (h *CategoryHandler) ensureService(c *gin.Context) bool {
 	if h == nil || h.categoryService == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "posts plugin is not active"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "blog plugin is not active"})
 		return false
 	}
 	return true

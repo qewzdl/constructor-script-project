@@ -1,4 +1,4 @@
-package postsservice
+package blogservice
 
 import (
 	"context"

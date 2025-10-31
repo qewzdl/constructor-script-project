@@ -18,7 +18,7 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
-	postservice "constructor-script-backend/plugins/posts/service"
+	blogservice "constructor-script-backend/plugins/blog/service"
 )
 
 func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
@@ -316,7 +316,7 @@ func (h *TemplateHandler) RenderPage(c *gin.Context) {
 
 func (h *TemplateHandler) loadBlogCollections(page, limit int) ([]models.Post, int64, []models.Tag, []models.Category, error) {
 	if h.postService == nil {
-		return nil, 0, nil, nil, errors.New("posts plugin inactive")
+		return nil, 0, nil, nil, errors.New("blog plugin inactive")
 	}
 
 	posts, total, err := h.postService.GetAll(page, limit, nil, nil, nil)
@@ -547,7 +547,7 @@ func (h *TemplateHandler) renderBlogOverviewSection(posts []models.Post, tags []
 
 func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 	if h.searchService == nil {
-		h.renderError(c, http.StatusServiceUnavailable, "Search unavailable", "The posts plugin is not active.")
+		h.renderError(c, http.StatusServiceUnavailable, "Search unavailable", "The blog plugin is not active.")
 		return
 	}
 
@@ -563,7 +563,7 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 		limit = 50
 	}
 
-	var result *postservice.SearchResult
+	var result *blogservice.SearchResult
 	if query != "" {
 		searchResult, searchErr := h.searchService.Search(query, searchType, limit)
 		if searchErr != nil {
@@ -573,7 +573,7 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 		}
 		result = searchResult
 	} else {
-		result = &postservice.SearchResult{Posts: []models.Post{}, Total: 0, Query: query}
+		result = &blogservice.SearchResult{Posts: []models.Post{}, Total: 0, Query: query}
 	}
 
 	hasQuery := query != ""

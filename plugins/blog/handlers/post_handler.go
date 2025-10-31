@@ -1,4 +1,4 @@
-package postshandlers
+package bloghandlers
 
 import (
 	"errors"
@@ -10,19 +10,19 @@ import (
 
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
-	postservice "constructor-script-backend/plugins/posts/service"
+	blogservice "constructor-script-backend/plugins/blog/service"
 )
 
 type PostHandler struct {
-	postService *postservice.PostService
+	postService *blogservice.PostService
 }
 
-func NewPostHandler(postService *postservice.PostService) *PostHandler {
+func NewPostHandler(postService *blogservice.PostService) *PostHandler {
 	return &PostHandler{postService: postService}
 }
 
 // SetService updates the underlying post service reference.
-func (h *PostHandler) SetService(postService *postservice.PostService) {
+func (h *PostHandler) SetService(postService *blogservice.PostService) {
 	if h == nil {
 		return
 	}
@@ -31,7 +31,7 @@ func (h *PostHandler) SetService(postService *postservice.PostService) {
 
 func (h *PostHandler) ensureService(c *gin.Context) bool {
 	if h == nil || h.postService == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "posts plugin is not active"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "blog plugin is not active"})
 		return false
 	}
 	return true
@@ -253,7 +253,7 @@ func (h *PostHandler) GetAnalytics(c *gin.Context) {
 		case errors.Is(err, gorm.ErrRecordNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
 			return
-		case errors.Is(err, postservice.ErrPostNotPublished):
+		case errors.Is(err, blogservice.ErrPostNotPublished):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "analytics available only for published posts"})
 			return
 		default:

@@ -1,4 +1,4 @@
-package postshandlers
+package bloghandlers
 
 import (
 	"errors"
@@ -12,16 +12,16 @@ import (
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
 	coreservice "constructor-script-backend/internal/service"
-	postservice "constructor-script-backend/plugins/posts/service"
+	blogservice "constructor-script-backend/plugins/blog/service"
 )
 
 type CommentHandler struct {
-	commentService *postservice.CommentService
+	commentService *blogservice.CommentService
 	authService    *coreservice.AuthService
 	guard          *CommentGuard
 }
 
-func NewCommentHandler(commentService *postservice.CommentService, authService *coreservice.AuthService, guard *CommentGuard) *CommentHandler {
+func NewCommentHandler(commentService *blogservice.CommentService, authService *coreservice.AuthService, guard *CommentGuard) *CommentHandler {
 	return &CommentHandler{
 		commentService: commentService,
 		authService:    authService,
@@ -30,7 +30,7 @@ func NewCommentHandler(commentService *postservice.CommentService, authService *
 }
 
 // SetService updates the comment service reference.
-func (h *CommentHandler) SetService(commentService *postservice.CommentService) {
+func (h *CommentHandler) SetService(commentService *blogservice.CommentService) {
 	if h == nil {
 		return
 	}
@@ -39,7 +39,7 @@ func (h *CommentHandler) SetService(commentService *postservice.CommentService) 
 
 func (h *CommentHandler) ensureService(c *gin.Context) bool {
 	if h == nil || h.commentService == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "posts plugin is not active"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "blog plugin is not active"})
 		return false
 	}
 	return true

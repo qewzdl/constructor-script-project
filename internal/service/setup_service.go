@@ -13,7 +13,7 @@ import (
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
-	postservice "constructor-script-backend/plugins/posts/service"
+	blogservice "constructor-script-backend/plugins/blog/service"
 )
 
 var (
@@ -138,7 +138,7 @@ func (s *SetupService) saveSiteSettings(req models.SetupRequest) error {
 		settingKeySiteURL:           req.SiteURL,
 		settingKeySiteFavicon:       req.SiteFavicon,
 		settingKeySiteLogo:          req.SiteLogo,
-		settingKeyTagRetentionHours: strconv.Itoa(postservice.DefaultUnusedTagRetentionHours),
+		settingKeyTagRetentionHours: strconv.Itoa(blogservice.DefaultUnusedTagRetentionHours),
 	}
 
 	for key, value := range settings {
@@ -378,5 +378,5 @@ const (
 	settingKeySiteURL           = "site.url"
 	settingKeySiteFavicon       = "site.favicon"
 	settingKeySiteLogo          = "site.logo"
-	settingKeyTagRetentionHours = postservice.SettingKeyTagRetentionHours
+	settingKeyTagRetentionHours = blogservice.SettingKeyTagRetentionHours
 )

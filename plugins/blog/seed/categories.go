@@ -1,11 +1,11 @@
-package postseed
+package blogseed
 
 import (
 	"constructor-script-backend/pkg/logger"
-	postservice "constructor-script-backend/plugins/posts/service"
+	blogservice "constructor-script-backend/plugins/blog/service"
 )
 
-func EnsureDefaultCategory(categoryService *postservice.CategoryService) {
+func EnsureDefaultCategory(categoryService *blogservice.CategoryService) {
 	if categoryService == nil {
 		return
 	}
