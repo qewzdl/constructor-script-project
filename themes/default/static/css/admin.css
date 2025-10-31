@@ -1,7 +1,9 @@
 .admin {
     display: grid;
-    gap: var(--common-gap);
+    grid-template-columns: 1fr;
+    row-gap: var(--size-mid);
     font-family: var(--font-family-admin);
+    min-height: 100%;
 }
 
 .admin__header {
@@ -421,39 +423,49 @@
     color: var(--color-secondary);
 }
 
-.admin__workspace {
+.admin__content {
     display: grid;
-    gap: var(--common-gap);
+    gap: var(--size-mid);
+    padding: var(--size-max) var(--side-padding);
 }
 
 .admin__sidebar {
-    display: grid;
-    gap: var(--common-gap);
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-mid);
+    background: var(--color-bg-bottom);
 }
 
 .admin__navigation {
-    align-self: stretch;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .admin__navigation-card {
     display: grid;
     gap: var(--size-sm);
     padding: var(--size-base);
-    border: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
     background: var(--color-bg-top);
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .admin__nav {
     display: flex;
     flex-direction: column;
     gap: var(--size-base);
+    min-height: 0;
 }
 
 .admin__shortcuts {
     display: grid;
     gap: var(--size-sm);
     padding: var(--size-base);
-    border: 1px solid var(--color-border);
+    border-top: 1px solid var(--color-border);
     background: var(--color-bg-top);
 }
 
@@ -569,22 +581,33 @@
 }
 
 @media (min-width: 900px) {
-    .admin__workspace {
-        grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-        align-items: start;
+    .admin {
+        grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+        column-gap: var(--size-mid);
+        row-gap: 0;
+        align-items: stretch;
     }
 
     .admin__sidebar {
         position: sticky;
-        top: calc(var(--header-height) + var(--common-gap));
-        align-self: start;
-        max-height: calc(100vh - var(--header-height) - (var(--common-gap) * 2));
+        top: 0;
+        align-self: stretch;
+        height: 100vh;
+        border-inline-end: 1px solid var(--color-border);
         overflow-y: auto;
         scrollbar-gutter: stable;
     }
 
+    .admin__content {
+        padding: var(--size-max);
+    }
+
     .admin__tabs {
         overflow: visible;
+    }
+
+    .admin__shortcuts {
+        margin-top: auto;
     }
 }
 

@@ -16,6 +16,6 @@
 }
 
 .layout--admin .main {
-    padding-top: var(--size-max);
-    padding-bottom: var(--size-max);
+    padding: 0;
+    min-height: 100vh;
 }
