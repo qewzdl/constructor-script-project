@@ -98,6 +98,10 @@ func (h *TemplateHandler) SetBlogServices(
 	h.searchService = searchService
 }
 
+func (h *TemplateHandler) blogEnabled() bool {
+	return h != nil && h.postService != nil
+}
+
 func (h *TemplateHandler) ensureBlogAvailable(c *gin.Context) bool {
 	if h == nil || h.postService == nil {
 		if c != nil {

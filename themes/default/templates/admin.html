@@ -1,31 +1,35 @@
+{{- $endpoints := .AdminEndpoints -}}
 <section
     class="admin"
     role="region"
     aria-labelledby="admin-title"
     data-page="admin"
-    data-endpoint-stats="{{ index .AdminEndpoints "Stats" }}"
-    data-endpoint-posts="{{ index .AdminEndpoints "Posts" }}"
-    data-endpoint-pages="{{ index .AdminEndpoints "Pages" }}"
-    data-endpoint-categories="{{ index .AdminEndpoints "Categories" }}"
-    data-endpoint-categories-index="{{ index .AdminEndpoints "CategoriesIndex" }}"
-    data-endpoint-comments="{{ index .AdminEndpoints "Comments" }}"
-    data-endpoint-tags="{{ index .AdminEndpoints "Tags" }}"
-    data-endpoint-tags-admin="{{ index .AdminEndpoints "TagsAdmin" }}"
-    data-endpoint-site-settings="{{ index .AdminEndpoints "SiteSettings" }}"
-    data-endpoint-favicon-upload="{{ index .AdminEndpoints "FaviconUpload" }}"
-    data-endpoint-logo-upload="{{ index .AdminEndpoints "LogoUpload" }}"
-    data-endpoint-upload="{{ index .AdminEndpoints "Upload" }}"
-    data-endpoint-upload-rename="{{ index .AdminEndpoints "UploadRename" }}"
-    data-endpoint-uploads="{{ index .AdminEndpoints "Uploads" }}"
-    data-endpoint-themes="{{ index .AdminEndpoints "Themes" }}"
-    data-endpoint-plugins="{{ index .AdminEndpoints "Plugins" }}"
-    data-endpoint-social-links="{{ index .AdminEndpoints "SocialLinks" }}"
-    data-endpoint-menu-items="{{ index .AdminEndpoints "MenuItems" }}"
-    data-endpoint-users="{{ index .AdminEndpoints "Users" }}"
-    data-endpoint-advertising-settings="{{ index .AdminEndpoints "Advertising" }}"
-    data-endpoint-backup-export="{{ index .AdminEndpoints "BackupExport" }}"
-    data-endpoint-backup-import="{{ index .AdminEndpoints "BackupImport" }}"
-    data-endpoint-backup-settings="{{ index .AdminEndpoints "BackupSettings" }}"
+    data-blog-enabled="{{ if .BlogEnabled }}true{{ else }}false{{ end }}"
+    data-endpoint-stats="{{ index $endpoints "Stats" }}"
+    {{- if .BlogEnabled }}
+    data-endpoint-posts="{{ index $endpoints "Posts" }}"
+    data-endpoint-categories="{{ index $endpoints "Categories" }}"
+    data-endpoint-categories-index="{{ index $endpoints "CategoriesIndex" }}"
+    data-endpoint-comments="{{ index $endpoints "Comments" }}"
+    data-endpoint-tags="{{ index $endpoints "Tags" }}"
+    data-endpoint-tags-admin="{{ index $endpoints "TagsAdmin" }}"
+    {{- end }}
+    data-endpoint-pages="{{ index $endpoints "Pages" }}"
+    data-endpoint-site-settings="{{ index $endpoints "SiteSettings" }}"
+    data-endpoint-favicon-upload="{{ index $endpoints "FaviconUpload" }}"
+    data-endpoint-logo-upload="{{ index $endpoints "LogoUpload" }}"
+    data-endpoint-upload="{{ index $endpoints "Upload" }}"
+    data-endpoint-upload-rename="{{ index $endpoints "UploadRename" }}"
+    data-endpoint-uploads="{{ index $endpoints "Uploads" }}"
+    data-endpoint-themes="{{ index $endpoints "Themes" }}"
+    data-endpoint-plugins="{{ index $endpoints "Plugins" }}"
+    data-endpoint-social-links="{{ index $endpoints "SocialLinks" }}"
+    data-endpoint-menu-items="{{ index $endpoints "MenuItems" }}"
+    data-endpoint-users="{{ index $endpoints "Users" }}"
+    data-endpoint-advertising-settings="{{ index $endpoints "Advertising" }}"
+    data-endpoint-backup-export="{{ index $endpoints "BackupExport" }}"
+    data-endpoint-backup-import="{{ index $endpoints "BackupImport" }}"
+    data-endpoint-backup-settings="{{ index $endpoints "BackupSettings" }}"
     data-current-user-id="{{ if .CurrentUser }}{{ .CurrentUser.ID }}{{ end }}"
 >
     <script type="application/json" id="section-definitions-data">
@@ -61,6 +65,7 @@
             </nav>
             <section class="admin__shortcuts" aria-labelledby="admin-shortcuts-title">
                 <ul class="admin__shortcuts-list">
+                    {{ if .BlogEnabled }}
                     <li>
                         <button
                             type="button"
@@ -71,6 +76,7 @@
                             Create new post
                         </button>
                     </li>
+                    {{ end }}
                     <li>
                         <button
                             type="button"
@@ -201,7 +207,7 @@
                     </section>
                 </div>
             </section>
-
+            {{ if .BlogEnabled }}
             <section
                 id="admin-panel-posts"
                 class="admin-panel"
@@ -437,6 +443,7 @@
                 </div>
             </div>
         </section>
+            {{ end }}
 
             <section
                 id="admin-panel-pages"
@@ -588,7 +595,7 @@
                 </div>
             </div>
         </section>
-
+            {{ if .BlogEnabled }}
             <section
                 id="admin-panel-categories"
                 class="admin-panel"
@@ -767,7 +774,9 @@
                 </div>
             </div>
         </section>
+            {{ end }}
 
+            {{ if .BlogEnabled }}
             <section
                 id="admin-panel-comments"
                 class="admin-panel"
@@ -795,6 +804,7 @@
                 </ul>
             </div>
         </section>
+            {{ end }}
 
             <section
                 id="admin-panel-settings"

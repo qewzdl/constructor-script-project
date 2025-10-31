@@ -905,38 +905,45 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 	}
 
 	sectionJSON, elementJSON := h.builderDefinitionsJSON()
+	blogEnabled := h.blogEnabled()
+
+	adminEndpoints := gin.H{
+		"Stats":          "/api/v1/admin/stats",
+		"Pages":          "/api/v1/admin/pages",
+		"SiteSettings":   "/api/v1/admin/settings/site",
+		"FaviconUpload":  "/api/v1/admin/settings/favicon",
+		"LogoUpload":     "/api/v1/admin/settings/logo",
+		"Upload":         "/api/v1/admin/upload",
+		"Uploads":        "/api/v1/admin/uploads",
+		"UploadRename":   "/api/v1/admin/uploads/rename",
+		"Themes":         "/api/v1/admin/themes",
+		"Plugins":        "/api/v1/admin/plugins",
+		"SocialLinks":    "/api/v1/admin/social-links",
+		"MenuItems":      "/api/v1/admin/menu-items",
+		"Users":          "/api/v1/admin/users",
+		"Advertising":    "/api/v1/admin/settings/advertising",
+		"BackupSettings": "/api/v1/admin/backups/settings",
+		"BackupExport":   "/api/v1/admin/backups/export",
+		"BackupImport":   "/api/v1/admin/backups/import",
+	}
+
+	if blogEnabled {
+		adminEndpoints["Posts"] = "/api/v1/admin/posts"
+		adminEndpoints["Categories"] = "/api/v1/admin/categories"
+		adminEndpoints["CategoriesIndex"] = "/api/v1/categories"
+		adminEndpoints["Comments"] = "/api/v1/admin/comments"
+		adminEndpoints["Tags"] = "/api/v1/tags"
+		adminEndpoints["TagsAdmin"] = "/api/v1/admin/tags"
+	}
 
 	h.renderTemplate(c, "admin", "Admin dashboard", "Monitor site activity, review content performance, and manage published resources in one place.", gin.H{
 		"Styles":                 []string{"/static/css/admin.css"},
 		"Scripts":                h.builderScripts(),
 		"SectionDefinitionsJSON": sectionJSON,
 		"ElementDefinitionsJSON": elementJSON,
-		"AdminEndpoints": gin.H{
-			"Stats":           "/api/v1/admin/stats",
-			"Posts":           "/api/v1/admin/posts",
-			"Pages":           "/api/v1/admin/pages",
-			"Categories":      "/api/v1/admin/categories",
-			"CategoriesIndex": "/api/v1/categories",
-			"Comments":        "/api/v1/admin/comments",
-			"Tags":            "/api/v1/tags",
-			"TagsAdmin":       "/api/v1/admin/tags",
-			"SiteSettings":    "/api/v1/admin/settings/site",
-			"FaviconUpload":   "/api/v1/admin/settings/favicon",
-			"LogoUpload":      "/api/v1/admin/settings/logo",
-			"Upload":          "/api/v1/admin/upload",
-			"Uploads":         "/api/v1/admin/uploads",
-			"UploadRename":    "/api/v1/admin/uploads/rename",
-			"Themes":          "/api/v1/admin/themes",
-			"Plugins":         "/api/v1/admin/plugins",
-			"SocialLinks":     "/api/v1/admin/social-links",
-			"MenuItems":       "/api/v1/admin/menu-items",
-			"Users":           "/api/v1/admin/users",
-			"Advertising":     "/api/v1/admin/settings/advertising",
-			"BackupSettings":  "/api/v1/admin/backups/settings",
-			"BackupExport":    "/api/v1/admin/backups/export",
-			"BackupImport":    "/api/v1/admin/backups/import",
-		},
-		"NoIndex": true,
+		"AdminEndpoints":         adminEndpoints,
+		"BlogEnabled":            blogEnabled,
+		"NoIndex":                true,
 	})
 }
 
@@ -997,6 +1004,10 @@ func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
 				elementDefs = defs
 			}
 		}
+	}
+
+	if !h.blogEnabled() {
+		delete(sectionDefs, "posts_list")
 	}
 
 	sectionJSON, err := json.Marshal(sectionDefs)

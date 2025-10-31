@@ -33,7 +33,7 @@ func renderSearch(ctx RenderContext, prefix string, elem models.SectionElement) 
 
 	placeholder := strings.TrimSpace(getString(content, "placeholder"))
 	if placeholder == "" {
-		placeholder = "Start typing to search posts"
+		placeholder = "Start typing to search"
 	}
 
 	submitLabel := strings.TrimSpace(getString(content, "submit_label"))

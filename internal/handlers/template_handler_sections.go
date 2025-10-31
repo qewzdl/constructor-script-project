@@ -30,6 +30,10 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sectionType = "standard"
 		}
 
+		if sectionType == "posts_list" && !h.blogEnabled() {
+			continue
+		}
+
 		title := strings.TrimSpace(section.Title)
 		escapedTitle := template.HTMLEscapeString(title)
 

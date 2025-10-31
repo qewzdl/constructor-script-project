@@ -70,7 +70,7 @@
             content: {
                 title: 'Search',
                 description: '',
-                placeholder: 'Start typing to search posts',
+                placeholder: 'Start typing to search',
                 submitLabel: 'Search',
                 filterLabel: 'Filter by',
                 action: '/search',
@@ -92,7 +92,7 @@
                         content.description ?? content.Description ?? ''
                     ),
                     placeholder: normaliseString(
-                        content.placeholder ?? content.Placeholder ?? 'Start typing to search posts'
+                        content.placeholder ?? content.Placeholder ?? 'Start typing to search'
                     ),
                     submitLabel: normaliseString(
                         content.submit_label ?? content.SubmitLabel ?? 'Search'
@@ -150,7 +150,7 @@
                     label: 'Placeholder text',
                     type: 'input',
                     dataset: 'search-placeholder',
-                    placeholder: 'Start typing to search posts',
+                    placeholder: 'Start typing to search',
                     value: element.content.placeholder || '',
                     handler: (value) => {
                         ensureContent();
@@ -374,7 +374,7 @@
             }
 
             if (!payload.placeholder) {
-                payload.placeholder = 'Start typing to search posts';
+                payload.placeholder = 'Start typing to search';
             }
 
             if (!payload.submit_label) {

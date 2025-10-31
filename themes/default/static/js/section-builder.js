@@ -416,7 +416,7 @@
                 content: {
                     title: 'Search',
                     description: '',
-                    placeholder: 'Start typing to search posts',
+                    placeholder: 'Start typing to search',
                     submitLabel: 'Search',
                     filterLabel: 'Filter by',
                     action: '/search',
@@ -545,7 +545,7 @@
             }
 
             if (!payload.placeholder) {
-                payload.placeholder = 'Start typing to search posts';
+                payload.placeholder = 'Start typing to search';
             }
 
             if (!payload.submit_label) {
@@ -1937,7 +1937,7 @@
                 }
 
                 element.content.title = element.content.title || 'Search';
-                element.content.placeholder = element.content.placeholder || 'Start typing to search posts';
+                element.content.placeholder = element.content.placeholder || 'Start typing to search';
                 element.content.submitLabel = element.content.submitLabel || 'Search';
                 element.content.filterLabel = element.content.filterLabel || 'Filter by';
                 element.content.action = element.content.action || '/search';
@@ -1977,7 +1977,7 @@
 
                 createTextField('Block title', 'title', 'Search');
                 createTextField('Description (optional)', 'description', 'Describe what visitors can search for.', true);
-                createTextField('Placeholder text', 'placeholder', 'Start typing to search posts');
+                createTextField('Placeholder text', 'placeholder', 'Start typing to search');
                 createTextField('Submit button label', 'submitLabel', 'Search');
                 createTextField('Filter label', 'filterLabel', 'Filter by');
                 createTextField('Form action URL', 'action', '/search');

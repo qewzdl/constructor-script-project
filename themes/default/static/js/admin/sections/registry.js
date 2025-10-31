@@ -1,6 +1,16 @@
 (() => {
     const definitions = new Map();
 
+    const getAdminRoot = () => {
+        if (typeof document === 'undefined') {
+            return null;
+        }
+        return document.querySelector('.admin[data-page="admin"]');
+    };
+
+    const adminRoot = getAdminRoot();
+    const blogEnabled = !adminRoot || adminRoot.dataset.blogEnabled !== 'false';
+
     const normaliseType = (type) =>
         typeof type === 'string' ? type.trim().toLowerCase() : '';
 
@@ -111,20 +121,22 @@
             'Displays content blocks in a responsive grid. Add at least two elements for a balanced layout.',
     });
 
-    ensureRegistered('posts_list', {
-        label: 'Posts list',
-        order: 20,
-        supportsElements: false,
-        description: 'Automatically displays the most recent blog posts.',
-        settings: {
-            limit: {
-                label: 'Number of posts to display',
-                min: 1,
-                max: 24,
-                default: 6,
+    if (blogEnabled) {
+        ensureRegistered('posts_list', {
+            label: 'Posts list',
+            order: 20,
+            supportsElements: false,
+            description: 'Automatically displays the most recent blog posts.',
+            settings: {
+                limit: {
+                    label: 'Number of posts to display',
+                    min: 1,
+                    max: 24,
+                    default: 6,
+                },
             },
-        },
-    });
+        });
+    }
 
     window.AdminSectionRegistry = {
         register,
