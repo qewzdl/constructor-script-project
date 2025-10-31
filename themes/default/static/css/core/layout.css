@@ -10,12 +10,21 @@
 }
 
 .layout--admin {
-    grid-template-rows: 1fr;
+    grid-template-rows: auto 1fr;
     grid-template-areas:
+        "header"
         "main";
+}
+
+.layout--admin .admin-layout__header {
+    grid-area: header;
 }
 
 .layout--admin .main {
     padding: 0;
     min-height: 100vh;
+}
+
+.layout--admin .admin-layout__main {
+    grid-area: main;
 }

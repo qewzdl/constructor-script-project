@@ -6,6 +6,28 @@
     min-height: 100%;
 }
 
+.admin-layout__header {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--size-base);
+    border-block-end: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+}
+
+.admin-layout__home-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-xs);
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.admin-layout__home-link:hover,
+.admin-layout__home-link:focus-visible {
+    text-decoration: underline;
+}
+
 .admin__header {
     display: flex;
     flex-wrap: wrap;
