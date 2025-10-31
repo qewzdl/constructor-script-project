@@ -3,3 +3,4 @@ tmp/
 air-build.log
 uploads/
 vendor/
+deploy/.env.production

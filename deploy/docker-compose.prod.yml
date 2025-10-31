@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: constructor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: constructor-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./.env.production
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - backend
+
+  caddy:
+    image: caddy:2.7-alpine
+    container_name: constructor-caddy
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+      SITE_EMAIL: ${SITE_EMAIL}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - '80:80'
+      - '443:443'
+    networks:
+      - backend
+
+networks:
+  backend:
+    name: constructor-backend
+
+volumes:
+  postgres_data:
+  uploads_data:
+  caddy_data:
+  caddy_config:
