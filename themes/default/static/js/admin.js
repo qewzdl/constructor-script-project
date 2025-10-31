@@ -4123,6 +4123,20 @@
                 actions.appendChild(activateButton);
             }
 
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'admin-plugins__delete';
+            deleteButton.dataset.role = 'plugin-delete';
+            deleteButton.dataset.pluginName = pluginName;
+            if (slug) {
+                deleteButton.dataset.pluginSlug = slug;
+            } else {
+                deleteButton.disabled = true;
+                deleteButton.title = 'Plugin identifier unavailable';
+            }
+            deleteButton.textContent = 'Delete';
+            actions.appendChild(deleteButton);
+
             item.appendChild(actions);
 
             return item;
@@ -4260,6 +4274,56 @@
                     handleRequestError(error);
                 } finally {
                     deactivateButton.removeAttribute('data-loading');
+                }
+                return;
+            }
+
+            const deleteButton = event.target?.closest('[data-role="plugin-delete"]');
+            if (deleteButton && pluginList?.contains(deleteButton)) {
+                event.preventDefault();
+
+                const slug = normaliseString(deleteButton.dataset.pluginSlug ?? '');
+                if (!slug) {
+                    showAlert('Unable to delete this plugin because the identifier is missing.', 'error');
+                    return;
+                }
+
+                if (!endpoints.plugins) {
+                    showAlert('Plugin deletion is not available in this environment.', 'error');
+                    return;
+                }
+
+                const pluginName = deleteButton.dataset.pluginName || slug;
+                const confirmed = window.confirm(
+                    `Delete "${pluginName}" permanently? This action cannot be undone.`,
+                );
+                if (!confirmed) {
+                    return;
+                }
+
+                const base = endpoints.plugins.endsWith('/')
+                    ? endpoints.plugins.slice(0, -1)
+                    : endpoints.plugins;
+                const url = `${base}/${encodeURIComponent(slug)}`;
+
+                const originalText = deleteButton.textContent;
+                deleteButton.disabled = true;
+                deleteButton.dataset.loading = 'true';
+                deleteButton.textContent = 'Deleting…';
+                showAlert(`Deleting "${pluginName}"…`, 'info');
+
+                try {
+                    await apiRequest(url, { method: 'DELETE' });
+                    await loadPlugins();
+                    showAlert(`Plugin "${pluginName}" deleted.`, 'success');
+                    scheduleSiteReload();
+                    return;
+                } catch (error) {
+                    deleteButton.disabled = false;
+                    deleteButton.textContent = originalText || 'Delete';
+                    handleRequestError(error);
+                } finally {
+                    deleteButton.removeAttribute('data-loading');
                 }
             }
         };

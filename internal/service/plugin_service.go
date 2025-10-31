@@ -487,6 +487,110 @@ func (s *PluginService) Deactivate(slug string) (models.PluginInfo, error) {
 	return info, nil
 }
 
+func (s *PluginService) Delete(slug string) (models.PluginInfo, error) {
+	if s == nil {
+		return models.PluginInfo{}, ErrPluginManagerUnavailable
+	}
+	if s.repo == nil {
+		return models.PluginInfo{}, ErrPluginRepositoryUnavailable
+	}
+	if s.manager == nil {
+		return models.PluginInfo{}, ErrPluginManagerUnavailable
+	}
+
+	cleaned := strings.ToLower(strings.TrimSpace(slug))
+	if cleaned == "" {
+		return models.PluginInfo{}, fmt.Errorf("%w: %s", ErrPluginNotFound, slug)
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var (
+		record *models.Plugin
+		info   models.PluginInfo
+	)
+
+	record, err := s.repo.GetBySlug(cleaned)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.PluginInfo{}, err
+		}
+		record = nil
+	}
+
+	entry, ok := s.manager.Resolve(cleaned)
+	pluginPath := filepath.Join(s.manager.BaseDir(), cleaned)
+	if ok && entry != nil {
+		pluginPath = entry.Path
+	}
+
+	if record == nil && !ok {
+		if _, statErr := os.Stat(pluginPath); errors.Is(statErr, os.ErrNotExist) {
+			return models.PluginInfo{}, fmt.Errorf("%w: %s", ErrPluginNotFound, cleaned)
+		}
+	}
+
+	if record != nil {
+		if record.Active && s.runtime != nil {
+			if err := s.runtime.Deactivate(cleaned); err != nil {
+				return models.PluginInfo{}, err
+			}
+		}
+
+		installedAt := record.InstalledAt
+		info = models.PluginInfo{
+			Slug:           cleaned,
+			Name:           record.Name,
+			Description:    record.Description,
+			Version:        record.Version,
+			Author:         record.Author,
+			Homepage:       record.Homepage,
+			Active:         false,
+			Installed:      false,
+			InstalledAt:    &installedAt,
+			LastActiveAt:   record.LastActivatedAt,
+			MissingFiles:   false,
+			AdditionalData: record.Metadata,
+		}
+	} else if ok && entry != nil {
+		info = models.PluginInfo{
+			Slug:         cleaned,
+			Name:         entry.Metadata.Name,
+			Description:  entry.Metadata.Description,
+			Version:      entry.Metadata.Version,
+			Author:       entry.Metadata.Author,
+			Homepage:     entry.Metadata.Homepage,
+			Active:       false,
+			Installed:    false,
+			MissingFiles: false,
+		}
+	} else {
+		info = models.PluginInfo{
+			Slug:         cleaned,
+			Active:       false,
+			Installed:    false,
+			MissingFiles: false,
+		}
+	}
+
+	if err := os.RemoveAll(pluginPath); err != nil {
+		return models.PluginInfo{}, fmt.Errorf("failed to remove plugin files: %w", err)
+	}
+
+	if err := s.manager.Reload(); err != nil {
+		return models.PluginInfo{}, fmt.Errorf("failed to reload plugins: %w", err)
+	}
+
+	if record != nil {
+		if err := s.repo.Delete(cleaned); err != nil {
+			return models.PluginInfo{}, err
+		}
+	}
+
+	return info, nil
+}
+
 func extractManifest(reader *zip.Reader) (plugin.Metadata, string, error) {
 	var manifestFile *zip.File
 	var manifestPrefix string

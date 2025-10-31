@@ -14,6 +14,7 @@ type PluginRepository interface {
 	List() ([]models.Plugin, error)
 	GetBySlug(slug string) (*models.Plugin, error)
 	Save(plugin *models.Plugin) error
+	Delete(slug string) error
 }
 
 type pluginRepository struct {
@@ -74,4 +75,17 @@ func (r *pluginRepository) Save(plugin *models.Plugin) error {
 	}
 
 	return r.db.Save(plugin).Error
+}
+
+func (r *pluginRepository) Delete(slug string) error {
+	if r == nil || r.db == nil {
+		return errors.New("plugin repository is not configured")
+	}
+
+	cleaned := strings.ToLower(strings.TrimSpace(slug))
+	if cleaned == "" {
+		return errors.New("plugin slug is required")
+	}
+
+	return r.db.Where("slug = ?", cleaned).Delete(&models.Plugin{}).Error
 }

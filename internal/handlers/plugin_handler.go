@@ -129,3 +129,31 @@ func (h *PluginHandler) Deactivate(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"plugin": info})
 }
+
+func (h *PluginHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	if h == nil || h.service == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "plugin service unavailable"})
+		return
+	}
+
+	slug := c.Param("slug")
+	info, err := h.service.Delete(slug)
+	if err != nil {
+		status := http.StatusInternalServerError
+		switch {
+		case errors.Is(err, service.ErrPluginManagerUnavailable):
+			status = http.StatusServiceUnavailable
+		case errors.Is(err, service.ErrPluginRepositoryUnavailable):
+			status = http.StatusServiceUnavailable
+		case errors.Is(err, service.ErrPluginNotFound):
+			status = http.StatusNotFound
+		}
+		logger.ErrorContext(ctx, err, "Failed to delete plugin", map[string]interface{}{"slug": slug})
+		c.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"plugin": info})
+}

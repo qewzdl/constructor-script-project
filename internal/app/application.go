@@ -877,6 +877,7 @@ func (a *Application) initRouter() error {
 			plugins.POST("/plugins", a.handlers.Plugin.Install)
 			plugins.PUT("/plugins/:slug/activate", a.handlers.Plugin.Activate)
 			plugins.PUT("/plugins/:slug/deactivate", a.handlers.Plugin.Deactivate)
+			plugins.DELETE("/plugins/:slug", a.handlers.Plugin.Delete)
 		}
 
 		backups := admin.Group("")
