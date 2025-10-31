@@ -24,6 +24,8 @@ import (
 	"constructor-script-backend/internal/middleware"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/plugin"
+	_ "constructor-script-backend/internal/plugin/builtin"
+	pluginregistry "constructor-script-backend/internal/plugin/registry"
 	pluginruntime "constructor-script-backend/internal/plugin/runtime"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/internal/seed"
@@ -32,7 +34,6 @@ import (
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/logger"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
-	blogseed "constructor-script-backend/plugins/blog/seed"
 	blogservice "constructor-script-backend/plugins/blog/service"
 )
 
@@ -198,8 +199,6 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 		if applyDefaults {
 			seed.EnsureDefaultPages(app.services.Page, theme.PagesFS())
 			seed.EnsureDefaultMenu(app.services.Menu, theme.MenuFS())
-			blogseed.EnsureDefaultPosts(app.services.Post, app.repositories.User, theme.PostsFS())
-
 			if app.services.Theme != nil {
 				if err := app.services.Theme.MarkInitialized(theme.Slug); err != nil {
 					logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": theme.Slug})
@@ -212,7 +211,7 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 		return nil, err
 	}
 
-	if err := app.setupPluginRuntime(); err != nil {
+	if err := app.initPluginRuntime(); err != nil {
 		return nil, err
 	}
 
@@ -918,20 +917,19 @@ func (a *Application) initRouter() error {
 	return nil
 }
 
-func (a *Application) setupPluginRuntime() error {
+func (a *Application) initPluginRuntime() error {
 	if a.pluginRuntime == nil {
 		a.pluginRuntime = pluginruntime.New()
 	}
 
-	a.pluginRuntime.Register("blog", pluginruntime.FeatureFunc{
-		ActivateFunc: func() error {
-			return a.enablePostFeature()
-		},
-		DeactivateFunc: func() error {
-			a.disablePostFeature()
-			return nil
-		},
-	})
+	for slug, factory := range pluginregistry.All() {
+		feature, err := factory(a)
+		if err != nil {
+			logger.Error(err, "Failed to initialize plugin feature", map[string]interface{}{"slug": slug})
+			continue
+		}
+		a.pluginRuntime.Register(slug, feature)
+	}
 
 	if a.services.Plugin != nil {
 		if err := a.services.Plugin.ApplyRuntimeState(); err != nil {
@@ -940,110 +938,6 @@ func (a *Application) setupPluginRuntime() error {
 	}
 
 	return nil
-}
-
-func (a *Application) enablePostFeature() error {
-	if a == nil {
-		return fmt.Errorf("application not initialized")
-	}
-
-	if a.services.Category == nil {
-		a.services.Category = blogservice.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache)
-	}
-	if a.services.Post == nil {
-		a.services.Post = blogservice.NewPostService(
-			a.repositories.Post,
-			a.repositories.Tag,
-			a.repositories.Category,
-			a.repositories.Comment,
-			a.cache,
-			a.repositories.Setting,
-			a.scheduler,
-			a.themeManager,
-		)
-	}
-	if a.services.Comment == nil {
-		a.services.Comment = blogservice.NewCommentService(a.repositories.Comment)
-	}
-	if a.services.Search == nil {
-		a.services.Search = blogservice.NewSearchService(a.repositories.Search)
-	}
-
-	if a.handlers.Post == nil {
-		a.handlers.Post = bloghandlers.NewPostHandler(a.services.Post)
-	} else {
-		a.handlers.Post.SetService(a.services.Post)
-	}
-	if a.handlers.Category == nil {
-		a.handlers.Category = bloghandlers.NewCategoryHandler(a.services.Category)
-	} else {
-		a.handlers.Category.SetService(a.services.Category)
-	}
-	if a.handlers.Comment == nil {
-		commentGuard := bloghandlers.NewCommentGuard(a.cfg)
-		a.handlers.Comment = bloghandlers.NewCommentHandler(a.services.Comment, a.services.Auth, commentGuard)
-	} else {
-		a.handlers.Comment.SetService(a.services.Comment)
-	}
-	if a.handlers.Search == nil {
-		a.handlers.Search = bloghandlers.NewSearchHandler(a.services.Search)
-	} else {
-		a.handlers.Search.SetService(a.services.Search)
-	}
-
-	if a.templateHandler != nil {
-		a.templateHandler.SetBlogServices(a.services.Post, a.services.Category, a.services.Comment, a.services.Search)
-	}
-	if a.handlers.SEO != nil {
-		a.handlers.SEO.SetBlogServices(a.services.Post, a.services.Category)
-	}
-	if a.handlers.Theme != nil {
-		a.handlers.Theme.SetPostService(a.services.Post)
-	}
-
-	if a.services.Category != nil {
-		blogseed.EnsureDefaultCategory(a.services.Category)
-	}
-	if a.themeManager != nil && a.services.Post != nil && a.repositories.User != nil {
-		if theme := a.themeManager.Active(); theme != nil {
-			blogseed.EnsureDefaultPosts(a.services.Post, a.repositories.User, theme.PostsFS())
-		}
-	}
-
-	return nil
-}
-
-func (a *Application) disablePostFeature() {
-	if a == nil {
-		return
-	}
-
-	if a.handlers.Post != nil {
-		a.handlers.Post.SetService(nil)
-	}
-	if a.handlers.Category != nil {
-		a.handlers.Category.SetService(nil)
-	}
-	if a.handlers.Comment != nil {
-		a.handlers.Comment.SetService(nil)
-	}
-	if a.handlers.Search != nil {
-		a.handlers.Search.SetService(nil)
-	}
-	if a.templateHandler != nil {
-		a.templateHandler.SetBlogServices(nil, nil, nil, nil)
-	}
-	if a.handlers.SEO != nil {
-		a.handlers.SEO.SetBlogServices(nil, nil)
-	}
-	if a.handlers.Theme != nil {
-		a.handlers.Theme.SetPostService(nil)
-	}
-
-	a.services.Post = nil
-	a.services.Category = nil
-	a.services.Comment = nil
-	a.services.Search = nil
 }
 
 func (a *Application) metricsHandler() gin.HandlerFunc {
