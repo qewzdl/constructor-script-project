@@ -864,6 +864,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		authorization.RoleHasPermission(user.Role, authorization.PermissionManageUsers) ||
 		authorization.RoleHasPermission(user.Role, authorization.PermissionManageBackups) ||
 		authorization.RoleHasPermission(user.Role, authorization.PermissionManageThemes) ||
+		authorization.RoleHasPermission(user.Role, authorization.PermissionManagePlugins) ||
 		authorization.RoleHasPermission(user.Role, authorization.PermissionModerateComments)
 
 	if !hasAccess {
@@ -894,6 +895,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 			"Uploads":         "/api/v1/admin/uploads",
 			"UploadRename":    "/api/v1/admin/uploads/rename",
 			"Themes":          "/api/v1/admin/themes",
+			"Plugins":         "/api/v1/admin/plugins",
 			"SocialLinks":     "/api/v1/admin/social-links",
 			"MenuItems":       "/api/v1/admin/menu-items",
 			"Users":           "/api/v1/admin/users",

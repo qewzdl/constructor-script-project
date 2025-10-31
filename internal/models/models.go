@@ -186,6 +186,35 @@ type ImageContent struct {
 // Each directive maps to a slice of allowed source expressions that will be merged into the base policy.
 type ContentSecurityPolicyDirectives map[string][]string
 
+type JSONMap map[string]interface{}
+
+func (m JSONMap) Value() (driver.Value, error) {
+	if len(m) == 0 {
+		return nil, nil
+	}
+	return json.Marshal(m)
+}
+
+func (m *JSONMap) Scan(value interface{}) error {
+	if value == nil {
+		*m = JSONMap{}
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("failed to scan JSONMap")
+	}
+
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(bytes, &decoded); err != nil {
+		return err
+	}
+
+	*m = decoded
+	return nil
+}
+
 type ImageGroupContent struct {
 	Images []ImageContent `json:"images"`
 	Layout string         `json:"layout"`
@@ -301,6 +330,39 @@ type Setting struct {
 	Value     string    `gorm:"type:text" json:"value"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Plugin struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Slug            string     `gorm:"uniqueIndex;not null" json:"slug"`
+	Name            string     `gorm:"not null" json:"name"`
+	Version         string     `json:"version"`
+	Description     string     `gorm:"type:text" json:"description"`
+	Author          string     `json:"author"`
+	Homepage        string     `json:"homepage"`
+	Active          bool       `gorm:"default:false" json:"active"`
+	InstalledAt     time.Time  `gorm:"not null" json:"installed_at"`
+	Metadata        JSONMap    `gorm:"type:jsonb" json:"metadata"`
+	LastActivatedAt *time.Time `json:"last_activated_at"`
+}
+
+type PluginInfo struct {
+	Slug           string     `json:"slug"`
+	Name           string     `json:"name"`
+	Description    string     `json:"description,omitempty"`
+	Version        string     `json:"version,omitempty"`
+	Author         string     `json:"author,omitempty"`
+	Homepage       string     `json:"homepage,omitempty"`
+	Active         bool       `json:"active"`
+	Installed      bool       `json:"installed"`
+	InstalledAt    *time.Time `json:"installed_at,omitempty"`
+	LastActiveAt   *time.Time `json:"last_active_at,omitempty"`
+	MissingFiles   bool       `json:"missing_files"`
+	AdditionalData JSONMap    `json:"metadata,omitempty"`
 }
 
 type SiteSettings struct {

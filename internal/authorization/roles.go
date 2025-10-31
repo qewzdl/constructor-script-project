@@ -77,6 +77,7 @@ const (
 	PermissionModerateComments   Permission = "moderate_comments"
 	PermissionManageSettings     Permission = "manage_settings"
 	PermissionManageThemes       Permission = "manage_themes"
+	PermissionManagePlugins      Permission = "manage_plugins"
 	PermissionManageBackups      Permission = "manage_backups"
 	PermissionManageNavigation   Permission = "manage_navigation"
 	PermissionManageIntegrations Permission = "manage_integrations"
@@ -90,6 +91,7 @@ var rolePermissions = map[UserRole]map[Permission]struct{}{
 		PermissionModerateComments:   {},
 		PermissionManageSettings:     {},
 		PermissionManageThemes:       {},
+		PermissionManagePlugins:      {},
 		PermissionManageBackups:      {},
 		PermissionManageNavigation:   {},
 		PermissionManageIntegrations: {},

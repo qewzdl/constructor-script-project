@@ -18,6 +18,7 @@
     data-endpoint-upload-rename="{{ index .AdminEndpoints "UploadRename" }}"
     data-endpoint-uploads="{{ index .AdminEndpoints "Uploads" }}"
     data-endpoint-themes="{{ index .AdminEndpoints "Themes" }}"
+    data-endpoint-plugins="{{ index .AdminEndpoints "Plugins" }}"
     data-endpoint-social-links="{{ index .AdminEndpoints "SocialLinks" }}"
     data-endpoint-menu-items="{{ index .AdminEndpoints "MenuItems" }}"
     data-endpoint-users="{{ index .AdminEndpoints "Users" }}"
@@ -1143,6 +1144,70 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </section>
+            <section
+                id="admin-panel-plugins"
+                class="admin-panel"
+                data-panel="plugins"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Plugins"
+                data-nav-order="1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-plugins"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Plugins</h2>
+                        <p class="admin-panel__description">
+                            Install, activate, and deactivate plugins to extend the site's capabilities without modifying the core codebase.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--split">
+                    <section class="admin-plugins" aria-labelledby="admin-plugins-title">
+                        <div class="admin-plugins__header">
+                            <h3 id="admin-plugins-title" class="admin-form__legend">Installed plugins</h3>
+                            <p class="admin-form__hint">
+                                Manage installed plugins. Activate a plugin to enable its features or deactivate it to disable functionality while keeping the files available.
+                            </p>
+                        </div>
+                        <ul class="admin-plugins__list" data-role="plugin-list" aria-live="polite">
+                            <li class="admin-plugins__empty" data-role="plugin-empty">No plugins installed yet.</li>
+                        </ul>
+                    </section>
+                    <section class="admin-plugins__install" aria-labelledby="admin-plugin-install-title">
+                        <div class="admin-plugins__install-header">
+                            <h3 id="admin-plugin-install-title" class="admin-form__legend">Install plugin</h3>
+                            <p class="admin-form__hint">
+                                Upload a ZIP archive that contains the plugin files and a <code>plugin.json</code> manifest describing the plugin metadata.
+                            </p>
+                        </div>
+                        <form class="admin-plugins__form" data-role="plugin-install-form" enctype="multipart/form-data" novalidate>
+                            <label class="admin-form__label">
+                                Plugin archive (.zip)
+                                <input
+                                    type="file"
+                                    name="file"
+                                    required
+                                    accept=".zip"
+                                    class="admin-form__input"
+                                    data-role="plugin-upload-input"
+                                />
+                                <small class="admin-form__hint">
+                                    Install plugins packaged as ZIP files. The plugin will be extracted to the server's plugins directory.
+                                </small>
+                            </label>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="plugin-install-button">
+                                    Install plugin
+                                </button>
+                            </div>
+                        </form>
+                    </section>
                 </div>
             </section>
             <section

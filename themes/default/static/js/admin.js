@@ -322,6 +322,7 @@
             uploadRename: root.dataset.endpointUploadRename,
             uploads: root.dataset.endpointUploads,
             themes: root.dataset.endpointThemes,
+            plugins: root.dataset.endpointPlugins,
             socialLinks: root.dataset.endpointSocialLinks,
             menuItems: root.dataset.endpointMenuItems,
             users: root.dataset.endpointUsers,
@@ -661,6 +662,11 @@
             : [];
         const themeList = root.querySelector('[data-role="theme-list"]');
         const themeEmptyState = root.querySelector('[data-role="theme-empty"]');
+        const pluginList = root.querySelector('[data-role="plugin-list"]');
+        const pluginEmptyState = root.querySelector('[data-role="plugin-empty"]');
+        const pluginInstallForm = root.querySelector('[data-role="plugin-install-form"]');
+        const pluginUploadInput = root.querySelector('[data-role="plugin-upload-input"]');
+        const pluginInstallButton = root.querySelector('[data-role="plugin-install-button"]');
         const socialSubmitButton = socialForm?.querySelector('[data-role="social-submit"]');
         const socialCancelButton = socialForm?.querySelector('[data-role="social-cancel"]');
         const menuSubmitButton = menuForm?.querySelector('[data-role="menu-submit"]');
@@ -782,6 +788,7 @@
             users: [],
             tags: [],
             themes: [],
+            plugins: [],
             socialLinks: [],
             menuItems: [],
             activeMenuLocation: 'header',
@@ -3989,6 +3996,317 @@
             renderAdvertisingSlots();
         };
 
+        const createPluginItem = (plugin) => {
+            const item = document.createElement('li');
+            item.className = 'admin-plugins__item';
+            item.dataset.pluginItem = 'true';
+
+            const slug = normaliseString(plugin?.slug ?? '');
+            if (slug) {
+                item.dataset.pluginSlug = slug;
+            }
+
+            const pluginName = normaliseString(plugin?.name ?? '') || slug || 'Plugin';
+
+            const info = document.createElement('div');
+            info.className = 'admin-plugins__info';
+
+            const title = document.createElement('div');
+            title.className = 'admin-plugins__title';
+
+            const nameEl = document.createElement('span');
+            nameEl.className = 'admin-plugins__name';
+            nameEl.textContent = pluginName;
+            title.appendChild(nameEl);
+
+            const version = normaliseString(plugin?.version ?? '');
+            if (version) {
+                const versionEl = document.createElement('span');
+                versionEl.className = 'admin-plugins__version';
+                versionEl.textContent = `v${version}`;
+                title.appendChild(versionEl);
+            }
+
+            const badge = document.createElement('span');
+            badge.className = 'admin-plugins__badge';
+            if (plugin?.missing_files) {
+                badge.dataset.status = 'error';
+                badge.textContent = 'Files missing';
+            } else if (plugin?.active) {
+                badge.dataset.status = 'active';
+                badge.textContent = 'Active';
+            } else {
+                badge.dataset.status = 'inactive';
+                badge.textContent = 'Inactive';
+            }
+            title.appendChild(badge);
+
+            info.appendChild(title);
+
+            const description = normaliseString(plugin?.description ?? '');
+            if (description) {
+                const descEl = document.createElement('p');
+                descEl.className = 'admin-plugins__description';
+                descEl.textContent = description;
+                info.appendChild(descEl);
+            }
+
+            const author = normaliseString(plugin?.author ?? '');
+            const homepage = normaliseString(plugin?.homepage ?? '');
+            if (author || homepage) {
+                const authorEl = document.createElement('p');
+                authorEl.className = 'admin-plugins__author';
+                authorEl.textContent = 'By ';
+                if (homepage) {
+                    const authorLink = document.createElement('a');
+                    authorLink.href = homepage;
+                    authorLink.target = '_blank';
+                    authorLink.rel = 'noopener noreferrer';
+                    authorLink.textContent = author || homepage;
+                    authorEl.appendChild(authorLink);
+                } else {
+                    authorEl.append(author || 'Unknown');
+                }
+                info.appendChild(authorEl);
+            }
+
+            const installedAt = coerceDateValue(plugin?.installed_at);
+            const lastActiveAt = coerceDateValue(plugin?.last_active_at);
+            const metaParts = [];
+            if (installedAt) {
+                metaParts.push(`Installed ${formatDate(installedAt)}`);
+            }
+            if (lastActiveAt) {
+                metaParts.push(`Last activated ${formatDate(lastActiveAt)}`);
+            }
+            if (plugin?.missing_files) {
+                metaParts.push('Files missing');
+            }
+            if (metaParts.length) {
+                const metaEl = document.createElement('p');
+                metaEl.className = 'admin-plugins__meta';
+                metaEl.textContent = metaParts.join(' · ');
+                info.appendChild(metaEl);
+            }
+
+            item.appendChild(info);
+
+            const actions = document.createElement('div');
+            actions.className = 'admin-plugins__actions';
+
+            if (plugin?.missing_files) {
+                const warning = document.createElement('p');
+                warning.className = 'admin-plugins__warning';
+                warning.textContent = 'Plugin files are missing. Reinstall the plugin to restore it.';
+                actions.appendChild(warning);
+            } else if (plugin?.active) {
+                const deactivateButton = document.createElement('button');
+                deactivateButton.type = 'button';
+                deactivateButton.className = 'admin-plugins__deactivate';
+                deactivateButton.dataset.role = 'plugin-deactivate';
+                deactivateButton.dataset.pluginName = pluginName;
+                if (slug) {
+                    deactivateButton.dataset.pluginSlug = slug;
+                }
+                deactivateButton.textContent = 'Deactivate';
+                actions.appendChild(deactivateButton);
+            } else {
+                const activateButton = document.createElement('button');
+                activateButton.type = 'button';
+                activateButton.className = 'admin-form__submit';
+                activateButton.dataset.role = 'plugin-activate';
+                activateButton.dataset.pluginName = pluginName;
+                if (slug) {
+                    activateButton.dataset.pluginSlug = slug;
+                }
+                activateButton.textContent = 'Activate';
+                actions.appendChild(activateButton);
+            }
+
+            item.appendChild(actions);
+
+            return item;
+        };
+
+        const renderPluginList = () => {
+            if (!pluginList) {
+                return;
+            }
+
+            pluginList.querySelectorAll('[data-plugin-item]').forEach((node) => node.remove());
+
+            const plugins = Array.isArray(state.plugins) ? state.plugins : [];
+            if (!plugins.length) {
+                if (pluginEmptyState) {
+                    pluginEmptyState.hidden = false;
+                }
+                return;
+            }
+
+            if (pluginEmptyState) {
+                pluginEmptyState.hidden = true;
+            }
+
+            const fragment = document.createDocumentFragment();
+            plugins.forEach((pluginEntry) => {
+                fragment.appendChild(createPluginItem(pluginEntry));
+            });
+            pluginList.appendChild(fragment);
+        };
+
+        const loadPlugins = async () => {
+            if (!endpoints.plugins) {
+                return;
+            }
+            try {
+                const payload = await apiRequest(endpoints.plugins);
+                const plugins = Array.isArray(payload?.plugins) ? payload.plugins : [];
+                state.plugins = plugins;
+                renderPluginList();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handlePluginListClick = async (event) => {
+            const activateButton = event.target?.closest('[data-role="plugin-activate"]');
+            if (activateButton && pluginList?.contains(activateButton)) {
+                event.preventDefault();
+
+                const slug = normaliseString(activateButton.dataset.pluginSlug ?? '');
+                if (!slug) {
+                    return;
+                }
+
+                if (!endpoints.plugins) {
+                    showAlert('Plugin activation is not available in this environment.', 'error');
+                    return;
+                }
+
+                const pluginName = activateButton.dataset.pluginName || slug;
+                const base = endpoints.plugins.endsWith('/')
+                    ? endpoints.plugins.slice(0, -1)
+                    : endpoints.plugins;
+                const url = `${base}/${encodeURIComponent(slug)}/activate`;
+
+                const originalText = activateButton.textContent;
+                activateButton.disabled = true;
+                activateButton.dataset.loading = 'true';
+                activateButton.textContent = 'Activating…';
+                showAlert(`Activating "${pluginName}"…`, 'info');
+
+                try {
+                    await apiRequest(url, { method: 'PUT' });
+                    await loadPlugins();
+                    showAlert(`Plugin "${pluginName}" activated.`, 'success');
+                } catch (error) {
+                    activateButton.disabled = false;
+                    activateButton.textContent = originalText || 'Activate';
+                    handleRequestError(error);
+                } finally {
+                    activateButton.removeAttribute('data-loading');
+                }
+
+                return;
+            }
+
+            const deactivateButton = event.target?.closest('[data-role="plugin-deactivate"]');
+            if (deactivateButton && pluginList?.contains(deactivateButton)) {
+                event.preventDefault();
+
+                const slug = normaliseString(deactivateButton.dataset.pluginSlug ?? '');
+                if (!slug) {
+                    return;
+                }
+
+                if (!endpoints.plugins) {
+                    showAlert('Plugin deactivation is not available in this environment.', 'error');
+                    return;
+                }
+
+                const pluginName = deactivateButton.dataset.pluginName || slug;
+                const base = endpoints.plugins.endsWith('/')
+                    ? endpoints.plugins.slice(0, -1)
+                    : endpoints.plugins;
+                const url = `${base}/${encodeURIComponent(slug)}/deactivate`;
+
+                const originalText = deactivateButton.textContent;
+                deactivateButton.disabled = true;
+                deactivateButton.dataset.loading = 'true';
+                deactivateButton.textContent = 'Deactivating…';
+                showAlert(`Deactivating "${pluginName}"…`, 'info');
+
+                try {
+                    await apiRequest(url, { method: 'PUT' });
+                    await loadPlugins();
+                    showAlert(`Plugin "${pluginName}" deactivated.`, 'success');
+                } catch (error) {
+                    deactivateButton.disabled = false;
+                    deactivateButton.textContent = originalText || 'Deactivate';
+                    handleRequestError(error);
+                } finally {
+                    deactivateButton.removeAttribute('data-loading');
+                }
+            }
+        };
+
+        const handlePluginInstallSubmit = async (event) => {
+            if (!pluginInstallForm) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (!endpoints.plugins) {
+                showAlert('Plugin installation is not available in this environment.', 'error');
+                return;
+            }
+
+            const file = pluginUploadInput?.files?.[0];
+            if (!file) {
+                showAlert('Please select a plugin archive to upload.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const originalText = pluginInstallButton?.textContent || 'Install plugin';
+            if (typeof toggleFormDisabled === 'function') {
+                toggleFormDisabled(pluginInstallForm, true);
+            }
+            if (pluginInstallButton) {
+                pluginInstallButton.disabled = true;
+                pluginInstallButton.dataset.loading = 'true';
+                pluginInstallButton.textContent = 'Installing…';
+            }
+
+            showAlert(`Installing "${file.name}"…`, 'info');
+
+            try {
+                const response = await apiRequest(endpoints.plugins, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const installedPlugin = response?.plugin;
+                const installedName = normaliseString(installedPlugin?.name ?? '') || file.name;
+                showAlert(`Plugin "${installedName}" installed successfully.`, 'success');
+                pluginInstallForm.reset();
+                await loadPlugins();
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                if (typeof toggleFormDisabled === 'function') {
+                    toggleFormDisabled(pluginInstallForm, false);
+                }
+                if (pluginInstallButton) {
+                    pluginInstallButton.disabled = false;
+                    pluginInstallButton.textContent = originalText;
+                    pluginInstallButton.removeAttribute('data-loading');
+                }
+            }
+        };
+
         const createThemeItem = (theme) => {
             const item = document.createElement('li');
             item.className = 'admin-theme__item';
@@ -6566,6 +6884,8 @@
         faviconUploadInput?.addEventListener('change', handleFaviconFileChange);
         logoUploadButton?.addEventListener('click', handleLogoUploadClick);
         logoUploadInput?.addEventListener('change', handleLogoFileChange);
+        pluginList?.addEventListener('click', handlePluginListClick);
+        pluginInstallForm?.addEventListener('submit', handlePluginInstallSubmit);
         themeList?.addEventListener('click', handleThemeListClick);
         socialForm?.addEventListener('submit', handleSocialFormSubmit);
         socialCancelButton?.addEventListener('click', handleSocialCancelEdit);
@@ -6592,6 +6912,7 @@
         loadBackupSettings();
         loadSiteSettings();
         loadAdvertisingSettings();
+        loadPlugins();
         loadThemes();
         loadSocialLinks();
         loadMenuItems();
