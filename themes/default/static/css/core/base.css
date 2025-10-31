@@ -246,7 +246,7 @@ textarea {
 }
 
 .header__nav-link:hover {
-    border: 1px solid var(--color-primary);
+    background-color: var(--color-bg-bottom);
     color: var(--color-primary);
 }
 
