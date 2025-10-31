@@ -700,6 +700,13 @@ func (a *Application) initRouter() error {
 		router.GET("/robots.txt", a.handlers.SEO.Robots)
 	}
 
+	router.GET("/.well-known/appspecific/com.chrome.devtools.json", middleware.NoIndexMiddleware(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "ok",
+			"message": "Chrome DevTools discovery is not enabled",
+		})
+	})
+
 	router.GET("/debug-templates", middleware.NoIndexMiddleware(), func(c *gin.Context) {
 		if a.themeManager == nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "theme manager unavailable"})

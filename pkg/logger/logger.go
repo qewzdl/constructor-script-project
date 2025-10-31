@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 )
 
@@ -436,6 +437,8 @@ func (l *GormLogger) Trace(ctx context.Context, begin time.Time, fc func() (stri
 	logger := FromContext(ctx)
 
 	switch {
+	case err != nil && errors.Is(err, gorm.ErrRecordNotFound):
+		logger.Debug().Fields(fields).Msg("Database record not found")
 	case err != nil:
 		errorEvent(logger.Error(), err).Fields(fields).Msg("Database query error")
 	case l.SlowThreshold > 0 && elapsed > l.SlowThreshold:
