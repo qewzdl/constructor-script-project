@@ -28,7 +28,27 @@ func NewCommentHandler(commentService *service.CommentService, authService *serv
 	}
 }
 
+// SetService updates the comment service reference.
+func (h *CommentHandler) SetService(commentService *service.CommentService) {
+	if h == nil {
+		return
+	}
+	h.commentService = commentService
+}
+
+func (h *CommentHandler) ensureService(c *gin.Context) bool {
+	if h == nil || h.commentService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "posts plugin is not active"})
+		return false
+	}
+	return true
+}
+
 func (h *CommentHandler) Create(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	postID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
@@ -82,6 +102,10 @@ func (h *CommentHandler) Create(c *gin.Context) {
 }
 
 func (h *CommentHandler) GetByPostID(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	postID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
@@ -98,6 +122,10 @@ func (h *CommentHandler) GetByPostID(c *gin.Context) {
 }
 
 func (h *CommentHandler) GetAll(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	comments, err := h.commentService.GetAll()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -108,6 +136,10 @@ func (h *CommentHandler) GetAll(c *gin.Context) {
 }
 
 func (h *CommentHandler) Update(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid comment id"})
@@ -139,6 +171,10 @@ func (h *CommentHandler) Update(c *gin.Context) {
 }
 
 func (h *CommentHandler) Delete(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid comment id"})
@@ -163,6 +199,10 @@ func (h *CommentHandler) Delete(c *gin.Context) {
 }
 
 func (h *CommentHandler) ApproveComment(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid comment id"})
@@ -178,6 +218,10 @@ func (h *CommentHandler) ApproveComment(c *gin.Context) {
 }
 
 func (h *CommentHandler) RejectComment(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid comment id"})

@@ -24,6 +24,7 @@ import (
 	"constructor-script-backend/internal/middleware"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/plugin"
+	pluginruntime "constructor-script-backend/internal/plugin/runtime"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/internal/seed"
 	"constructor-script-backend/internal/service"
@@ -52,6 +53,7 @@ type Application struct {
 
 	themeManager    *theme.Manager
 	pluginManager   *plugin.Manager
+	pluginRuntime   *pluginruntime.Runtime
 	templateHandler *handlers.TemplateHandler
 	router          *gin.Engine
 	server          *http.Server
@@ -175,9 +177,9 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 		return nil, err
 	}
 
-	app.initServices()
+	app.pluginRuntime = pluginruntime.New()
 
-	seed.EnsureDefaultCategory(app.services.Category)
+	app.initServices()
 
 	if theme := app.themeManager.Active(); theme != nil {
 		applyDefaults := true
@@ -204,6 +206,10 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 	}
 
 	if err := app.initHandlers(); err != nil {
+		return nil, err
+	}
+
+	if err := app.setupPluginRuntime(); err != nil {
 		return nil, err
 	}
 
@@ -540,19 +546,6 @@ func (a *Application) initServices() {
 	backupService := service.NewBackupService(a.db, a.repositories.Setting, backupOptions)
 
 	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
-	categoryService := service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache)
-	postService := service.NewPostService(
-		a.repositories.Post,
-		a.repositories.Tag,
-		a.repositories.Category,
-		a.repositories.Comment,
-		a.cache,
-		a.repositories.Setting,
-		a.scheduler,
-		a.themeManager,
-	)
-	commentService := service.NewCommentService(a.repositories.Comment)
-	searchService := service.NewSearchService(a.repositories.Search)
 	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
 	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService)
 	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
@@ -568,14 +561,15 @@ func (a *Application) initServices() {
 	pluginService := service.NewPluginService(
 		a.repositories.Plugin,
 		a.pluginManager,
+		a.pluginRuntime,
 	)
 
 	a.services = serviceContainer{
 		Auth:        authService,
-		Category:    categoryService,
-		Post:        postService,
-		Comment:     commentService,
-		Search:      searchService,
+		Category:    nil,
+		Post:        nil,
+		Comment:     nil,
+		Search:      nil,
 		Upload:      uploadService,
 		Backup:      backupService,
 		Page:        pageService,
@@ -595,29 +589,29 @@ func (a *Application) initHandlers() error {
 
 	a.handlers = handlerContainer{
 		Auth:        handlers.NewAuthHandler(a.services.Auth),
-		Category:    handlers.NewCategoryHandler(a.services.Category),
-		Post:        handlers.NewPostHandler(a.services.Post),
-		Comment:     handlers.NewCommentHandler(a.services.Comment, a.services.Auth, commentGuard),
-		Search:      handlers.NewSearchHandler(a.services.Search),
+		Category:    handlers.NewCategoryHandler(nil),
+		Post:        handlers.NewPostHandler(nil),
+		Comment:     handlers.NewCommentHandler(nil, a.services.Auth, commentGuard),
+		Search:      handlers.NewSearchHandler(nil),
 		Upload:      handlers.NewUploadHandler(a.services.Upload),
 		Backup:      handlers.NewBackupHandler(a.services.Backup),
 		Page:        handlers.NewPageHandler(a.services.Page),
 		Setup:       handlers.NewSetupHandler(a.services.Setup, a.cfg),
 		SocialLink:  handlers.NewSocialLinkHandler(a.services.SocialLink),
 		Menu:        handlers.NewMenuHandler(a.services.Menu),
-		SEO:         handlers.NewSEOHandler(a.services.Post, a.services.Page, a.services.Category, a.services.Setup, a.cfg),
+		SEO:         handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.cfg),
 		Advertising: handlers.NewAdvertisingHandler(a.services.Advertising),
 		Plugin:      handlers.NewPluginHandler(a.services.Plugin),
 	}
 
 	templateHandler, err := handlers.NewTemplateHandler(
-		a.services.Post,
+		nil,
 		a.services.Page,
 		a.services.Auth,
-		a.services.Comment,
-		a.services.Search,
+		nil,
+		nil,
 		a.services.Setup,
-		a.services.Category,
+		nil,
 		a.services.SocialLink,
 		a.services.Menu,
 		a.services.Advertising,
@@ -634,7 +628,7 @@ func (a *Application) initHandlers() error {
 		a.services.Theme,
 		a.services.Page,
 		a.services.Menu,
-		a.services.Post,
+		nil,
 		a.repositories.User,
 		a.templateHandler,
 	)
@@ -918,6 +912,134 @@ func (a *Application) initRouter() error {
 
 	a.router = router
 	return nil
+}
+
+func (a *Application) setupPluginRuntime() error {
+	if a.pluginRuntime == nil {
+		a.pluginRuntime = pluginruntime.New()
+	}
+
+	a.pluginRuntime.Register("posts", pluginruntime.FeatureFunc{
+		ActivateFunc: func() error {
+			return a.enablePostFeature()
+		},
+		DeactivateFunc: func() error {
+			a.disablePostFeature()
+			return nil
+		},
+	})
+
+	if a.services.Plugin != nil {
+		if err := a.services.Plugin.ApplyRuntimeState(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a *Application) enablePostFeature() error {
+	if a == nil {
+		return fmt.Errorf("application not initialized")
+	}
+
+	if a.services.Category == nil {
+		a.services.Category = service.NewCategoryService(a.repositories.Category, a.repositories.Post, a.cache)
+	}
+	if a.services.Post == nil {
+		a.services.Post = service.NewPostService(
+			a.repositories.Post,
+			a.repositories.Tag,
+			a.repositories.Category,
+			a.repositories.Comment,
+			a.cache,
+			a.repositories.Setting,
+			a.scheduler,
+			a.themeManager,
+		)
+	}
+	if a.services.Comment == nil {
+		a.services.Comment = service.NewCommentService(a.repositories.Comment)
+	}
+	if a.services.Search == nil {
+		a.services.Search = service.NewSearchService(a.repositories.Search)
+	}
+
+	if a.handlers.Post == nil {
+		a.handlers.Post = handlers.NewPostHandler(a.services.Post)
+	} else {
+		a.handlers.Post.SetService(a.services.Post)
+	}
+	if a.handlers.Category == nil {
+		a.handlers.Category = handlers.NewCategoryHandler(a.services.Category)
+	} else {
+		a.handlers.Category.SetService(a.services.Category)
+	}
+	if a.handlers.Comment == nil {
+		commentGuard := handlers.NewCommentGuard(a.cfg)
+		a.handlers.Comment = handlers.NewCommentHandler(a.services.Comment, a.services.Auth, commentGuard)
+	} else {
+		a.handlers.Comment.SetService(a.services.Comment)
+	}
+	if a.handlers.Search == nil {
+		a.handlers.Search = handlers.NewSearchHandler(a.services.Search)
+	} else {
+		a.handlers.Search.SetService(a.services.Search)
+	}
+
+	if a.templateHandler != nil {
+		a.templateHandler.SetBlogServices(a.services.Post, a.services.Category, a.services.Comment, a.services.Search)
+	}
+	if a.handlers.SEO != nil {
+		a.handlers.SEO.SetBlogServices(a.services.Post, a.services.Category)
+	}
+	if a.handlers.Theme != nil {
+		a.handlers.Theme.SetPostService(a.services.Post)
+	}
+
+	if a.services.Category != nil {
+		seed.EnsureDefaultCategory(a.services.Category)
+	}
+	if a.themeManager != nil && a.services.Post != nil && a.repositories.User != nil {
+		if theme := a.themeManager.Active(); theme != nil {
+			seed.EnsureDefaultPosts(a.services.Post, a.repositories.User, theme.PostsFS())
+		}
+	}
+
+	return nil
+}
+
+func (a *Application) disablePostFeature() {
+	if a == nil {
+		return
+	}
+
+	if a.handlers.Post != nil {
+		a.handlers.Post.SetService(nil)
+	}
+	if a.handlers.Category != nil {
+		a.handlers.Category.SetService(nil)
+	}
+	if a.handlers.Comment != nil {
+		a.handlers.Comment.SetService(nil)
+	}
+	if a.handlers.Search != nil {
+		a.handlers.Search.SetService(nil)
+	}
+	if a.templateHandler != nil {
+		a.templateHandler.SetBlogServices(nil, nil, nil, nil)
+	}
+	if a.handlers.SEO != nil {
+		a.handlers.SEO.SetBlogServices(nil, nil)
+	}
+	if a.handlers.Theme != nil {
+		a.handlers.Theme.SetPostService(nil)
+	}
+
+	a.services.Post = nil
+	a.services.Category = nil
+	a.services.Comment = nil
+	a.services.Search = nil
 }
 
 func (a *Application) metricsHandler() gin.HandlerFunc {

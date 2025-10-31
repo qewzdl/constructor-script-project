@@ -22,7 +22,10 @@ import (
 )
 
 func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
-	related, _ := h.postService.GetRelatedPosts(post.ID, 3)
+	var related []models.Post
+	if h.postService != nil {
+		related, _ = h.postService.GetRelatedPosts(post.ID, 3)
+	}
 
 	var (
 		comments     []CommentView
@@ -269,6 +272,10 @@ func (h *TemplateHandler) RenderIndex(c *gin.Context) {
 }
 
 func (h *TemplateHandler) RenderPost(c *gin.Context) {
+	if !h.ensureBlogAvailable(c) {
+		return
+	}
+
 	param := c.Param("slug")
 
 	if id, err := strconv.ParseUint(param, 10, 32); err == nil {
@@ -308,6 +315,10 @@ func (h *TemplateHandler) RenderPage(c *gin.Context) {
 }
 
 func (h *TemplateHandler) loadBlogCollections(page, limit int) ([]models.Post, int64, []models.Tag, []models.Category, error) {
+	if h.postService == nil {
+		return nil, 0, nil, nil, errors.New("posts plugin inactive")
+	}
+
 	posts, total, err := h.postService.GetAll(page, limit, nil, nil, nil)
 	if err != nil {
 		return nil, 0, nil, nil, err
@@ -338,6 +349,10 @@ func (h *TemplateHandler) loadBlogCollections(page, limit int) ([]models.Post, i
 }
 
 func (h *TemplateHandler) renderBlogWithPage(c *gin.Context, page *models.Page) {
+	if !h.ensureBlogAvailable(c) {
+		return
+	}
+
 	if page == nil {
 		h.renderLegacyBlog(c)
 		return
@@ -424,6 +439,10 @@ func (h *TemplateHandler) renderBlogWithPage(c *gin.Context, page *models.Page) 
 }
 
 func (h *TemplateHandler) renderLegacyBlog(c *gin.Context) {
+	if !h.ensureBlogAvailable(c) {
+		return
+	}
+
 	pageNumber, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil || pageNumber < 1 {
 		pageNumber = 1
@@ -527,6 +546,11 @@ func (h *TemplateHandler) renderBlogOverviewSection(posts []models.Post, tags []
 }
 
 func (h *TemplateHandler) RenderSearch(c *gin.Context) {
+	if h.searchService == nil {
+		h.renderError(c, http.StatusServiceUnavailable, "Search unavailable", "The posts plugin is not active.")
+		return
+	}
+
 	query := strings.TrimSpace(c.Query("q"))
 	searchType := c.DefaultQuery("type", "all")
 	limitValue := c.DefaultQuery("limit", "20")
@@ -579,6 +603,10 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 }
 
 func (h *TemplateHandler) RenderCategory(c *gin.Context) {
+	if !h.ensureBlogAvailable(c) {
+		return
+	}
+
 	slug := c.Param("slug")
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil || page < 1 {
@@ -705,6 +733,10 @@ func (h *TemplateHandler) RenderCategory(c *gin.Context) {
 }
 
 func (h *TemplateHandler) RenderTag(c *gin.Context) {
+	if !h.ensureBlogAvailable(c) {
+		return
+	}
+
 	slug := c.Param("slug")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))

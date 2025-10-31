@@ -55,9 +55,23 @@ func NewSEOHandler(
 	}
 }
 
+// SetBlogServices updates the services backing post and category lookups.
+func (h *SEOHandler) SetBlogServices(postService *service.PostService, categoryService *service.CategoryService) {
+	if h == nil {
+		return
+	}
+	h.postService = postService
+	h.categoryService = categoryService
+}
+
 // Sitemap renders an XML sitemap that includes the key public sections of the
 // site along with all published posts, pages, categories and tags.
 func (h *SEOHandler) Sitemap(c *gin.Context) {
+	if h.postService == nil || h.categoryService == nil {
+		c.String(http.StatusServiceUnavailable, "Posts plugin is not active")
+		return
+	}
+
 	siteSettings, err := ResolveSiteSettings(h.config, h.setupService)
 	if err != nil {
 		logger.Error(err, "Failed to resolve site settings", nil)

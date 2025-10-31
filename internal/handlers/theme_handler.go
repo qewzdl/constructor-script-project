@@ -39,6 +39,14 @@ func NewThemeHandler(
 	}
 }
 
+// SetPostService updates the post service used for default content seeding.
+func (h *ThemeHandler) SetPostService(postService *service.PostService) {
+	if h == nil {
+		return
+	}
+	h.postService = postService
+}
+
 func (h *ThemeHandler) List(c *gin.Context) {
 	ctx := c.Request.Context()
 	if h == nil || h.service == nil {

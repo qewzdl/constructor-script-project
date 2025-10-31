@@ -18,6 +18,7 @@ import (
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/plugin"
+	pluginruntime "constructor-script-backend/internal/plugin/runtime"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/utils"
 )
@@ -34,11 +35,12 @@ type PluginService struct {
 	repo     repository.PluginRepository
 	manager  *plugin.Manager
 	maxBytes int64
+	runtime  *pluginruntime.Runtime
 }
 
 const defaultMaxPluginSize = 50 * 1024 * 1024 // 50MB
 
-func NewPluginService(repo repository.PluginRepository, manager *plugin.Manager) *PluginService {
+func NewPluginService(repo repository.PluginRepository, manager *plugin.Manager, runtime *pluginruntime.Runtime) *PluginService {
 	if repo == nil || manager == nil {
 		return nil
 	}
@@ -46,7 +48,37 @@ func NewPluginService(repo repository.PluginRepository, manager *plugin.Manager)
 		repo:     repo,
 		manager:  manager,
 		maxBytes: defaultMaxPluginSize,
+		runtime:  runtime,
 	}
+}
+
+// ApplyRuntimeState synchronises the runtime feature registry with the stored plugin states.
+func (s *PluginService) ApplyRuntimeState() error {
+	if s == nil || s.repo == nil {
+		return ErrPluginRepositoryUnavailable
+	}
+	if s.runtime == nil {
+		return nil
+	}
+
+	records, err := s.repo.List()
+	if err != nil {
+		return err
+	}
+
+	for _, record := range records {
+		if record.Active {
+			if err := s.runtime.Activate(record.Slug); err != nil {
+				return err
+			}
+		} else {
+			if err := s.runtime.Deactivate(record.Slug); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (s *PluginService) List() ([]models.PluginInfo, error) {
@@ -354,6 +386,12 @@ func (s *PluginService) Activate(slug string) (models.PluginInfo, error) {
 		return models.PluginInfo{}, err
 	}
 
+	if s.runtime != nil {
+		if err := s.runtime.Activate(cleaned); err != nil {
+			return models.PluginInfo{}, err
+		}
+	}
+
 	installedAt := record.InstalledAt
 	info := models.PluginInfo{
 		Slug:           cleaned,
@@ -423,6 +461,12 @@ func (s *PluginService) Deactivate(slug string) (models.PluginInfo, error) {
 
 	if err := s.repo.Save(record); err != nil {
 		return models.PluginInfo{}, err
+	}
+
+	if s.runtime != nil {
+		if err := s.runtime.Deactivate(cleaned); err != nil {
+			return models.PluginInfo{}, err
+		}
 	}
 
 	installedAt := record.InstalledAt

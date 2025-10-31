@@ -16,7 +16,27 @@ func NewSearchHandler(searchService *service.SearchService) *SearchHandler {
 	return &SearchHandler{searchService: searchService}
 }
 
+// SetService updates the search service reference.
+func (h *SearchHandler) SetService(searchService *service.SearchService) {
+	if h == nil {
+		return
+	}
+	h.searchService = searchService
+}
+
+func (h *SearchHandler) ensureService(c *gin.Context) bool {
+	if h == nil || h.searchService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "posts plugin is not active"})
+		return false
+	}
+	return true
+}
+
 func (h *SearchHandler) Search(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	query := c.Query("q")
 	searchType := c.DefaultQuery("type", "all")
 	limitStr := c.DefaultQuery("limit", strconv.Itoa(service.DefaultSearchLimit))
@@ -41,6 +61,10 @@ func (h *SearchHandler) Search(c *gin.Context) {
 }
 
 func (h *SearchHandler) SuggestTags(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	query := c.Query("q")
 	limitStr := c.DefaultQuery("limit", strconv.Itoa(service.DefaultSuggestionLimit))
 

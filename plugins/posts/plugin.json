@@ -1,0 +1,8 @@
+{
+  "name": "Blog Posts",
+  "slug": "posts",
+  "version": "1.0.0",
+  "description": "Provides post management, public blog views, search, categories, and comments.",
+  "author": "Constructor Script",
+  "homepage": "https://constructor-script.example.com"
+}

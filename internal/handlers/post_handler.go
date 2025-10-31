@@ -21,7 +21,27 @@ func NewPostHandler(postService *service.PostService) *PostHandler {
 	return &PostHandler{postService: postService}
 }
 
+// SetService updates the underlying post service reference.
+func (h *PostHandler) SetService(postService *service.PostService) {
+	if h == nil {
+		return
+	}
+	h.postService = postService
+}
+
+func (h *PostHandler) ensureService(c *gin.Context) bool {
+	if h == nil || h.postService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "posts plugin is not active"})
+		return false
+	}
+	return true
+}
+
 func (h *PostHandler) Create(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	var req models.CreatePostRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -39,6 +59,10 @@ func (h *PostHandler) Create(c *gin.Context) {
 }
 
 func (h *PostHandler) GetAll(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
@@ -76,6 +100,10 @@ func (h *PostHandler) GetAll(c *gin.Context) {
 }
 
 func (h *PostHandler) GetByID(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
@@ -92,6 +120,10 @@ func (h *PostHandler) GetByID(c *gin.Context) {
 }
 
 func (h *PostHandler) Update(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
@@ -123,6 +155,10 @@ func (h *PostHandler) Update(c *gin.Context) {
 }
 
 func (h *PostHandler) Delete(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
@@ -147,6 +183,10 @@ func (h *PostHandler) Delete(c *gin.Context) {
 }
 
 func (h *PostHandler) GetBySlug(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	slug := c.Param("slug")
 
 	post, err := h.postService.GetBySlug(slug)
@@ -159,6 +199,10 @@ func (h *PostHandler) GetBySlug(c *gin.Context) {
 }
 
 func (h *PostHandler) GetAllTags(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	tags, err := h.postService.GetAllTags()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -169,6 +213,10 @@ func (h *PostHandler) GetAllTags(c *gin.Context) {
 }
 
 func (h *PostHandler) DeleteTag(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag id"})
@@ -184,6 +232,10 @@ func (h *PostHandler) DeleteTag(c *gin.Context) {
 }
 
 func (h *PostHandler) GetAnalytics(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
@@ -214,6 +266,10 @@ func (h *PostHandler) GetAnalytics(c *gin.Context) {
 }
 
 func (h *PostHandler) GetPostsByTag(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	slug := c.Param("slug")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
@@ -237,6 +293,10 @@ func (h *PostHandler) GetPostsByTag(c *gin.Context) {
 }
 
 func (h *PostHandler) GetAllAdmin(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
@@ -255,6 +315,10 @@ func (h *PostHandler) GetAllAdmin(c *gin.Context) {
 }
 
 func (h *PostHandler) PublishPost(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
@@ -270,6 +334,10 @@ func (h *PostHandler) PublishPost(c *gin.Context) {
 }
 
 func (h *PostHandler) UnpublishPost(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
