@@ -28,3 +28,19 @@
 .layout--admin .admin-layout__main {
     grid-area: main;
 }
+
+@media (min-width: 900px) {
+    .layout--admin {
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .layout--admin .main {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .layout--admin .admin-layout__main {
+        min-height: 0;
+    }
+}

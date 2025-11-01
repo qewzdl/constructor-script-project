@@ -610,19 +610,25 @@
         column-gap: var(--size-mid);
         row-gap: 0;
         align-items: stretch;
+        height: 100%;
+        min-height: 0;
     }
 
     .admin__sidebar {
-        position: sticky;
-        top: 0;
         align-self: stretch;
-        height: 100vh;
+        height: 100%;
+        max-height: 100%;
         border-inline-end: 1px solid var(--color-border);
         overflow-y: auto;
         scrollbar-gutter: stable;
     }
 
     .admin__content {
+        height: 100%;
+        max-height: 100%;
+        min-height: 0;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
         padding: var(--size-max);
     }
 
