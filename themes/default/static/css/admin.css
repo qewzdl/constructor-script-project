@@ -607,7 +607,6 @@
 @media (min-width: 900px) {
     .admin {
         grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
-        column-gap: var(--size-mid);
         row-gap: 0;
         align-items: stretch;
         height: 100%;
