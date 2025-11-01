@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strings"
+
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
@@ -14,8 +16,12 @@ func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService)
 		URL:                     cfg.SiteURL,
 		Favicon:                 cfg.SiteFavicon,
 		FaviconType:             models.DetectFaviconType(cfg.SiteFavicon),
-		Logo:                    "/static/icons/logo.svg",
+		Logo:                    cfg.SiteLogo,
 		UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours,
+	}
+
+	if strings.TrimSpace(defaults.Logo) == "" {
+		defaults.Logo = "/static/icons/logo.svg"
 	}
 
 	if setupService == nil {

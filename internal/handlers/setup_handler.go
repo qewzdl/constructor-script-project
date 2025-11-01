@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/models"
@@ -82,7 +83,14 @@ func (h *SetupHandler) Complete(c *gin.Context) {
 }
 
 func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
-	logo := "/static/icons/logo.svg"
+	var logo string
+	if h.config != nil {
+		logo = h.config.SiteLogo
+	}
+	if strings.TrimSpace(logo) == "" {
+		logo = "/static/icons/logo.svg"
+	}
+
 	if h.config == nil {
 		return models.SiteSettings{Logo: logo, UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours}
 	}

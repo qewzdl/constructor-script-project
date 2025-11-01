@@ -75,6 +75,7 @@ type Config struct {
 	SiteDescription string
 	SiteURL         string
 	SiteFavicon     string
+	SiteLogo        string
 
 	// Backup
 	BackupEncryptionKey string
@@ -157,6 +158,7 @@ func New() *Config {
 		SiteDescription: getEnv("SITE_DESCRIPTION", "Platform for building modern, high-performance websites using Go and templates."),
 		SiteURL:         getEnv("SITE_URL", "http://localhost:8081"),
 		SiteFavicon:     getEnv("SITE_FAVICON", "/favicon.ico"),
+		SiteLogo:        getEnv("SITE_LOGO", "/static/icons/logo.svg"),
 
 		// Backup
 		BackupEncryptionKey: getEnv("BACKUP_ENCRYPTION_KEY", ""),

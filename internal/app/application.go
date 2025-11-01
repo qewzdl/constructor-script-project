@@ -688,7 +688,7 @@ func (a *Application) initRouter() error {
 	router.GET("/metrics", middleware.NoIndexMiddleware(), a.metricsHandler())
 
 	if a.themeManager != nil {
-		router.StaticFS("/static", theme.NewFileSystem(a.themeManager))
+		router.StaticFS("/static", theme.NewFileSystem(a.themeManager, "./static"))
 	} else {
 		router.Static("/static", "./static")
 	}

@@ -16,6 +16,7 @@ WORKDIR /app
 COPY --from=builder /app/bin/blog-api /usr/local/bin/blog-api
 COPY --from=builder /app/themes ./themes
 COPY --from=builder /app/plugins ./plugins
+COPY --from=builder /app/static ./static
 COPY favicon.ico ./favicon.ico
 
 RUN mkdir -p /app/uploads \
