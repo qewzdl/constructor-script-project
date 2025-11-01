@@ -28,6 +28,7 @@ type TemplateHandler struct {
 	searchService      *blogservice.SearchService
 	setupService       *service.SetupService
 	homepageService    *service.HomepageService
+	languageService    *service.LanguageService
 	socialLinkService  *service.SocialLinkService
 	menuService        *service.MenuService
 	advertisingService *service.AdvertisingService
@@ -47,6 +48,7 @@ func NewTemplateHandler(
 	commentService *blogservice.CommentService,
 	searchService *blogservice.SearchService,
 	setupService *service.SetupService,
+	languageService *service.LanguageService,
 	homepageService *service.HomepageService,
 	categoryService *blogservice.CategoryService,
 	socialLinkService *service.SocialLinkService,
@@ -67,6 +69,7 @@ func NewTemplateHandler(
 		commentService:     commentService,
 		searchService:      searchService,
 		setupService:       setupService,
+		languageService:    languageService,
 		homepageService:    homepageService,
 		socialLinkService:  socialLinkService,
 		menuService:        menuService,

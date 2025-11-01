@@ -36,6 +36,7 @@ type SEOHandler struct {
 	pageService     *service.PageService
 	categoryService *blogservice.CategoryService
 	setupService    *service.SetupService
+	languageService *service.LanguageService
 	config          *config.Config
 }
 
@@ -45,6 +46,7 @@ func NewSEOHandler(
 	pageService *service.PageService,
 	categoryService *blogservice.CategoryService,
 	setupService *service.SetupService,
+	languageService *service.LanguageService,
 	cfg *config.Config,
 ) *SEOHandler {
 	return &SEOHandler{
@@ -52,6 +54,7 @@ func NewSEOHandler(
 		pageService:     pageService,
 		categoryService: categoryService,
 		setupService:    setupService,
+		languageService: languageService,
 		config:          cfg,
 	}
 }
@@ -73,7 +76,7 @@ func (h *SEOHandler) Sitemap(c *gin.Context) {
 		return
 	}
 
-	siteSettings, err := ResolveSiteSettings(h.config, h.setupService)
+	siteSettings, err := ResolveSiteSettings(h.config, h.setupService, h.languageService)
 	if err != nil {
 		logger.Error(err, "Failed to resolve site settings", nil)
 	}
@@ -186,7 +189,7 @@ func (h *SEOHandler) Sitemap(c *gin.Context) {
 // Robots renders a robots.txt file that guides crawlers and references the
 // generated sitemap.
 func (h *SEOHandler) Robots(c *gin.Context) {
-	siteSettings, err := ResolveSiteSettings(h.config, h.setupService)
+	siteSettings, err := ResolveSiteSettings(h.config, h.setupService, h.languageService)
 	if err != nil {
 		logger.Error(err, "Failed to resolve site settings", nil)
 	}

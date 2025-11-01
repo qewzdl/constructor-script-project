@@ -51,13 +51,15 @@ type SetupService struct {
 	userRepo      repository.UserRepository
 	settingRepo   repository.SettingRepository
 	uploadService *UploadService
+	language      *LanguageService
 }
 
-func NewSetupService(userRepo repository.UserRepository, settingRepo repository.SettingRepository, uploadService *UploadService) *SetupService {
+func NewSetupService(userRepo repository.UserRepository, settingRepo repository.SettingRepository, uploadService *UploadService, languageService *LanguageService) *SetupService {
 	return &SetupService{
 		userRepo:      userRepo,
 		settingRepo:   settingRepo,
 		uploadService: uploadService,
+		language:      languageService,
 	}
 }
 
@@ -162,21 +164,7 @@ func (s *SetupService) saveSiteSettings(req models.SetupRequest, defaults models
 		supportedLanguages = defaults.SupportedLanguages
 	}
 
-	normalizedDefault, normalizedSupported, err := lang.EnsureDefault(defaultLanguage, supportedLanguages)
-	if err != nil {
-		return fmt.Errorf("invalid language configuration: %w", err)
-	}
-
-	encodedSupported, err := lang.EncodeList(normalizedSupported)
-	if err != nil {
-		return fmt.Errorf("failed to encode supported languages: %w", err)
-	}
-
-	if err := s.settingRepo.Set(settingKeySiteDefaultLanguage, normalizedDefault); err != nil {
-		return err
-	}
-
-	if err := s.settingRepo.Set(settingKeySiteSupportedLanguages, encodedSupported); err != nil {
+	if err := s.updateSiteLanguages(defaultLanguage, supportedLanguages); err != nil {
 		return err
 	}
 
@@ -245,7 +233,7 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 		}
 	}
 
-	defaultLang, supported, langErr := s.loadLanguageSettings(result.DefaultLanguage, result.SupportedLanguages)
+	defaultLang, supported, langErr := s.resolveSiteLanguages(result.DefaultLanguage, result.SupportedLanguages)
 	if langErr != nil {
 		err = errors.Join(err, langErr)
 	}
@@ -401,28 +389,18 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		supportedLanguages = defaults.SupportedLanguages
 	}
 
-	normalizedDefault, normalizedSupported, err := lang.EnsureDefault(defaultLanguage, supportedLanguages)
-	if err != nil {
-		return fmt.Errorf("invalid language configuration: %w", err)
-	}
-
-	encodedSupported, err := lang.EncodeList(normalizedSupported)
-	if err != nil {
-		return fmt.Errorf("failed to encode supported languages: %w", err)
-	}
-
-	if err := s.settingRepo.Set(settingKeySiteDefaultLanguage, normalizedDefault); err != nil {
-		return err
-	}
-
-	if err := s.settingRepo.Set(settingKeySiteSupportedLanguages, encodedSupported); err != nil {
+	if err := s.updateSiteLanguages(defaultLanguage, supportedLanguages); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *SetupService) loadLanguageSettings(defaultLanguage string, supported []string) (string, []string, error) {
+func (s *SetupService) resolveSiteLanguages(defaultLanguage string, supported []string) (string, []string, error) {
+	if s.language != nil {
+		return s.language.Resolve(defaultLanguage, supported)
+	}
+
 	resolvedDefault := strings.TrimSpace(defaultLanguage)
 	if resolvedDefault == "" {
 		resolvedDefault = lang.Default
@@ -470,8 +448,34 @@ func (s *SetupService) loadLanguageSettings(defaultLanguage string, supported []
 	return normalizedDefault, normalizedSupported, combinedErr
 }
 
-func (s *SetupService) GetSiteLanguages(defaultLanguage string, supported []string) (string, []string, error) {
-	return s.loadLanguageSettings(defaultLanguage, supported)
+func (s *SetupService) updateSiteLanguages(defaultLanguage string, supported []string) error {
+	if s.language != nil {
+		return s.language.Update(defaultLanguage, supported)
+	}
+
+	if s.settingRepo == nil {
+		return nil
+	}
+
+	normalizedDefault, normalizedSupported, err := lang.EnsureDefault(defaultLanguage, supported)
+	if err != nil {
+		return fmt.Errorf("invalid language configuration: %w", err)
+	}
+
+	encodedSupported, err := lang.EncodeList(normalizedSupported)
+	if err != nil {
+		return fmt.Errorf("failed to encode supported languages: %w", err)
+	}
+
+	if err := s.settingRepo.Set(settingKeySiteDefaultLanguage, normalizedDefault); err != nil {
+		return err
+	}
+
+	if err := s.settingRepo.Set(settingKeySiteSupportedLanguages, encodedSupported); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *SetupService) getSettingValue(key string) (string, error) {

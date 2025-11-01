@@ -87,6 +87,7 @@ type serviceContainer struct {
 	Backup      *service.BackupService
 	Page        *service.PageService
 	Setup       *service.SetupService
+	Language    *service.LanguageService
 	Homepage    *service.HomepageService
 	SocialLink  *service.SocialLinkService
 	Menu        *service.MenuService
@@ -549,9 +550,10 @@ func (a *Application) initServices() {
 
 	backupService := service.NewBackupService(a.db, a.repositories.Setting, backupOptions)
 
+	languageService := service.NewLanguageService(a.cfg, a.repositories.Setting)
 	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
 	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
-	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService)
+	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService, languageService)
 	homepageService := service.NewHomepageService(a.repositories.Setting, a.repositories.Page)
 	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
 	menuService := service.NewMenuService(a.repositories.Menu)
@@ -579,6 +581,7 @@ func (a *Application) initServices() {
 		Backup:      backupService,
 		Page:        pageService,
 		Setup:       setupService,
+		Language:    languageService,
 		Homepage:    homepageService,
 		SocialLink:  socialLinkService,
 		Menu:        menuService,
@@ -606,7 +609,7 @@ func (a *Application) initHandlers() error {
 		Homepage:    handlers.NewHomepageHandler(a.services.Homepage),
 		SocialLink:  handlers.NewSocialLinkHandler(a.services.SocialLink),
 		Menu:        handlers.NewMenuHandler(a.services.Menu),
-		SEO:         handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.cfg),
+		SEO:         handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.services.Language, a.cfg),
 		Advertising: handlers.NewAdvertisingHandler(a.services.Advertising),
 		Plugin:      handlers.NewPluginHandler(a.services.Plugin),
 	}
@@ -618,6 +621,7 @@ func (a *Application) initHandlers() error {
 		nil,
 		nil,
 		a.services.Setup,
+		a.services.Language,
 		a.services.Homepage,
 		nil,
 		a.services.SocialLink,
@@ -671,7 +675,7 @@ func (a *Application) initRouter() error {
 	}))
 
 	router.Use(middleware.SetupMiddleware(a.services.Setup))
-	router.Use(middleware.LanguageNegotiationMiddleware(a.cfg, a.services.Setup))
+	router.Use(middleware.LanguageNegotiationMiddleware(a.services.Language))
 
 	if a.themeManager != nil {
 		if active := a.themeManager.Active(); active != nil {

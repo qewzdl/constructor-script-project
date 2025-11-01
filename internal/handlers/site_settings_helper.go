@@ -9,7 +9,16 @@ import (
 	blogservice "constructor-script-backend/plugins/blog/service"
 )
 
-func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService) (models.SiteSettings, error) {
+func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService, languageService *service.LanguageService) (models.SiteSettings, error) {
+	defaultLanguage := cfg.DefaultLanguage
+	supportedLanguages := append([]string(nil), cfg.SupportedLanguages...)
+	if languageService != nil {
+		if fallbackDefault, fallbackSupported := languageService.Defaults(); fallbackDefault != "" {
+			defaultLanguage = fallbackDefault
+			supportedLanguages = append([]string(nil), fallbackSupported...)
+		}
+	}
+
 	defaults := models.SiteSettings{
 		Name:                    cfg.SiteName,
 		Description:             cfg.SiteDescription,
@@ -18,8 +27,8 @@ func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService)
 		FaviconType:             models.DetectFaviconType(cfg.SiteFavicon),
 		Logo:                    cfg.SiteLogo,
 		UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours,
-		DefaultLanguage:         cfg.DefaultLanguage,
-		SupportedLanguages:      append([]string(nil), cfg.SupportedLanguages...),
+		DefaultLanguage:         defaultLanguage,
+		SupportedLanguages:      supportedLanguages,
 	}
 
 	if strings.TrimSpace(defaults.Logo) == "" {

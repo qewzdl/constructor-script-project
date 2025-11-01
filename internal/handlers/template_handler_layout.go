@@ -72,7 +72,7 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 }
 
 func (h *TemplateHandler) siteSettings() models.SiteSettings {
-	settings, err := ResolveSiteSettings(h.config, h.setupService)
+	settings, err := ResolveSiteSettings(h.config, h.setupService, h.languageService)
 	if err != nil {
 		logger.Error(err, "Failed to load site settings", nil)
 	}
@@ -95,6 +95,17 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 		}
 	}
 
+	if strings.TrimSpace(settings.DefaultLanguage) == "" || len(settings.SupportedLanguages) == 0 {
+		if h.languageService != nil {
+			fallbackDefault, fallbackSupported := h.languageService.Defaults()
+			if strings.TrimSpace(settings.DefaultLanguage) == "" {
+				settings.DefaultLanguage = fallbackDefault
+			}
+			if len(settings.SupportedLanguages) == 0 {
+				settings.SupportedLanguages = append([]string(nil), fallbackSupported...)
+			}
+		}
+	}
 	if strings.TrimSpace(settings.DefaultLanguage) == "" && h.config != nil {
 		settings.DefaultLanguage = h.config.DefaultLanguage
 	}
