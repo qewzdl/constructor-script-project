@@ -850,33 +850,6 @@
                             <small class="admin-form__hint">Used to generate canonical links and social sharing metadata.</small>
                         </label>
                         <label class="admin-form__label">
-                            Default language
-                            <input
-                                type="text"
-                                name="default_language"
-                                required
-                                class="admin-form__input"
-                                placeholder="en"
-                                pattern="^[a-z]{2,8}(-[A-Za-z]{2,3})?$"
-                            />
-                            <small class="admin-form__hint">
-                                Use a BCP&nbsp;47 language tag such as <code>en</code> or <code>en-GB</code>.
-                            </small>
-                        </label>
-                        <label class="admin-form__label">
-                            Supported languages
-                            <input
-                                type="text"
-                                name="supported_languages"
-                                class="admin-form__input"
-                                placeholder="en, en-GB, fr"
-                            />
-                            <small class="admin-form__hint">
-                                Optional comma-separated list of additional language codes. The default language is always
-                                supported.
-                            </small>
-                        </label>
-                        <label class="admin-form__label">
                             Unused tag retention (hours)
                             <input
                                 type="number"
@@ -984,6 +957,91 @@
                     </fieldset>
                 </form>
             </div>
+            </section>
+
+            <section
+                id="admin-panel-languages"
+                class="admin-panel"
+                data-panel="languages"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Languages"
+                data-nav-order="1.25"
+                role="tabpanel"
+                aria-labelledby="admin-tab-languages"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Languages</h2>
+                        <p class="admin-panel__description">
+                            Configure the default interface language and manage which locales are available to visitors.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--single">
+                    <form id="admin-language-form" class="admin-form" novalidate>
+                        <fieldset class="admin-form__fieldset">
+                            <legend class="admin-form__legend">Language configuration</legend>
+                            <label class="admin-form__label" for="admin-default-language">
+                                Default language
+                                <input
+                                    id="admin-default-language"
+                                    type="text"
+                                    name="default_language"
+                                    required
+                                    class="admin-form__input"
+                                    placeholder="en"
+                                    pattern="^[a-z]{2,8}(-[A-Za-z]{2,3})?$"
+                                    list="admin-language-suggestions"
+                                    data-role="language-default"
+                                />
+                                <datalist id="admin-language-suggestions" data-role="language-suggestions"></datalist>
+                                <small class="admin-form__hint">
+                                    Use a BCP&nbsp;47 language tag such as <code>en</code> or <code>en-GB</code>.
+                                </small>
+                            </label>
+                            <div
+                                class="admin-form__label"
+                                role="group"
+                                aria-labelledby="admin-supported-languages-label"
+                            >
+                                <span id="admin-supported-languages-label">Supported languages</span>
+                                <div class="admin-languages" data-role="language-manager">
+                                    <p class="admin-languages__empty" data-role="language-empty" hidden>
+                                        Only the default language is currently available.
+                                    </p>
+                                    <ul class="admin-languages__list" data-role="language-list"></ul>
+                                    <div class="admin-languages__controls">
+                                        <input
+                                            type="text"
+                                            class="admin-form__input admin-languages__input"
+                                            placeholder="Add language code (e.g. fr or de-AT)"
+                                            data-role="language-input"
+                                            pattern="^[a-z]{2,8}(-[A-Za-z]{2,3})?$"
+                                            aria-label="Add supported language"
+                                            list="admin-language-suggestions"
+                                        />
+                                        <button type="button" class="admin-languages__add-button" data-role="language-add">
+                                            Add language
+                                        </button>
+                                    </div>
+                                    <small class="admin-form__hint">
+                                        The default language is always supported. Add additional language codes to offer
+                                        translations.
+                                    </small>
+                                </div>
+                                <input type="hidden" name="supported_languages" data-role="language-hidden" />
+                            </div>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="language-submit">
+                                    Save languages
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
             </section>
 
             <section

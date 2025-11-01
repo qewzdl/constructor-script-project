@@ -609,6 +609,7 @@
         ];
 
         const navigationContainer = root.querySelector('[data-role="admin-nav"]');
+        const contentScrollContainer = root.querySelector('.admin__content');
         const tables = {
             posts: root.querySelector('#admin-posts-table'),
             pages: root.querySelector('#admin-pages-table'),
@@ -625,6 +626,7 @@
         const categoryForm = root.querySelector('#admin-category-form');
         const userForm = root.querySelector('#admin-user-form');
         const settingsForm = root.querySelector('#admin-settings-form');
+        const languageForm = root.querySelector('#admin-language-form');
         const homepageForm = root.querySelector('#admin-homepage-form');
         const homepageSelect = homepageForm?.querySelector('[data-role="homepage-select"]');
         const homepageStatus = homepageForm?.querySelector('[data-role="homepage-status"]');
@@ -657,8 +659,14 @@
         const logoUploadButton = settingsForm?.querySelector('[data-role="logo-upload"]');
         const logoPreviewContainer = settingsForm?.querySelector('[data-role="logo-preview"]');
         const logoPreviewImage = settingsForm?.querySelector('[data-role="logo-preview-image"]');
-        const defaultLanguageInput = settingsForm?.querySelector('input[name="default_language"]');
-        const supportedLanguagesInput = settingsForm?.querySelector('input[name="supported_languages"]');
+        const defaultLanguageInput = languageForm?.querySelector('input[name="default_language"]');
+        const supportedLanguagesInput = languageForm?.querySelector('[data-role="language-hidden"]');
+        const supportedLanguagesList = languageForm?.querySelector('[data-role="language-list"]');
+        const supportedLanguagesEmpty = languageForm?.querySelector('[data-role="language-empty"]');
+        const supportedLanguagesAddInput = languageForm?.querySelector('[data-role="language-input"]');
+        const supportedLanguagesAddButton = languageForm?.querySelector('[data-role="language-add"]');
+        const languageSuggestionsList = languageForm?.querySelector('[data-role="language-suggestions"]');
+        const languageManagerContainer = languageForm?.querySelector('[data-role="language-manager"]');
         const advertisingForm = root.querySelector('#admin-ads-form');
         const advertisingProviderSelect = advertisingForm?.querySelector('[data-role="ads-provider"]');
         const advertisingEnabledToggle = advertisingForm?.querySelector('[data-role="ads-enabled"]');
@@ -692,6 +700,26 @@
         );
 
         const CUSTOM_FOOTER_OPTION = '__custom_footer__';
+        const COMMON_LANGUAGE_CODES = [
+            'en',
+            'en-GB',
+            'es',
+            'es-419',
+            'de',
+            'fr',
+            'it',
+            'pt-BR',
+            'pt-PT',
+            'ru',
+            'uk',
+            'pl',
+            'tr',
+            'ar',
+            'zh-CN',
+            'zh-TW',
+            'ja',
+            'ko',
+        ];
         const defaultMenuLocationValues = [
             'header',
             'footer:explore',
@@ -1410,6 +1438,303 @@
 
             return Array.from(unique.values());
         };
+
+        const getNormalisedLanguageState = () => {
+            const seen = new Set();
+            const result = [];
+            const rawDefault = normaliseLanguageCode(state.language?.default || '');
+            let defaultCode = '';
+
+            if (rawDefault && isValidLanguageCode(rawDefault)) {
+                defaultCode = rawDefault;
+                seen.add(rawDefault);
+                result.push(rawDefault);
+            }
+
+            const supported = Array.isArray(state.language?.supported)
+                ? state.language.supported
+                : [];
+            supported.forEach((value) => {
+                const normalized = normaliseLanguageCode(value);
+                if (!normalized || !isValidLanguageCode(normalized) || seen.has(normalized)) {
+                    return;
+                }
+                seen.add(normalized);
+                result.push(normalized);
+            });
+
+            return {
+                defaultCode,
+                codes: result,
+            };
+        };
+
+        const applyLanguageState = (defaultCode, codes) => {
+            state.language.default = defaultCode;
+            state.language.supported = Array.isArray(codes) ? [...codes] : [];
+        };
+
+        const updateLanguageSuggestions = (codes) => {
+            if (!languageSuggestionsList) {
+                return;
+            }
+
+            const unique = new Map();
+            languageSuggestionsList.innerHTML = '';
+
+            [...COMMON_LANGUAGE_CODES, ...(codes || [])].forEach((value) => {
+                const normalized = normaliseLanguageCode(value);
+                if (!normalized || !isValidLanguageCode(normalized) || unique.has(normalized)) {
+                    return;
+                }
+                unique.set(normalized, true);
+                const option = document.createElement('option');
+                option.value = normalized;
+                languageSuggestionsList.appendChild(option);
+            });
+        };
+
+        const renderLanguageManager = () => {
+            if (!languageForm) {
+                return;
+            }
+
+            let previousTop = null;
+            let useWindowScroll = false;
+            const scrollContainer = (() => {
+                if (!languageManagerContainer) {
+                    return null;
+                }
+                if (contentScrollContainer) {
+                    return contentScrollContainer;
+                }
+                const scrollingElement = document.scrollingElement
+                    || document.documentElement
+                    || document.body;
+                useWindowScroll = true;
+                return scrollingElement;
+            })();
+
+            if (languageManagerContainer && scrollContainer) {
+                previousTop = languageManagerContainer.getBoundingClientRect().top;
+            }
+
+            const { defaultCode, codes } = getNormalisedLanguageState();
+            applyLanguageState(defaultCode, codes);
+
+            const additional = codes.filter((code) => code !== defaultCode);
+
+            if (supportedLanguagesInput) {
+                supportedLanguagesInput.value = additional.join(', ');
+            }
+
+            updateLanguageSuggestions(codes);
+
+            if (defaultLanguageInput) {
+                const activeElement = document.activeElement;
+                const currentValue = defaultLanguageInput.value || '';
+                const currentNormalised = normaliseLanguageCode(currentValue);
+                const shouldUpdate =
+                    activeElement !== defaultLanguageInput ||
+                    currentNormalised !== (defaultCode || '');
+
+                if (shouldUpdate) {
+                    defaultLanguageInput.value = defaultCode || '';
+                }
+            }
+
+            if (supportedLanguagesEmpty) {
+                supportedLanguagesEmpty.hidden = additional.length > 0;
+            }
+
+            if (supportedLanguagesList) {
+                supportedLanguagesList.innerHTML = '';
+
+                codes.forEach((code) => {
+                    const item = document.createElement('li');
+                    item.className = 'admin-languages__item';
+                    if (code === defaultCode) {
+                        item.dataset.state = 'default';
+                    }
+
+                    const codeLabel = document.createElement('span');
+                    codeLabel.className = 'admin-languages__code';
+                    codeLabel.textContent = code;
+                    item.appendChild(codeLabel);
+
+                    if (code === defaultCode) {
+                        const badge = document.createElement('span');
+                        badge.className = 'admin-languages__badge';
+                        badge.textContent = 'Default';
+                        item.appendChild(badge);
+                    } else {
+                        const actions = document.createElement('span');
+                        actions.className = 'admin-languages__actions';
+
+                        const defaultButton = document.createElement('button');
+                        defaultButton.type = 'button';
+                        defaultButton.className = 'admin-languages__action';
+                        defaultButton.dataset.action = 'language-default';
+                        defaultButton.dataset.code = code;
+                        defaultButton.textContent = 'Make default';
+                        actions.appendChild(defaultButton);
+
+                        const removeButton = document.createElement('button');
+                        removeButton.type = 'button';
+                        removeButton.className =
+                            'admin-languages__action admin-languages__action--remove';
+                        removeButton.dataset.action = 'language-remove';
+                        removeButton.dataset.code = code;
+                        removeButton.textContent = 'Remove';
+                        actions.appendChild(removeButton);
+
+                        item.appendChild(actions);
+                    }
+
+                    supportedLanguagesList.appendChild(item);
+                });
+            }
+
+            if (
+                languageManagerContainer &&
+                scrollContainer &&
+                previousTop !== null
+            ) {
+                const nextTop = languageManagerContainer.getBoundingClientRect().top;
+                const delta = nextTop - previousTop;
+                if (Math.abs(delta) > 1) {
+                    if (useWindowScroll) {
+                        const currentOffset = window.scrollY || window.pageYOffset || 0;
+                        window.scrollTo({ top: currentOffset + delta });
+                    } else {
+                        scrollContainer.scrollTop += delta;
+                    }
+                }
+            }
+        };
+
+        function setDefaultLanguage(code, options = {}) {
+            const { silent = false } = options;
+            const normalized = normaliseLanguageCode(code);
+            if (!normalized || !isValidLanguageCode(normalized)) {
+                if (!silent) {
+                    showAlert(
+                        'Please provide a valid language code (e.g. "en" or "en-GB").',
+                        'error'
+                    );
+                }
+                return false;
+            }
+
+            const { codes } = getNormalisedLanguageState();
+            const filtered = codes.filter((value) => value !== normalized);
+            applyLanguageState(normalized, [normalized, ...filtered]);
+            renderLanguageManager();
+            return true;
+        }
+
+        function addSupportedLanguage(code) {
+            const normalized = normaliseLanguageCode(code);
+            if (!normalized) {
+                return false;
+            }
+            if (!isValidLanguageCode(normalized)) {
+                showAlert(
+                    'Please use a valid language code (e.g. "en" or "en-GB").',
+                    'error'
+                );
+                supportedLanguagesAddInput?.focus();
+                supportedLanguagesAddInput?.select?.();
+                return false;
+            }
+
+            const { defaultCode, codes } = getNormalisedLanguageState();
+            if (codes.includes(normalized)) {
+                showAlert(`Language "${normalized}" is already configured.`, 'info');
+                supportedLanguagesAddInput?.focus();
+                supportedLanguagesAddInput?.select?.();
+                return false;
+            }
+
+            const nextDefault = defaultCode || normalized;
+            const nextCodes = nextDefault === normalized
+                ? [normalized, ...codes.filter((value) => value !== normalized)]
+                : [...codes, normalized];
+
+            applyLanguageState(nextDefault, nextCodes);
+            renderLanguageManager();
+            return true;
+        }
+
+        function removeSupportedLanguage(code) {
+            const normalized = normaliseLanguageCode(code);
+            if (!normalized) {
+                return false;
+            }
+
+            const { defaultCode, codes } = getNormalisedLanguageState();
+            if (normalized === defaultCode) {
+                showAlert('The default language must always be supported.', 'error');
+                return false;
+            }
+
+            const filtered = codes.filter((value) => value !== normalized);
+            applyLanguageState(defaultCode, filtered);
+            renderLanguageManager();
+            return true;
+        }
+
+        function handleLanguageAdd(event) {
+            event.preventDefault();
+            if (!supportedLanguagesAddInput) {
+                return;
+            }
+
+            const value = supportedLanguagesAddInput.value.trim();
+            if (!value) {
+                supportedLanguagesAddInput.focus();
+                return;
+            }
+
+            const added = addSupportedLanguage(value);
+            if (added) {
+                supportedLanguagesAddInput.value = '';
+                supportedLanguagesAddInput.focus();
+            }
+        }
+
+        function handleLanguageInputKeydown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                handleLanguageAdd(event);
+            }
+        }
+
+        function handleDefaultLanguageBlur() {
+            if (!defaultLanguageInput) {
+                return;
+            }
+
+            const value = defaultLanguageInput.value.trim();
+            if (!value) {
+                return;
+            }
+
+            const normalized = normaliseLanguageCode(value);
+            if (!normalized || !isValidLanguageCode(normalized)) {
+                defaultLanguageInput.setCustomValidity(
+                    'Please use a valid language code (e.g. "en" or "en-GB").'
+                );
+                defaultLanguageInput.reportValidity();
+                return;
+            }
+
+            defaultLanguageInput.setCustomValidity('');
+            if (normalized !== value) {
+                defaultLanguageInput.value = normalized;
+            }
+            setDefaultLanguage(normalized, { silent: true });
+        }
 
         const extractTagNames = (entry) => {
             const tags = entry?.tags || entry?.Tags;
@@ -3472,46 +3797,44 @@
         };
 
         const populateSiteSettingsForm = (site) => {
-            if (!settingsForm) {
-                return;
-            }
+            if (settingsForm) {
+                const entries = [
+                    ['name', site?.name],
+                    ['description', site?.description],
+                    ['url', site?.url],
+                    ['favicon', site?.favicon],
+                    ['logo', site?.logo],
+                    ['unused_tag_retention_hours', site?.unused_tag_retention_hours],
+                ];
 
-            const entries = [
-                ['name', site?.name],
-                ['description', site?.description],
-                ['url', site?.url],
-                ['favicon', site?.favicon],
-                ['logo', site?.logo],
-                ['unused_tag_retention_hours', site?.unused_tag_retention_hours],
-                ['default_language', site?.default_language],
-            ];
-
-            entries.forEach(([key, value]) => {
-                const field = settingsForm.querySelector(`[name="${key}"]`);
-                if (!field) {
-                    return;
-                }
-                field.value = value || '';
-            });
-
-            if (defaultLanguageInput && typeof site?.default_language === 'string') {
-                defaultLanguageInput.value = site.default_language;
-            }
-
-            if (supportedLanguagesInput) {
-                const supported = Array.isArray(site?.supported_languages) ? site.supported_languages : [];
-                const defaultLanguage = typeof site?.default_language === 'string' ? site.default_language : '';
-                const additional = supported.filter((code) => typeof code === 'string' && code !== defaultLanguage);
-                supportedLanguagesInput.value = additional.join(', ');
+                entries.forEach(([key, value]) => {
+                    const field = settingsForm.querySelector(`[name="${key}"]`);
+                    if (!field) {
+                        return;
+                    }
+                    field.value = value || '';
+                });
             }
 
             updateFaviconPreview(site?.favicon || site?.Favicon || '');
             updateLogoPreview(site?.logo || site?.Logo || '');
 
-            state.language.default = typeof site?.default_language === 'string' ? site.default_language : '';
-            state.language.supported = Array.isArray(site?.supported_languages)
+            const defaultLanguage =
+                typeof site?.default_language === 'string' ? site.default_language : '';
+            const supportedLanguages = Array.isArray(site?.supported_languages)
                 ? [...site.supported_languages]
                 : [];
+
+            state.language.default = defaultLanguage;
+            if (supportedLanguages.length > 0) {
+                state.language.supported = supportedLanguages;
+            } else if (defaultLanguage) {
+                state.language.supported = [defaultLanguage];
+            } else {
+                state.language.supported = [];
+            }
+
+            renderLanguageManager();
         };
 
         const getHomepageStatusInfo = (page) => {
@@ -6706,6 +7029,8 @@
                 return;
             }
 
+            setDefaultLanguage(normalisedDefaultLanguage, { silent: true });
+
             let supportedLanguages = [];
             try {
                 supportedLanguages = parseLanguageCodes(supportedLanguagesInput?.value || '');
@@ -6739,6 +7064,7 @@
             }
 
             disableForm(settingsForm, true);
+            disableForm(languageForm, true);
             clearAlert();
 
             try {
@@ -6763,6 +7089,7 @@
                 handleRequestError(error);
             } finally {
                 disableForm(settingsForm, false);
+                disableForm(languageForm, false);
             }
         };
 
@@ -7349,7 +7676,37 @@
         backupImportForm?.addEventListener('submit', handleBackupImport);
         backupSettingsForm?.addEventListener('submit', handleBackupSettingsSubmit);
         backupSettingsToggle?.addEventListener('change', handleBackupAutoToggleChange);
+        supportedLanguagesAddButton?.addEventListener('click', handleLanguageAdd);
+        supportedLanguagesAddInput?.addEventListener('keydown', handleLanguageInputKeydown);
+        if (supportedLanguagesList) {
+            supportedLanguagesList.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) {
+                    return;
+                }
+                const actionButton = target.closest('button[data-action]');
+                if (!actionButton) {
+                    return;
+                }
+                const code = actionButton.dataset.code;
+                if (!code) {
+                    return;
+                }
+                const action = actionButton.dataset.action;
+                if (action === 'language-default') {
+                    setDefaultLanguage(code);
+                } else if (action === 'language-remove') {
+                    removeSupportedLanguage(code);
+                }
+            });
+        }
+        defaultLanguageInput?.addEventListener('blur', handleDefaultLanguageBlur);
+        defaultLanguageInput?.addEventListener('change', handleDefaultLanguageBlur);
+        defaultLanguageInput?.addEventListener('input', () => {
+            defaultLanguageInput.setCustomValidity('');
+        });
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
+        languageForm?.addEventListener('submit', handleSiteSettingsSubmit);
         advertisingForm?.addEventListener('submit', handleAdvertisingSubmit);
         advertisingProviderSelect?.addEventListener('change', handleAdvertisingProviderChange);
         advertisingEnabledToggle?.addEventListener('change', handleAdvertisingEnabledChange);
@@ -7375,6 +7732,10 @@
         menuList?.addEventListener('click', handleMenuListClick);
         postTagsInput?.addEventListener('input', renderTagSuggestions);
         homepageForm?.addEventListener('submit', handleHomepageSubmit);
+
+        if (languageForm) {
+            renderLanguageManager();
+        }
 
         updateHomepageStatus();
         handleBackupAutoToggleChange();
