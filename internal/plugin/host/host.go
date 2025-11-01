@@ -10,6 +10,7 @@ import (
 	"constructor-script-backend/pkg/cache"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	languageservice "constructor-script-backend/plugins/language/service"
 )
 
 type Host interface {
@@ -45,6 +46,8 @@ type CoreServiceAccess interface {
 	SocialLink() *service.SocialLinkService
 	Menu() *service.MenuService
 	Advertising() *service.AdvertisingService
+	Language() *languageservice.LanguageService
+	SetLanguage(*languageservice.LanguageService)
 }
 
 type BlogServiceAccess interface {

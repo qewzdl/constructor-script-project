@@ -5,41 +5,42 @@ import (
 	"strconv"
 	"strings"
 
-	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/lang"
 	"constructor-script-backend/pkg/logger"
+	languageservice "constructor-script-backend/plugins/language/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 type languageResolver struct {
-	service           *service.LanguageService
+	provider          func() *languageservice.LanguageService
 	fallbackDefault   string
 	fallbackSupported []string
 }
 
-func newLanguageResolver(languageService *service.LanguageService) *languageResolver {
+func newLanguageResolver(provider func() *languageservice.LanguageService) *languageResolver {
 	defaultLanguage := lang.Default
 	supported := []string{defaultLanguage}
 
-	if languageService != nil {
-		if fallbackDefault, fallbackSupported := languageService.Defaults(); fallbackDefault != "" {
-			defaultLanguage = fallbackDefault
-			if len(fallbackSupported) > 0 {
-				supported = append([]string(nil), fallbackSupported...)
-			}
-		}
-	}
-
-	return &languageResolver{
-		service:           languageService,
+	resolver := &languageResolver{
+		provider:          provider,
 		fallbackDefault:   defaultLanguage,
 		fallbackSupported: supported,
 	}
+
+	resolver.refreshFallback()
+	return resolver
 }
 
 func (r *languageResolver) languages() (string, []string) {
-	if r.service == nil {
+	if r == nil {
+		return lang.Default, []string{lang.Default}
+	}
+
+	r.refreshFallback()
+
+	service := r.currentService()
+	if service == nil {
 		supported := append([]string(nil), r.fallbackSupported...)
 		if len(supported) == 0 {
 			supported = []string{r.fallbackDefault}
@@ -47,7 +48,7 @@ func (r *languageResolver) languages() (string, []string) {
 		return r.fallbackDefault, supported
 	}
 
-	resolvedDefault, resolvedSupported, err := r.service.Resolve(r.fallbackDefault, r.fallbackSupported)
+	resolvedDefault, resolvedSupported, err := service.Resolve(r.fallbackDefault, r.fallbackSupported)
 	if err != nil {
 		logger.Error(err, "Failed to resolve site languages", nil)
 	}
@@ -55,6 +56,35 @@ func (r *languageResolver) languages() (string, []string) {
 		resolvedSupported = []string{resolvedDefault}
 	}
 	return resolvedDefault, resolvedSupported
+}
+
+func (r *languageResolver) refreshFallback() {
+	if r == nil {
+		return
+	}
+
+	service := r.currentService()
+	if service != nil {
+		if fallbackDefault, fallbackSupported := service.Defaults(); fallbackDefault != "" {
+			r.fallbackDefault = fallbackDefault
+			if len(fallbackSupported) > 0 {
+				r.fallbackSupported = append([]string(nil), fallbackSupported...)
+			} else {
+				r.fallbackSupported = []string{fallbackDefault}
+			}
+		}
+	}
+
+	if len(r.fallbackSupported) == 0 {
+		r.fallbackSupported = []string{r.fallbackDefault}
+	}
+}
+
+func (r *languageResolver) currentService() *languageservice.LanguageService {
+	if r == nil || r.provider == nil {
+		return nil
+	}
+	return r.provider()
 }
 
 func (r *languageResolver) resolve(explicit, acceptHeader string) (string, []string) {
@@ -181,8 +211,8 @@ func parseAcceptLanguage(header string) []string {
 // Accept-Language header. The resolved language and the list of supported
 // languages are stored in the request context under the keys "language" and
 // "supported_languages" respectively.
-func LanguageNegotiationMiddleware(languageService *service.LanguageService) gin.HandlerFunc {
-	resolver := newLanguageResolver(languageService)
+func LanguageNegotiationMiddleware(languageServiceProvider func() *languageservice.LanguageService) gin.HandlerFunc {
+	resolver := newLanguageResolver(languageServiceProvider)
 
 	return func(c *gin.Context) {
 		language, supported := resolver.resolve(c.Query("lang"), c.GetHeader("Accept-Language"))

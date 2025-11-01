@@ -16,6 +16,7 @@ import (
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/lang"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	languageservice "constructor-script-backend/plugins/language/service"
 )
 
 var (
@@ -51,16 +52,24 @@ type SetupService struct {
 	userRepo      repository.UserRepository
 	settingRepo   repository.SettingRepository
 	uploadService *UploadService
-	language      *LanguageService
+	language      *languageservice.LanguageService
 }
 
-func NewSetupService(userRepo repository.UserRepository, settingRepo repository.SettingRepository, uploadService *UploadService, languageService *LanguageService) *SetupService {
+func NewSetupService(userRepo repository.UserRepository, settingRepo repository.SettingRepository, uploadService *UploadService, languageService *languageservice.LanguageService) *SetupService {
 	return &SetupService{
 		userRepo:      userRepo,
 		settingRepo:   settingRepo,
 		uploadService: uploadService,
 		language:      languageService,
 	}
+}
+
+// SetLanguageService updates the language service dependency used by the setup service.
+func (s *SetupService) SetLanguageService(languageService *languageservice.LanguageService) {
+	if s == nil {
+		return
+	}
+	s.language = languageService
 }
 
 func (s *SetupService) IsSetupComplete() (bool, error) {

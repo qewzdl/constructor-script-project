@@ -12,6 +12,7 @@ import (
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	languageservice "constructor-script-backend/plugins/language/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,7 +37,7 @@ type SEOHandler struct {
 	pageService     *service.PageService
 	categoryService *blogservice.CategoryService
 	setupService    *service.SetupService
-	languageService *service.LanguageService
+	languageService *languageservice.LanguageService
 	config          *config.Config
 }
 
@@ -46,7 +47,7 @@ func NewSEOHandler(
 	pageService *service.PageService,
 	categoryService *blogservice.CategoryService,
 	setupService *service.SetupService,
-	languageService *service.LanguageService,
+	languageService *languageservice.LanguageService,
 	cfg *config.Config,
 ) *SEOHandler {
 	return &SEOHandler{
@@ -66,6 +67,14 @@ func (h *SEOHandler) SetBlogServices(postService *blogservice.PostService, categ
 	}
 	h.postService = postService
 	h.categoryService = categoryService
+}
+
+// SetLanguageService updates the language service dependency used by the SEO handler.
+func (h *SEOHandler) SetLanguageService(languageService *languageservice.LanguageService) {
+	if h == nil {
+		return
+	}
+	h.languageService = languageService
 }
 
 // Sitemap renders an XML sitemap that includes the key public sections of the

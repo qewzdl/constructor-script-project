@@ -14,6 +14,7 @@ import (
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	languageservice "constructor-script-backend/plugins/language/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/microcosm-cc/bluemonday"
@@ -28,7 +29,7 @@ type TemplateHandler struct {
 	searchService      *blogservice.SearchService
 	setupService       *service.SetupService
 	homepageService    *service.HomepageService
-	languageService    *service.LanguageService
+	languageService    *languageservice.LanguageService
 	socialLinkService  *service.SocialLinkService
 	menuService        *service.MenuService
 	advertisingService *service.AdvertisingService
@@ -48,7 +49,7 @@ func NewTemplateHandler(
 	commentService *blogservice.CommentService,
 	searchService *blogservice.SearchService,
 	setupService *service.SetupService,
-	languageService *service.LanguageService,
+	languageService *languageservice.LanguageService,
 	homepageService *service.HomepageService,
 	categoryService *blogservice.CategoryService,
 	socialLinkService *service.SocialLinkService,
@@ -103,6 +104,14 @@ func (h *TemplateHandler) SetBlogServices(
 	h.categoryService = categoryService
 	h.commentService = commentService
 	h.searchService = searchService
+}
+
+// SetLanguageService updates the language service dependency used by the template handler.
+func (h *TemplateHandler) SetLanguageService(languageService *languageservice.LanguageService) {
+	if h == nil {
+		return
+	}
+	h.languageService = languageService
 }
 
 func (h *TemplateHandler) blogEnabled() bool {

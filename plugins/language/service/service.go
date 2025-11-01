@@ -222,3 +222,8 @@ func ensureIncludesDefault(defaultLanguage string, supported []string) []string 
 
 	return result
 }
+
+const (
+	settingKeySiteDefaultLanguage    = "site.default_language"
+	settingKeySiteSupportedLanguages = "site.supported_languages"
+)

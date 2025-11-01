@@ -7,9 +7,10 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	languageservice "constructor-script-backend/plugins/language/service"
 )
 
-func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService, languageService *service.LanguageService) (models.SiteSettings, error) {
+func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService, languageService *languageservice.LanguageService) (models.SiteSettings, error) {
 	defaultLanguage := cfg.DefaultLanguage
 	supportedLanguages := append([]string(nil), cfg.SupportedLanguages...)
 	if languageService != nil {

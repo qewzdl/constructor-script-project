@@ -35,6 +35,7 @@ import (
 	"constructor-script-backend/pkg/logger"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	languageservice "constructor-script-backend/plugins/language/service"
 )
 
 type Options struct {
@@ -87,7 +88,7 @@ type serviceContainer struct {
 	Backup      *service.BackupService
 	Page        *service.PageService
 	Setup       *service.SetupService
-	Language    *service.LanguageService
+	Language    *languageservice.LanguageService
 	Homepage    *service.HomepageService
 	SocialLink  *service.SocialLinkService
 	Menu        *service.MenuService
@@ -550,9 +551,9 @@ func (a *Application) initServices() {
 
 	backupService := service.NewBackupService(a.db, a.repositories.Setting, backupOptions)
 
-	languageService := service.NewLanguageService(a.cfg, a.repositories.Setting)
 	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
 	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
+	var languageService *languageservice.LanguageService
 	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService, languageService)
 	homepageService := service.NewHomepageService(a.repositories.Setting, a.repositories.Page)
 	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
@@ -675,7 +676,9 @@ func (a *Application) initRouter() error {
 	}))
 
 	router.Use(middleware.SetupMiddleware(a.services.Setup))
-	router.Use(middleware.LanguageNegotiationMiddleware(a.services.Language))
+	router.Use(middleware.LanguageNegotiationMiddleware(func() *languageservice.LanguageService {
+		return a.services.Language
+	}))
 
 	if a.themeManager != nil {
 		if active := a.themeManager.Active(); active != nil {

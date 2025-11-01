@@ -959,6 +959,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"ElementDefinitionsJSON": elementJSON,
 		"AdminEndpoints":         adminEndpoints,
 		"BlogEnabled":            blogEnabled,
+		"LanguageFeatureEnabled": h.languageService != nil,
 		"NoIndex":                true,
 	})
 }

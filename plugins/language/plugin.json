@@ -1,0 +1,8 @@
+{
+  "name": "Language",
+  "slug": "language",
+  "version": "1.0.0",
+  "description": "Provides dynamic language configuration management for the site.",
+  "author": "Constructor Script",
+  "homepage": "https://constructor-script.example.com"
+}

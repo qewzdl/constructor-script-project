@@ -11,6 +11,7 @@ import (
 	"constructor-script-backend/pkg/cache"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	languageservice "constructor-script-backend/plugins/language/service"
 )
 
 type applicationRepositoryAccess struct {
@@ -183,6 +184,20 @@ func (s applicationCoreServices) Advertising() *service.AdvertisingService {
 		return nil
 	}
 	return s.app.services.Advertising
+}
+
+func (s applicationCoreServices) Language() *languageservice.LanguageService {
+	if s.app == nil {
+		return nil
+	}
+	return s.app.services.Language
+}
+
+func (s applicationCoreServices) SetLanguage(language *languageservice.LanguageService) {
+	if s.app == nil {
+		return
+	}
+	s.app.services.Language = language
 }
 
 func (s applicationBlogServices) Category() *blogservice.CategoryService {
