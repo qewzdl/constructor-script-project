@@ -671,6 +671,7 @@ func (a *Application) initRouter() error {
 	}))
 
 	router.Use(middleware.SetupMiddleware(a.services.Setup))
+	router.Use(middleware.LanguageNegotiationMiddleware(a.cfg, a.services.Setup))
 
 	if a.themeManager != nil {
 		if active := a.themeManager.Active(); active != nil {

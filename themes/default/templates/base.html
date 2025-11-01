@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+{{- $lang := or .Language "en" -}}
+{{- $site := .Site -}}
+{{- $defaultLang := or ($site.DefaultLanguage) $lang -}}
+{{- $supportedLangs := $site.SupportedLanguages -}}
+<html lang="{{ $lang }}" data-theme="light">
     <head>
         <!-- Define character encoding and responsive viewport -->
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="Content-Language" content="{{ $lang }}" />
 
         <!-- Dynamic page title -->
         <title>{{ .Title }}</title>
@@ -88,6 +93,9 @@
 
         <!-- Open Graph and Twitter Card metadata for social media sharing -->
         <meta property="og:site_name" content="{{ .Site.Name }}" />
+        {{ if $defaultLang }}
+        <meta property="og:locale" content="{{ $defaultLang }}" />
+        {{ end }}
         {{ if .Title }}
         <meta property="og:title" content="{{ .Title }}" />
         {{ end }} {{ if .Description }}
@@ -112,6 +120,13 @@
         <meta name="twitter:image:alt" content="{{ .TwitterImageAlt }}" />
         {{ end }} {{ end }} {{ if .Canonical }}
         <meta name="twitter:url" content="{{ .Canonical }}" />
+        {{ end }}
+        {{ if and .Canonical (gt (len $supportedLangs) 1) }}
+        {{ range $index, $code := $supportedLangs }}
+        {{ if ne $code (index $supportedLangs 0) }}
+        <link rel="alternate" hreflang="{{ $code }}" href="{{ $.Canonical }}" />
+        {{ end }}
+        {{ end }}
         {{ end }}
 
         <!-- Structured data (Organization) for rich results in search engines -->

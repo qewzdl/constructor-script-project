@@ -122,6 +122,10 @@ func (h *TemplateHandler) buildPostStructuredData(post *models.Post, site models
 		},
 	}
 
+	if langCode := strings.TrimSpace(site.DefaultLanguage); langCode != "" {
+		article["inLanguage"] = langCode
+	}
+
 	if canonicalURL != "" {
 		article["url"] = canonicalURL
 	}

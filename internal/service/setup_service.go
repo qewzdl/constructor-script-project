@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"mime/multipart"
 	"os"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/pkg/lang"
 	blogservice "constructor-script-backend/plugins/blog/service"
 )
 
@@ -88,7 +90,7 @@ func (s *SetupService) IsSetupComplete() (bool, error) {
 	return setting.Value == "true", nil
 }
 
-func (s *SetupService) CompleteSetup(req models.SetupRequest) (*models.User, error) {
+func (s *SetupService) CompleteSetup(req models.SetupRequest, defaults models.SiteSettings) (*models.User, error) {
 	if s.userRepo == nil {
 		return nil, errors.New("user repository not configured")
 	}
@@ -119,7 +121,7 @@ func (s *SetupService) CompleteSetup(req models.SetupRequest) (*models.User, err
 	}
 
 	if s.settingRepo != nil {
-		if err := s.saveSiteSettings(req); err != nil {
+		if err := s.saveSiteSettings(req, defaults); err != nil {
 			return nil, err
 		}
 
@@ -131,7 +133,7 @@ func (s *SetupService) CompleteSetup(req models.SetupRequest) (*models.User, err
 	return user, nil
 }
 
-func (s *SetupService) saveSiteSettings(req models.SetupRequest) error {
+func (s *SetupService) saveSiteSettings(req models.SetupRequest, defaults models.SiteSettings) error {
 	settings := map[string]string{
 		settingKeySiteName:          req.SiteName,
 		settingKeySiteDescription:   req.SiteDescription,
@@ -142,13 +144,40 @@ func (s *SetupService) saveSiteSettings(req models.SetupRequest) error {
 	}
 
 	for key, value := range settings {
-		if value == "" {
+		if strings.TrimSpace(value) == "" {
 			continue
 		}
 
-		if err := s.settingRepo.Set(key, value); err != nil {
+		if err := s.settingRepo.Set(key, strings.TrimSpace(value)); err != nil {
 			return err
 		}
+	}
+
+	defaultLanguage := strings.TrimSpace(req.SiteDefaultLanguage)
+	if defaultLanguage == "" {
+		defaultLanguage = defaults.DefaultLanguage
+	}
+	supportedLanguages := req.SiteSupportedLanguages
+	if len(supportedLanguages) == 0 {
+		supportedLanguages = defaults.SupportedLanguages
+	}
+
+	normalizedDefault, normalizedSupported, err := lang.EnsureDefault(defaultLanguage, supportedLanguages)
+	if err != nil {
+		return fmt.Errorf("invalid language configuration: %w", err)
+	}
+
+	encodedSupported, err := lang.EncodeList(normalizedSupported)
+	if err != nil {
+		return fmt.Errorf("failed to encode supported languages: %w", err)
+	}
+
+	if err := s.settingRepo.Set(settingKeySiteDefaultLanguage, normalizedDefault); err != nil {
+		return err
+	}
+
+	if err := s.settingRepo.Set(settingKeySiteSupportedLanguages, encodedSupported); err != nil {
+		return err
 	}
 
 	return nil
@@ -215,6 +244,14 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 			err = parseErr
 		}
 	}
+
+	defaultLang, supported, langErr := s.loadLanguageSettings(result.DefaultLanguage, result.SupportedLanguages)
+	if langErr != nil {
+		err = errors.Join(err, langErr)
+	}
+
+	result.DefaultLanguage = defaultLang
+	result.SupportedLanguages = supported
 
 	return result, err
 }
@@ -328,7 +365,7 @@ func (s *SetupService) ReplaceLogo(file *multipart.FileHeader) (string, error) {
 	return newURL, nil
 }
 
-func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest) error {
+func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, defaults models.SiteSettings) error {
 	if s.settingRepo == nil {
 		return errors.New("setting repository not configured")
 	}
@@ -355,7 +392,86 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest) 
 		}
 	}
 
+	defaultLanguage := strings.TrimSpace(req.DefaultLanguage)
+	if defaultLanguage == "" {
+		defaultLanguage = defaults.DefaultLanguage
+	}
+	supportedLanguages := req.SupportedLanguages
+	if len(supportedLanguages) == 0 {
+		supportedLanguages = defaults.SupportedLanguages
+	}
+
+	normalizedDefault, normalizedSupported, err := lang.EnsureDefault(defaultLanguage, supportedLanguages)
+	if err != nil {
+		return fmt.Errorf("invalid language configuration: %w", err)
+	}
+
+	encodedSupported, err := lang.EncodeList(normalizedSupported)
+	if err != nil {
+		return fmt.Errorf("failed to encode supported languages: %w", err)
+	}
+
+	if err := s.settingRepo.Set(settingKeySiteDefaultLanguage, normalizedDefault); err != nil {
+		return err
+	}
+
+	if err := s.settingRepo.Set(settingKeySiteSupportedLanguages, encodedSupported); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (s *SetupService) loadLanguageSettings(defaultLanguage string, supported []string) (string, []string, error) {
+	resolvedDefault := strings.TrimSpace(defaultLanguage)
+	if resolvedDefault == "" {
+		resolvedDefault = lang.Default
+	}
+
+	resolvedSupported := supported
+	if len(resolvedSupported) == 0 {
+		resolvedSupported = []string{resolvedDefault}
+	}
+
+	var combinedErr error
+
+	if s.settingRepo != nil {
+		if value, err := s.getSettingValue(settingKeySiteDefaultLanguage); err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				combinedErr = errors.Join(combinedErr, err)
+			}
+		} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+			resolvedDefault = trimmed
+		}
+
+		if value, err := s.getSettingValue(settingKeySiteSupportedLanguages); err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				combinedErr = errors.Join(combinedErr, err)
+			}
+		} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+			parsed, parseErr := lang.DecodeList(trimmed)
+			if parseErr != nil {
+				combinedErr = errors.Join(combinedErr, parseErr)
+			} else if len(parsed) > 0 {
+				resolvedSupported = parsed
+			}
+		}
+	}
+
+	normalizedDefault, normalizedSupported, err := lang.EnsureDefault(resolvedDefault, resolvedSupported)
+	if err != nil {
+		combinedErr = errors.Join(combinedErr, err)
+	}
+
+	if len(normalizedSupported) == 0 {
+		normalizedSupported = []string{normalizedDefault}
+	}
+
+	return normalizedDefault, normalizedSupported, combinedErr
+}
+
+func (s *SetupService) GetSiteLanguages(defaultLanguage string, supported []string) (string, []string, error) {
+	return s.loadLanguageSettings(defaultLanguage, supported)
 }
 
 func (s *SetupService) getSettingValue(key string) (string, error) {
@@ -372,11 +488,13 @@ func (s *SetupService) getSettingValue(key string) (string, error) {
 }
 
 const (
-	settingKeySetupComplete     = "setup.completed"
-	settingKeySiteName          = "site.name"
-	settingKeySiteDescription   = "site.description"
-	settingKeySiteURL           = "site.url"
-	settingKeySiteFavicon       = "site.favicon"
-	settingKeySiteLogo          = "site.logo"
-	settingKeyTagRetentionHours = blogservice.SettingKeyTagRetentionHours
+	settingKeySetupComplete          = "setup.completed"
+	settingKeySiteName               = "site.name"
+	settingKeySiteDescription        = "site.description"
+	settingKeySiteURL                = "site.url"
+	settingKeySiteFavicon            = "site.favicon"
+	settingKeySiteLogo               = "site.logo"
+	settingKeyTagRetentionHours      = blogservice.SettingKeyTagRetentionHours
+	settingKeySiteDefaultLanguage    = "site.default_language"
+	settingKeySiteSupportedLanguages = "site.supported_languages"
 )

@@ -850,6 +850,33 @@
                             <small class="admin-form__hint">Used to generate canonical links and social sharing metadata.</small>
                         </label>
                         <label class="admin-form__label">
+                            Default language
+                            <input
+                                type="text"
+                                name="default_language"
+                                required
+                                class="admin-form__input"
+                                placeholder="en"
+                                pattern="^[a-z]{2,8}(-[A-Za-z]{2,3})?$"
+                            />
+                            <small class="admin-form__hint">
+                                Use a BCP&nbsp;47 language tag such as <code>en</code> or <code>en-GB</code>.
+                            </small>
+                        </label>
+                        <label class="admin-form__label">
+                            Supported languages
+                            <input
+                                type="text"
+                                name="supported_languages"
+                                class="admin-form__input"
+                                placeholder="en, en-GB, fr"
+                            />
+                            <small class="admin-form__hint">
+                                Optional comma-separated list of additional language codes. The default language is always
+                                supported.
+                            </small>
+                        </label>
+                        <label class="admin-form__label">
                             Unused tag retention (hours)
                             <input
                                 type="number"

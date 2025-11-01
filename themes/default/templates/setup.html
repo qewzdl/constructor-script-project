@@ -100,6 +100,37 @@
                 </div>
 
                 <div class="form-field">
+                    <label class="form-field__label" for="setup-site-default-language">Default language</label>
+                    <input
+                        id="setup-site-default-language"
+                        name="site_default_language"
+                        type="text"
+                        class="form-field__input"
+                        placeholder="en"
+                        required
+                    />
+                    <small class="form-helper">
+                        Provide a language code using the BCP&nbsp;47 format (for example <code>en</code> or
+                        <code>en-GB</code>).
+                    </small>
+                </div>
+
+                <div class="form-field">
+                    <label class="form-field__label" for="setup-site-supported-languages">Supported languages</label>
+                    <input
+                        id="setup-site-supported-languages"
+                        name="site_supported_languages"
+                        type="text"
+                        class="form-field__input"
+                        placeholder="en, en-GB, fr"
+                    />
+                    <small class="form-helper">
+                        Optional comma-separated list of additional language codes. The default language is always
+                        available.
+                    </small>
+                </div>
+
+                <div class="form-field">
                     <label class="form-field__label" for="setup-site-favicon">Favicon URL</label>
                     <input
                         id="setup-site-favicon"

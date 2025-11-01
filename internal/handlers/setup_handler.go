@@ -8,6 +8,7 @@ import (
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
+	"constructor-script-backend/pkg/lang"
 	"constructor-script-backend/pkg/logger"
 	blogservice "constructor-script-backend/plugins/blog/service"
 
@@ -67,7 +68,16 @@ func (h *SetupHandler) Complete(c *gin.Context) {
 		return
 	}
 
-	_, err := h.setupService.CompleteSetup(req)
+	defaults := h.defaultSiteSettings()
+
+	if strings.TrimSpace(req.SiteDefaultLanguage) == "" {
+		req.SiteDefaultLanguage = defaults.DefaultLanguage
+	}
+	if len(req.SiteSupportedLanguages) == 0 {
+		req.SiteSupportedLanguages = defaults.SupportedLanguages
+	}
+
+	_, err := h.setupService.CompleteSetup(req, defaults)
 	if err != nil {
 		if errors.Is(err, service.ErrSetupAlreadyCompleted) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Setup has already been completed"})
@@ -91,8 +101,24 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 		logo = "/static/icons/logo.svg"
 	}
 
+	defaultLanguage := lang.Default
+	supportedLanguages := []string{defaultLanguage}
+	if h.config != nil {
+		defaultLanguage = h.config.DefaultLanguage
+		if len(h.config.SupportedLanguages) > 0 {
+			supportedLanguages = append([]string(nil), h.config.SupportedLanguages...)
+		} else {
+			supportedLanguages = []string{defaultLanguage}
+		}
+	}
+
 	if h.config == nil {
-		return models.SiteSettings{Logo: logo, UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours}
+		return models.SiteSettings{
+			Logo:                    logo,
+			UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours,
+			DefaultLanguage:         defaultLanguage,
+			SupportedLanguages:      supportedLanguages,
+		}
 	}
 
 	return models.SiteSettings{
@@ -103,6 +129,8 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 		FaviconType:             models.DetectFaviconType(h.config.SiteFavicon),
 		Logo:                    logo,
 		UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours,
+		DefaultLanguage:         defaultLanguage,
+		SupportedLanguages:      supportedLanguages,
 	}
 }
 
@@ -136,13 +164,22 @@ func (h *SetupHandler) UpdateSiteSettings(c *gin.Context) {
 		return
 	}
 
-	if err := h.setupService.UpdateSiteSettings(req); err != nil {
+	defaults := h.defaultSiteSettings()
+
+	if strings.TrimSpace(req.DefaultLanguage) == "" {
+		req.DefaultLanguage = defaults.DefaultLanguage
+	}
+	if len(req.SupportedLanguages) == 0 {
+		req.SupportedLanguages = defaults.SupportedLanguages
+	}
+
+	if err := h.setupService.UpdateSiteSettings(req, defaults); err != nil {
 		logger.Error(err, "Failed to update site settings", nil)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update site settings"})
 		return
 	}
 
-	settings, err := h.setupService.GetSiteSettings(h.defaultSiteSettings())
+	settings, err := h.setupService.GetSiteSettings(defaults)
 	if err != nil {
 		logger.Error(err, "Failed to load site settings", nil)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load site settings"})

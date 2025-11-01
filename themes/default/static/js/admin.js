@@ -657,6 +657,8 @@
         const logoUploadButton = settingsForm?.querySelector('[data-role="logo-upload"]');
         const logoPreviewContainer = settingsForm?.querySelector('[data-role="logo-preview"]');
         const logoPreviewImage = settingsForm?.querySelector('[data-role="logo-preview-image"]');
+        const defaultLanguageInput = settingsForm?.querySelector('input[name="default_language"]');
+        const supportedLanguagesInput = settingsForm?.querySelector('input[name="supported_languages"]');
         const advertisingForm = root.querySelector('#admin-ads-form');
         const advertisingProviderSelect = advertisingForm?.querySelector('[data-role="ads-provider"]');
         const advertisingEnabledToggle = advertisingForm?.querySelector('[data-role="ads-enabled"]');
@@ -825,6 +827,10 @@
                 selected: null,
                 selectedId: '',
                 hasLoaded: false,
+            },
+            language: {
+                default: '',
+                supported: [],
             },
         };
 
@@ -1347,6 +1353,61 @@
                         unique.set(key, name);
                     }
                 });
+            return Array.from(unique.values());
+        };
+
+        const languageCodePattern = /^[a-z]{2,8}(?:-[A-Za-z]{2,3})?$/;
+
+        const normaliseLanguageCode = (value) => {
+            if (typeof value !== 'string') {
+                return '';
+            }
+            const trimmed = value.trim();
+            if (!trimmed) {
+                return '';
+            }
+            const parts = trimmed.split('-');
+            const base = parts[0].toLowerCase();
+            if (parts.length === 1) {
+                return base;
+            }
+            const region = parts[1]?.toUpperCase();
+            if (!region) {
+                return base;
+            }
+            return `${base}-${region}`;
+        };
+
+        const isValidLanguageCode = (value) => languageCodePattern.test(value);
+
+        const parseLanguageCodes = (value) => {
+            if (typeof value !== 'string' || !value.trim()) {
+                return [];
+            }
+
+            const invalid = [];
+            const unique = new Map();
+
+            value.split(',').forEach((entry) => {
+                const normalized = normaliseLanguageCode(entry);
+                if (!normalized) {
+                    return;
+                }
+                if (!isValidLanguageCode(normalized)) {
+                    invalid.push(entry.trim());
+                    return;
+                }
+                if (!unique.has(normalized)) {
+                    unique.set(normalized, normalized);
+                }
+            });
+
+            if (invalid.length > 0) {
+                const error = new Error(`Invalid language codes: ${invalid.join(', ')}`);
+                error.codes = invalid;
+                throw error;
+            }
+
             return Array.from(unique.values());
         };
 
@@ -3422,6 +3483,7 @@
                 ['favicon', site?.favicon],
                 ['logo', site?.logo],
                 ['unused_tag_retention_hours', site?.unused_tag_retention_hours],
+                ['default_language', site?.default_language],
             ];
 
             entries.forEach(([key, value]) => {
@@ -3432,8 +3494,24 @@
                 field.value = value || '';
             });
 
+            if (defaultLanguageInput && typeof site?.default_language === 'string') {
+                defaultLanguageInput.value = site.default_language;
+            }
+
+            if (supportedLanguagesInput) {
+                const supported = Array.isArray(site?.supported_languages) ? site.supported_languages : [];
+                const defaultLanguage = typeof site?.default_language === 'string' ? site.default_language : '';
+                const additional = supported.filter((code) => typeof code === 'string' && code !== defaultLanguage);
+                supportedLanguagesInput.value = additional.join(', ');
+            }
+
             updateFaviconPreview(site?.favicon || site?.Favicon || '');
             updateLogoPreview(site?.logo || site?.Logo || '');
+
+            state.language.default = typeof site?.default_language === 'string' ? site.default_language : '';
+            state.language.supported = Array.isArray(site?.supported_languages)
+                ? [...site.supported_languages]
+                : [];
         };
 
         const getHomepageStatusInfo = (page) => {
@@ -6619,6 +6697,26 @@
                 logo: getValue('logo'),
             };
 
+            const defaultLanguageValue = defaultLanguageInput
+                ? defaultLanguageInput.value.trim()
+                : state.language.default;
+            const normalisedDefaultLanguage = normaliseLanguageCode(defaultLanguageValue);
+            if (!normalisedDefaultLanguage || !isValidLanguageCode(normalisedDefaultLanguage)) {
+                showAlert('Please provide a valid default language code (e.g. "en" or "en-GB").', 'error');
+                return;
+            }
+
+            let supportedLanguages = [];
+            try {
+                supportedLanguages = parseLanguageCodes(supportedLanguagesInput?.value || '');
+            } catch (languageError) {
+                showAlert(languageError.message || 'Please review the supported languages field.', 'error');
+                return;
+            }
+
+            payload.default_language = normalisedDefaultLanguage;
+            payload.supported_languages = supportedLanguages;
+
             const retentionField = settingsForm.querySelector('[name="unused_tag_retention_hours"]');
             const retentionRaw = retentionField ? retentionField.value.trim() : '';
             const retentionHours = Number.parseInt(retentionRaw, 10);
@@ -6649,6 +6747,16 @@
                     body: JSON.stringify(payload),
                 });
                 state.site = response?.site || payload;
+                if (!state.site.default_language) {
+                    state.site.default_language = normalisedDefaultLanguage;
+                }
+                if (!Array.isArray(state.site.supported_languages)) {
+                    state.site.supported_languages = [normalisedDefaultLanguage, ...supportedLanguages];
+                }
+                state.language.default = normalisedDefaultLanguage;
+                state.language.supported = Array.isArray(state.site.supported_languages)
+                    ? [...state.site.supported_languages]
+                    : [normalisedDefaultLanguage, ...supportedLanguages];
                 populateSiteSettingsForm(state.site);
                 showAlert('Site settings updated successfully.', 'success');
             } catch (error) {

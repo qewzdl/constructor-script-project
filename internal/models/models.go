@@ -375,6 +375,8 @@ type SiteSettings struct {
 	UnusedTagRetentionHours int          `json:"unused_tag_retention_hours"`
 	SocialLinks             []SocialLink `json:"social_links"`
 	MenuItems               []MenuItem   `json:"menu_items"`
+	DefaultLanguage         string       `json:"default_language"`
+	SupportedLanguages      []string     `json:"supported_languages"`
 }
 
 type BackupSettings struct {
@@ -400,12 +402,14 @@ type ThemeInfo struct {
 }
 
 type UpdateSiteSettingsRequest struct {
-	Name                    string `json:"name" binding:"required"`
-	Description             string `json:"description"`
-	URL                     string `json:"url" binding:"required"`
-	Favicon                 string `json:"favicon"`
-	Logo                    string `json:"logo"`
-	UnusedTagRetentionHours int    `json:"unused_tag_retention_hours" binding:"required,min=1"`
+	Name                    string   `json:"name" binding:"required"`
+	Description             string   `json:"description"`
+	URL                     string   `json:"url" binding:"required"`
+	Favicon                 string   `json:"favicon"`
+	Logo                    string   `json:"logo"`
+	UnusedTagRetentionHours int      `json:"unused_tag_retention_hours" binding:"required,min=1"`
+	DefaultLanguage         string   `json:"default_language"`
+	SupportedLanguages      []string `json:"supported_languages"`
 }
 
 type HomepagePage struct {
@@ -509,11 +513,13 @@ type SetupRequest struct {
 	AdminEmail    string `json:"admin_email" binding:"required,email"`
 	AdminPassword string `json:"admin_password" binding:"required,min=8"`
 
-	SiteName        string `json:"site_name" binding:"required"`
-	SiteDescription string `json:"site_description"`
-	SiteURL         string `json:"site_url" binding:"required"`
-	SiteFavicon     string `json:"site_favicon"`
-	SiteLogo        string `json:"site_logo"`
+	SiteName               string   `json:"site_name" binding:"required"`
+	SiteDescription        string   `json:"site_description"`
+	SiteURL                string   `json:"site_url" binding:"required"`
+	SiteFavicon            string   `json:"site_favicon"`
+	SiteLogo               string   `json:"site_logo"`
+	SiteDefaultLanguage    string   `json:"site_default_language"`
+	SiteSupportedLanguages []string `json:"site_supported_languages"`
 }
 
 type SocialLink struct {

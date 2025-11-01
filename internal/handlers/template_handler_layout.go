@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/pkg/lang"
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
 
@@ -43,17 +44,20 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 	data := gin.H{
 		"Title":       fmt.Sprintf("%s - %s", title, site.Name),
 		"Description": description,
+		"Language":    site.DefaultLanguage,
 		"Site": gin.H{
-			"Name":            site.Name,
-			"Description":     site.Description,
-			"URL":             site.URL,
-			"Favicon":         site.Favicon,
-			"FaviconType":     site.FaviconType,
-			"Logo":            site.Logo,
-			"SocialLinks":     site.SocialLinks,
-			"MenuItems":       site.MenuItems,
-			"HeaderMenuItems": headerMenu,
-			"FooterMenuItems": footerMenu,
+			"Name":               site.Name,
+			"Description":        site.Description,
+			"URL":                site.URL,
+			"Favicon":            site.Favicon,
+			"FaviconType":        site.FaviconType,
+			"Logo":               site.Logo,
+			"SocialLinks":        site.SocialLinks,
+			"MenuItems":          site.MenuItems,
+			"HeaderMenuItems":    headerMenu,
+			"FooterMenuItems":    footerMenu,
+			"DefaultLanguage":    site.DefaultLanguage,
+			"SupportedLanguages": site.SupportedLanguages,
 		},
 		"SearchQuery": "",
 		"SearchType":  "all",
@@ -88,6 +92,20 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 			logger.Error(err, "Failed to load menu items", nil)
 		} else {
 			settings.MenuItems = items
+		}
+	}
+
+	if strings.TrimSpace(settings.DefaultLanguage) == "" && h.config != nil {
+		settings.DefaultLanguage = h.config.DefaultLanguage
+	}
+	if strings.TrimSpace(settings.DefaultLanguage) == "" {
+		settings.DefaultLanguage = lang.Default
+	}
+	if len(settings.SupportedLanguages) == 0 {
+		if h.config != nil && len(h.config.SupportedLanguages) > 0 {
+			settings.SupportedLanguages = append([]string(nil), h.config.SupportedLanguages...)
+		} else {
+			settings.SupportedLanguages = []string{settings.DefaultLanguage}
 		}
 	}
 
@@ -426,6 +444,22 @@ func (h *TemplateHandler) applySEOMetadata(c *gin.Context, data gin.H) {
 		siteData["URL"] = siteURL
 		siteData["Favicon"] = h.resolveAbsoluteURL(siteURL, getString(siteData, "Favicon"), c.Request)
 		siteData["Logo"] = h.resolveAbsoluteURL(siteURL, getString(siteData, "Logo"), c.Request)
+	}
+
+	if language := strings.TrimSpace(getString(data, "Language")); language == "" {
+		if siteData != nil {
+			language = strings.TrimSpace(getString(siteData, "DefaultLanguage"))
+		}
+		if language == "" {
+			language = lang.Default
+		}
+		data["Language"] = language
+	}
+
+	if siteData != nil {
+		if locale := strings.TrimSpace(getString(siteData, "DefaultLanguage")); locale != "" {
+			data["OGLocale"] = locale
+		}
 	}
 
 	title, _ := data["Title"].(string)
