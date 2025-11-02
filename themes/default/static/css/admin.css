@@ -103,6 +103,11 @@
     background: var(--color-bg-top);
 }
 
+.admin-card__body {
+    display: grid;
+    gap: var(--size-mid);
+}
+
 .admin-card__header {
     display: grid;
     gap: var(--size-xs);
@@ -1166,14 +1171,18 @@
 }
 
 .admin-theme {
-    margin-top: var(--size-xl);
     display: grid;
-    gap: var(--size-md);
+    gap: var(--size-mid);
 }
 
 .admin-theme__header {
     display: grid;
     gap: var(--size-xs);
+}
+
+.admin-theme__body {
+    display: grid;
+    gap: var(--size-mid);
 }
 
 .admin-theme__list {
@@ -1450,10 +1459,6 @@
 }
 
 .admin-plugins__install {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--size-lg);
-    background: var(--color-bg-top);
     display: grid;
     gap: var(--size-mid);
 }
@@ -1470,13 +1475,8 @@
 
 .admin-social,
 .admin-navigation {
-    margin-top: var(--size-xl);
-    padding: var(--size-lg);
-    background: var(--color-surface);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
     display: grid;
-    gap: var(--size-lg);
+    gap: var(--size-mid);
 }
 .admin-social__header,
 .admin-navigation__header {
@@ -1486,7 +1486,7 @@
 .admin-social__content,
 .admin-navigation__content {
     display: grid;
-    gap: var(--size-lg);
+    gap: var(--size-mid);
 }
 .admin-social__list,
 .admin-navigation__list {
@@ -1604,13 +1604,12 @@
 
 .admin-navigation__step {
     margin: 0;
-    padding: var(--size-base);
-    border: 1px solid var(--color-border-subtle);
     border-radius: var(--radius-md);
     background: var(--color-surface-elevated);
     display: grid;
     gap: var(--size-sm);
     min-inline-size: 0;
+    border-color: var(--color-border-subtle);
 }
 
 .admin-navigation__step-title {

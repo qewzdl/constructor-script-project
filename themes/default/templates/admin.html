@@ -1329,45 +1329,49 @@
                     </div>
                 </header>
                 <div class="admin-panel__body admin-panel__body--split">
-                    <section class="admin-plugins" aria-labelledby="admin-plugins-title">
-                        <div class="admin-card__header admin-plugins__header">
+                    <section class="admin-card admin-plugins" aria-labelledby="admin-plugins-title">
+                        <header class="admin-card__header admin-plugins__header">
                             <h3 id="admin-plugins-title" class="admin-card__title admin-form__legend">Installed plugins</h3>
                             <p class="admin-card__description admin-form__hint">
                                 Manage installed plugins. Activate a plugin to enable its features or deactivate it to disable functionality while keeping the files available.
                             </p>
+                        </header>
+                        <div class="admin-card__body admin-plugins__body">
+                            <ul class="admin-plugins__list" data-role="plugin-list" aria-live="polite">
+                                <li class="admin-plugins__empty" data-role="plugin-empty">No plugins installed yet.</li>
+                            </ul>
                         </div>
-                        <ul class="admin-plugins__list" data-role="plugin-list" aria-live="polite">
-                            <li class="admin-plugins__empty" data-role="plugin-empty">No plugins installed yet.</li>
-                        </ul>
                     </section>
-                    <section class="admin-plugins__install" aria-labelledby="admin-plugin-install-title">
-                        <div class="admin-card__header admin-plugins__install-header">
+                    <section class="admin-card admin-plugins__install" aria-labelledby="admin-plugin-install-title">
+                        <header class="admin-card__header admin-plugins__install-header">
                             <h3 id="admin-plugin-install-title" class="admin-card__title admin-form__legend">Install plugin</h3>
                             <p class="admin-card__description admin-form__hint">
                                 Upload a ZIP archive that contains the plugin files and a <code>plugin.json</code> manifest describing the plugin metadata.
                             </p>
+                        </header>
+                        <div class="admin-card__body">
+                            <form class="admin-form admin-plugins__form" data-role="plugin-install-form" enctype="multipart/form-data" novalidate>
+                                <label class="admin-form__label">
+                                    Plugin archive (.zip)
+                                    <input
+                                        type="file"
+                                        name="file"
+                                        required
+                                        accept=".zip"
+                                        class="admin-form__input"
+                                        data-role="plugin-upload-input"
+                                    />
+                                    <small class="admin-card__description admin-form__hint">
+                                        Install plugins packaged as ZIP files. The plugin will be extracted to the server's plugins directory.
+                                    </small>
+                                </label>
+                                <div class="admin-form__actions">
+                                    <button type="submit" class="admin-form__submit" data-role="plugin-install-button">
+                                        Install plugin
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                        <form class="admin-plugins__form" data-role="plugin-install-form" enctype="multipart/form-data" novalidate>
-                            <label class="admin-form__label">
-                                Plugin archive (.zip)
-                                <input
-                                    type="file"
-                                    name="file"
-                                    required
-                                    accept=".zip"
-                                    class="admin-form__input"
-                                    data-role="plugin-upload-input"
-                                />
-                                <small class="admin-card__description admin-form__hint">
-                                    Install plugins packaged as ZIP files. The plugin will be extracted to the server's plugins directory.
-                                </small>
-                            </label>
-                            <div class="admin-form__actions">
-                                <button type="submit" class="admin-form__submit" data-role="plugin-install-button">
-                                    Install plugin
-                                </button>
-                            </div>
-                        </form>
                     </section>
                 </div>
             </section>
@@ -1393,10 +1397,18 @@
                     </div>
                 </header>
                 <div class="admin-panel__body admin-panel__body--single">
-                    <section class="admin-theme" aria-labelledby="admin-themes-title">
-                        <ul class="admin-theme__list" data-role="theme-list" aria-live="polite">
-                            <li class="admin-theme__empty" data-role="theme-empty">No themes available yet.</li>
-                        </ul>
+                    <section class="admin-card admin-theme" aria-labelledby="admin-themes-title">
+                        <header class="admin-card__header admin-theme__header">
+                            <h3 id="admin-themes-title" class="admin-card__title admin-form__legend">Available themes</h3>
+                            <p class="admin-card__description admin-form__hint">
+                                Select a theme to change the site's overall appearance. Activate a theme to apply its templates and assets immediately.
+                            </p>
+                        </header>
+                        <div class="admin-card__body admin-theme__body">
+                            <ul class="admin-theme__list" data-role="theme-list" aria-live="polite">
+                                <li class="admin-theme__empty" data-role="theme-empty">No themes available yet.</li>
+                            </ul>
+                        </div>
                     </section>
                 </div>
             </section>
@@ -1422,18 +1434,18 @@
                     </div>
                 </header>
                 <div class="admin-panel__body">
-                    <section class="admin-social" aria-labelledby="admin-social-title">
-                        <div class="admin-card__header admin-social__header">
+                    <section class="admin-card admin-social" aria-labelledby="admin-social-title">
+                        <header class="admin-card__header admin-social__header">
                             <h3 id="admin-social-title" class="admin-card__title admin-form__legend">Social profiles</h3>
                             <p class="admin-card__description admin-form__hint">
                                 Manage the social networks displayed in the site footer. Add a name, destination URL, and an optional icon for each profile.
                             </p>
-                        </div>
-                        <div class="admin-social__content">
+                        </header>
+                        <div class="admin-card__body admin-social__content">
                             <ul class="admin-social__list" data-role="social-list" aria-live="polite">
                                 <li class="admin-social__empty" data-role="social-empty">No social profiles added yet.</li>
                             </ul>
-                            <form id="admin-social-form" class="admin-social__form" novalidate>
+                            <form id="admin-social-form" class="admin-form admin-social__form" novalidate>
                                 <input type="hidden" name="id" />
                                 <label class="admin-form__label">
                                     Name
@@ -1485,24 +1497,24 @@
                     </div>
                 </header>
                 <div class="admin-panel__body">
-                    <section class="admin-navigation" aria-labelledby="admin-navigation-title">
-                        <div class="admin-card__header admin-navigation__header">
+                    <section class="admin-card admin-navigation" aria-labelledby="admin-navigation-title">
+                        <header class="admin-card__header admin-navigation__header">
                             <h3 id="admin-navigation-title" class="admin-card__title admin-form__legend">Navigation menu</h3>
                             <p class="admin-card__description admin-form__hint">
                                 Control the navigation links shown in the site header and footer. Choose a location, add menu
                                 items with a label and destination URL, and arrange them in the preferred order.
                             </p>
-                        </div>
-                        <div class="admin-navigation__content">
+                        </header>
+                        <div class="admin-card__body admin-navigation__content">
                             <ul class="admin-navigation__list" data-role="menu-list" aria-live="polite">
                                 <li class="admin-navigation__empty" data-role="menu-empty">
                                     No menu items added for this location yet.
                                 </li>
                             </ul>
-                            <form id="admin-menu-form" class="admin-navigation__form" novalidate>
+                            <form id="admin-menu-form" class="admin-form admin-navigation__form" novalidate>
                                 <input type="hidden" name="id" />
-                                <fieldset class="admin-navigation__step">
-                                    <legend class="admin-navigation__step-title">1. Choose menu location</legend>
+                                <fieldset class="admin-form__fieldset admin-navigation__step">
+                                    <legend class="admin-form__legend admin-navigation__step-title">1. Choose menu location</legend>
                                     <p class="admin-navigation__step-description">
                                         Pick where this menu item should appear on your site.
                                     </p>
@@ -1526,8 +1538,8 @@
                                         </small>
                                     </label>
                                 </fieldset>
-                                <fieldset class="admin-navigation__step">
-                                    <legend class="admin-navigation__step-title">2. Create a footer section</legend>
+                                <fieldset class="admin-form__fieldset admin-navigation__step">
+                                    <legend class="admin-form__legend admin-navigation__step-title">2. Create a footer section</legend>
                                     <p class="admin-navigation__step-description">
                                         Need a new footer column? Choose "Create new footer section…" above and name it here.
                                     </p>
@@ -1551,8 +1563,8 @@
                                         </label>
                                     </div>
                                 </fieldset>
-                                <fieldset class="admin-navigation__step">
-                                    <legend class="admin-navigation__step-title">3. Add menu item</legend>
+                                <fieldset class="admin-form__fieldset admin-navigation__step">
+                                    <legend class="admin-form__legend admin-navigation__step-title">3. Add menu item</legend>
                                     <p class="admin-navigation__step-description">
                                         Give the link a label and destination URL for the selected location.
                                     </p>
