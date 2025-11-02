@@ -366,17 +366,19 @@ type PluginInfo struct {
 }
 
 type SiteSettings struct {
-	Name                    string       `json:"name"`
-	Description             string       `json:"description"`
-	URL                     string       `json:"url"`
-	Favicon                 string       `json:"favicon"`
-	FaviconType             string       `json:"favicon_type"`
-	Logo                    string       `json:"logo"`
-	UnusedTagRetentionHours int          `json:"unused_tag_retention_hours"`
-	SocialLinks             []SocialLink `json:"social_links"`
-	MenuItems               []MenuItem   `json:"menu_items"`
-	DefaultLanguage         string       `json:"default_language"`
-	SupportedLanguages      []string     `json:"supported_languages"`
+        Name                    string       `json:"name"`
+        Description             string       `json:"description"`
+        URL                     string       `json:"url"`
+        Favicon                 string       `json:"favicon"`
+        FaviconType             string       `json:"favicon_type"`
+        Logo                    string       `json:"logo"`
+        UnusedTagRetentionHours int          `json:"unused_tag_retention_hours"`
+        SocialLinks             []SocialLink `json:"social_links"`
+        MenuItems               []MenuItem   `json:"menu_items"`
+        DefaultLanguage         string       `json:"default_language"`
+        SupportedLanguages      []string     `json:"supported_languages"`
+        Fonts                   []FontAsset  `json:"fonts"`
+        FontPreconnects         []string     `json:"font_preconnects"`
 }
 
 type BackupSettings struct {
@@ -402,14 +404,49 @@ type ThemeInfo struct {
 }
 
 type UpdateSiteSettingsRequest struct {
-	Name                    string   `json:"name" binding:"required"`
-	Description             string   `json:"description"`
-	URL                     string   `json:"url" binding:"required"`
-	Favicon                 string   `json:"favicon"`
-	Logo                    string   `json:"logo"`
-	UnusedTagRetentionHours int      `json:"unused_tag_retention_hours" binding:"required,min=1"`
-	DefaultLanguage         string   `json:"default_language"`
-	SupportedLanguages      []string `json:"supported_languages"`
+        Name                    string   `json:"name" binding:"required"`
+        Description             string   `json:"description"`
+        URL                     string   `json:"url" binding:"required"`
+        Favicon                 string   `json:"favicon"`
+        Logo                    string   `json:"logo"`
+        UnusedTagRetentionHours int      `json:"unused_tag_retention_hours" binding:"required,min=1"`
+        DefaultLanguage         string   `json:"default_language"`
+        SupportedLanguages      []string `json:"supported_languages"`
+}
+
+type FontAsset struct {
+        ID          string   `json:"id"`
+        Name        string   `json:"name"`
+        Snippet     string   `json:"snippet"`
+        Preconnects []string `json:"preconnects,omitempty"`
+        Order       int      `json:"order"`
+        Enabled     bool     `json:"enabled"`
+        Notes       string   `json:"notes,omitempty"`
+}
+
+type CreateFontAssetRequest struct {
+        Name        string   `json:"name" binding:"required"`
+        Snippet     string   `json:"snippet" binding:"required"`
+        Preconnects []string `json:"preconnects"`
+        Enabled     *bool    `json:"enabled"`
+        Notes       string   `json:"notes"`
+}
+
+type UpdateFontAssetRequest struct {
+        Name        *string   `json:"name"`
+        Snippet     *string   `json:"snippet"`
+        Preconnects *[]string `json:"preconnects"`
+        Enabled     *bool     `json:"enabled"`
+        Notes       *string   `json:"notes"`
+}
+
+type FontAssetOrder struct {
+        ID    string `json:"id"`
+        Order int    `json:"order"`
+}
+
+type ReorderFontAssetsRequest struct {
+        Items []FontAssetOrder `json:"items"`
 }
 
 type HomepagePage struct {
@@ -509,15 +546,15 @@ func DetectFaviconType(favicon string) string {
 }
 
 type SetupRequest struct {
-	AdminUsername string `json:"admin_username" binding:"required,min=3,max=50"`
+        AdminUsername string `json:"admin_username" binding:"required,min=3,max=50"`
 	AdminEmail    string `json:"admin_email" binding:"required,email"`
 	AdminPassword string `json:"admin_password" binding:"required,min=8"`
 
 	SiteName               string   `json:"site_name" binding:"required"`
 	SiteDescription        string   `json:"site_description"`
 	SiteURL                string   `json:"site_url" binding:"required"`
-	SiteFavicon            string   `json:"site_favicon"`
-	SiteLogo               string   `json:"site_logo"`
+        SiteFavicon            string   `json:"site_favicon"`
+        SiteLogo               string   `json:"site_logo"`
 	SiteDefaultLanguage    string   `json:"site_default_language"`
 	SiteSupportedLanguages []string `json:"site_supported_languages"`
 }

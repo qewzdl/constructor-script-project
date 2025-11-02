@@ -17,12 +17,14 @@ import (
 
 type SetupHandler struct {
 	setupService *service.SetupService
+	fontService  *service.FontService
 	config       *config.Config
 }
 
-func NewSetupHandler(setupService *service.SetupService, cfg *config.Config) *SetupHandler {
+func NewSetupHandler(setupService *service.SetupService, fontService *service.FontService, cfg *config.Config) *SetupHandler {
 	return &SetupHandler{
 		setupService: setupService,
+		fontService:  fontService,
 		config:       cfg,
 	}
 }
@@ -49,6 +51,8 @@ func (h *SetupHandler) Status(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load site settings"})
 		return
 	}
+
+	h.applyFontSettings(&settings)
 
 	c.JSON(http.StatusOK, gin.H{
 		"setup_required": !complete,
@@ -112,26 +116,45 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 		}
 	}
 
-	if h.config == nil {
-		return models.SiteSettings{
-			Logo:                    logo,
-			UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours,
-			DefaultLanguage:         defaultLanguage,
-			SupportedLanguages:      supportedLanguages,
-		}
-	}
-
-	return models.SiteSettings{
-		Name:                    h.config.SiteName,
-		Description:             h.config.SiteDescription,
-		URL:                     h.config.SiteURL,
-		Favicon:                 h.config.SiteFavicon,
-		FaviconType:             models.DetectFaviconType(h.config.SiteFavicon),
+	settings := models.SiteSettings{
 		Logo:                    logo,
 		UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours,
 		DefaultLanguage:         defaultLanguage,
 		SupportedLanguages:      supportedLanguages,
 	}
+
+	if h.config != nil {
+		settings.Name = h.config.SiteName
+		settings.Description = h.config.SiteDescription
+		settings.URL = h.config.SiteURL
+		settings.Favicon = h.config.SiteFavicon
+		settings.FaviconType = models.DetectFaviconType(h.config.SiteFavicon)
+	}
+
+	h.applyFontSettings(&settings)
+
+	return settings
+}
+
+func (h *SetupHandler) applyFontSettings(settings *models.SiteSettings) {
+	if settings == nil {
+		return
+	}
+
+	fonts := []models.FontAsset{}
+	if h.fontService != nil {
+		if list, err := h.fontService.List(); err != nil {
+			logger.Error(err, "Failed to load fonts", nil)
+			fonts = service.DefaultFontAssets()
+		} else {
+			fonts = list
+		}
+	} else {
+		fonts = service.DefaultFontAssets()
+	}
+
+	settings.Fonts = fonts
+	settings.FontPreconnects = service.CollectFontPreconnects(fonts)
 }
 
 func (h *SetupHandler) GetSiteSettings(c *gin.Context) {
@@ -148,6 +171,8 @@ func (h *SetupHandler) GetSiteSettings(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load site settings"})
 		return
 	}
+
+	h.applyFontSettings(&settings)
 
 	c.JSON(http.StatusOK, gin.H{"site": settings})
 }
@@ -186,6 +211,8 @@ func (h *SetupHandler) UpdateSiteSettings(c *gin.Context) {
 		return
 	}
 
+	h.applyFontSettings(&settings)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Site settings updated", "site": settings})
 }
 
@@ -220,6 +247,8 @@ func (h *SetupHandler) UploadFavicon(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load site settings"})
 		return
 	}
+
+	h.applyFontSettings(&settings)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":      "Favicon updated successfully",
@@ -260,6 +289,8 @@ func (h *SetupHandler) UploadLogo(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load site settings"})
 		return
 	}
+
+	h.applyFontSettings(&settings)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Logo updated successfully",

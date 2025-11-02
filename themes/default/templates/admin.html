@@ -25,6 +25,7 @@
     data-endpoint-themes="{{ index $endpoints "Themes" }}"
     data-endpoint-plugins="{{ index $endpoints "Plugins" }}"
     data-endpoint-social-links="{{ index $endpoints "SocialLinks" }}"
+    data-endpoint-fonts="{{ index $endpoints "Fonts" }}"
     data-endpoint-menu-items="{{ index $endpoints "MenuItems" }}"
     data-endpoint-users="{{ index $endpoints "Users" }}"
     data-endpoint-advertising-settings="{{ index $endpoints "Advertising" }}"
@@ -957,6 +958,115 @@
                     </fieldset>
                 </form>
             </div>
+            </section>
+
+            <section
+                id="admin-panel-fonts"
+                class="admin-panel"
+                data-panel="fonts"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Fonts"
+                data-nav-order="1.1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-fonts"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Typography</h2>
+                        <p class="admin-panel__description">
+                            Connect external font providers, manage loading order, and control which families are active across the site.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--single">
+                    <section class="admin-card admin-fonts" aria-labelledby="admin-fonts-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-fonts-title" class="admin-card__title">Font library</h3>
+                            <p class="admin-card__description">
+                                Enabled fonts are injected into the <code>&lt;head&gt;</code> of every page before custom stylesheets.
+                            </p>
+                        </div>
+                        <div class="admin-card__body">
+                            <p class="admin-fonts__hint">
+                                Drag the handles or use the move buttons to fine-tune the order in which fonts load.
+                            </p>
+                            <ul class="admin-fonts__list" data-role="font-list" aria-live="polite"></ul>
+                            <p class="admin-fonts__empty" data-role="font-empty" hidden>
+                                No fonts configured yet. Add your first font using the form on the right.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="admin-card admin-fonts__form-card" aria-labelledby="admin-fonts-form-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-fonts-form-title" class="admin-card__title">Add or edit font</h3>
+                            <p class="admin-card__description">
+                                Provide a descriptive name and paste the embed code exactly as supplied by your font provider.
+                            </p>
+                        </div>
+                        <form id="admin-font-form" class="admin-form admin-fonts__form" novalidate>
+                            <input type="hidden" name="id" />
+                            <label class="admin-form__label">
+                                Display name
+                                <input type="text" name="name" class="admin-form__input" required />
+                            </label>
+                            <label class="admin-form__label">
+                                Embed code
+                                <textarea
+                                    name="snippet"
+                                    rows="3"
+                                    class="admin-form__input"
+                                    required
+                                    placeholder="&lt;link href=\&quot;https://fonts.googleapis.com/...\&quot; rel=\&quot;stylesheet\&quot;&gt;"
+                                ></textarea>
+                                <small class="admin-card__description admin-form__hint">
+                                    Paste the <code>&lt;link&gt;</code>, <code>&lt;style&gt;</code>, or loader snippet exactly as instructed by the provider.
+                                </small>
+                            </label>
+                            <label class="admin-form__label">
+                                Preconnect domains
+                                <input
+                                    type="text"
+                                    name="preconnects"
+                                    class="admin-form__input"
+                                    placeholder="https://fonts.googleapis.com, https://fonts.gstatic.com"
+                                />
+                                <small class="admin-card__description admin-form__hint">
+                                    Separate multiple URLs with commas. Preconnect hints speed up font delivery for repeat visitors.
+                                </small>
+                            </label>
+                            <label class="admin-form__checkbox">
+                                <input type="checkbox" name="enabled" checked />
+                                <span class="checkbox__label">Enable font</span>
+                            </label>
+                            <label class="admin-form__label">
+                                Notes <span class="admin-form__hint">Optional</span>
+                                <textarea
+                                    name="notes"
+                                    rows="2"
+                                    class="admin-form__input"
+                                    placeholder="Usage guidance, pairing suggestions, or fallbacks."
+                                ></textarea>
+                            </label>
+                            <div class="admin-form__actions admin-fonts__form-actions">
+                                <button type="submit" class="admin-form__submit" data-role="font-submit">
+                                    Save font
+                                </button>
+                                <button
+                                    type="button"
+                                    class="admin-form__cancel"
+                                    data-role="font-cancel"
+                                    hidden
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
             </section>
 
             {{ if .LanguageFeatureEnabled }}

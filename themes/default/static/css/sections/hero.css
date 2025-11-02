@@ -29,10 +29,12 @@
 
 .page-view__section--hero .page-view__section-title {
     position: absolute;
-    color: var(--color-text-darker);
+    color: var(--color-primary-opposite);
     font-size: clamp(1.25rem, 5vw, 2.25rem);
     z-index: 1;
     margin: 0;
     text-align: center;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
+    font-family: var(--font-family-hero);
+    padding: var(--size-base) var(--size-md);
+    background-color: var(--color-primary);
 }

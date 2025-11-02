@@ -79,41 +79,43 @@ type repositoryContainer struct {
 }
 
 type serviceContainer struct {
-	Auth        *service.AuthService
-	Category    *blogservice.CategoryService
-	Post        *blogservice.PostService
-	Comment     *blogservice.CommentService
-	Search      *blogservice.SearchService
-	Upload      *service.UploadService
-	Backup      *service.BackupService
-	Page        *service.PageService
-	Setup       *service.SetupService
-	Language    *languageservice.LanguageService
-	Homepage    *service.HomepageService
-	SocialLink  *service.SocialLinkService
-	Menu        *service.MenuService
-	Theme       *service.ThemeService
-	Advertising *service.AdvertisingService
-	Plugin      *service.PluginService
+        Auth        *service.AuthService
+        Category    *blogservice.CategoryService
+        Post        *blogservice.PostService
+        Comment     *blogservice.CommentService
+        Search      *blogservice.SearchService
+        Upload      *service.UploadService
+        Backup      *service.BackupService
+        Page        *service.PageService
+        Setup       *service.SetupService
+        Language    *languageservice.LanguageService
+        Homepage    *service.HomepageService
+        SocialLink  *service.SocialLinkService
+        Menu        *service.MenuService
+        Theme       *service.ThemeService
+        Advertising *service.AdvertisingService
+        Plugin      *service.PluginService
+        Font        *service.FontService
 }
 
 type handlerContainer struct {
-	Auth        *handlers.AuthHandler
-	Category    *bloghandlers.CategoryHandler
-	Post        *bloghandlers.PostHandler
-	Comment     *bloghandlers.CommentHandler
-	Search      *bloghandlers.SearchHandler
-	Upload      *handlers.UploadHandler
-	Backup      *handlers.BackupHandler
-	Page        *handlers.PageHandler
-	Setup       *handlers.SetupHandler
-	Homepage    *handlers.HomepageHandler
-	SocialLink  *handlers.SocialLinkHandler
-	Menu        *handlers.MenuHandler
-	SEO         *handlers.SEOHandler
-	Theme       *handlers.ThemeHandler
-	Advertising *handlers.AdvertisingHandler
-	Plugin      *handlers.PluginHandler
+        Auth        *handlers.AuthHandler
+        Category    *bloghandlers.CategoryHandler
+        Post        *bloghandlers.PostHandler
+        Comment     *bloghandlers.CommentHandler
+        Search      *bloghandlers.SearchHandler
+        Upload      *handlers.UploadHandler
+        Backup      *handlers.BackupHandler
+        Page        *handlers.PageHandler
+        Setup       *handlers.SetupHandler
+        Homepage    *handlers.HomepageHandler
+        SocialLink  *handlers.SocialLinkHandler
+        Menu        *handlers.MenuHandler
+        SEO         *handlers.SEOHandler
+        Theme       *handlers.ThemeHandler
+        Advertising *handlers.AdvertisingHandler
+        Plugin      *handlers.PluginHandler
+        Font        *handlers.FontHandler
 }
 
 func New(cfg *config.Config, opts Options) (*Application, error) {
@@ -555,10 +557,11 @@ func (a *Application) initServices() {
 	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
 	var languageService *languageservice.LanguageService
 	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService, languageService)
-	homepageService := service.NewHomepageService(a.repositories.Setting, a.repositories.Page)
-	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
-	menuService := service.NewMenuService(a.repositories.Menu)
-	advertisingService := service.NewAdvertisingService(a.repositories.Setting)
+        homepageService := service.NewHomepageService(a.repositories.Setting, a.repositories.Page)
+        socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
+        menuService := service.NewMenuService(a.repositories.Menu)
+        advertisingService := service.NewAdvertisingService(a.repositories.Setting)
+        fontService := service.NewFontService(a.repositories.Setting)
 
 	themeService := service.NewThemeService(
 		a.repositories.Setting,
@@ -572,24 +575,25 @@ func (a *Application) initServices() {
 		a.pluginRuntime,
 	)
 
-	a.services = serviceContainer{
-		Auth:        authService,
-		Category:    nil,
-		Post:        nil,
-		Comment:     nil,
-		Search:      nil,
-		Upload:      uploadService,
-		Backup:      backupService,
-		Page:        pageService,
-		Setup:       setupService,
-		Language:    languageService,
-		Homepage:    homepageService,
-		SocialLink:  socialLinkService,
-		Menu:        menuService,
-		Theme:       themeService,
-		Advertising: advertisingService,
-		Plugin:      pluginService,
-	}
+        a.services = serviceContainer{
+                Auth:        authService,
+                Category:    nil,
+                Post:        nil,
+                Comment:     nil,
+                Search:      nil,
+                Upload:      uploadService,
+                Backup:      backupService,
+                Page:        pageService,
+                Setup:       setupService,
+                Language:    languageService,
+                Homepage:    homepageService,
+                SocialLink:  socialLinkService,
+                Menu:        menuService,
+                Theme:       themeService,
+                Advertising: advertisingService,
+                Plugin:      pluginService,
+                Font:        fontService,
+        }
 
 	backupService.InitializeAutoBackups()
 }
@@ -597,52 +601,55 @@ func (a *Application) initServices() {
 func (a *Application) initHandlers() error {
 	commentGuard := bloghandlers.NewCommentGuard(a.cfg)
 
-	a.handlers = handlerContainer{
-		Auth:        handlers.NewAuthHandler(a.services.Auth),
-		Category:    bloghandlers.NewCategoryHandler(nil),
-		Post:        bloghandlers.NewPostHandler(nil),
-		Comment:     bloghandlers.NewCommentHandler(nil, a.services.Auth, commentGuard),
-		Search:      bloghandlers.NewSearchHandler(nil),
-		Upload:      handlers.NewUploadHandler(a.services.Upload),
-		Backup:      handlers.NewBackupHandler(a.services.Backup),
-		Page:        handlers.NewPageHandler(a.services.Page),
-		Setup:       handlers.NewSetupHandler(a.services.Setup, a.cfg),
-		Homepage:    handlers.NewHomepageHandler(a.services.Homepage),
-		SocialLink:  handlers.NewSocialLinkHandler(a.services.SocialLink),
-		Menu:        handlers.NewMenuHandler(a.services.Menu),
-		SEO:         handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.services.Language, a.cfg),
-		Advertising: handlers.NewAdvertisingHandler(a.services.Advertising),
-		Plugin:      handlers.NewPluginHandler(a.services.Plugin),
-	}
+        a.handlers = handlerContainer{
+                Auth:        handlers.NewAuthHandler(a.services.Auth),
+                Category:    bloghandlers.NewCategoryHandler(nil),
+                Post:        bloghandlers.NewPostHandler(nil),
+                Comment:     bloghandlers.NewCommentHandler(nil, a.services.Auth, commentGuard),
+                Search:      bloghandlers.NewSearchHandler(nil),
+                Upload:      handlers.NewUploadHandler(a.services.Upload),
+                Backup:      handlers.NewBackupHandler(a.services.Backup),
+                Page:        handlers.NewPageHandler(a.services.Page),
+                Setup:       handlers.NewSetupHandler(a.services.Setup, a.services.Font, a.cfg),
+                Homepage:    handlers.NewHomepageHandler(a.services.Homepage),
+                SocialLink:  handlers.NewSocialLinkHandler(a.services.SocialLink),
+                Menu:        handlers.NewMenuHandler(a.services.Menu),
+                SEO:         handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.services.Language, a.cfg),
+                Advertising: handlers.NewAdvertisingHandler(a.services.Advertising),
+                Plugin:      handlers.NewPluginHandler(a.services.Plugin),
+        }
 
-	templateHandler, err := handlers.NewTemplateHandler(
-		nil,
-		a.services.Page,
-		a.services.Auth,
-		nil,
-		nil,
-		a.services.Setup,
-		a.services.Language,
-		a.services.Homepage,
-		nil,
-		a.services.SocialLink,
-		a.services.Menu,
-		a.services.Advertising,
-		a.cfg,
-		a.themeManager,
-	)
+        templateHandler, err := handlers.NewTemplateHandler(
+                nil,
+                a.services.Page,
+                a.services.Auth,
+                nil,
+                nil,
+                a.services.Setup,
+                a.services.Language,
+                a.services.Homepage,
+                nil,
+                a.services.SocialLink,
+                a.services.Menu,
+                a.services.Font,
+                a.services.Advertising,
+                a.cfg,
+                a.themeManager,
+        )
 	if err != nil {
 		return fmt.Errorf("failed to initialize template handler: %w", err)
 	}
 
 	a.templateHandler = templateHandler
 
-	a.handlers.Theme = handlers.NewThemeHandler(
-		a.services.Theme,
-		a.services.Page,
-		a.services.Menu,
-		nil,
-		a.repositories.User,
+        a.handlers.Font = handlers.NewFontHandler(a.services.Font)
+
+        a.handlers.Theme = handlers.NewThemeHandler(
+                a.services.Theme,
+                a.services.Page,
+                a.services.Menu,
+                nil,
+                a.repositories.User,
 		a.templateHandler,
 	)
 	return nil
@@ -866,16 +873,22 @@ func (a *Application) initRouter() error {
 			settings.GET("/settings/advertising", a.handlers.Advertising.Get)
 			settings.PUT("/settings/advertising", a.handlers.Advertising.Update)
 
-			settings.GET("/social-links", a.handlers.SocialLink.List)
-			settings.POST("/social-links", a.handlers.SocialLink.Create)
-			settings.PUT("/social-links/:id", a.handlers.SocialLink.Update)
-			settings.DELETE("/social-links/:id", a.handlers.SocialLink.Delete)
+                        settings.GET("/social-links", a.handlers.SocialLink.List)
+                        settings.POST("/social-links", a.handlers.SocialLink.Create)
+                        settings.PUT("/social-links/:id", a.handlers.SocialLink.Update)
+                        settings.DELETE("/social-links/:id", a.handlers.SocialLink.Delete)
 
-			settings.GET("/menu-items", a.handlers.Menu.List)
-			settings.POST("/menu-items", a.handlers.Menu.Create)
-			settings.PUT("/menu-items/reorder", a.handlers.Menu.Reorder)
-			settings.PUT("/menu-items/:id", a.handlers.Menu.Update)
-			settings.DELETE("/menu-items/:id", a.handlers.Menu.Delete)
+                        settings.GET("/settings/fonts", a.handlers.Font.List)
+                        settings.POST("/settings/fonts", a.handlers.Font.Create)
+                        settings.PUT("/settings/fonts/:id", a.handlers.Font.Update)
+                        settings.DELETE("/settings/fonts/:id", a.handlers.Font.Delete)
+                        settings.PUT("/settings/fonts/reorder", a.handlers.Font.Reorder)
+
+                        settings.GET("/menu-items", a.handlers.Menu.List)
+                        settings.POST("/menu-items", a.handlers.Menu.Create)
+                        settings.PUT("/menu-items/reorder", a.handlers.Menu.Reorder)
+                        settings.PUT("/menu-items/:id", a.handlers.Menu.Update)
+                        settings.DELETE("/menu-items/:id", a.handlers.Menu.Delete)
 
 			settings.GET("/stats", handlers.GetStatistics(a.db))
 

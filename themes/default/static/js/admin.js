@@ -325,6 +325,7 @@
             themes: root.dataset.endpointThemes,
             plugins: root.dataset.endpointPlugins,
             socialLinks: root.dataset.endpointSocialLinks,
+            fonts: root.dataset.endpointFonts,
             menuItems: root.dataset.endpointMenuItems,
             users: root.dataset.endpointUsers,
             advertising: root.dataset.endpointAdvertisingSettings,
@@ -636,6 +637,11 @@
         const socialList = root.querySelector('[data-role="social-list"]');
         const socialEmpty = root.querySelector('[data-role="social-empty"]');
         const socialForm = document.getElementById('admin-social-form');
+        const fontList = root.querySelector('[data-role="font-list"]');
+        const fontEmpty = root.querySelector('[data-role="font-empty"]');
+        const fontForm = document.getElementById('admin-font-form');
+        const fontSubmitButton = fontForm?.querySelector('[data-role="font-submit"]');
+        const fontCancelButton = fontForm?.querySelector('[data-role="font-cancel"]');
         const menuList = root.querySelector('[data-role="menu-list"]');
         const menuEmpty = root.querySelector('[data-role="menu-empty"]');
         const menuForm = document.getElementById('admin-menu-form');
@@ -827,11 +833,14 @@
             themes: [],
             plugins: [],
             socialLinks: [],
+            fonts: [],
             menuItems: [],
             activeMenuLocation: 'header',
             menuLocations: new Set(defaultMenuLocationValues),
             isReorderingMenu: false,
+            isReorderingFonts: false,
             editingSocialLinkId: '',
+            editingFontId: '',
             editingMenuItemId: '',
             defaultCategoryId: '',
             site: null,
@@ -5741,6 +5750,486 @@
             }
         };
 
+        const normaliseFontEntry = (font) => {
+            const idValue = font?.id ?? font?.ID ?? font?.Id ?? '';
+            const preconnectsValue = font?.preconnects ?? font?.Preconnects ?? [];
+            const orderValue = Number.parseInt(font?.order ?? font?.Order ?? 0, 10);
+            return {
+                id: idValue ? String(idValue) : '',
+                name: String(font?.name ?? font?.Name ?? 'Font').trim() || 'Font',
+                snippet: String(font?.snippet ?? font?.Snippet ?? '').trim(),
+                preconnects: Array.isArray(preconnectsValue)
+                    ? preconnectsValue
+                          .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+                          .filter(Boolean)
+                    : [],
+                enabled:
+                    font?.enabled !== undefined
+                        ? Boolean(font.enabled)
+                        : font?.Enabled !== undefined
+                          ? Boolean(font.Enabled)
+                          : true,
+                notes: String(font?.notes ?? font?.Notes ?? '').trim(),
+                order: Number.isFinite(orderValue) ? orderValue : 0,
+            };
+        };
+
+        const ensureFontOrder = (fonts) => {
+            if (!Array.isArray(fonts)) {
+                return [];
+            }
+            const sorted = [...fonts].sort((a, b) => {
+                const aOrder = Number.isFinite(a.order) ? a.order : 0;
+                const bOrder = Number.isFinite(b.order) ? b.order : 0;
+                if (aOrder === bOrder) {
+                    return (a.name || '').localeCompare(b.name || '');
+                }
+                return aOrder - bOrder;
+            });
+            sorted.forEach((font, index) => {
+                font.order = index + 1;
+            });
+            return sorted;
+        };
+
+        const formatPreconnectSummary = (values) => {
+            if (!Array.isArray(values) || !values.length) {
+                return 'No preconnect hints';
+            }
+            return values.join(', ');
+        };
+
+        const renderFonts = () => {
+            if (!fontList) {
+                return;
+            }
+
+            fontList
+                .querySelectorAll('[data-role="font-item"]')
+                .forEach((item) => item.remove());
+
+            const fonts = ensureFontOrder(state.fonts);
+            state.fonts = fonts;
+
+            if (!fonts.length) {
+                if (fontEmpty) {
+                    fontEmpty.hidden = false;
+                }
+                return;
+            }
+
+            if (fontEmpty) {
+                fontEmpty.hidden = true;
+            }
+
+            fonts.forEach((font, index) => {
+                const item = document.createElement('li');
+                item.className = 'admin-fonts__item';
+                item.dataset.role = 'font-item';
+                item.dataset.id = font.id;
+                item.dataset.order = String(index + 1);
+
+                const orderColumn = document.createElement('div');
+                orderColumn.className = 'admin-fonts__order';
+
+                const orderNumber = document.createElement('span');
+                orderNumber.className = 'admin-fonts__order-number';
+                orderNumber.textContent = String(index + 1);
+                orderColumn.appendChild(orderNumber);
+
+                const orderButtons = document.createElement('div');
+                orderButtons.className = 'admin-fonts__order-buttons';
+
+                const moveUpButton = document.createElement('button');
+                moveUpButton.type = 'button';
+                moveUpButton.className = 'admin-fonts__order-button';
+                moveUpButton.dataset.action = 'font-move-up';
+                moveUpButton.textContent = '▲';
+                moveUpButton.title = 'Move up';
+                if (index === 0 || state.isReorderingFonts) {
+                    moveUpButton.disabled = true;
+                }
+                orderButtons.appendChild(moveUpButton);
+
+                const moveDownButton = document.createElement('button');
+                moveDownButton.type = 'button';
+                moveDownButton.className = 'admin-fonts__order-button';
+                moveDownButton.dataset.action = 'font-move-down';
+                moveDownButton.textContent = '▼';
+                moveDownButton.title = 'Move down';
+                if (index === fonts.length - 1 || state.isReorderingFonts) {
+                    moveDownButton.disabled = true;
+                }
+                orderButtons.appendChild(moveDownButton);
+
+                orderColumn.appendChild(orderButtons);
+                item.appendChild(orderColumn);
+
+                const details = document.createElement('div');
+                details.className = 'admin-fonts__details';
+
+                const name = document.createElement('span');
+                name.className = 'admin-fonts__name';
+                name.textContent = font.name || 'Font';
+                details.appendChild(name);
+
+                const snippet = document.createElement('pre');
+                snippet.className = 'admin-fonts__snippet';
+                snippet.textContent = font.snippet || '—';
+                details.appendChild(snippet);
+
+                const preconnectInfo = document.createElement('p');
+                preconnectInfo.className = 'admin-fonts__meta';
+                preconnectInfo.textContent = `Preconnect: ${formatPreconnectSummary(font.preconnects)}`;
+                details.appendChild(preconnectInfo);
+
+                if (font.notes) {
+                    const notes = document.createElement('p');
+                    notes.className = 'admin-fonts__meta admin-fonts__meta--notes';
+                    notes.textContent = font.notes;
+                    details.appendChild(notes);
+                }
+
+                item.appendChild(details);
+
+                const controls = document.createElement('div');
+                controls.className = 'admin-fonts__controls';
+
+                const toggleLabel = document.createElement('label');
+                toggleLabel.className = 'admin-fonts__toggle';
+
+                const toggle = document.createElement('input');
+                toggle.type = 'checkbox';
+                toggle.dataset.action = 'font-toggle';
+                toggle.checked = Boolean(font.enabled);
+                toggleLabel.appendChild(toggle);
+
+                const toggleText = document.createElement('span');
+                toggleText.textContent = 'Enabled';
+                toggleLabel.appendChild(toggleText);
+
+                controls.appendChild(toggleLabel);
+
+                const actions = document.createElement('div');
+                actions.className = 'admin-fonts__actions';
+
+                const editButton = document.createElement('button');
+                editButton.type = 'button';
+                editButton.className = 'admin-fonts__button';
+                editButton.dataset.action = 'font-edit';
+                editButton.textContent = 'Edit';
+                actions.appendChild(editButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'admin-fonts__button admin-fonts__button--danger';
+                deleteButton.dataset.action = 'font-delete';
+                deleteButton.textContent = 'Delete';
+                actions.appendChild(deleteButton);
+
+                controls.appendChild(actions);
+                item.appendChild(controls);
+
+                fontList.appendChild(item);
+            });
+        };
+
+        const resetFontForm = () => {
+            if (!fontForm) {
+                return;
+            }
+            fontForm.reset();
+            const idField = fontForm.querySelector('input[name="id"]');
+            if (idField) {
+                idField.value = '';
+            }
+            state.editingFontId = '';
+            if (fontSubmitButton) {
+                fontSubmitButton.textContent = 'Save font';
+            }
+            if (fontCancelButton) {
+                fontCancelButton.hidden = true;
+                fontCancelButton.disabled = false;
+            }
+        };
+
+        const parsePreconnectInput = (value) => {
+            if (typeof value !== 'string') {
+                return [];
+            }
+            return value
+                .split(/[,\n]+/)
+                .map((entry) => entry.trim())
+                .filter(Boolean);
+        };
+
+        const populatePreconnectInput = (values) => {
+            if (!Array.isArray(values) || !fontForm) {
+                return '';
+            }
+            return values.join(', ');
+        };
+
+        const startEditFont = (font) => {
+            if (!fontForm || !font) {
+                return;
+            }
+            const entry = normaliseFontEntry(font);
+            const idField = fontForm.querySelector('input[name="id"]');
+            const nameField = fontForm.querySelector('input[name="name"]');
+            const snippetField = fontForm.querySelector('textarea[name="snippet"]');
+            const preconnectField = fontForm.querySelector('input[name="preconnects"]');
+            const enabledField = fontForm.querySelector('input[name="enabled"]');
+            const notesField = fontForm.querySelector('textarea[name="notes"]');
+
+            if (idField) {
+                idField.value = entry.id;
+            }
+            if (nameField) {
+                nameField.value = entry.name;
+            }
+            if (snippetField) {
+                snippetField.value = entry.snippet;
+            }
+            if (preconnectField) {
+                preconnectField.value = populatePreconnectInput(entry.preconnects);
+            }
+            if (enabledField) {
+                enabledField.checked = Boolean(entry.enabled);
+            }
+            if (notesField) {
+                notesField.value = entry.notes;
+            }
+
+            state.editingFontId = entry.id;
+
+            if (fontSubmitButton) {
+                fontSubmitButton.textContent = 'Update font';
+            }
+            if (fontCancelButton) {
+                fontCancelButton.hidden = false;
+                fontCancelButton.disabled = false;
+            }
+
+            bringFormIntoView(fontForm);
+        };
+
+        const loadFonts = async () => {
+            if (!endpoints.fonts) {
+                return;
+            }
+            try {
+                const response = await apiRequest(endpoints.fonts);
+                const fonts = Array.isArray(response?.fonts) ? response.fonts : [];
+                state.fonts = ensureFontOrder(fonts.map(normaliseFontEntry));
+                renderFonts();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleFontFormSubmit = async (event) => {
+            event.preventDefault();
+            if (!fontForm || !endpoints.fonts) {
+                return;
+            }
+
+            const nameField = fontForm.querySelector('input[name="name"]');
+            const snippetField = fontForm.querySelector('textarea[name="snippet"]');
+            const preconnectField = fontForm.querySelector('input[name="preconnects"]');
+            const enabledField = fontForm.querySelector('input[name="enabled"]');
+            const notesField = fontForm.querySelector('textarea[name="notes"]');
+
+            const name = nameField ? nameField.value.trim() : '';
+            const snippet = snippetField ? snippetField.value.trim() : '';
+            const preconnects = parsePreconnectInput(preconnectField?.value || '');
+            const enabled = enabledField ? Boolean(enabledField.checked) : true;
+            const notes = notesField ? notesField.value.trim() : '';
+
+            if (!snippet) {
+                showAlert('Please provide the font embed code.', 'error');
+                focusFirstField(fontForm);
+                return;
+            }
+
+            const payload = {
+                name: name || 'Font',
+                snippet,
+                preconnects,
+                enabled,
+                notes,
+            };
+
+            const isEditing = Boolean(state.editingFontId);
+            const endpoint = isEditing
+                ? `${endpoints.fonts}/${state.editingFontId}`
+                : endpoints.fonts;
+            const method = isEditing ? 'PUT' : 'POST';
+
+            disableForm(fontForm, true);
+            clearAlert();
+
+            try {
+                await apiRequest(endpoint, {
+                    method,
+                    body: JSON.stringify(payload),
+                });
+                await loadFonts();
+                showAlert(
+                    isEditing ? 'Font updated successfully.' : 'Font added successfully.',
+                    'success'
+                );
+                resetFontForm();
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(fontForm, false);
+            }
+        };
+
+        const handleFontCancelEdit = () => {
+            resetFontForm();
+        };
+
+        const persistFontOrder = async () => {
+            if (!endpoints.fonts) {
+                return;
+            }
+            const items = ensureFontOrder(state.fonts).map((font, index) => ({
+                id: font.id,
+                order: index + 1,
+            }));
+            await apiRequest(`${endpoints.fonts}/reorder`, {
+                method: 'PUT',
+                body: JSON.stringify({ items }),
+            });
+        };
+
+        const moveFont = async (id, direction) => {
+            if (!Array.isArray(state.fonts) || state.isReorderingFonts) {
+                return;
+            }
+
+            const index = state.fonts.findIndex((font) => String(font.id) === String(id));
+            if (index === -1) {
+                return;
+            }
+
+            const targetIndex = direction === 'up' ? index - 1 : index + 1;
+            if (targetIndex < 0 || targetIndex >= state.fonts.length) {
+                return;
+            }
+
+            state.isReorderingFonts = true;
+
+            const fonts = [...state.fonts];
+            const [moved] = fonts.splice(index, 1);
+            fonts.splice(targetIndex, 0, moved);
+            state.fonts = ensureFontOrder(fonts);
+            renderFonts();
+
+            try {
+                await persistFontOrder();
+                showAlert('Font order updated.', 'success');
+            } catch (error) {
+                handleRequestError(error);
+                await loadFonts();
+            } finally {
+                state.isReorderingFonts = false;
+            }
+        };
+
+        const handleFontListClick = async (event) => {
+            const actionButton = event.target?.closest('[data-action]');
+            if (!actionButton || !fontList || !endpoints.fonts) {
+                return;
+            }
+
+            const listItem = actionButton.closest('[data-role="font-item"]');
+            const id = listItem?.dataset?.id;
+            if (!id) {
+                return;
+            }
+
+            const action = actionButton.dataset.action;
+            if (action === 'font-edit') {
+                const font = state.fonts.find((entry) => String(entry.id) === String(id));
+                if (font) {
+                    startEditFont(font);
+                }
+                return;
+            }
+
+            if (action === 'font-delete') {
+                if (!window.confirm('Delete this font?')) {
+                    return;
+                }
+                disableForm(fontForm, true);
+                clearAlert();
+                try {
+                    await apiRequest(`${endpoints.fonts}/${id}`, {
+                        method: 'DELETE',
+                    });
+                    showAlert('Font deleted.', 'success');
+                    if (state.editingFontId === id) {
+                        resetFontForm();
+                    }
+                    await loadFonts();
+                } catch (error) {
+                    handleRequestError(error);
+                } finally {
+                    disableForm(fontForm, false);
+                }
+                return;
+            }
+
+            if (action === 'font-move-up') {
+                await moveFont(id, 'up');
+                return;
+            }
+
+            if (action === 'font-move-down') {
+                await moveFont(id, 'down');
+            }
+        };
+
+        const handleFontListChange = async (event) => {
+            const checkbox = event.target?.closest('input[data-action="font-toggle"]');
+            if (!checkbox || !endpoints.fonts) {
+                return;
+            }
+
+            const listItem = checkbox.closest('[data-role="font-item"]');
+            const id = listItem?.dataset?.id;
+            if (!id) {
+                return;
+            }
+
+            checkbox.disabled = true;
+            clearAlert();
+            const previous = !checkbox.checked;
+
+            try {
+                await apiRequest(`${endpoints.fonts}/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ enabled: Boolean(checkbox.checked) }),
+                });
+                const font = state.fonts.find((entry) => String(entry.id) === String(id));
+                if (font) {
+                    font.enabled = Boolean(checkbox.checked);
+                }
+                showAlert(
+                    checkbox.checked ? 'Font enabled.' : 'Font disabled.',
+                    'success'
+                );
+            } catch (error) {
+                checkbox.checked = previous;
+                handleRequestError(error);
+            } finally {
+                checkbox.disabled = false;
+            }
+        };
+
         const getMenuItemId = (item) => {
             if (!item) {
                 return NaN;
@@ -7726,6 +8215,10 @@
         socialForm?.addEventListener('submit', handleSocialFormSubmit);
         socialCancelButton?.addEventListener('click', handleSocialCancelEdit);
         socialList?.addEventListener('click', handleSocialListClick);
+        fontForm?.addEventListener('submit', handleFontFormSubmit);
+        fontCancelButton?.addEventListener('click', handleFontCancelEdit);
+        fontList?.addEventListener('click', handleFontListClick);
+        fontList?.addEventListener('change', handleFontListChange);
         menuForm?.addEventListener('submit', handleMenuFormSubmit);
         menuCancelButton?.addEventListener('click', handleMenuCancelEdit);
         menuLocationField?.addEventListener('change', handleMenuLocationChange);
@@ -7758,6 +8251,7 @@
         loadPlugins();
         loadThemes();
         loadSocialLinks();
+        loadFonts();
         loadMenuItems();
     };
 

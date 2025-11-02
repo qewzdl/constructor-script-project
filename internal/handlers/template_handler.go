@@ -33,6 +33,7 @@ type TemplateHandler struct {
 	socialLinkService  *service.SocialLinkService
 	menuService        *service.MenuService
 	advertisingService *service.AdvertisingService
+	fontService        *service.FontService
 	templates          *template.Template
 	templatesMu        sync.RWMutex
 	currentTheme       string
@@ -54,6 +55,7 @@ func NewTemplateHandler(
 	categoryService *blogservice.CategoryService,
 	socialLinkService *service.SocialLinkService,
 	menuService *service.MenuService,
+	fontService *service.FontService,
 	advertisingService *service.AdvertisingService,
 	cfg *config.Config,
 	themeManager *theme.Manager,
@@ -74,6 +76,7 @@ func NewTemplateHandler(
 		homepageService:    homepageService,
 		socialLinkService:  socialLinkService,
 		menuService:        menuService,
+		fontService:        fontService,
 		advertisingService: advertisingService,
 		themeManager:       themeManager,
 		config:             cfg,

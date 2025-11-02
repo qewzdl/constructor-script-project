@@ -77,12 +77,15 @@
         <link rel="icon" href="{{ .Site.Favicon }}" />
         {{ end }}
 
-        <!-- Preconnect to Google Fonts for faster font loading -->
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <!-- Font performance hints -->
+        {{ range .Site.FontPreconnects }}
+        <link rel="preconnect" href="{{ . }}" crossorigin />
+        {{ end }}
 
-        <!-- Load Outfit font family with multiple weights -->
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+        <!-- External font includes -->
+        {{ range .Site.Fonts }}
+        {{ if .Snippet }}{{ safe .Snippet }}{{ end }}
+        {{ end }}
 
         {{ $ads := .Advertising }}
         {{ if and $ads ( $ads.Enabled ) }}

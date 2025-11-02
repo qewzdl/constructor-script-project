@@ -934,6 +934,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"Themes":         "/api/v1/admin/themes",
 		"Plugins":        "/api/v1/admin/plugins",
 		"SocialLinks":    "/api/v1/admin/social-links",
+		"Fonts":          "/api/v1/admin/settings/fonts",
 		"MenuItems":      "/api/v1/admin/menu-items",
 		"Users":          "/api/v1/admin/users",
 		"Advertising":    "/api/v1/admin/settings/advertising",

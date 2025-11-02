@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/lang"
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
@@ -58,6 +59,8 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 			"FooterMenuItems":    footerMenu,
 			"DefaultLanguage":    site.DefaultLanguage,
 			"SupportedLanguages": site.SupportedLanguages,
+			"Fonts":              site.Fonts,
+			"FontPreconnects":    site.FontPreconnects,
 		},
 		"SearchQuery": "",
 		"SearchType":  "all",
@@ -94,6 +97,20 @@ func (h *TemplateHandler) siteSettings() models.SiteSettings {
 			settings.MenuItems = items
 		}
 	}
+
+	fonts := []models.FontAsset{}
+	if h.fontService != nil {
+		if list, err := h.fontService.ListActive(); err != nil {
+			logger.Error(err, "Failed to load fonts", nil)
+			fonts = service.DefaultFontAssets()
+		} else {
+			fonts = list
+		}
+	} else {
+		fonts = service.DefaultFontAssets()
+	}
+	settings.Fonts = fonts
+	settings.FontPreconnects = service.CollectFontPreconnects(fonts)
 
 	if strings.TrimSpace(settings.DefaultLanguage) == "" || len(settings.SupportedLanguages) == 0 {
 		if h.languageService != nil {
