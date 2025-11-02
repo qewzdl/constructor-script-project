@@ -1126,6 +1126,12 @@ body.post-image-modal-open .post-progress {
     text-decoration: none;
 }
 
+.post__related-card * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .post__related-image {
     width: 100%;
     height: 180px;
