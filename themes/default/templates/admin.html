@@ -122,10 +122,10 @@
                     </div>
                 </header>
                 <div class="admin-panel__body admin-panel__body--single">
-                    <section class="admin__section" aria-labelledby="admin-metrics-title">
-                        <div class="admin__section-header">
-                            <h3 id="admin-metrics-title" class="admin__section-title">At a glance</h3>
-                            <p class="admin__section-description">
+                    <section class="admin-card" aria-labelledby="admin-metrics-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-metrics-title" class="admin-card__title">At a glance</h3>
+                            <p class="admin-card__description">
                                 Keep track of totals alongside how many items were created in the last day and week.
                             </p>
                         </div>
@@ -180,10 +180,10 @@
                             </article>
                         </div>
                     </section>
-                    <section class="admin__section admin__section--analytics" aria-labelledby="admin-analytics-title">
-                        <div class="admin__section-header">
-                            <h3 id="admin-analytics-title" class="admin__section-title">Publishing trend</h3>
-                            <p class="admin__section-description">
+                    <section class="admin-card" aria-labelledby="admin-analytics-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-analytics-title" class="admin-card__title">Publishing trend</h3>
+                            <p class="admin-card__description">
                                 Review daily posts, comments, views, and new users over the last month to understand how activity is evolving.
                             </p>
                         </div>
@@ -269,8 +269,8 @@
                 </div>
                 <div class="admin-panel__details">
                     <form id="admin-post-form" class="admin-form" novalidate>
-                        <fieldset class="admin-form__fieldset">
-                            <legend class="admin-form__legend">Post details</legend>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Post details</legend>
                             <label class="admin-form__label">
                                 Title
                                 <input type="text" name="title" required class="admin-form__input" />
@@ -298,14 +298,14 @@
                                         Browse uploads
                                     </button>
                                 </div>
-                                <small class="admin-form__hint">
+                                <small class="admin-card__description admin-form__hint">
                                     Optional cover image displayed on listings and the post page.
                                 </small>
                             </label>
                             <input type="hidden" name="content" />
-                            <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
-                                <legend class="admin-form__legend">Structured sections</legend>
-                                <p class="admin-form__hint">
+                            <fieldset class="admin-card admin-form__fieldset admin-form__fieldset--sections">
+                                <legend class="admin-card__title admin-form__legend">Structured sections</legend>
+                                <p class="admin-card__description admin-form__hint">
                                     Build rich layouts by combining reusable sections. Use the controls to reorder sections and
                                     adjust their content before publishing.
                                 </p>
@@ -334,7 +334,7 @@
                                     list="admin-post-tags-list"
                                     autocomplete="off"
                                 />
-                                <small class="admin-form__hint">Separate tags with commas. Existing tags appear as suggestions.</small>
+                                <small class="admin-card__description admin-form__hint">Separate tags with commas. Existing tags appear as suggestions.</small>
                                 <datalist id="admin-post-tags-list"></datalist>
                             </label>
                             <label class="admin-form__label">
@@ -345,11 +345,11 @@
                                     class="admin-form__input"
                                     step="60"
                                 />
-                                <small class="admin-form__hint">
+                                <small class="admin-card__description admin-form__hint">
                                     Leave empty to publish immediately. Future times schedule the post for automatic release.
                                 </small>
                             </label>
-                            <p class="admin-form__hint" data-role="post-published-at" hidden></p>
+                            <p class="admin-card__description admin-form__hint" data-role="post-published-at" hidden></p>
                             <div class="admin-form__actions">
                                 <button
                                     type="submit"
@@ -506,8 +506,8 @@
                 </div>
                 <div class="admin-panel__details">
                     <form id="admin-page-form" class="admin-form" novalidate>
-                        <fieldset class="admin-form__fieldset">
-                            <legend class="admin-form__legend">Page details</legend>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Page details</legend>
                             <label class="admin-form__label">
                                 Title
                                 <input type="text" name="title" required class="admin-form__input" />
@@ -515,7 +515,7 @@
                             <label class="admin-form__label">
                                 Public path
                                 <input type="text" name="path" class="admin-form__input" placeholder="e.g. /about" />
-                                <small class="admin-form__hint">Paths should start with a forward slash. Leave blank to use the default based on the slug.</small>
+                                <small class="admin-card__description admin-form__hint">Paths should start with a forward slash. Leave blank to use the default based on the slug.</small>
                             </label>
                             <label class="admin-form__label">
                                 Custom slug
@@ -533,13 +533,13 @@
                                     class="admin-form__input"
                                     placeholder="Supports HTML snippets for flexible layouts"
                                 ></textarea>
-                                <small class="admin-form__hint">
+                                <small class="admin-card__description admin-form__hint">
                                     Use this area for free-form content. Leave it blank to rely solely on structured sections.
                                 </small>
                             </label>
-                            <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
-                                <legend class="admin-form__legend">Structured sections</legend>
-                                <p class="admin-form__hint">
+                            <fieldset class="admin-card admin-form__fieldset admin-form__fieldset--sections">
+                                <legend class="admin-card__title admin-form__legend">Structured sections</legend>
+                                <p class="admin-card__description admin-form__hint">
                                     Combine headings, paragraphs, lists, and media into reusable sections. Sections are rendered
                                     after the free-form body content.
                                 </p>
@@ -569,11 +569,11 @@
                                     class="admin-form__input"
                                     step="60"
                                 />
-                                <small class="admin-form__hint">
+                                <small class="admin-card__description admin-form__hint">
                                     Leave empty to publish immediately. Future times schedule the page for automatic release.
                                 </small>
                             </label>
-                            <p class="admin-form__hint" data-role="page-published-at" hidden></p>
+                            <p class="admin-card__description admin-form__hint" data-role="page-published-at" hidden></p>
                             <div class="admin-form__actions">
                                 <button
                                     type="submit"
@@ -655,8 +655,8 @@
                 </div>
                 <div class="admin-panel__details">
                     <form id="admin-category-form" class="admin-form" novalidate>
-                        <fieldset class="admin-form__fieldset">
-                            <legend class="admin-form__legend">Category details</legend>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Category details</legend>
                             <label class="admin-form__label">
                                 Name
                                 <input type="text" name="name" required class="admin-form__input" />
@@ -737,9 +737,9 @@
                 </div>
                 <div class="admin-panel__details">
                     <form id="admin-user-form" class="admin-form" novalidate>
-                        <fieldset class="admin-form__fieldset">
-                            <legend class="admin-form__legend">Account overview</legend>
-                            <p class="admin-form__hint" data-role="user-hint">
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Account overview</legend>
+                            <p class="admin-card__description admin-form__hint" data-role="user-hint">
                                 Select a user from the list to view their account details.
                             </p>
                             <label class="admin-form__label">
@@ -834,8 +834,8 @@
             </header>
             <div class="admin-panel__body">
                 <form id="admin-settings-form" class="admin-form" novalidate>
-                    <fieldset class="admin-form__fieldset">
-                        <legend class="admin-form__legend">Site details</legend>
+                    <fieldset class="admin-card admin-form__fieldset">
+                        <legend class="admin-card__title admin-form__legend">Site details</legend>
                         <label class="admin-form__label">
                             Site name
                             <input type="text" name="name" required class="admin-form__input" />
@@ -847,7 +847,7 @@
                         <label class="admin-form__label">
                             Site URL
                             <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
-                            <small class="admin-form__hint">Used to generate canonical links and social sharing metadata.</small>
+                            <small class="admin-card__description admin-form__hint">Used to generate canonical links and social sharing metadata.</small>
                         </label>
                         <label class="admin-form__label">
                             Unused tag retention (hours)
@@ -859,7 +859,7 @@
                                 required
                                 class="admin-form__input"
                             />
-                            <small class="admin-form__hint">
+                            <small class="admin-card__description admin-form__hint">
                                 Tags that are not attached to any posts will be removed after the specified number of hours.
                             </small>
                         </label>
@@ -869,8 +869,8 @@
                             </button>
                         </div>
                     </fieldset>
-                    <fieldset class="admin-form__fieldset">
-                        <legend class="admin-form__legend">Brand assets</legend>
+                    <fieldset class="admin-card admin-form__fieldset">
+                        <legend class="admin-card__title admin-form__legend">Brand assets</legend>
                         <label class="admin-form__label">
                             Favicon
                             <input
@@ -899,7 +899,7 @@
                                     Browse uploads
                                 </button>
                             </div>
-                            <small class="admin-form__hint">
+                            <small class="admin-card__description admin-form__hint">
                                 Accepts relative or absolute URLs. Leave blank to use the default icon. Uploads support ICO,
                                 PNG, JPG, GIF or WEBP files.
                             </small>
@@ -941,7 +941,7 @@
                                     Browse uploads
                                 </button>
                             </div>
-                            <small class="admin-form__hint">
+                            <small class="admin-card__description admin-form__hint">
                                 Accepts relative or absolute URLs. Leave blank to use the default logo. Uploads support common image formats such as SVG, PNG, JPG and WEBP.
                             </small>
                             <div class="admin-form__logo-preview" data-role="logo-preview" hidden>
@@ -983,8 +983,8 @@
                     </header>
                     <div class="admin-panel__body admin-panel__body--single">
                         <form id="admin-language-form" class="admin-form" novalidate>
-                            <fieldset class="admin-form__fieldset">
-                                <legend class="admin-form__legend">Language configuration</legend>
+                            <fieldset class="admin-card admin-form__fieldset">
+                                <legend class="admin-card__title admin-form__legend">Language configuration</legend>
                                 <label class="admin-form__label" for="admin-default-language">
                                     Default language
                                     <input
@@ -999,7 +999,7 @@
                                         data-role="language-default"
                                     />
                                     <datalist id="admin-language-suggestions" data-role="language-suggestions"></datalist>
-                                    <small class="admin-form__hint">
+                                    <small class="admin-card__description admin-form__hint">
                                         Use a BCP&nbsp;47 language tag such as <code>en</code> or <code>en-GB</code>.
                                     </small>
                                 </label>
@@ -1028,7 +1028,7 @@
                                                 Add language
                                             </button>
                                         </div>
-                                        <small class="admin-form__hint">
+                                        <small class="admin-card__description admin-form__hint">
                                             The default language is always supported. Add additional language codes to offer
                                             translations.
                                         </small>
@@ -1069,9 +1069,9 @@
                 </header>
                 <div class="admin-panel__body">
                     <form id="admin-homepage-form" class="admin-form" novalidate>
-                        <fieldset class="admin-form__fieldset">
-                            <legend class="admin-form__legend">Homepage selection</legend>
-                            <p class="admin-form__hint">
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Homepage selection</legend>
+                            <p class="admin-card__description admin-form__hint">
                                 Select a published page to use as the homepage. Leave blank to continue using the page
                                 assigned to the "/" path.
                             </p>
@@ -1081,7 +1081,7 @@
                                     <option value="">Use page assigned to "/" path</option>
                                 </select>
                             </label>
-                            <p class="admin-form__hint" data-role="homepage-status"></p>
+                            <p class="admin-card__description admin-form__hint" data-role="homepage-status"></p>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="homepage-submit">
                                     Save homepage
@@ -1089,10 +1089,10 @@
                             </div>
                         </fieldset>
                     </form>
-                    <section class="admin__section" aria-labelledby="admin-homepage-options-title">
-                        <div class="admin__section-header">
-                            <h3 id="admin-homepage-options-title" class="admin__section-title">Available pages</h3>
-                            <p class="admin__section-description">
+                    <section class="admin-card" aria-labelledby="admin-homepage-options-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-homepage-options-title" class="admin-card__title">Available pages</h3>
+                            <p class="admin-card__description">
                                 Review each page’s status before selecting it as the homepage.
                             </p>
                         </div>
@@ -1127,14 +1127,14 @@
                     </div>
                 </header>
                 <div class="admin-panel__body admin-panel__body--single">
-                    <section class="admin__section" aria-labelledby="admin-backup-download-title">
-                        <div class="admin__section-header">
-                            <h3 id="admin-backup-download-title" class="admin__section-title">Download full backup</h3>
-                            <p class="admin__section-description">
+                    <section class="admin-card" aria-labelledby="admin-backup-download-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-backup-download-title" class="admin-card__title">Download full backup</h3>
+                            <p class="admin-card__description">
                                 Generates a ZIP archive containing all site data and uploaded media so you can store it securely.
                             </p>
                         </div>
-                        <p class="admin-form__hint">
+                        <p class="admin-card__description admin-form__hint">
                             Backups include users, content, configuration, and files managed through the media uploader.
                         </p>
                         <div class="admin-form__actions">
@@ -1142,18 +1142,18 @@
                                 Download backup
                             </button>
                         </div>
-                        <p class="admin-form__hint" data-role="backup-summary" hidden></p>
+                        <p class="admin-card__description admin-form__hint" data-role="backup-summary" hidden></p>
                     </section>
-                    <section class="admin__section" aria-labelledby="admin-backup-auto-title">
-                        <div class="admin__section-header">
-                            <h3 id="admin-backup-auto-title" class="admin__section-title">Automatic backups</h3>
-                            <p class="admin__section-description">
+                    <section class="admin-card" aria-labelledby="admin-backup-auto-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-backup-auto-title" class="admin-card__title">Automatic backups</h3>
+                            <p class="admin-card__description">
                                 Schedule recurring backups that are stored on the server for additional protection.
                             </p>
                         </div>
                         <form id="admin-backup-settings-form" class="admin-form" novalidate>
-                            <fieldset class="admin-form__fieldset">
-                                <legend class="admin-form__legend">Schedule</legend>
+                            <fieldset class="admin-card admin-form__fieldset">
+                                <legend class="admin-card__title admin-form__legend">Schedule</legend>
                                 <label class="admin-form__checkbox checkbox" for="backup-auto-enabled">
                                     <input
                                         type="checkbox"
@@ -1175,10 +1175,10 @@
                                         value="24"
                                     />
                                 </label>
-                                <small class="admin-form__hint">
+                                <small class="admin-card__description admin-form__hint">
                                     Choose how often to run automatic backups. The maximum interval is 168 hours (7 days).
                                 </small>
-                                <p class="admin-form__hint" data-role="backup-settings-status" hidden></p>
+                                <p class="admin-card__description admin-form__hint" data-role="backup-settings-status" hidden></p>
                                 <div class="admin-form__actions">
                                     <button type="submit" class="admin-form__submit" data-role="backup-settings-submit">
                                         Save backup settings
@@ -1187,16 +1187,16 @@
                             </fieldset>
                         </form>
                     </section>
-                    <section class="admin__section" aria-labelledby="admin-backup-restore-title">
-                        <div class="admin__section-header">
-                            <h3 id="admin-backup-restore-title" class="admin__section-title">Restore from backup</h3>
-                            <p class="admin__section-description">
+                    <section class="admin-card" aria-labelledby="admin-backup-restore-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-backup-restore-title" class="admin-card__title">Restore from backup</h3>
+                            <p class="admin-card__description">
                                 Upload a previously generated archive to replace all content and media with the snapshot it contains.
                             </p>
                         </div>
                         <form id="admin-backup-import-form" class="admin-form" novalidate>
-                            <fieldset class="admin-form__fieldset">
-                                <legend class="admin-form__legend">Backup archive</legend>
+                            <fieldset class="admin-card admin-form__fieldset">
+                                <legend class="admin-card__title admin-form__legend">Backup archive</legend>
                                 <label class="admin-form__label">
                                     Archive file
                                     <input
@@ -1206,7 +1206,7 @@
                                         required
                                         class="admin-form__input"
                                     />
-                                    <small class="admin-form__hint">
+                                    <small class="admin-card__description admin-form__hint">
                                         Restoring a backup overwrites the current database and uploads. Ensure you have a recent export before continuing.
                                     </small>
                                 </label>
@@ -1244,8 +1244,8 @@
                 </header>
                 <div class="admin-panel__body">
                     <form id="admin-ads-form" class="admin-form" novalidate>
-                        <fieldset class="admin-form__fieldset">
-                            <legend class="admin-form__legend">General settings</legend>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">General settings</legend>
                             <label class="admin-form__checkbox checkbox">
                                 <input
                                     type="checkbox"
@@ -1259,12 +1259,12 @@
                                 Provider
                                 <select name="provider" class="admin-form__input" data-role="ads-provider"></select>
                             </label>
-                            <small class="admin-form__hint">
+                            <small class="admin-card__description admin-form__hint">
                                 Select the advertising provider to manage. New providers can be added without changing templates.
                             </small>
                         </fieldset>
-                        <fieldset class="admin-form__fieldset" data-role="ads-provider-fields" data-provider="google_ads">
-                            <legend class="admin-form__legend">Google AdSense</legend>
+                        <fieldset class="admin-card admin-form__fieldset" data-role="ads-provider-fields" data-provider="google_ads">
+                            <legend class="admin-card__title admin-form__legend">Google AdSense</legend>
                             <label class="admin-form__label">
                                 Publisher ID
                                 <input
@@ -1276,7 +1276,7 @@
                                     autocomplete="off"
                                 />
                             </label>
-                            <small class="admin-form__hint">
+                            <small class="admin-card__description admin-form__hint">
                                 Use the publisher ID from your AdSense account (format: ca-pub-XXXXXXXXXXXXXXXX).
                             </small>
                             <label class="admin-form__checkbox checkbox">
@@ -1288,14 +1288,14 @@
                                 />
                                 <span class="checkbox__label">Enable Auto Ads</span>
                             </label>
-                            <p class="admin-form__hint">
+                            <p class="admin-card__description admin-form__hint">
                                 Auto Ads allow Google to automatically place ads across your pages. You can still define manual slots.
                             </p>
                             <div class="admin-ads__slots" data-role="ads-slots" aria-live="polite"></div>
                             <button type="button" class="admin-form__link-button" data-role="ads-slot-add">
                                 Add placement
                             </button>
-                            <small class="admin-form__hint">
+                            <small class="admin-card__description admin-form__hint">
                                 Each placement maps an AdSense ad unit to a specific location such as the header, sidebar, or footer.
                             </small>
                         </fieldset>
@@ -1330,9 +1330,9 @@
                 </header>
                 <div class="admin-panel__body admin-panel__body--split">
                     <section class="admin-plugins" aria-labelledby="admin-plugins-title">
-                        <div class="admin-plugins__header">
-                            <h3 id="admin-plugins-title" class="admin-form__legend">Installed plugins</h3>
-                            <p class="admin-form__hint">
+                        <div class="admin-card__header admin-plugins__header">
+                            <h3 id="admin-plugins-title" class="admin-card__title admin-form__legend">Installed plugins</h3>
+                            <p class="admin-card__description admin-form__hint">
                                 Manage installed plugins. Activate a plugin to enable its features or deactivate it to disable functionality while keeping the files available.
                             </p>
                         </div>
@@ -1341,9 +1341,9 @@
                         </ul>
                     </section>
                     <section class="admin-plugins__install" aria-labelledby="admin-plugin-install-title">
-                        <div class="admin-plugins__install-header">
-                            <h3 id="admin-plugin-install-title" class="admin-form__legend">Install plugin</h3>
-                            <p class="admin-form__hint">
+                        <div class="admin-card__header admin-plugins__install-header">
+                            <h3 id="admin-plugin-install-title" class="admin-card__title admin-form__legend">Install plugin</h3>
+                            <p class="admin-card__description admin-form__hint">
                                 Upload a ZIP archive that contains the plugin files and a <code>plugin.json</code> manifest describing the plugin metadata.
                             </p>
                         </div>
@@ -1358,7 +1358,7 @@
                                     class="admin-form__input"
                                     data-role="plugin-upload-input"
                                 />
-                                <small class="admin-form__hint">
+                                <small class="admin-card__description admin-form__hint">
                                     Install plugins packaged as ZIP files. The plugin will be extracted to the server's plugins directory.
                                 </small>
                             </label>
@@ -1423,9 +1423,9 @@
                 </header>
                 <div class="admin-panel__body">
                     <section class="admin-social" aria-labelledby="admin-social-title">
-                        <div class="admin-social__header">
-                            <h3 id="admin-social-title" class="admin-form__legend">Social profiles</h3>
-                            <p class="admin-form__hint">
+                        <div class="admin-card__header admin-social__header">
+                            <h3 id="admin-social-title" class="admin-card__title admin-form__legend">Social profiles</h3>
+                            <p class="admin-card__description admin-form__hint">
                                 Manage the social networks displayed in the site footer. Add a name, destination URL, and an optional icon for each profile.
                             </p>
                         </div>
@@ -1446,7 +1446,7 @@
                                 <label class="admin-form__label">
                                     Icon URL
                                     <input type="text" name="icon" class="admin-form__input" placeholder="/static/icons/social/twitter.svg" />
-                                    <small class="admin-form__hint">
+                                    <small class="admin-card__description admin-form__hint">
                                         Provide an SVG or PNG icon. Leave blank to display the network initials.
                                     </small>
                                 </label>
@@ -1486,9 +1486,9 @@
                 </header>
                 <div class="admin-panel__body">
                     <section class="admin-navigation" aria-labelledby="admin-navigation-title">
-                        <div class="admin-navigation__header">
-                            <h3 id="admin-navigation-title" class="admin-form__legend">Navigation menu</h3>
-                            <p class="admin-form__hint">
+                        <div class="admin-card__header admin-navigation__header">
+                            <h3 id="admin-navigation-title" class="admin-card__title admin-form__legend">Navigation menu</h3>
+                            <p class="admin-card__description admin-form__hint">
                                 Control the navigation links shown in the site header and footer. Choose a location, add menu
                                 items with a label and destination URL, and arrange them in the preferred order.
                             </p>
@@ -1521,7 +1521,7 @@
                                             <option value="footer">Footer (general)</option>
                                             <option value="__custom_footer__">Create new footer section…</option>
                                         </select>
-                                        <small class="admin-form__hint">
+                                        <small class="admin-card__description admin-form__hint">
                                             Select the navigation area to update.
                                         </small>
                                     </label>
@@ -1544,7 +1544,7 @@
                                                 placeholder="Resources"
                                                 autocomplete="off"
                                             />
-                                            <small class="admin-form__hint">
+                                            <small class="admin-card__description admin-form__hint">
                                                 We'll create a new footer group using this name and organise
                                                 links under it.
                                             </small>
@@ -1563,7 +1563,7 @@
                                     <label class="admin-form__label">
                                         Destination URL
                                         <input type="url" name="url" required class="admin-form__input" placeholder="/blog" />
-                                        <small class="admin-form__hint">
+                                        <small class="admin-card__description admin-form__hint">
                                             Accepts relative or absolute URLs. Relative paths are recommended for internal pages.
                                         </small>
                                     </label>

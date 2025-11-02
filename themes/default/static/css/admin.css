@@ -95,7 +95,7 @@
     display: none !important;
 }
 
-.admin__section {
+.admin-card {
     display: grid;
     gap: var(--size-mid);
     padding: var(--size-mid);
@@ -103,17 +103,17 @@
     background: var(--color-bg-top);
 }
 
-.admin__section-header {
+.admin-card__header {
     display: grid;
     gap: var(--size-xs);
 }
 
-.admin__section-title {
+.admin-card__title {
     font-size: clamp(1.25rem, 1.5vw + 1rem, 1.75rem);
     font-weight: 600;
 }
 
-.admin__section-description {
+.admin-card__description {
     color: var(--color-secondary);
     line-height: 1.6;
 }
@@ -842,6 +842,10 @@
     font-weight: 600;
     font-size: var(--font-size-base);
     background-color: var(--color-bg-top);
+}
+
+.admin-form__legend.admin-card__title {
+    font-size: var(--font-size-base);
 }
 
 .admin-form__label {
@@ -2508,7 +2512,7 @@
     }
 
     .admin__header,
-    .admin__section,
+    .admin-card,
     .admin-panel {
         padding: var(--size-base);
     }
