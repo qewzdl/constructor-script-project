@@ -40,6 +40,11 @@
             ]
         },
         {
+            "title": "Browse by category",
+            "type": "categories_list",
+            "limit": 10
+        },
+        {
             "title": "Recent posts",
             "type": "posts_list",
             "limit": 6

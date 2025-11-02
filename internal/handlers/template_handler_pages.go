@@ -1025,6 +1025,7 @@ func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
 
 	if !h.blogEnabled() {
 		delete(sectionDefs, "posts_list")
+		delete(sectionDefs, "categories_list")
 	}
 
 	sectionJSON, err := json.Marshal(sectionDefs)

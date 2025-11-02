@@ -33,20 +33,23 @@ func elementDefinitionsFromManager(manager *theme.Manager) map[string]theme.Elem
 
 func clampSectionLimit(value int, setting theme.SectionSettingDefinition) int {
 	result := value
-	if result <= 0 && setting.Default != nil {
-		result = *setting.Default
+	if result <= 0 {
+		if setting.Default != nil {
+			result = *setting.Default
+		} else {
+			result = constants.DefaultPostListSectionLimit
+		}
 	}
 	if setting.Min != nil && result < *setting.Min {
 		result = *setting.Min
 	}
 	if setting.Max != nil && result > *setting.Max {
 		result = *setting.Max
+	} else if setting.Max == nil && result > constants.MaxPostListSectionLimit {
+		result = constants.MaxPostListSectionLimit
 	}
 	if result <= 0 {
-		result = constants.DefaultPostListSectionLimit
-	}
-	if result > constants.MaxPostListSectionLimit {
-		result = constants.MaxPostListSectionLimit
+		result = 1
 	}
 	return result
 }

@@ -122,6 +122,21 @@
     });
 
     if (blogEnabled) {
+        ensureRegistered('categories_list', {
+            label: 'Categories list',
+            order: 18,
+            supportsElements: false,
+            description:
+                'Displays a list of blog categories for quick navigation.',
+            settings: {
+                limit: {
+                    label: 'Number of categories to display',
+                    min: 1,
+                    max: 30,
+                    default: 10,
+                },
+            },
+        });
         ensureRegistered('posts_list', {
             label: 'Posts list',
             order: 20,

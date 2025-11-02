@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"constructor-script-backend/internal/constants"
 )
 
 // SectionDefinition describes a section type that can be used by the content builder
@@ -384,10 +386,15 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 	standardSupports := true
 	heroSupports := false
 	postsSupports := false
+	categoriesSupports := false
 
 	limitDefault := 6
 	limitMin := 1
 	limitMax := 24
+
+	categoryLimitDefault := constants.DefaultCategoryListSectionLimit
+	categoryLimitMin := 1
+	categoryLimitMax := constants.MaxCategoryListSectionLimit
 
 	return map[string]SectionDefinition{
 		"standard": {
@@ -423,6 +430,21 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 					Default: &limitDefault,
 					Min:     &limitMin,
 					Max:     &limitMax,
+				},
+			},
+		},
+		"categories_list": {
+			Type:             "categories_list",
+			Label:            "Categories list",
+			Order:            18,
+			Description:      "Displays a list of blog categories for quick topic navigation.",
+			SupportsElements: &categoriesSupports,
+			Settings: map[string]SectionSettingDefinition{
+				"limit": {
+					Label:   "Number of categories to display",
+					Default: &categoryLimitDefault,
+					Min:     &categoryLimitMin,
+					Max:     &categoryLimitMax,
 				},
 			},
 		},

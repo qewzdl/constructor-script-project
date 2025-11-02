@@ -36,16 +36,60 @@
         return value.charAt(0).toUpperCase() + value.slice(1);
     };
 
-    const clampPostListLimit = (value) => {
+    const clampListLimit = (value, defaults = {}) => {
         const parsed = Number.parseInt(value, 10);
         let limit = Number.isFinite(parsed) ? parsed : 0;
-        if (limit <= 0) {
-            limit = 6;
+        const defaultValue = Number.isFinite(defaults.defaultValue)
+            ? defaults.defaultValue
+            : Number.parseInt(defaults.defaultValue, 10);
+        const minValue = Number.isFinite(defaults.min)
+            ? defaults.min
+            : Number.parseInt(defaults.min, 10);
+        const maxValue = Number.isFinite(defaults.max)
+            ? defaults.max
+            : Number.parseInt(defaults.max, 10);
+
+        if (limit <= 0 && Number.isFinite(defaultValue)) {
+            limit = defaultValue;
         }
-        if (limit > 24) {
-            limit = 24;
+        if (Number.isFinite(minValue) && limit < minValue) {
+            limit = minValue;
+        }
+        if (Number.isFinite(maxValue) && limit > maxValue) {
+            limit = maxValue;
+        }
+        if (!Number.isFinite(limit) || limit <= 0) {
+            limit = 1;
         }
         return limit;
+    };
+
+    const clampPostListLimit = (value) =>
+        clampListLimit(value, { defaultValue: 6, min: 1, max: 24 });
+
+    const clampCategoriesListLimit = (value) =>
+        clampListLimit(value, { defaultValue: 10, min: 1, max: 30 });
+
+    const clampSectionLimitByType = (type, value) => {
+        if (type === 'posts_list') {
+            return clampPostListLimit(value);
+        }
+        if (type === 'categories_list') {
+            return clampCategoriesListLimit(value);
+        }
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    };
+
+    const normaliseLimitDefault = (limitDefinition) => {
+        if (!limitDefinition) {
+            return 0;
+        }
+        if (Number.isFinite(limitDefinition.default)) {
+            return limitDefinition.default;
+        }
+        const parsed = Number.parseInt(limitDefinition.default, 10);
+        return Number.isFinite(parsed) ? parsed : 0;
     };
 
     const createSectionTypeRegistry = () => {
@@ -80,6 +124,10 @@
                     typeof definition.validate === 'function'
                         ? definition.validate
                         : null,
+                settings:
+                    definition.settings && typeof definition.settings === 'object'
+                        ? definition.settings
+                        : undefined,
             };
 
             definitions.set(normalised, entry);
@@ -180,14 +228,41 @@
         },
     });
 
+    sectionTypeRegistry.register('categories_list', {
+        label: 'Categories list',
+        order: 18,
+        supportsElements: false,
+        description:
+            'Displays a curated list of blog categories to help readers explore relevant topics.',
+        settings: {
+            limit: { default: 10, min: 1, max: 30 },
+        },
+        validate: (section) => {
+            const limit = clampSectionLimitByType(
+                'categories_list',
+                section?.limit ?? section?.Limit
+            );
+            if (!limit) {
+                return 'requires a valid category limit.';
+            }
+            return null;
+        },
+    });
+
     sectionTypeRegistry.register('posts_list', {
         label: 'Posts list',
         order: 20,
         supportsElements: false,
         description:
             'Automatically displays the most recent blog posts without adding manual elements.',
+        settings: {
+            limit: { default: 6, min: 1, max: 24 },
+        },
         validate: (section) => {
-            const limit = clampPostListLimit(section?.limit ?? section?.Limit);
+            const limit = clampSectionLimitByType(
+                'posts_list',
+                section?.limit ?? section?.Limit
+            );
             if (!limit) {
                 return 'requires a valid post limit.';
             }
@@ -331,15 +406,24 @@
             ? elementsSource.map((item) => normaliseElement(item))
             : [];
 
+        const limitDefinition = definition?.settings?.limit;
+        const hasLimit =
+            Boolean(limitDefinition) || type === 'posts_list' || type === 'categories_list';
+        const limitSource =
+            section.limit ?? section.Limit ?? normaliseLimitDefault(limitDefinition);
+        const limit = hasLimit
+            ? clampSectionLimitByType(type, limitSource)
+            : Number.isFinite(limitSource)
+              ? limitSource
+              : 0;
+
         const normalised = {
             id: section.id || section.ID || generateId(),
             type,
             title: section.title || section.Title || '',
             image: section.image || section.Image || '',
             elements,
-            limit: type === 'posts_list'
-                ? clampPostListLimit(section.limit ?? section.Limit)
-                : section.limit || section.Limit || 0,
+            limit,
         };
 
         if (type === 'grid') {
@@ -370,16 +454,26 @@
 
     const createEmptySection = (type = sectionTypeRegistry.getDefault()) => {
         const ensuredType = sectionTypeRegistry.ensure(type);
+        const definition = sectionTypeRegistry.get(ensuredType);
+        const limitDefinition = definition?.settings?.limit;
+        let limit = 0;
+        if (limitDefinition) {
+            limit = clampSectionLimitByType(
+                ensuredType,
+                normaliseLimitDefault(limitDefinition)
+            );
+        } else if (ensuredType === 'posts_list') {
+            limit = clampPostListLimit(6);
+        } else if (ensuredType === 'categories_list') {
+            limit = clampCategoriesListLimit(10);
+        }
         const section = {
             id: generateId(),
             type: ensuredType,
             title: '',
             image: '',
             elements: [],
-            limit:
-                ensuredType === 'posts_list'
-                    ? clampPostListLimit(6)
-                    : 0,
+            limit,
         };
         if (ensuredType === 'grid') {
             section.styleGridItems = true;
@@ -612,8 +706,13 @@
             if (type === 'grid') {
                 payload.style_grid_items = section.styleGridItems !== false;
             }
-            if (type === 'posts_list') {
-                payload.limit = clampPostListLimit(
+            const hasLimit =
+                Boolean(definition?.settings?.limit) ||
+                type === 'posts_list' ||
+                type === 'categories_list';
+            if (hasLimit) {
+                payload.limit = clampSectionLimitByType(
+                    type,
                     section.limit ?? section.Limit ?? payload.limit
                 );
             }

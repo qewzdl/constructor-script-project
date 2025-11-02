@@ -374,6 +374,12 @@ func (s *PostService) prepareSections(sections []models.Section) (models.PostSec
 				Min:     intPtr(1),
 				Max:     intPtr(constants.MaxPostListSectionLimit),
 			})
+		} else if sectionType == "categories_list" {
+			section.Limit = clampSectionLimit(section.Limit, theme.SectionSettingDefinition{
+				Default: intPtr(constants.DefaultCategoryListSectionLimit),
+				Min:     intPtr(1),
+				Max:     intPtr(constants.MaxCategoryListSectionLimit),
+			})
 		}
 
 		if section.ID == "" {

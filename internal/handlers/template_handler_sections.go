@@ -30,7 +30,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sectionType = "standard"
 		}
 
-		if sectionType == "posts_list" && !h.blogEnabled() {
+		if (sectionType == "posts_list" || sectionType == "categories_list") && !h.blogEnabled() {
 			continue
 		}
 
@@ -61,6 +61,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		case "posts_list":
 			skipElements = true
 			sb.WriteString(h.renderPostsListSection(prefix, section))
+		case "categories_list":
+			skipElements = true
+			sb.WriteString(h.renderCategoriesListSection(prefix, section))
 		}
 
 		if !skipElements {
@@ -162,6 +165,66 @@ func (h *TemplateHandler) renderPostsListSection(prefix string, section models.S
 	if rendered == 0 {
 		return `<p class="` + emptyClass + `">Unable to display posts at the moment.</p>`
 	}
+
+	return sb.String()
+}
+
+func (h *TemplateHandler) renderCategoriesListSection(prefix string, section models.Section) string {
+	emptyClass := fmt.Sprintf("%s__category-list-empty blog__empty", prefix)
+
+	limit := section.Limit
+	if limit <= 0 {
+		limit = constants.DefaultCategoryListSectionLimit
+	}
+	if limit > constants.MaxCategoryListSectionLimit {
+		limit = constants.MaxCategoryListSectionLimit
+	}
+
+	if h.categoryService == nil {
+		return `<p class="` + emptyClass + `">Categories are not available right now.</p>`
+	}
+
+	categories, err := h.categoryService.GetAll()
+	if err != nil {
+		logger.Error(err, "Failed to load categories for section", map[string]interface{}{"section_id": section.ID})
+		return `<p class="` + emptyClass + `">Unable to load categories at the moment. Please try again later.</p>`
+	}
+
+	filtered := make([]models.Category, 0, len(categories))
+	for _, category := range categories {
+		if strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized") {
+			continue
+		}
+		filtered = append(filtered, category)
+	}
+
+	if len(filtered) == 0 {
+		return `<p class="` + emptyClass + `">No categories available yet. Check back soon!</p>`
+	}
+
+	if limit < len(filtered) {
+		filtered = filtered[:limit]
+	}
+
+	navClass := fmt.Sprintf("%s__categories blog__categories", prefix)
+
+	var sb strings.Builder
+	sb.WriteString(`<nav class="` + navClass + `" aria-label="Browse by category">`)
+	sb.WriteString(`<ul class="category-list">`)
+	for _, category := range filtered {
+		slug := template.HTMLEscapeString(category.Slug)
+		name := strings.TrimSpace(category.Name)
+		if name == "" {
+			name = category.Slug
+		}
+		sb.WriteString(`<li class="category-list__item">`)
+		sb.WriteString(`<a class="category-list__link" href="/category/` + slug + `">`)
+		sb.WriteString(template.HTMLEscapeString(name))
+		sb.WriteString(`</a>`)
+		sb.WriteString(`</li>`)
+	}
+	sb.WriteString(`</ul>`)
+	sb.WriteString(`</nav>`)
 
 	return sb.String()
 }

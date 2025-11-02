@@ -1,0 +1,15 @@
+{
+    "type": "categories_list",
+    "label": "Categories list",
+    "order": 18,
+    "description": "Displays a list of blog categories for quick navigation.",
+    "supports_elements": false,
+    "settings": {
+        "limit": {
+            "label": "Number of categories to display",
+            "default": 10,
+            "min": 1,
+            "max": 30
+        }
+    }
+}
