@@ -46,27 +46,52 @@ fi
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 ENV_FILE="$ROOT_DIR/deploy/.env.production"
 
+existing_db_password=""
+existing_jwt_secret=""
+
 if [[ -f "$ENV_FILE" ]]; then
         echo "An existing deploy/.env.production file was found." >&2
         read -r -p "Overwrite it? [y/N] " answer
         case "$answer" in
-                [Yy]*) ;;
+                [Yy]*)
+                        set -a
+                        # shellcheck disable=SC1090
+                        source "$ENV_FILE"
+                        set +a
+                        existing_db_password=${DB_PASSWORD:-}
+                        existing_jwt_secret=${JWT_SECRET:-}
+                        unset DB_PASSWORD JWT_SECRET
+                        if [[ -n "$existing_db_password" ]]; then
+                                echo "Reusing existing database password." >&2
+                        fi
+                        if [[ -n "$existing_jwt_secret" ]]; then
+                                echo "Reusing existing JWT secret." >&2
+                        fi
+                        ;;
                 *) echo "Aborted."; exit 1;;
         esac
 fi
 
-JWT_SECRET=$($PYTHON_BIN - <<'PY'
+if [[ -n "$existing_jwt_secret" && ${#existing_jwt_secret} -ge 32 ]]; then
+        JWT_SECRET="$existing_jwt_secret"
+else
+        JWT_SECRET=$($PYTHON_BIN - <<'PY'
 import secrets
 print(secrets.token_urlsafe(48))
 PY
 )
+fi
 
-DB_PASSWORD=$($PYTHON_BIN - <<'PY'
+if [[ -n "$existing_db_password" ]]; then
+        DB_PASSWORD="$existing_db_password"
+else
+        DB_PASSWORD=$($PYTHON_BIN - <<'PY'
 import secrets,string
 alphabet = string.ascii_letters + string.digits
 print(''.join(secrets.choice(alphabet) for _ in range(24)))
 PY
 )
+fi
 
 DATABASE_URL="postgres://bloguser:${DB_PASSWORD}@postgres:5432/blogdb?sslmode=disable"
 SITE_DESCRIPTION="Powered by Constructor Script CMS"
