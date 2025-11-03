@@ -6,15 +6,15 @@ services:
     container_name: constructor-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: "${DB_USER:-bloguser}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-blogpassword}"
+      POSTGRES_DB: "${DB_NAME:-blogdb}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - backend
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-bloguser} -d ${DB_NAME:-blogdb}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,8 +28,24 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file:
-      - ./.env.production
+    environment:
+      DB_HOST: "${DB_HOST:-postgres}"
+      DB_PORT: "${DB_PORT:-5432}"
+      DB_USER: "${DB_USER:-bloguser}"
+      DB_PASSWORD: "${DB_PASSWORD:-blogpassword}"
+      DB_NAME: "${DB_NAME:-blogdb}"
+      DB_SSLMODE: "${DB_SSLMODE:-disable}"
+      PORT: "${PORT:-8080}"
+      ENVIRONMENT: "${ENVIRONMENT:-production}"
+      ENABLE_REDIS: "${ENABLE_REDIS:-false}"
+      ENABLE_EMAIL: "${ENABLE_EMAIL:-false}"
+      ENABLE_METRICS: "${ENABLE_METRICS:-false}"
+      UPLOAD_DIR: "${UPLOAD_DIR:-./uploads}"
+      JWT_SECRET: "${JWT_SECRET:-development-secret-change-me}"
+      SITE_URL: "${SITE_URL:-https://localhost}"
+      SITE_NAME: "${SITE_NAME:-Constructor Script}"
+      SITE_DESCRIPTION: "${SITE_DESCRIPTION:-Powered by Constructor Script CMS}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-https://localhost}"
     volumes:
       - uploads_data:/app/uploads
     networks:
@@ -42,8 +58,8 @@ services:
     depends_on:
       - api
     environment:
-      SITE_DOMAIN: ${SITE_DOMAIN}
-      SITE_EMAIL: ${SITE_EMAIL}
+      SITE_DOMAIN: "${SITE_DOMAIN:-localhost}"
+      SITE_EMAIL: "${SITE_EMAIL:-admin@example.com}"
     volumes:
       - caddy_data:/data
       - caddy_config:/config

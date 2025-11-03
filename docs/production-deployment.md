@@ -27,6 +27,21 @@ The script performs the following:
 
 Once the containers are up, the site becomes available at `https://<your-domain>` as soon as DNS resolves to the server.
 
+### Quick smoke-test without configuration
+
+For staging or verification you can also run the stack without generating an
+environment file. The compose definition now ships with safe defaults (`bloguser`
+ / `blogpassword` for PostgreSQL and a temporary JWT secret), so the following
+command will launch the CMS on `https://localhost` using the bundled
+credentials:
+
+```bash
+docker compose -f deploy/docker-compose.prod.yml up -d --build
+```
+
+You should still generate a unique `.env.production` before exposing the stack
+to the public internet.
+
 ## Customisation
 
 - To change environment values, edit `deploy/.env.production` and re-run `docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml up -d`.
