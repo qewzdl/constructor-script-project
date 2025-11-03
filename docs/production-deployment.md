@@ -23,7 +23,8 @@ The script performs the following:
    - **postgres** – persistent PostgreSQL 15 database.
    - **api** – the Go-based CMS backend.
    - **caddy** – automatically obtains and renews HTTPS certificates via Let's Encrypt and proxies traffic to the API.
-4. Persists data in Docker volumes (`postgres_data`, `uploads_data`, `caddy_data`, `caddy_config`).
+4. Writes a `deploy/.env` file mirroring `deploy/.env.production` so that future `docker compose` commands automatically use the generated credentials.
+5. Persists data in Docker volumes (`postgres_data`, `uploads_data`, `caddy_data`, `caddy_config`).
 
 Once the containers are up, the site becomes available at `https://<your-domain>` as soon as DNS resolves to the server.
 

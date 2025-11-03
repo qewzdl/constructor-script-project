@@ -45,6 +45,7 @@ fi
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 ENV_FILE="$ROOT_DIR/deploy/.env.production"
+DOT_ENV_FILE="$ROOT_DIR/deploy/.env"
 
 existing_db_password=""
 existing_jwt_secret=""
@@ -154,6 +155,12 @@ JWT_SECRET=$JWT_SECRET
 ENV
 
 chmod 600 "$ENV_FILE"
+
+# Provide a docker-compose compatible .env next to the compose file so that
+# subsequent `docker compose` invocations continue using the generated
+# credentials even when --env-file is omitted.
+cp "$ENV_FILE" "$DOT_ENV_FILE"
+chmod 600 "$DOT_ENV_FILE"
 
 pushd "$ROOT_DIR/deploy" >/dev/null
 

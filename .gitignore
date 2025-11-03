@@ -4,3 +4,4 @@ air-build.log
 uploads/
 vendor/
 deploy/.env.production
+deploy/.env
