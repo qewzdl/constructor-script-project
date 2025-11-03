@@ -103,9 +103,9 @@ func New() *Config {
 		// Database
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnv("DB_USER", "bloguser"),
-		DBPassword: getEnv("DB_PASSWORD", "blogpassword"),
-		DBName:     getEnv("DB_NAME", "blogdb"),
+		DBUser:     getEnvFirst([]string{"DB_USER", "POSTGRES_USER"}, "bloguser"),
+		DBPassword: getEnvFirst([]string{"DB_PASSWORD", "POSTGRES_PASSWORD"}, "blogpassword"),
+		DBName:     getEnvFirst([]string{"DB_NAME", "POSTGRES_DB"}, "blogdb"),
 		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 
 		// Redis
@@ -244,6 +244,15 @@ func New() *Config {
 func getEnv(key, defaultValue string) string {
 	if value, ok := getEnvWithPresence(key); ok {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvFirst(keys []string, defaultValue string) string {
+	for _, key := range keys {
+		if value, ok := getEnvWithPresence(key); ok {
+			return value
+		}
 	}
 	return defaultValue
 }
