@@ -67,9 +67,40 @@ if [[ -f "$ENV_FILE" ]]; then
                         if [[ -n "$existing_jwt_secret" ]]; then
                                 echo "Reusing existing JWT secret." >&2
                         fi
-                        ;;
+                        ;; 
                 *) echo "Aborted."; exit 1;;
         esac
+else
+        existing_volume=$(docker volume ls --filter label=com.docker.compose.volume=postgres_data --format '{{.Name}}' | head -n1 || true)
+        if [[ -n "$existing_volume" ]]; then
+                cat <<'WARNING' >&2
+Detected an existing PostgreSQL data volume but no deploy/.env.production credentials file.
+To avoid authentication failures the database password must match the stored credentials.
+WARNING
+                read -r -p "Would you like to enter the existing database password? [y/N] " answer
+                case "$answer" in
+                        [Yy]*)
+                                read -rs -p "Existing database password: " existing_db_password
+                                echo >&2
+                                if [[ -z "$existing_db_password" ]]; then
+                                        echo "No password entered. Aborting to prevent mismatched credentials." >&2
+                                        exit 1
+                                fi
+                                ;;
+                        *)
+                                cat >&2 <<INSTRUCTIONS
+You can rerun the script after either providing the correct password or removing the
+existing PostgreSQL volume (this will erase any stored data). For example:
+
+  docker compose -f deploy/docker-compose.prod.yml down
+  docker volume rm "${existing_volume}"
+
+Afterwards rerun deploy/quickstart.sh to generate fresh credentials.
+INSTRUCTIONS
+                                exit 1
+                                ;;
+                esac
+        fi
 fi
 
 if [[ -n "$existing_jwt_secret" && ${#existing_jwt_secret} -ge 32 ]]; then

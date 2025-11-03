@@ -38,3 +38,4 @@ Once the containers are up, the site becomes available at `https://<your-domain>
 - Check container logs: `docker compose -f deploy/docker-compose.prod.yml logs -f`.
 - Ensure ports 80/443 are open and DNS is correctly configured; Caddy cannot obtain certificates otherwise.
 - Regenerate configuration by re-running the quickstart script. It will prompt before overwriting the existing `.env.production` file.
+- If the script reports an existing PostgreSQL volume but no credentials file, supply the original database password when prompted or remove the volume before continuing. This prevents the API from rebooting due to password mismatches.
