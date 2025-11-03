@@ -15,9 +15,9 @@ type Cache struct {
 	enabled bool
 }
 
-func NewCache(addr string, enable bool) *Cache {
+func NewCache(addr string, enable bool) (*Cache, error) {
 	if !enable {
-		return &Cache{enabled: false}
+		return &Cache{enabled: false}, nil
 	}
 
 	client := redis.NewClient(&redis.Options{
@@ -33,16 +33,16 @@ func NewCache(addr string, enable bool) *Cache {
 
 	ctx := context.Background()
 
-	_, err := client.Ping(ctx).Result()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to connect to Redis: %v", err))
+	if _, err := client.Ping(ctx).Result(); err != nil {
+		_ = client.Close()
+		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
 
 	return &Cache{
 		client:  client,
 		ctx:     ctx,
 		enabled: true,
-	}
+	}, nil
 }
 
 func (c *Cache) Set(key string, value interface{}, expiration time.Duration) error {

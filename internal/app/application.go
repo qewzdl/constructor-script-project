@@ -434,11 +434,29 @@ func (a *Application) createIndexes() error {
 }
 
 func (a *Application) initCache() {
-	if a.cfg.EnableCache {
-		a.cache = cache.NewCache(a.cfg.RedisURL, true)
-	} else {
-		a.cache = cache.NewCache("", false)
+	if !a.cfg.EnableCache || !a.cfg.EnableRedis {
+		disabledCache, err := cache.NewCache("", false)
+		if err != nil {
+			logger.Error(err, "Failed to initialize disabled cache", nil)
+			return
+		}
+		a.cache = disabledCache
+		return
 	}
+
+	cacheInstance, err := cache.NewCache(a.cfg.RedisURL, true)
+	if err != nil {
+		logger.Error(err, "Failed to initialize Redis cache, caching disabled", map[string]interface{}{"redis_url": a.cfg.RedisURL})
+		fallbackCache, fallbackErr := cache.NewCache("", false)
+		if fallbackErr != nil {
+			logger.Error(fallbackErr, "Failed to initialize fallback cache", nil)
+			return
+		}
+		a.cache = fallbackCache
+		return
+	}
+
+	a.cache = cacheInstance
 }
 
 func (a *Application) initRepositories() {

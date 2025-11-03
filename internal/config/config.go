@@ -181,11 +181,14 @@ func New() *Config {
 		BackupS3Prefix:      getEnv("BACKUP_S3_PREFIX", ""),
 	}
 
-	// Build DSN
-	c.DatabaseURL = fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		c.DBUser, c.DBPassword, c.DBHost, c.DBPort, c.DBName, c.DBSSLMode,
-	)
+	if databaseURL, ok := getEnvWithPresence("DATABASE_URL"); ok {
+		c.DatabaseURL = databaseURL
+	} else {
+		c.DatabaseURL = fmt.Sprintf(
+			"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+			c.DBUser, c.DBPassword, c.DBHost, c.DBPort, c.DBName, c.DBSSLMode,
+		)
+	}
 
 	if c.RateLimitRequests < 0 {
 		c.RateLimitRequests = 0
