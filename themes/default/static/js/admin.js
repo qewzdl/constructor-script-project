@@ -1087,7 +1087,9 @@
             }
 
             if (!(input instanceof HTMLElement)) {
-                const field = trigger.closest('label, .admin-form__label, .admin-builder__field');
+                const field = trigger.closest(
+                    'label, .admin-form__label, .admin-builder__field, .section-field'
+                );
                 if (field) {
                     input = field.querySelector('input[type="url"], input, textarea');
                 }
