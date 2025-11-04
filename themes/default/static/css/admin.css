@@ -1254,6 +1254,16 @@
     margin-top: var(--size-sm);
 }
 
+@media (max-width: 1100px) {
+    .admin-theme__actions {
+        flex-direction: column;
+    }
+
+    .admin-theme__actions > * {
+        width: 100%;
+    }
+}
+
 .admin-theme__reload {
     border: 1px solid var(--color-border);
     padding: var(--size-sm) var(--size-md);

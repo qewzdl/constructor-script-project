@@ -1,0 +1,26 @@
+.setup {
+    display: flex;
+    justify-content: center;
+}
+
+.setup__container {
+    max-width: 800px;
+}
+
+.setup__header {
+    display: flex;
+    flex-direction: row;
+    gap: var(--size-base);
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.setup__subtitle {
+    color: var(--color-secondary);
+}
+
+.setup__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-base);
+}

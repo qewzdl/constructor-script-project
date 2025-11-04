@@ -1,18 +1,33 @@
-
-<section class="auth" role="region" aria-labelledby="setup-title" data-page="setup">
-    <section class="auth__container" aria-labelledby="setup-title">
-        <header class="auth__header">
-            <h1 id="setup-title" class="auth__title">Initial site setup</h1>
-            <p class="auth__subtitle">
-                Create the first administrator account and customize how your site appears to visitors.
-            </p>
+<link rel="stylesheet" href="/static/css/setup.css">
+<section
+    class="setup"
+    role="region"
+    aria-labelledby="setup-title"
+    data-page="setup"
+>
+    <section class="setup__container" aria-labelledby="setup-title">
+        <header class="setup__header">
+            <div>
+                <h1 id="setup-title" class="setup__title">Initial site setup</h1>
+                <p class="setup__subtitle">
+                    Create the first administrator account and customize how
+                    your site appears to visitors.
+                </p>
+            </div>
+            <div class="header__logo">
+                <img
+                    src="/static/icons/logo.svg"
+                    alt="Constructor Script Logo"
+                    class="header__logo-image"
+                />
+            </div>
         </header>
 
-        <div class="auth__alert" id="setup-alert" role="alert" hidden></div>
+        <div class="setup__alert" id="setup-alert" role="alert" hidden></div>
 
         <form
             id="setup-form"
-            class="auth__form"
+            class="setup__form"
             novalidate
             data-action="{{ .SetupAction }}"
             data-status="{{ .SetupStatus }}"
@@ -21,7 +36,9 @@
                 <legend class="form-legend">Administrator account</legend>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-admin-username">Username</label>
+                    <label class="form-field__label" for="setup-admin-username"
+                        >Username</label
+                    >
                     <input
                         id="setup-admin-username"
                         name="admin_username"
@@ -34,7 +51,9 @@
                 </div>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-admin-email">Email</label>
+                    <label class="form-field__label" for="setup-admin-email"
+                        >Email</label
+                    >
                     <input
                         id="setup-admin-email"
                         name="admin_email"
@@ -47,7 +66,9 @@
                 </div>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-admin-password">Password</label>
+                    <label class="form-field__label" for="setup-admin-password"
+                        >Password</label
+                    >
                     <input
                         id="setup-admin-password"
                         name="admin_password"
@@ -65,7 +86,9 @@
                 <legend class="form-legend">Site appearance</legend>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-site-name">Site name</label>
+                    <label class="form-field__label" for="setup-site-name"
+                        >Site name</label
+                    >
                     <input
                         id="setup-site-name"
                         name="site_name"
@@ -77,7 +100,11 @@
                 </div>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-site-description">Tagline</label>
+                    <label
+                        class="form-field__label"
+                        for="setup-site-description"
+                        >Tagline</label
+                    >
                     <textarea
                         id="setup-site-description"
                         name="site_description"
@@ -88,7 +115,9 @@
                 </div>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-site-url">Site URL</label>
+                    <label class="form-field__label" for="setup-site-url"
+                        >Site URL</label
+                    >
                     <input
                         id="setup-site-url"
                         name="site_url"
@@ -100,7 +129,11 @@
                 </div>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-site-default-language">Default language</label>
+                    <label
+                        class="form-field__label"
+                        for="setup-site-default-language"
+                        >Default language</label
+                    >
                     <input
                         id="setup-site-default-language"
                         name="site_default_language"
@@ -110,13 +143,17 @@
                         required
                     />
                     <small class="form-helper">
-                        Provide a language code using the BCP&nbsp;47 format (for example <code>en</code> or
-                        <code>en-GB</code>).
+                        Provide a language code using the BCP&nbsp;47 format
+                        (for example <code>en</code> or <code>en-GB</code>).
                     </small>
                 </div>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-site-supported-languages">Supported languages</label>
+                    <label
+                        class="form-field__label"
+                        for="setup-site-supported-languages"
+                        >Supported languages</label
+                    >
                     <input
                         id="setup-site-supported-languages"
                         name="site_supported_languages"
@@ -125,13 +162,15 @@
                         placeholder="en, en-GB, fr"
                     />
                     <small class="form-helper">
-                        Optional comma-separated list of additional language codes. The default language is always
-                        available.
+                        Optional comma-separated list of additional language
+                        codes. The default language is always available.
                     </small>
                 </div>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-site-favicon">Favicon URL</label>
+                    <label class="form-field__label" for="setup-site-favicon"
+                        >Favicon URL</label
+                    >
                     <input
                         id="setup-site-favicon"
                         name="site_favicon"
@@ -142,7 +181,9 @@
                 </div>
 
                 <div class="form-field">
-                    <label class="form-field__label" for="setup-site-logo">Logo URL</label>
+                    <label class="form-field__label" for="setup-site-logo"
+                        >Logo URL</label
+                    >
                     <input
                         id="setup-site-logo"
                         name="site_logo"
@@ -154,10 +195,13 @@
             </fieldset>
 
             <p class="form-helper" id="setup-helper">
-                After completing setup you'll be redirected to the sign-in page to access the admin dashboard.
+                After completing setup you'll be redirected to the sign-in page
+                to access the admin dashboard.
             </p>
 
-            <button type="submit" class="button button--primary">Complete setup</button>
+            <button type="submit" class="button button--primary">
+                Complete setup
+            </button>
         </form>
     </section>
 </section>
