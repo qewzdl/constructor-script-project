@@ -1816,8 +1816,15 @@
                         </p>
                     </div>
                 </header>
-                <div class="admin-panel__body admin-panel__body--single">
-                    <section class="admin-card" aria-labelledby="admin-backup-download-title">
+                <div class="admin-panel__body admin-panel__body--stacked">
+                    <section
+                        id="admin-backup-download-section"
+                        class="admin-card admin__section"
+                        aria-labelledby="admin-backup-download-title"
+                        data-nav-child-of="backups"
+                        data-nav-child-label="Download"
+                        data-nav-child-order="1"
+                    >
                         <div class="admin-card__header">
                             <h3 id="admin-backup-download-title" class="admin-card__title">Download full backup</h3>
                             <p class="admin-card__description">
@@ -1834,7 +1841,14 @@
                         </div>
                         <p class="admin-card__description admin-form__hint" data-role="backup-summary" hidden></p>
                     </section>
-                    <section class="admin-card" aria-labelledby="admin-backup-auto-title">
+                    <section
+                        id="admin-backup-auto-section"
+                        class="admin-card admin__section"
+                        aria-labelledby="admin-backup-auto-title"
+                        data-nav-child-of="backups"
+                        data-nav-child-label="Automatic"
+                        data-nav-child-order="2"
+                    >
                         <div class="admin-card__header">
                             <h3 id="admin-backup-auto-title" class="admin-card__title">Automatic backups</h3>
                             <p class="admin-card__description">
@@ -1877,7 +1891,14 @@
                             </fieldset>
                         </form>
                     </section>
-                    <section class="admin-card" aria-labelledby="admin-backup-restore-title">
+                    <section
+                        id="admin-backup-restore-section"
+                        class="admin-card admin__section"
+                        aria-labelledby="admin-backup-restore-title"
+                        data-nav-child-of="backups"
+                        data-nav-child-label="Restore"
+                        data-nav-child-order="3"
+                    >
                         <div class="admin-card__header">
                             <h3 id="admin-backup-restore-title" class="admin-card__title">Restore from backup</h3>
                             <p class="admin-card__description">
