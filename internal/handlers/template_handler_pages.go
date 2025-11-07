@@ -1002,6 +1002,8 @@ func (h *TemplateHandler) builderScripts() []string {
 		"/static/js/admin/builder/section-events.js",
 		"/static/js/admin/builder/section-builder.js",
 		"/static/js/admin/media-library.js",
+		"/static/js/admin/layout.js",
+		"/static/js/admin/panels/core.js",
 		"/static/js/section-builder.js",
 		"/static/js/admin.js",
 	)

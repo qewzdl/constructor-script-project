@@ -8052,45 +8052,73 @@
             setStoredActiveTab(targetId);
         };
 
-        const navigationTabs = buildNavigation() || [];
+        let navigationTabs = [];
 
-        let initialTabActivated = false;
-        const storedActiveTab = getStoredActiveTab();
-        if (storedActiveTab) {
-            const hasStoredTab = navigationTabs.some(
-                (tab) => tab.dataset.tab === storedActiveTab
-            );
-            if (hasStoredTab) {
-                activateTab(storedActiveTab);
-                initialTabActivated = true;
-            } else {
+        const refreshNavigation = () => {
+            navigationTabs = buildNavigation() || [];
+
+            if (navigationTabs.length === 0) {
                 setStoredActiveTab('');
+                return;
             }
-        }
 
-        if (
-            navigationTabs.length > 0 &&
-            !navigationTabs.some((tab) => tab.classList.contains('is-active')) &&
-            !initialTabActivated
-        ) {
-            const defaultTab = navigationTabs[0].dataset.tab;
-            if (defaultTab) {
-                activateTab(defaultTab);
+            let initialTabActivated = false;
+            const storedActiveTab = getStoredActiveTab();
+            if (storedActiveTab) {
+                const storedTab = navigationTabs.find(
+                    (tab) => tab.dataset.tab === storedActiveTab
+                );
+                if (storedTab) {
+                    activateTab(storedActiveTab);
+                    initialTabActivated = true;
+                } else {
+                    setStoredActiveTab('');
+                }
             }
-        }
 
-        navigationTabs.forEach((tab) => {
-            tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+            if (
+                navigationTabs.length > 0 &&
+                !navigationTabs.some((tab) => tab.classList.contains('is-active')) &&
+                !initialTabActivated
+            ) {
+                const defaultTab = navigationTabs[0].dataset.tab;
+                if (defaultTab) {
+                    activateTab(defaultTab);
+                }
+            }
+        };
+
+        refreshNavigation();
+
+        navigationContainer?.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            const tab = target.closest('.admin__tab[data-tab]');
+            if (!tab || !navigationContainer.contains(tab)) {
+                return;
+            }
+            event.preventDefault();
+            const tabId = tab.dataset.tab;
+            if (tabId) {
+                activateTab(tabId);
+            }
         });
 
-        const quickNavigationButtons = root.querySelectorAll('[data-nav-target]');
-        quickNavigationButtons.forEach((button) => {
-            button.addEventListener('click', (event) => {
-                event.preventDefault();
-                const targetId = button.dataset.navTarget;
-                if (!targetId) {
-                    return;
-                }
+        const quickActionsContainer = root.querySelector('[data-role="admin-quick-actions"]');
+        quickActionsContainer?.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            const button = target.closest('[data-nav-target]');
+            if (!button || !quickActionsContainer.contains(button)) {
+                return;
+            }
+            event.preventDefault();
+            const targetId = button.dataset.navTarget;
+            if (targetId) {
                 activateTab(targetId);
                 const targetPanel = root.querySelector(
                     `.admin-panel[data-panel="${targetId}"]`
@@ -8098,15 +8126,19 @@
                 if (targetPanel && typeof targetPanel.scrollIntoView === 'function') {
                     targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-                const actionId = button.dataset.panelAction;
-                if (actionId) {
-                    const actionButton = root.querySelector(
-                        `[data-action="${actionId}"]`
-                    );
-                    actionButton?.click();
-                }
-                button.blur();
-            });
+            }
+            const actionId = button.dataset.panelAction;
+            if (actionId) {
+                const actionButton = root.querySelector(
+                    `[data-action="${actionId}"]`
+                );
+                actionButton?.click();
+            }
+            button.blur();
+        });
+
+        root.addEventListener('admin:panels-changed', () => {
+            refreshNavigation();
         });
 
         root.querySelector('[data-action="post-reset"]')?.addEventListener(
@@ -8257,7 +8289,12 @@
         loadMenuItems();
     };
 
-    if (document.readyState === 'loading') {
+    const layoutManager = window.AdminLayout;
+    if (layoutManager && typeof layoutManager.whenReady === 'function') {
+        layoutManager.whenReady(() => {
+            initialiseAdminDashboard();
+        });
+    } else if (document.readyState === 'loading') {
         document.addEventListener(
             'DOMContentLoaded',
             initialiseAdminDashboard,

@@ -1,0 +1,1755 @@
+(() => {
+    const layout = window.AdminLayout;
+    if (!layout) {
+        console.error('AdminLayout is not available.');
+        return;
+    }
+
+    const { registerPanel, registerQuickAction, init } = layout;
+
+    const createElementFromMarkup = (markup) => {
+        if (typeof document === 'undefined') {
+            return null;
+        }
+        const template = document.createElement('template');
+        template.innerHTML = markup.trim();
+        return template.content.firstElementChild;
+    };
+
+    const registerPanelMarkup = (definition) => {
+        if (!definition || typeof definition.markup !== "string") {
+            return;
+        }
+        const { markup, ...rest } = definition;
+        registerPanel(
+            Object.assign({}, rest, {
+                create: () => createElementFromMarkup(markup),
+            })
+        );
+    };
+
+    registerQuickAction({
+        id: 'quick-create-post',
+        label: 'Create new post',
+        navTarget: 'posts',
+        panelAction: 'post-reset',
+        order: 0,
+        shouldRender: (context) => Boolean(context?.blogEnabled),
+    });
+
+    registerQuickAction({
+        id: 'quick-create-page',
+        label: 'Create new page',
+        navTarget: 'pages',
+        panelAction: 'page-reset',
+        order: 10,
+    });
+
+    registerQuickAction({
+        id: 'quick-update-settings',
+        label: 'Update site identity',
+        navTarget: 'settings',
+        order: 20,
+    });
+
+    registerPanelMarkup({
+        id: 'metrics',
+        order: 0,
+        markup: String.raw`
+<section
+                id="admin-panel-metrics"
+                class="admin-panel is-active"
+                data-panel="metrics"
+                data-nav-group="overview"
+                data-nav-group-label="Overview"
+                data-nav-group-order="0"
+                data-nav-label="Metrics"
+                data-nav-order="1"
+                role="tabpanel"
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Site metrics</h2>
+                        <p class="admin-panel__description">
+                            Review key totals and recent activity trends to monitor site health.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--single">
+                    <section class="admin-card" aria-labelledby="admin-metrics-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-metrics-title" class="admin-card__title">At a glance</h3>
+                            <p class="admin-card__description">
+                                Keep track of totals alongside how many items were created in the last day and week.
+                            </p>
+                        </div>
+                        <div class="admin__metrics" id="admin-metrics">
+                            <article class="admin__metric" data-metric="total_posts">
+                                <p class="admin__metric-label">Posts</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="published_posts">
+                                <p class="admin__metric-label">Published posts</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_users">
+                                <p class="admin__metric-label">Users</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_categories">
+                                <p class="admin__metric-label">Categories</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_comments">
+                                <p class="admin__metric-label">Comments</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_tags">
+                                <p class="admin__metric-label">Tags</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="total_views">
+                                <p class="admin__metric-label">Total views</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="posts_last_24_hours">
+                                <p class="admin__metric-label">Posts (24 hours)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="posts_last_7_days">
+                                <p class="admin__metric-label">Posts (7 days)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="comments_last_24_hours">
+                                <p class="admin__metric-label">Comments (24 hours)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="comments_last_7_days">
+                                <p class="admin__metric-label">Comments (7 days)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                            <article class="admin__metric" data-metric="users_last_7_days">
+                                <p class="admin__metric-label">New users (7 days)</p>
+                                <p class="admin__metric-value">—</p>
+                            </article>
+                        </div>
+                    </section>
+                    <section class="admin-card" aria-labelledby="admin-analytics-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-analytics-title" class="admin-card__title">Publishing trend</h3>
+                            <p class="admin-card__description">
+                                Review daily posts, comments, views, and new users over the last month to understand how activity is evolving.
+                            </p>
+                        </div>
+                        <div
+                            class="admin__chart"
+                            data-role="metrics-chart"
+                            role="img"
+                            aria-labelledby="admin-analytics-title admin-analytics-caption"
+                        >
+                            <div class="admin-chart__viewport">
+                                <svg class="admin-chart__svg" viewBox="0 0 600 260" preserveAspectRatio="none" focusable="false"></svg>
+                            </div>
+                            <div class="admin-chart__footer">
+                                <ul class="admin-chart__legend" data-role="chart-legend"></ul>
+                                <ol
+                                    class="admin-chart__summary"
+                                    id="admin-analytics-caption"
+                                    data-role="chart-summary"
+                                    aria-live="polite"
+                                ></ol>
+                            </div>
+                            <p class="admin-chart__empty" data-role="chart-empty" hidden>
+                                Not enough recent activity to display a trend yet.
+                            </p>
+                        </div>
+                    </section>
+                </div>
+            </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'posts',
+        order: 10,
+        shouldRender: (context) => Boolean(context?.blogEnabled),
+        markup: String.raw`
+<section
+                id="admin-panel-posts"
+                class="admin-panel"
+                data-panel="posts"
+                data-nav-group="content"
+                data-nav-group-label="Content"
+                data-nav-group-order="1"
+                data-nav-label="Posts"
+                data-nav-order="1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-posts"
+                hidden
+            >
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Blog posts</h2>
+                    <p class="admin-panel__description">
+                        Draft, publish and revise long-form content. Selecting an item loads it for editing.
+                    </p>
+                </div>
+                <div class="admin-panel__actions">
+                    <label class="admin-search" for="admin-posts-search">
+                        <span class="admin-search__label">Search posts</span>
+                        <input
+                            id="admin-posts-search"
+                            type="search"
+                            class="admin-search__input"
+                            placeholder="Search posts…"
+                            autocomplete="off"
+                            data-role="post-search"
+                        />
+                    </label>
+                    <button type="button" class="admin-panel__reset" data-action="post-reset">New post</button>
+                </div>
+            </header>
+            <div class="admin-panel__body admin-panel__body--split">
+                <div class="admin-panel__list" aria-live="polite">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Title</th>
+                                <th scope="col">Category</th>
+                                <th scope="col">Tags</th>
+                                <th scope="col">Publication</th>
+                                <th scope="col">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-posts-table">
+                            <tr class="admin-table__placeholder">
+                                <td colspan="5">Loading posts…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="admin-panel__details">
+                    <form id="admin-post-form" class="admin-form" novalidate>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Post details</legend>
+                            <label class="admin-form__label">
+                                Title
+                                <input type="text" name="title" required class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__label">
+                                Description
+                                <textarea name="description" rows="2" class="admin-form__input"></textarea>
+                            </label>
+                            <label class="admin-form__label">
+                                Featured image URL
+                                <input
+                                    type="url"
+                                    name="featured_img"
+                                    id="admin-post-featured-image"
+                                    class="admin-form__input"
+                                    placeholder="https://example.com/image.jpg"
+                                />
+                                <div class="admin-form__upload-actions">
+                                    <button
+                                        type="button"
+                                        class="admin-form__upload-button"
+                                        data-action="open-media-library"
+                                        data-media-target="#admin-post-featured-image"
+                                    >
+                                        Browse uploads
+                                    </button>
+                                </div>
+                                <small class="admin-card__description admin-form__hint">
+                                    Optional cover image displayed on listings and the post page.
+                                </small>
+                            </label>
+                            <input type="hidden" name="content" />
+                            <fieldset class="admin-card admin-form__fieldset admin-form__fieldset--sections">
+                                <legend class="admin-card__title admin-form__legend">Structured sections</legend>
+                                <p class="admin-card__description admin-form__hint">
+                                    Build rich layouts by combining reusable sections. Use the controls to reorder sections and
+                                    adjust their content before publishing.
+                                </p>
+                                <div class="section-builder" data-section-builder="post">
+                                    <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
+                                    <ol class="section-builder__list" data-role="section-list"></ol>
+                                    <div class="section-builder__actions">
+                                        <button type="button" class="section-builder__add" data-role="section-add">
+                                            Add section
+                                        </button>
+                                    </div>
+                                </div>
+                            </fieldset>
+                            <label class="admin-form__label">
+                                Category
+                                <select name="category_id" class="admin-form__input" id="admin-post-category"></select>
+                            </label>
+                            <label class="admin-form__label">
+                                Tags
+                                <input
+                                    type="text"
+                                    name="tags"
+                                    class="admin-form__input"
+                                    id="admin-post-tags"
+                                    placeholder="e.g. go, backend, database"
+                                    list="admin-post-tags-list"
+                                    autocomplete="off"
+                                />
+                                <small class="admin-card__description admin-form__hint">Separate tags with commas. Existing tags appear as suggestions.</small>
+                                <datalist id="admin-post-tags-list"></datalist>
+                            </label>
+                            <label class="admin-form__label">
+                                Publish at
+                                <input
+                                    type="datetime-local"
+                                    name="publish_at"
+                                    class="admin-form__input"
+                                    step="60"
+                                />
+                                <small class="admin-card__description admin-form__hint">
+                                    Leave empty to publish immediately. Future times schedule the post for automatic release.
+                                </small>
+                            </label>
+                            <p class="admin-card__description admin-form__hint" data-role="post-published-at" hidden></p>
+                            <div class="admin-form__actions">
+                                <button
+                                    type="submit"
+                                    class="admin-form__submit"
+                                    data-role="post-submit-publish"
+                                    data-intent="publish"
+                                >
+                                    Save &amp; publish
+                                </button>
+                                <button
+                                    type="submit"
+                                    class="admin-form__submit admin-form__submit--secondary"
+                                    data-role="post-submit-draft"
+                                    data-intent="draft"
+                                >
+                                    Save as draft
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="post-delete" hidden>
+                                    Delete post
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                    <section class="admin-panel__aside admin-post-analytics" aria-labelledby="admin-post-analytics-title">
+                        <header class="admin-post-analytics__header">
+                            <h3 id="admin-post-analytics-title" class="admin-post-analytics__title">Post analytics</h3>
+                            <p class="admin-post-analytics__description">
+                                Track how each post performs over time to spot growth or declines in engagement.
+                            </p>
+                        </header>
+                        <div class="admin-analytics" data-role="post-analytics" hidden>
+                            <ul class="admin-analytics__summary" data-role="post-analytics-summary">
+                                <li class="admin-analytics__summary-item" data-metric="views">
+                                    <p class="admin-analytics__summary-label">Views</p>
+                                    <p class="admin-analytics__summary-value" data-role="summary-value">—</p>
+                                    <p class="admin-analytics__summary-subvalue" data-role="summary-subvalue">—</p>
+                                    <p class="admin-analytics__summary-delta" data-role="summary-delta" hidden></p>
+                                </li>
+                                <li class="admin-analytics__summary-item" data-metric="comments">
+                                    <p class="admin-analytics__summary-label">Comments</p>
+                                    <p class="admin-analytics__summary-value" data-role="summary-value">—</p>
+                                    <p class="admin-analytics__summary-subvalue" data-role="summary-subvalue">—</p>
+                                    <p class="admin-analytics__summary-delta" data-role="summary-delta" hidden></p>
+                                </li>
+                                <li class="admin-analytics__summary-item" data-metric="engagement">
+                                    <p class="admin-analytics__summary-label">Engagement</p>
+                                    <p class="admin-analytics__summary-value" data-role="summary-value">—</p>
+                                    <p class="admin-analytics__summary-subvalue" data-role="summary-subvalue">—</p>
+                                    <p class="admin-analytics__summary-delta" data-role="summary-delta" hidden></p>
+                                </li>
+                            </ul>
+                            <div
+                                class="admin__chart admin__chart--compact"
+                                data-role="post-analytics-chart"
+                                role="img"
+                                aria-labelledby="admin-post-analytics-title admin-post-analytics-caption"
+                            >
+                                <div class="admin-chart__viewport">
+                                    <svg class="admin-chart__svg" viewBox="0 0 600 260" preserveAspectRatio="none" focusable="false"></svg>
+                                </div>
+                                <div class="admin-chart__footer">
+                                    <ul class="admin-chart__legend" data-role="chart-legend"></ul>
+                                    <ol
+                                        class="admin-chart__summary"
+                                        id="admin-post-analytics-caption"
+                                        data-role="chart-summary"
+                                        aria-live="polite"
+                                    ></ol>
+                                </div>
+                                <p class="admin-chart__empty" data-role="chart-empty" hidden>
+                                    Not enough recent data to display a trend yet.
+                                </p>
+                            </div>
+                            <dl class="admin-analytics__comparisons" data-role="post-analytics-comparisons"></dl>
+                            <p class="admin-analytics__message" data-role="post-analytics-comparisons-empty" hidden>
+                                Not enough data for comparisons yet.
+                            </p>
+                        </div>
+                        <p class="admin-analytics__message" data-role="post-analytics-loading" hidden>Loading analytics…</p>
+                        <p class="admin-analytics__message" data-role="post-analytics-empty">
+                            Select a published post to view analytics.
+                        </p>
+                    </section>
+                    <section class="admin-panel__aside admin-tags" aria-labelledby="admin-tags-title">
+                        <header class="admin-tags__header">
+                            <h3 id="admin-tags-title" class="admin-tags__title">Tags</h3>
+                            <p class="admin-tags__description">
+                                Remove unused tags to keep the suggestions list tidy. Deleting a tag also detaches it from
+                                any posts.
+                            </p>
+                        </header>
+                        <ul class="admin-tags__list" id="admin-tags-list">
+                            <li class="admin-tags__item admin-tags__item--empty">No tags available.</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+        </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'pages',
+        order: 20,
+        markup: String.raw`
+<section
+                id="admin-panel-pages"
+                class="admin-panel"
+                data-panel="pages"
+                data-nav-group="content"
+                data-nav-group-label="Content"
+                data-nav-group-order="1"
+                data-nav-label="Pages"
+                data-nav-order="2"
+                role="tabpanel"
+                aria-labelledby="admin-tab-pages"
+                hidden
+            >
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Static pages</h2>
+                    <p class="admin-panel__description">
+                        Create landing pages and important evergreen resources for your visitors.
+                    </p>
+                </div>
+                <div class="admin-panel__actions">
+                    <label class="admin-search" for="admin-pages-search">
+                        <span class="admin-search__label">Search pages</span>
+                        <input
+                            id="admin-pages-search"
+                            type="search"
+                            class="admin-search__input"
+                            placeholder="Search pages…"
+                            autocomplete="off"
+                            data-role="page-search"
+                        />
+                    </label>
+                    <button type="button" class="admin-panel__reset" data-action="page-reset">New page</button>
+                </div>
+            </header>
+            <div class="admin-panel__body admin-panel__body--split">
+                <div class="admin-panel__list" aria-live="polite">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Title</th>
+                                <th scope="col">Path</th>
+                                <th scope="col">Slug</th>
+                                <th scope="col">Publication</th>
+                                <th scope="col">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-pages-table">
+                            <tr class="admin-table__placeholder">
+                                <td colspan="5">Loading pages…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="admin-panel__details">
+                    <form id="admin-page-form" class="admin-form" novalidate>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Page details</legend>
+                            <label class="admin-form__label">
+                                Title
+                                <input type="text" name="title" required class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__label">
+                                Public path
+                                <input type="text" name="path" class="admin-form__input" placeholder="e.g. /about" />
+                                <small class="admin-card__description admin-form__hint">Paths should start with a forward slash. Leave blank to use the default based on the slug.</small>
+                            </label>
+                            <label class="admin-form__label">
+                                Custom slug
+                                <input type="text" name="slug" class="admin-form__input" placeholder="optional" />
+                            </label>
+                            <label class="admin-form__label">
+                                Description
+                                <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                            </label>
+                            <label class="admin-form__label">
+                                Page body (HTML)
+                                <textarea
+                                    name="content"
+                                    rows="8"
+                                    class="admin-form__input"
+                                    placeholder="Supports HTML snippets for flexible layouts"
+                                ></textarea>
+                                <small class="admin-card__description admin-form__hint">
+                                    Use this area for free-form content. Leave it blank to rely solely on structured sections.
+                                </small>
+                            </label>
+                            <fieldset class="admin-card admin-form__fieldset admin-form__fieldset--sections">
+                                <legend class="admin-card__title admin-form__legend">Structured sections</legend>
+                                <p class="admin-card__description admin-form__hint">
+                                    Combine headings, paragraphs, lists, and media into reusable sections. Sections are rendered
+                                    after the free-form body content.
+                                </p>
+                                <div class="section-builder" data-section-builder="page">
+                                    <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
+                                    <ol class="section-builder__list" data-role="section-list"></ol>
+                                    <div class="section-builder__actions">
+                                        <button type="button" class="section-builder__add" data-role="section-add">
+                                            Add section
+                                        </button>
+                                    </div>
+                                </div>
+                            </fieldset>
+                            <label class="admin-form__label">
+                                Display order
+                                <input type="number" name="order" value="0" class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__checkbox checkbox">
+                                <input type="checkbox" name="hide_header" class="checkbox__input" />
+                                <span class="checkbox__label">Hide page header</span>
+                            </label>
+                            <label class="admin-form__label">
+                                Publish at
+                                <input
+                                    type="datetime-local"
+                                    name="publish_at"
+                                    class="admin-form__input"
+                                    step="60"
+                                />
+                                <small class="admin-card__description admin-form__hint">
+                                    Leave empty to publish immediately. Future times schedule the page for automatic release.
+                                </small>
+                            </label>
+                            <p class="admin-card__description admin-form__hint" data-role="page-published-at" hidden></p>
+                            <div class="admin-form__actions">
+                                <button
+                                    type="submit"
+                                    class="admin-form__submit"
+                                    data-role="page-submit-publish"
+                                    data-intent="publish"
+                                >
+                                    Save &amp; publish
+                                </button>
+                                <button
+                                    type="submit"
+                                    class="admin-form__submit admin-form__submit--secondary"
+                                    data-role="page-submit-draft"
+                                    data-intent="draft"
+                                >
+                                    Save as draft
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="page-delete" hidden>
+                                    Delete page
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+        </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'categories',
+        order: 30,
+        shouldRender: (context) => Boolean(context?.blogEnabled),
+        markup: String.raw`
+<section
+                id="admin-panel-categories"
+                class="admin-panel"
+                data-panel="categories"
+                data-nav-group="content"
+                data-nav-group-label="Content"
+                data-nav-group-order="1"
+                data-nav-label="Categories"
+                data-nav-order="3"
+                role="tabpanel"
+                aria-labelledby="admin-tab-categories"
+                hidden
+            >
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Categories</h2>
+                    <p class="admin-panel__description">
+                        Organise posts into themes. Changes are reflected immediately across the site.
+                    </p>
+                </div>
+                <div class="admin-panel__actions">
+                    <label class="admin-search" for="admin-categories-search">
+                        <span class="admin-search__label">Search categories</span>
+                        <input
+                            id="admin-categories-search"
+                            type="search"
+                            class="admin-search__input"
+                            placeholder="Search categories…"
+                            autocomplete="off"
+                            data-role="category-search"
+                        />
+                    </label>
+                    <button type="button" class="admin-panel__reset" data-action="category-reset">New category</button>
+                </div>
+            </header>
+            <div class="admin-panel__body admin-panel__body--split">
+                <div class="admin-panel__list" aria-live="polite">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Slug</th>
+                                <th scope="col">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-categories-table">
+                            <tr class="admin-table__placeholder">
+                                <td colspan="3">Loading categories…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="admin-panel__details">
+                    <form id="admin-category-form" class="admin-form" novalidate>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Category details</legend>
+                            <label class="admin-form__label">
+                                Name
+                                <input type="text" name="name" required class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__label">
+                                Description
+                                <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                            </label>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="category-submit">
+                                    Create category
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="category-delete" hidden>
+                                    Delete category
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+        </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'users',
+        order: 40,
+        markup: String.raw`
+<section
+                id="admin-panel-users"
+                class="admin-panel"
+                data-panel="users"
+                data-nav-group="community"
+                data-nav-group-label="Community"
+                data-nav-group-order="2"
+                data-nav-label="Users"
+                data-nav-order="1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-users"
+                hidden
+            >
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">User accounts</h2>
+                    <p class="admin-panel__description">
+                        Review who has access to the community and adjust roles or account status as needed.
+                    </p>
+                </div>
+                <div class="admin-panel__actions">
+                    <label class="admin-search" for="admin-users-search">
+                        <span class="admin-search__label">Search users</span>
+                        <input
+                            id="admin-users-search"
+                            type="search"
+                            class="admin-search__input"
+                            placeholder="Search by name or email…"
+                            autocomplete="off"
+                            data-role="user-search"
+                        />
+                    </label>
+                    <button type="button" class="admin-panel__reset" data-action="user-reset">
+                        Clear selection
+                    </button>
+                </div>
+            </header>
+            <div class="admin-panel__body admin-panel__body--split">
+                <div class="admin-panel__list" aria-live="polite">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Username</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Role</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-users-table">
+                            <tr class="admin-table__placeholder">
+                                <td colspan="5">Loading users…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="admin-panel__details">
+                    <form id="admin-user-form" class="admin-form" novalidate>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Account overview</legend>
+                            <p class="admin-card__description admin-form__hint" data-role="user-hint">
+                                Select a user from the list to view their account details.
+                            </p>
+                            <label class="admin-form__label">
+                                Username
+                                <input type="text" name="username" class="admin-form__input" readonly />
+                            </label>
+                            <label class="admin-form__label">
+                                Email
+                                <input type="email" name="email" class="admin-form__input" readonly />
+                            </label>
+                            <label class="admin-form__label">
+                                Role
+                                <select name="role" class="admin-form__input" data-role="user-role" required>
+                                    <option value="admin">Administrator</option>
+                                    <option value="user">User</option>
+                                </select>
+                            </label>
+                            <label class="admin-form__label">
+                                Status
+                                <select name="status" class="admin-form__input" data-role="user-status" required>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="suspended">Suspended</option>
+                                    <option value="pending">Pending</option>
+                                </select>
+                            </label>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="user-submit" disabled>
+                                    Update user
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="user-delete" hidden>
+                                    Delete user
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+        </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'comments',
+        order: 50,
+        shouldRender: (context) => Boolean(context?.blogEnabled),
+        markup: String.raw`
+<section
+                id="admin-panel-comments"
+                class="admin-panel"
+                data-panel="comments"
+                data-nav-group="community"
+                data-nav-group-label="Community"
+                data-nav-group-order="2"
+                data-nav-label="Comments"
+                data-nav-order="2"
+                role="tabpanel"
+                aria-labelledby="admin-tab-comments"
+                hidden
+            >
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Recent comments</h2>
+                    <p class="admin-panel__description">
+                        Approve new feedback or remove unwanted submissions. Older comments remain accessible via the API.
+                    </p>
+                </div>
+            </header>
+            <div class="admin-panel__body admin-panel__body--single">
+                <ul id="admin-comments-list" class="admin-comment-list" aria-live="polite">
+                    <li class="admin-comment-list__item admin-comment-list__item--empty">Loading comments…</li>
+                </ul>
+            </div>
+        </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'settings',
+        order: 60,
+        markup: String.raw`
+<section
+                id="admin-panel-settings"
+                class="admin-panel"
+                data-panel="settings"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Site settings"
+                data-nav-order="1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-settings"
+                hidden
+            >
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Site identity</h2>
+                    <p class="admin-panel__description">
+                        Update how your brand appears across templates, including the name, tagline, URL, and imagery.
+                    </p>
+                </div>
+            </header>
+            <div class="admin-panel__body">
+                <form id="admin-settings-form" class="admin-form" novalidate>
+                    <fieldset class="admin-card admin-form__fieldset">
+                        <legend class="admin-card__title admin-form__legend">Site details</legend>
+                        <label class="admin-form__label">
+                            Site name
+                            <input type="text" name="name" required class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__label">
+                            Tagline
+                            <textarea name="description" rows="2" class="admin-form__input"></textarea>
+                        </label>
+                        <label class="admin-form__label">
+                            Site URL
+                            <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
+                            <small class="admin-card__description admin-form__hint">Used to generate canonical links and social sharing metadata.</small>
+                        </label>
+                        <label class="admin-form__label">
+                            Unused tag retention (hours)
+                            <input
+                                type="number"
+                                name="unused_tag_retention_hours"
+                                min="1"
+                                step="1"
+                                required
+                                class="admin-form__input"
+                            />
+                            <small class="admin-card__description admin-form__hint">
+                                Tags that are not attached to any posts will be removed after the specified number of hours.
+                            </small>
+                        </label>
+                        <div class="admin-form__actions">
+                            <button type="submit" class="admin-form__submit" data-role="settings-submit">
+                                Save changes
+                            </button>
+                        </div>
+                    </fieldset>
+                    <fieldset class="admin-card admin-form__fieldset">
+                        <legend class="admin-card__title admin-form__legend">Brand assets</legend>
+                        <label class="admin-form__label">
+                            Favicon
+                            <input
+                                type="url"
+                                name="favicon"
+                                id="admin-settings-favicon"
+                                class="admin-form__input"
+                                placeholder="/favicon.ico"
+                            />
+                            <div class="admin-form__upload-actions">
+                                <input
+                                    type="file"
+                                    accept=".ico,.png,.jpg,.jpeg,.gif,.webp"
+                                    data-role="favicon-file"
+                                    hidden
+                                />
+                                <button type="button" class="admin-form__upload-button" data-role="favicon-upload">
+                                    Upload favicon
+                                </button>
+                                <button
+                                    type="button"
+                                    class="admin-form__upload-button"
+                                    data-action="open-media-library"
+                                    data-media-target="#admin-settings-favicon"
+                                >
+                                    Browse uploads
+                                </button>
+                            </div>
+                            <small class="admin-card__description admin-form__hint">
+                                Accepts relative or absolute URLs. Leave blank to use the default icon. Uploads support ICO,
+                                PNG, JPG, GIF or WEBP files.
+                            </small>
+                            <div class="admin-form__favicon-preview" data-role="favicon-preview" hidden>
+                                <span class="admin-form__hint admin-form__hint--label">Current favicon:</span>
+                                <img
+                                    src=""
+                                    alt="Current favicon"
+                                    class="admin-form__favicon-image"
+                                    data-role="favicon-preview-image"
+                                />
+                            </div>
+                        </label>
+                        <label class="admin-form__label">
+                            Logo
+                            <input
+                                type="url"
+                                name="logo"
+                                id="admin-settings-logo"
+                                class="admin-form__input"
+                                placeholder="/static/icons/logo.svg"
+                            />
+                            <div class="admin-form__upload-actions">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    data-role="logo-file"
+                                    hidden
+                                />
+                                <button type="button" class="admin-form__upload-button" data-role="logo-upload">
+                                    Upload logo
+                                </button>
+                                <button
+                                    type="button"
+                                    class="admin-form__upload-button"
+                                    data-action="open-media-library"
+                                    data-media-target="#admin-settings-logo"
+                                >
+                                    Browse uploads
+                                </button>
+                            </div>
+                            <small class="admin-card__description admin-form__hint">
+                                Accepts relative or absolute URLs. Leave blank to use the default logo. Uploads support common image formats such as SVG, PNG, JPG and WEBP.
+                            </small>
+                            <div class="admin-form__logo-preview" data-role="logo-preview" hidden>
+                                <span class="admin-form__hint admin-form__hint--label">Current logo:</span>
+                                <img
+                                    src=""
+                                    alt="Current logo"
+                                    class="admin-form__logo-image"
+                                    data-role="logo-preview-image"
+                                />
+                            </div>
+                        </label>
+                    </fieldset>
+                </form>
+            </div>
+            </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'fonts',
+        order: 70,
+        markup: String.raw`
+<section
+                id="admin-panel-fonts"
+                class="admin-panel"
+                data-panel="fonts"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Fonts"
+                data-nav-order="1.1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-fonts"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Typography</h2>
+                        <p class="admin-panel__description">
+                            Connect external font providers, manage loading order, and control which families are active across the site.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--single">
+                    <section class="admin-card admin-fonts" aria-labelledby="admin-fonts-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-fonts-title" class="admin-card__title">Font library</h3>
+                            <p class="admin-card__description">
+                                Enabled fonts are injected into the <code>&lt;head&gt;</code> of every page before custom stylesheets.
+                            </p>
+                        </div>
+                        <div class="admin-card__body">
+                            <p class="admin-fonts__hint">
+                                Drag the handles or use the move buttons to fine-tune the order in which fonts load.
+                            </p>
+                            <ul class="admin-fonts__list" data-role="font-list" aria-live="polite"></ul>
+                            <p class="admin-fonts__empty" data-role="font-empty" hidden>
+                                No fonts configured yet. Add your first font using the form on the right.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section class="admin-card admin-fonts__form-card" aria-labelledby="admin-fonts-form-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-fonts-form-title" class="admin-card__title">Add or edit font</h3>
+                            <p class="admin-card__description">
+                                Provide a descriptive name and paste the embed code exactly as supplied by your font provider.
+                            </p>
+                        </div>
+                        <form id="admin-font-form" class="admin-form admin-fonts__form" novalidate>
+                            <input type="hidden" name="id" />
+                            <label class="admin-form__label">
+                                Display name
+                                <input type="text" name="name" class="admin-form__input" required />
+                            </label>
+                            <label class="admin-form__label">
+                                Embed code
+                                <textarea
+                                    name="snippet"
+                                    rows="3"
+                                    class="admin-form__input"
+                                    required
+                                    placeholder="&lt;link href=\&quot;https://fonts.googleapis.com/...\&quot; rel=\&quot;stylesheet\&quot;&gt;"
+                                ></textarea>
+                                <small class="admin-card__description admin-form__hint">
+                                    Paste the <code>&lt;link&gt;</code>, <code>&lt;style&gt;</code>, or loader snippet exactly as instructed by the provider.
+                                </small>
+                            </label>
+                            <label class="admin-form__label">
+                                Preconnect domains
+                                <input
+                                    type="text"
+                                    name="preconnects"
+                                    class="admin-form__input"
+                                    placeholder="https://fonts.googleapis.com, https://fonts.gstatic.com"
+                                />
+                                <small class="admin-card__description admin-form__hint">
+                                    Separate multiple URLs with commas. Preconnect hints speed up font delivery for repeat visitors.
+                                </small>
+                            </label>
+                            <label class="admin-form__checkbox">
+                                <input type="checkbox" name="enabled" checked />
+                                <span class="checkbox__label">Enable font</span>
+                            </label>
+                            <label class="admin-form__label">
+                                Notes <span class="admin-form__hint">Optional</span>
+                                <textarea
+                                    name="notes"
+                                    rows="2"
+                                    class="admin-form__input"
+                                    placeholder="Usage guidance, pairing suggestions, or fallbacks."
+                                ></textarea>
+                            </label>
+                            <div class="admin-form__actions admin-fonts__form-actions">
+                                <button type="submit" class="admin-form__submit" data-role="font-submit">
+                                    Save font
+                                </button>
+                                <button
+                                    type="button"
+                                    class="admin-form__cancel"
+                                    data-role="font-cancel"
+                                    hidden
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+            </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'languages',
+        order: 75,
+        shouldRender: (context) => Boolean(context?.languageFeatureEnabled),
+        markup: String.raw`
+<section
+                    id="admin-panel-languages"
+                    class="admin-panel"
+                    data-panel="languages"
+                    data-nav-group="configuration"
+                    data-nav-group-label="Configuration"
+                    data-nav-group-order="3"
+                    data-nav-label="Languages"
+                    data-nav-order="1.25"
+                    role="tabpanel"
+                    aria-labelledby="admin-tab-languages"
+                    hidden
+                >
+                    <header class="admin-panel__header">
+                        <div>
+                            <h2 class="admin-panel__title">Languages</h2>
+                            <p class="admin-panel__description">
+                                Configure the default interface language and manage which locales are available to visitors.
+                            </p>
+                        </div>
+                    </header>
+                    <div class="admin-panel__body admin-panel__body--single">
+                        <form id="admin-language-form" class="admin-form" novalidate>
+                            <fieldset class="admin-card admin-form__fieldset">
+                                <legend class="admin-card__title admin-form__legend">Language configuration</legend>
+                                <label class="admin-form__label" for="admin-default-language">
+                                    Default language
+                                    <input
+                                        id="admin-default-language"
+                                        type="text"
+                                        name="default_language"
+                                        required
+                                        class="admin-form__input"
+                                        placeholder="en"
+                                        pattern="^[a-z]{2,8}(-[A-Za-z]{2,3})?$"
+                                        list="admin-language-suggestions"
+                                        data-role="language-default"
+                                    />
+                                    <datalist id="admin-language-suggestions" data-role="language-suggestions"></datalist>
+                                    <small class="admin-card__description admin-form__hint">
+                                        Use a BCP&nbsp;47 language tag such as <code>en</code> or <code>en-GB</code>.
+                                    </small>
+                                </label>
+                                <div
+                                    class="admin-form__label"
+                                    role="group"
+                                    aria-labelledby="admin-supported-languages-label"
+                                >
+                                    <span id="admin-supported-languages-label">Supported languages</span>
+                                    <div class="admin-languages" data-role="language-manager">
+                                        <p class="admin-languages__empty" data-role="language-empty" hidden>
+                                            Only the default language is currently available.
+                                        </p>
+                                        <ul class="admin-languages__list" data-role="language-list"></ul>
+                                        <div class="admin-languages__controls">
+                                            <input
+                                                type="text"
+                                                class="admin-form__input admin-languages__input"
+                                                placeholder="Add language code (e.g. fr or de-AT)"
+                                                data-role="language-input"
+                                                pattern="^[a-z]{2,8}(-[A-Za-z]{2,3})?$"
+                                                aria-label="Add supported language"
+                                                list="admin-language-suggestions"
+                                            />
+                                            <button type="button" class="admin-languages__add-button" data-role="language-add">
+                                                Add language
+                                            </button>
+                                        </div>
+                                        <small class="admin-card__description admin-form__hint">
+                                            The default language is always supported. Add additional language codes to offer
+                                            translations.
+                                        </small>
+                                    </div>
+                                    <input type="hidden" name="supported_languages" data-role="language-hidden" />
+                                </div>
+                                <div class="admin-form__actions">
+                                    <button type="submit" class="admin-form__submit" data-role="language-submit">
+                                        Save languages
+                                    </button>
+                                </div>
+                            </fieldset>
+                        </form>
+                    </div>
+                </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'homepage',
+        order: 80,
+        markup: String.raw`
+<section
+                id="admin-panel-homepage"
+                class="admin-panel"
+                data-panel="homepage"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Homepage"
+                data-nav-order="1.5"
+                role="tabpanel"
+                aria-labelledby="admin-tab-homepage"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Homepage</h2>
+                        <p class="admin-panel__description">
+                            Choose which published page visitors see when they land on the root URL.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body">
+                    <form id="admin-homepage-form" class="admin-form" novalidate>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Homepage selection</legend>
+                            <p class="admin-card__description admin-form__hint">
+                                Select a published page to use as the homepage. Leave blank to continue using the page
+                                assigned to the "/" path.
+                            </p>
+                            <label class="admin-form__label">
+                                Homepage page
+                                <select class="admin-form__input" name="page_id" data-role="homepage-select">
+                                    <option value="">Use page assigned to "/" path</option>
+                                </select>
+                            </label>
+                            <p class="admin-card__description admin-form__hint" data-role="homepage-status"></p>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="homepage-submit">
+                                    Save homepage
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                    <section class="admin-card" aria-labelledby="admin-homepage-options-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-homepage-options-title" class="admin-card__title">Available pages</h3>
+                            <p class="admin-card__description">
+                                Review each page’s status before selecting it as the homepage.
+                            </p>
+                        </div>
+                        <div class="admin-homepage__options" data-role="homepage-options">
+                            <p class="admin-homepage__empty" data-role="homepage-empty">
+                                No pages available yet. Create and publish a page to select it as the homepage.
+                            </p>
+                        </div>
+                    </section>
+                </div>
+            </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'backups',
+        order: 90,
+        markup: String.raw`
+<section
+                id="admin-panel-backups"
+                class="admin-panel"
+                data-panel="backups"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Backups"
+                data-nav-order="2"
+                role="tabpanel"
+                aria-labelledby="admin-tab-backups"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Site backups</h2>
+                        <p class="admin-panel__description">
+                            Create a full export of database records and managed uploads or restore a previous snapshot when needed.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--single">
+                    <section class="admin-card" aria-labelledby="admin-backup-download-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-backup-download-title" class="admin-card__title">Download full backup</h3>
+                            <p class="admin-card__description">
+                                Generates a ZIP archive containing all site data and uploaded media so you can store it securely.
+                            </p>
+                        </div>
+                        <p class="admin-card__description admin-form__hint">
+                            Backups include users, content, configuration, and files managed through the media uploader.
+                        </p>
+                        <div class="admin-form__actions">
+                            <button type="button" class="admin-form__submit" data-role="backup-download">
+                                Download backup
+                            </button>
+                        </div>
+                        <p class="admin-card__description admin-form__hint" data-role="backup-summary" hidden></p>
+                    </section>
+                    <section class="admin-card" aria-labelledby="admin-backup-auto-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-backup-auto-title" class="admin-card__title">Automatic backups</h3>
+                            <p class="admin-card__description">
+                                Schedule recurring backups that are stored on the server for additional protection.
+                            </p>
+                        </div>
+                        <form id="admin-backup-settings-form" class="admin-form" novalidate>
+                            <fieldset class="admin-card admin-form__fieldset">
+                                <legend class="admin-card__title admin-form__legend">Schedule</legend>
+                                <label class="admin-form__checkbox checkbox" for="backup-auto-enabled">
+                                    <input
+                                        type="checkbox"
+                                        id="backup-auto-enabled"
+                                        name="auto_enabled"
+                                        class="checkbox__input"
+                                    />
+                                    <span class="checkbox__label">Enable automatic backups</span>
+                                </label>
+                                <label class="admin-form__label" for="backup-auto-interval">
+                                    Backup interval (hours)
+                                    <input
+                                        type="number"
+                                        id="backup-auto-interval"
+                                        name="interval_hours"
+                                        class="admin-form__input"
+                                        min="1"
+                                        max="168"
+                                        value="24"
+                                    />
+                                </label>
+                                <small class="admin-card__description admin-form__hint">
+                                    Choose how often to run automatic backups. The maximum interval is 168 hours (7 days).
+                                </small>
+                                <p class="admin-card__description admin-form__hint" data-role="backup-settings-status" hidden></p>
+                                <div class="admin-form__actions">
+                                    <button type="submit" class="admin-form__submit" data-role="backup-settings-submit">
+                                        Save backup settings
+                                    </button>
+                                </div>
+                            </fieldset>
+                        </form>
+                    </section>
+                    <section class="admin-card" aria-labelledby="admin-backup-restore-title">
+                        <div class="admin-card__header">
+                            <h3 id="admin-backup-restore-title" class="admin-card__title">Restore from backup</h3>
+                            <p class="admin-card__description">
+                                Upload a previously generated archive to replace all content and media with the snapshot it contains.
+                            </p>
+                        </div>
+                        <form id="admin-backup-import-form" class="admin-form" novalidate>
+                            <fieldset class="admin-card admin-form__fieldset">
+                                <legend class="admin-card__title admin-form__legend">Backup archive</legend>
+                                <label class="admin-form__label">
+                                    Archive file
+                                    <input
+                                        type="file"
+                                        name="backup_file"
+                                        accept="application/zip,.zip"
+                                        required
+                                        class="admin-form__input"
+                                    />
+                                    <small class="admin-card__description admin-form__hint">
+                                        Restoring a backup overwrites the current database and uploads. Ensure you have a recent export before continuing.
+                                    </small>
+                                </label>
+                                <div class="admin-form__actions">
+                                    <button type="submit" class="admin-form__submit" data-role="backup-upload-submit">
+                                        Restore backup
+                                    </button>
+                                </div>
+                            </fieldset>
+                        </form>
+                    </section>
+                </div>
+            </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'advertising',
+        order: 100,
+        markup: String.raw`
+<section
+                id="admin-panel-advertising"
+                class="admin-panel"
+                data-panel="advertising"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Monetization"
+                data-nav-order="3"
+                role="tabpanel"
+                aria-labelledby="admin-tab-advertising"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Advertising</h2>
+                        <p class="admin-panel__description">
+                            Configure Google AdSense placements and control how advertisements appear across the site.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body">
+                    <form id="admin-ads-form" class="admin-form" novalidate>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">General settings</legend>
+                            <label class="admin-form__checkbox checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="enabled"
+                                    data-role="ads-enabled"
+                                    class="checkbox__input"
+                                />
+                                <span class="checkbox__label">Enable advertising</span>
+                            </label>
+                            <label class="admin-form__label">
+                                Provider
+                                <select name="provider" class="admin-form__input" data-role="ads-provider"></select>
+                            </label>
+                            <small class="admin-card__description admin-form__hint">
+                                Select the advertising provider to manage. New providers can be added without changing templates.
+                            </small>
+                        </fieldset>
+                        <fieldset class="admin-card admin-form__fieldset" data-role="ads-provider-fields" data-provider="google_ads">
+                            <legend class="admin-card__title admin-form__legend">Google AdSense</legend>
+                            <label class="admin-form__label">
+                                Publisher ID
+                                <input
+                                    type="text"
+                                    name="google_ads.publisher_id"
+                                    class="admin-form__input"
+                                    data-role="ads-google-publisher"
+                                    placeholder="ca-pub-0000000000000000"
+                                    autocomplete="off"
+                                />
+                            </label>
+                            <small class="admin-card__description admin-form__hint">
+                                Use the publisher ID from your AdSense account (format: ca-pub-XXXXXXXXXXXXXXXX).
+                            </small>
+                            <label class="admin-form__checkbox checkbox">
+                                <input
+                                    type="checkbox"
+                                    name="google_ads.auto_ads"
+                                    data-role="ads-google-auto"
+                                    class="checkbox__input"
+                                />
+                                <span class="checkbox__label">Enable Auto Ads</span>
+                            </label>
+                            <p class="admin-card__description admin-form__hint">
+                                Auto Ads allow Google to automatically place ads across your pages. You can still define manual slots.
+                            </p>
+                            <div class="admin-ads__slots" data-role="ads-slots" aria-live="polite"></div>
+                            <button type="button" class="admin-form__link-button" data-role="ads-slot-add">
+                                Add placement
+                            </button>
+                            <small class="admin-card__description admin-form__hint">
+                                Each placement maps an AdSense ad unit to a specific location such as the header, sidebar, or footer.
+                            </small>
+                        </fieldset>
+                        <div class="admin-form__actions">
+                            <button type="submit" class="admin-form__submit" data-role="ads-submit">
+                                Save changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'plugins',
+        order: 110,
+        markup: String.raw`
+<section
+                id="admin-panel-plugins"
+                class="admin-panel"
+                data-panel="plugins"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Plugins"
+                data-nav-order="1"
+                role="tabpanel"
+                aria-labelledby="admin-tab-plugins"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Plugins</h2>
+                        <p class="admin-panel__description">
+                            Install, activate, and deactivate plugins to extend the site's capabilities without modifying the core codebase.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--split">
+                    <section class="admin-card admin-plugins" aria-labelledby="admin-plugins-title">
+                        <header class="admin-card__header admin-plugins__header">
+                            <h3 id="admin-plugins-title" class="admin-card__title admin-form__legend">Installed plugins</h3>
+                            <p class="admin-card__description admin-form__hint">
+                                Manage installed plugins. Activate a plugin to enable its features or deactivate it to disable functionality while keeping the files available.
+                            </p>
+                        </header>
+                        <div class="admin-card__body admin-plugins__body">
+                            <ul class="admin-plugins__list" data-role="plugin-list" aria-live="polite">
+                                <li class="admin-plugins__empty" data-role="plugin-empty">No plugins installed yet.</li>
+                            </ul>
+                        </div>
+                    </section>
+                    <section class="admin-card admin-plugins__install" aria-labelledby="admin-plugin-install-title">
+                        <header class="admin-card__header admin-plugins__install-header">
+                            <h3 id="admin-plugin-install-title" class="admin-card__title admin-form__legend">Install plugin</h3>
+                            <p class="admin-card__description admin-form__hint">
+                                Upload a ZIP archive that contains the plugin files and a <code>plugin.json</code> manifest describing the plugin metadata.
+                            </p>
+                        </header>
+                        <div class="admin-card__body">
+                            <form class="admin-form admin-plugins__form" data-role="plugin-install-form" enctype="multipart/form-data" novalidate>
+                                <label class="admin-form__label">
+                                    Plugin archive (.zip)
+                                    <input
+                                        type="file"
+                                        name="file"
+                                        required
+                                        accept=".zip"
+                                        class="admin-form__input"
+                                        data-role="plugin-upload-input"
+                                    />
+                                    <small class="admin-card__description admin-form__hint">
+                                        Install plugins packaged as ZIP files. The plugin will be extracted to the server's plugins directory.
+                                    </small>
+                                </label>
+                                <div class="admin-form__actions">
+                                    <button type="submit" class="admin-form__submit" data-role="plugin-install-button">
+                                        Install plugin
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+            </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'themes',
+        order: 120,
+        markup: String.raw`
+<section
+                id="admin-panel-themes"
+                class="admin-panel"
+                data-panel="themes"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Themes"
+                data-nav-order="2"
+                role="tabpanel"
+                aria-labelledby="admin-tab-themes"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Themes</h2>
+                        <p class="admin-panel__description">
+                            Switch the active theme to apply a different global layout, stylesheet, and default content structure.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body admin-panel__body--single">
+                    <section class="admin-card admin-theme" aria-labelledby="admin-themes-title">
+                        <header class="admin-card__header admin-theme__header">
+                            <h3 id="admin-themes-title" class="admin-card__title admin-form__legend">Available themes</h3>
+                            <p class="admin-card__description admin-form__hint">
+                                Select a theme to change the site's overall appearance. Activate a theme to apply its templates and assets immediately.
+                            </p>
+                        </header>
+                        <div class="admin-card__body admin-theme__body">
+                            <ul class="admin-theme__list" data-role="theme-list" aria-live="polite">
+                                <li class="admin-theme__empty" data-role="theme-empty">No themes available yet.</li>
+                            </ul>
+                        </div>
+                    </section>
+                </div>
+            </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'social',
+        order: 130,
+        markup: String.raw`
+<section
+                id="admin-panel-social"
+                class="admin-panel"
+                data-panel="social"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Social profiles"
+                data-nav-order="3"
+                role="tabpanel"
+                aria-labelledby="admin-tab-social"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Social profiles</h2>
+                        <p class="admin-panel__description">
+                            Manage the social networks displayed in the site footer. Add a name, destination URL, and an optional icon for each profile.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body">
+                    <section class="admin-card admin-social" aria-labelledby="admin-social-title">
+                        <header class="admin-card__header admin-social__header">
+                            <h3 id="admin-social-title" class="admin-card__title admin-form__legend">Social profiles</h3>
+                            <p class="admin-card__description admin-form__hint">
+                                Manage the social networks displayed in the site footer. Add a name, destination URL, and an optional icon for each profile.
+                            </p>
+                        </header>
+                        <div class="admin-card__body admin-social__content">
+                            <ul class="admin-social__list" data-role="social-list" aria-live="polite">
+                                <li class="admin-social__empty" data-role="social-empty">No social profiles added yet.</li>
+                            </ul>
+                            <form id="admin-social-form" class="admin-form admin-social__form" novalidate>
+                                <input type="hidden" name="id" />
+                                <label class="admin-form__label">
+                                    Name
+                                    <input type="text" name="name" required class="admin-form__input" />
+                                </label>
+                                <label class="admin-form__label">
+                                    Profile URL
+                                    <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
+                                </label>
+                                <label class="admin-form__label">
+                                    Icon URL
+                                    <input type="text" name="icon" class="admin-form__input" placeholder="/static/icons/social/twitter.svg" />
+                                    <small class="admin-card__description admin-form__hint">
+                                        Provide an SVG or PNG icon. Leave blank to display the network initials.
+                                    </small>
+                                </label>
+                                <div class="admin-form__actions admin-form__actions--inline">
+                                    <button type="submit" class="admin-form__submit" data-role="social-submit">
+                                        Save social link
+                                    </button>
+                                    <button type="button" class="admin-form__cancel" data-role="social-cancel" hidden>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+            </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'navigation',
+        order: 140,
+        markup: String.raw`
+<section
+                id="admin-panel-navigation"
+                class="admin-panel"
+                data-panel="navigation"
+                data-nav-group="configuration"
+                data-nav-group-label="Configuration"
+                data-nav-group-order="3"
+                data-nav-label="Navigation menu"
+                data-nav-order="4"
+                role="tabpanel"
+                aria-labelledby="admin-tab-navigation"
+                hidden
+            >
+                <header class="admin-panel__header">
+                    <div>
+                        <h2 class="admin-panel__title">Navigation menu</h2>
+                        <p class="admin-panel__description">
+                            Control the navigation links shown in the site header and footer. Choose a location, add menu items with a label and destination URL, and arrange them in the preferred order.
+                        </p>
+                    </div>
+                </header>
+                <div class="admin-panel__body">
+                    <section class="admin-card admin-navigation" aria-labelledby="admin-navigation-title">
+                        <header class="admin-card__header admin-navigation__header">
+                            <h3 id="admin-navigation-title" class="admin-card__title admin-form__legend">Navigation menu</h3>
+                            <p class="admin-card__description admin-form__hint">
+                                Control the navigation links shown in the site header and footer. Choose a location, add menu
+                                items with a label and destination URL, and arrange them in the preferred order.
+                            </p>
+                        </header>
+                        <div class="admin-card__body admin-navigation__content">
+                            <ul class="admin-navigation__list" data-role="menu-list" aria-live="polite">
+                                <li class="admin-navigation__empty" data-role="menu-empty">
+                                    No menu items added for this location yet.
+                                </li>
+                            </ul>
+                            <form id="admin-menu-form" class="admin-form admin-navigation__form" novalidate>
+                                <input type="hidden" name="id" />
+                                <fieldset class="admin-form__fieldset admin-navigation__step">
+                                    <legend class="admin-form__legend admin-navigation__step-title">1. Choose menu location</legend>
+                                    <p class="admin-navigation__step-description">
+                                        Pick where this menu item should appear on your site.
+                                    </p>
+                                    <label class="admin-form__label admin-navigation__location">
+                                        Menu location
+                                        <select
+                                            name="location"
+                                            required
+                                            class="admin-form__input"
+                                            data-role="menu-location"
+                                        >
+                                            <option value="header">Header</option>
+                                            <option value="footer:explore">Footer – Explore</option>
+                                            <option value="footer:account">Footer – Account</option>
+                                            <option value="footer:legal">Footer – Legal</option>
+                                            <option value="footer">Footer (general)</option>
+                                            <option value="__custom_footer__">Create new footer section…</option>
+                                        </select>
+                                        <small class="admin-card__description admin-form__hint">
+                                            Select the navigation area to update.
+                                        </small>
+                                    </label>
+                                </fieldset>
+                                <fieldset class="admin-form__fieldset admin-navigation__step">
+                                    <legend class="admin-form__legend admin-navigation__step-title">2. Create a footer section</legend>
+                                    <p class="admin-navigation__step-description">
+                                        Need a new footer column? Choose "Create new footer section…" above and name it here.
+                                    </p>
+                                    <p class="admin-navigation__step-note" data-role="menu-custom-location-hint">
+                                        Select "Create new footer section…" to enable this field.
+                                    </p>
+                                    <div class="admin-navigation__custom" data-role="menu-custom-location" hidden>
+                                        <label class="admin-form__label">
+                                            Footer section name
+                                            <input
+                                                type="text"
+                                                class="admin-form__input"
+                                                data-role="menu-location-name"
+                                                placeholder="Resources"
+                                                autocomplete="off"
+                                            />
+                                            <small class="admin-card__description admin-form__hint">
+                                                We'll create a new footer group using this name and organise
+                                                links under it.
+                                            </small>
+                                        </label>
+                                    </div>
+                                </fieldset>
+                                <fieldset class="admin-form__fieldset admin-navigation__step">
+                                    <legend class="admin-form__legend admin-navigation__step-title">3. Add menu item</legend>
+                                    <p class="admin-navigation__step-description">
+                                        Give the link a label and destination URL for the selected location.
+                                    </p>
+                                    <label class="admin-form__label">
+                                        Label
+                                        <input type="text" name="title" required class="admin-form__input" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Destination URL
+                                        <input type="url" name="url" required class="admin-form__input" placeholder="/blog" />
+                                        <small class="admin-card__description admin-form__hint">
+                                            Accepts relative or absolute URLs. Relative paths are recommended for internal pages.
+                                        </small>
+                                    </label>
+                                    <div class="admin-form__actions admin-form__actions--inline">
+                                        <button type="submit" class="admin-form__submit" data-role="menu-submit">
+                                            Save menu item
+                                        </button>
+                                        <button type="button" class="admin-form__cancel" data-role="menu-cancel" hidden>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </fieldset>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+            </section>
+`,
+    });
+
+    init();
+})();
