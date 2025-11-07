@@ -2052,8 +2052,15 @@
                         </p>
                     </div>
                 </header>
-                <div class="admin-panel__body admin-panel__body--split">
-                    <section class="admin-card admin-plugins" aria-labelledby="admin-plugins-title">
+                <div class="admin-panel__body admin-panel__body--stacked">
+                    <section
+                        id="admin-plugins-installed-section"
+                        class="admin-card admin-plugins admin__section"
+                        aria-labelledby="admin-plugins-title"
+                        data-nav-child-of="plugins"
+                        data-nav-child-label="Installed"
+                        data-nav-child-order="1"
+                    >
                         <header class="admin-card__header admin-plugins__header">
                             <h3 id="admin-plugins-title" class="admin-card__title admin-form__legend">Installed plugins</h3>
                             <p class="admin-card__description admin-form__hint">
@@ -2066,7 +2073,14 @@
                             </ul>
                         </div>
                     </section>
-                    <section class="admin-card admin-plugins__install" aria-labelledby="admin-plugin-install-title">
+                    <section
+                        id="admin-plugins-install-section"
+                        class="admin-card admin-plugins__install admin__section"
+                        aria-labelledby="admin-plugin-install-title"
+                        data-nav-child-of="plugins"
+                        data-nav-child-label="Install"
+                        data-nav-child-order="2"
+                    >
                         <header class="admin-card__header admin-plugins__install-header">
                             <h3 id="admin-plugin-install-title" class="admin-card__title admin-form__legend">Install plugin</h3>
                             <p class="admin-card__description admin-form__hint">
