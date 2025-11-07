@@ -1171,6 +1171,23 @@
                                 Duration:
                                 <span data-role="course-video-duration">—</span>
                             </p>
+                            <figure
+                                class="admin-courses__preview"
+                                data-role="course-video-preview-wrapper"
+                                hidden
+                            >
+                                <video
+                                    class="admin-courses__preview-media"
+                                    controls
+                                    preload="metadata"
+                                    data-role="course-video-preview"
+                                >
+                                    Your browser does not support HTML5 video.
+                                </video>
+                                <figcaption class="admin-card__description admin-courses__preview-caption">
+                                    Video preview
+                                </figcaption>
+                            </figure>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="course-video-submit">
                                     Upload video

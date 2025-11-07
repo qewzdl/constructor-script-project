@@ -3116,6 +3116,26 @@
     gap: var(--size-mid);
 }
 
+.admin-courses__preview {
+    display: grid;
+    gap: var(--size-xxs);
+}
+
+.admin-courses__preview-media {
+    width: 100%;
+    max-height: 22.5rem;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-subtle);
+    box-shadow: var(--shadow-xs);
+    border: 1px solid var(--color-border);
+    background-color: #000000;
+}
+
+.admin-courses__preview-caption {
+    font-size: var(--font-size-sm);
+    color: var(--color-secondary);
+}
+
 .admin-courses__fieldset {
     display: grid;
     gap: var(--size-sm);

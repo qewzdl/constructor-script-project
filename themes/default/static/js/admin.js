@@ -724,6 +724,10 @@
         const courseVideoTitleInput = courseVideoForm?.querySelector('input[name="title"]');
         const courseVideoDescriptionInput = courseVideoForm?.querySelector('textarea[name="description"]');
         const courseVideoDurationField = courseVideoForm?.querySelector('[data-role="course-video-duration"]');
+        const courseVideoPreviewWrapper = courseVideoForm?.querySelector(
+            '[data-role="course-video-preview-wrapper"]'
+        );
+        const courseVideoPreview = courseVideoForm?.querySelector('[data-role="course-video-preview"]');
         const courseVideoUploadGroup = courseVideoForm?.querySelector('[data-role="course-video-upload-group"]');
         const courseVideoUploadHint = courseVideoForm?.querySelector('[data-role="course-video-upload-hint"]');
         const courseVideoFileInput = courseVideoForm?.querySelector('input[name="video"]');
@@ -5099,6 +5103,20 @@
             if (courseVideoDurationField) {
                 courseVideoDurationField.textContent = '—';
             }
+            if (courseVideoPreview) {
+                try {
+                    courseVideoPreview.pause();
+                } catch (error) {
+                    /* no-op */
+                }
+                courseVideoPreview.removeAttribute('src');
+                if (typeof courseVideoPreview.load === 'function') {
+                    courseVideoPreview.load();
+                }
+            }
+            if (courseVideoPreviewWrapper) {
+                courseVideoPreviewWrapper.hidden = true;
+            }
             highlightRow(tables.courseVideos);
             bringFormIntoView(courseVideoForm);
         };
@@ -5147,6 +5165,29 @@
                 video?.DurationSeconds;
             if (courseVideoDurationField) {
                 courseVideoDurationField.textContent = formatVideoDuration(duration);
+            }
+            if (courseVideoPreview && courseVideoPreviewWrapper) {
+                const source = normaliseString(
+                    video?.file_url ?? video?.fileUrl ?? video?.FileURL ?? ''
+                ).trim();
+                if (source) {
+                    courseVideoPreview.src = source;
+                    if (typeof courseVideoPreview.load === 'function') {
+                        courseVideoPreview.load();
+                    }
+                    courseVideoPreviewWrapper.hidden = false;
+                } else {
+                    try {
+                        courseVideoPreview.pause();
+                    } catch (error) {
+                        /* no-op */
+                    }
+                    courseVideoPreview.removeAttribute('src');
+                    if (typeof courseVideoPreview.load === 'function') {
+                        courseVideoPreview.load();
+                    }
+                    courseVideoPreviewWrapper.hidden = true;
+                }
             }
             highlightRow(tables.courseVideos, id);
             if (scroll) {
