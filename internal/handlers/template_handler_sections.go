@@ -241,16 +241,18 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 
 	listClass := fmt.Sprintf("%s__course-list courses-list", prefix)
 	emptyClass := fmt.Sprintf("%s__course-list-empty courses-list__empty", prefix)
-	cardClass := fmt.Sprintf("%s__course-card courses-list__item", prefix)
-	mediaClass := fmt.Sprintf("%s__course-media courses-list__media", prefix)
-	imageClass := fmt.Sprintf("%s__course-image courses-list__image", prefix)
-	contentClass := fmt.Sprintf("%s__course-content courses-list__content", prefix)
-	titleClass := fmt.Sprintf("%s__course-title courses-list__title", prefix)
+	cardClass := fmt.Sprintf("%s__course-card courses-list__item post-card", prefix)
+	mediaClass := fmt.Sprintf("%s__course-media post-card__figure", prefix)
+	imageClass := fmt.Sprintf("%s__course-image post-card__image", prefix)
+	contentClass := fmt.Sprintf("%s__course-content post-card__content", prefix)
+	titleClass := fmt.Sprintf("%s__course-title post-card__title", prefix)
+	linkClass := fmt.Sprintf("%s__course-link post-card__link post-card__link--static", prefix)
 	priceClass := fmt.Sprintf("%s__course-price courses-list__price", prefix)
-	descriptionClass := fmt.Sprintf("%s__course-description courses-list__description", prefix)
-	topicsClass := fmt.Sprintf("%s__course-topics courses-list__topics", prefix)
-	topicItemClass := fmt.Sprintf("%s__course-topic courses-list__topic", prefix)
-	topicNameClass := fmt.Sprintf("%s__course-topic-name courses-list__topic-name", prefix)
+	metaClass := fmt.Sprintf("%s__course-meta post-card__meta", prefix)
+	descriptionClass := fmt.Sprintf("%s__course-description post-card__description", prefix)
+	topicsClass := fmt.Sprintf("%s__course-topics post-card__tags courses-list__topics", prefix)
+	topicItemClass := fmt.Sprintf("%s__course-topic post-card__tag", prefix)
+	topicNameClass := fmt.Sprintf("%s__course-topic-name post-card__tag-link post-card__tag-link--static", prefix)
 	topicMetaClass := fmt.Sprintf("%s__course-topic-meta courses-list__topic-meta", prefix)
 
 	limit := section.Limit
@@ -296,16 +298,20 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 		sb.WriteString(`<article class="` + cardClass + `" aria-labelledby="` + headingID + `">`)
 
 		if image := strings.TrimSpace(pkg.ImageURL); image != "" {
-			sb.WriteString(`<div class="` + mediaClass + `">`)
+			sb.WriteString(`<figure class="` + mediaClass + `">`)
 			sb.WriteString(`<img class="` + imageClass + `" src="` + template.HTMLEscapeString(image) + `" alt="` + template.HTMLEscapeString(title) + ` course preview" loading="lazy" />`)
-			sb.WriteString(`</div>`)
+			sb.WriteString(`</figure>`)
 		}
 
 		sb.WriteString(`<div class="` + contentClass + `">`)
-		sb.WriteString(`<h3 id="` + headingID + `" class="` + titleClass + `">` + template.HTMLEscapeString(title) + `</h3>`)
+		sb.WriteString(`<h3 id="` + headingID + `" class="` + titleClass + `">`)
+		sb.WriteString(`<span class="` + linkClass + `">` + template.HTMLEscapeString(title) + `</span>`)
+		sb.WriteString(`</h3>`)
 
 		if price := formatCoursePrice(pkg.PriceCents); price != "" {
-			sb.WriteString(`<p class="` + priceClass + `">` + template.HTMLEscapeString(price) + `</p>`)
+			sb.WriteString(`<div class="` + metaClass + `">`)
+			sb.WriteString(`<span class="` + priceClass + `">` + template.HTMLEscapeString(price) + `</span>`)
+			sb.WriteString(`</div>`)
 		}
 
 		if description := strings.TrimSpace(pkg.Description); description != "" {
@@ -325,13 +331,14 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 				sb.WriteString(`<ul class="` + topicsClass + `" aria-label="Included topics">`)
 			}
 			sb.WriteString(`<li class="` + topicItemClass + `">`)
-			sb.WriteString(`<span class="` + topicNameClass + `">` + template.HTMLEscapeString(name) + `</span>`)
+			sb.WriteString(`<span class="` + topicNameClass + `">` + template.HTMLEscapeString(name))
 			if lessonCount := len(topic.Videos); lessonCount > 0 {
 				lessonLabel := formatLessonCount(lessonCount)
 				if lessonLabel != "" {
-					sb.WriteString(`<span class="` + topicMetaClass + `">` + template.HTMLEscapeString(lessonLabel) + `</span>`)
+					sb.WriteString(` <span class="` + topicMetaClass + `">` + template.HTMLEscapeString(lessonLabel) + `</span>`)
 				}
 			}
+			sb.WriteString(`</span>`)
 			sb.WriteString(`</li>`)
 			topicsRendered++
 		}

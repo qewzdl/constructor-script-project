@@ -790,6 +790,13 @@ textarea.form-field__input {
     color: var(--color-text);
 }
 
+.post-card__link--static,
+.post-card__tag-link--static {
+    color: inherit;
+    text-decoration: none;
+    pointer-events: none;
+}
+
 .post-card__description {
     color: var(--color-secondary);
     font-size: var(--font-size-base);
