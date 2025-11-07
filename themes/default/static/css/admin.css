@@ -648,6 +648,14 @@
     display: grid;
 }
 
+[data-page="admin"].admin--has-subnavigation [data-nav-child-of] {
+    display: none;
+}
+
+[data-page="admin"].admin--has-subnavigation [data-nav-child-of].is-active {
+    display: grid;
+}
+
 .admin__subtab {
     display: flex;
     align-items: center;

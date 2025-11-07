@@ -11061,6 +11061,12 @@
                 subnavStateInitialized = true;
             }
             syncSubnavigationState();
+
+            if (panelsWithSubnavigation.size > 0) {
+                root.classList.add('admin--has-subnavigation');
+            } else {
+                root.classList.remove('admin--has-subnavigation');
+            }
         };
 
         refreshNavigation();
