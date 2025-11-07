@@ -10586,6 +10586,7 @@
         let navigationTabs = [];
         let subnavContainers = new Map();
         let subnavButtons = new Map();
+        let subnavSections = new Map();
         let panelsWithSubnavigation = new Set();
         let openSubnavPanelId = '';
         let subnavStateInitialized = false;
@@ -10593,23 +10594,58 @@
         const sectionHighlightTimers = new WeakMap();
 
         const setActiveSubnav = (panelId, targetId) => {
+            const sections = subnavSections.get(panelId) || [];
+            let effectiveTarget = targetId || '';
+
+            if (sections.length > 0) {
+                const hasMatch = sections.some(({ sectionId }) => sectionId === effectiveTarget);
+                if (!hasMatch) {
+                    effectiveTarget = sections[0]?.sectionId || '';
+                }
+            }
+
+            let matchedSection = false;
+            sections.forEach(({ element, sectionId }) => {
+                if (!(element instanceof HTMLElement)) {
+                    return;
+                }
+                const shouldShow = effectiveTarget ? sectionId === effectiveTarget : false;
+                element.hidden = !shouldShow;
+                element.classList.toggle('is-active', shouldShow);
+                if (shouldShow) {
+                    matchedSection = true;
+                }
+            });
+
             const buttons = subnavButtons.get(panelId) || [];
-            let matched = false;
+            let matchedButton = false;
             buttons.forEach((button) => {
-                const isActive = Boolean(targetId) && button.dataset.target === targetId;
+                const isActive = Boolean(effectiveTarget) && button.dataset.target === effectiveTarget;
                 button.classList.toggle('is-active', isActive);
                 if (isActive) {
                     button.setAttribute('aria-current', 'location');
-                    matched = true;
+                    matchedButton = true;
                 } else {
                     button.removeAttribute('aria-current');
                 }
             });
-            if (matched && targetId) {
-                subnavActiveTargets.set(panelId, targetId);
+
+            if (matchedSection && effectiveTarget) {
+                subnavActiveTargets.set(panelId, effectiveTarget);
+            } else if (!matchedSection && sections.length > 0) {
+                const fallback = sections[0];
+                if (fallback?.sectionId) {
+                    subnavActiveTargets.set(panelId, fallback.sectionId);
+                } else {
+                    subnavActiveTargets.delete(panelId);
+                }
+            } else if (matchedButton && effectiveTarget) {
+                subnavActiveTargets.set(panelId, effectiveTarget);
             } else {
                 subnavActiveTargets.delete(panelId);
             }
+
+            return effectiveTarget;
         };
 
         const ensureDefaultSubnav = (panelId) => {
@@ -10730,6 +10766,7 @@
             const groups = new Map();
             subnavContainers = new Map();
             subnavButtons = new Map();
+            subnavSections = new Map();
             panelsWithSubnavigation = new Set();
 
             panels.forEach((panel, index) => {
@@ -10893,6 +10930,7 @@
                         subnav.setAttribute('role', 'group');
 
                         const buttons = [];
+                        const sectionEntries = [];
                         childDefinitions.forEach((childDefinition) => {
                             const subTab = createElement('button', {
                                 className: 'admin__subtab',
@@ -10904,6 +10942,15 @@
                             subTab.setAttribute('aria-controls', childDefinition.sectionId);
                             subnav.appendChild(subTab);
                             buttons.push(subTab);
+
+                            if (childDefinition.element instanceof HTMLElement) {
+                                childDefinition.element.hidden = true;
+                                childDefinition.element.classList.remove('is-active');
+                            }
+                            sectionEntries.push({
+                                element: childDefinition.element,
+                                sectionId: childDefinition.sectionId,
+                            });
                         });
 
                         navItem.appendChild(subnav);
@@ -10912,6 +10959,7 @@
                             toggleButton: tab,
                         });
                         subnavButtons.set(panelMeta.id, buttons);
+                        subnavSections.set(panelMeta.id, sectionEntries);
 
                         const storedTarget = subnavActiveTargets.get(panelMeta.id);
                         if (storedTarget) {
