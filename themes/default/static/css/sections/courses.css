@@ -1,0 +1,113 @@
+.courses-list {
+    display: grid;
+    gap: var(--common-gap);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.courses-list__item {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-stronger, var(--color-border));
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.courses-list__item:hover,
+.courses-list__item:focus-within {
+    border-color: var(--color-primary);
+}
+
+.courses-list__media {
+    position: relative;
+    height: 200px;
+    background: var(--color-muted);
+    overflow: hidden;
+}
+
+.courses-list__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.courses-list__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-sm);
+    padding: var(--size-base);
+}
+
+.courses-list__title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.courses-list__item:hover .courses-list__title {
+    color: var(--color-primary);
+}
+
+.courses-list__price {
+    margin: 0;
+    font-weight: 600;
+    color: var(--color-accent, var(--color-primary));
+}
+
+.courses-list__description {
+    margin: 0;
+    color: var(--color-secondary);
+    font-size: var(--font-size-base);
+}
+
+.courses-list__topics {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-xs);
+    list-style: none;
+    margin: var(--size-sm) 0 0;
+    padding: 0;
+}
+
+.courses-list__topic {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--size-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-secondary);
+}
+
+.courses-list__topic-name {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.courses-list__topic-meta {
+    white-space: nowrap;
+    color: var(--color-secondary);
+}
+
+.courses-list__empty {
+    color: var(--color-secondary);
+    font-size: var(--font-size-base);
+}
+
+@media (max-width: 640px) {
+    .courses-list__content {
+        padding: var(--size-mid);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .courses-list__item {
+        transition: none;
+        transform: none !important;
+    }
+}

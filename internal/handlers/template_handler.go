@@ -14,6 +14,7 @@ import (
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	courseservice "constructor-script-backend/plugins/courses/service"
 	languageservice "constructor-script-backend/plugins/language/service"
 
 	"github.com/gin-gonic/gin"
@@ -33,6 +34,7 @@ type TemplateHandler struct {
 	socialLinkService  *service.SocialLinkService
 	menuService        *service.MenuService
 	advertisingService *service.AdvertisingService
+	coursePackageSvc   *courseservice.PackageService
 	fontService        *service.FontService
 	templates          *template.Template
 	templatesMu        sync.RWMutex
@@ -57,6 +59,7 @@ func NewTemplateHandler(
 	menuService *service.MenuService,
 	fontService *service.FontService,
 	advertisingService *service.AdvertisingService,
+	coursePackageService *courseservice.PackageService,
 	cfg *config.Config,
 	themeManager *theme.Manager,
 ) (*TemplateHandler, error) {
@@ -78,6 +81,7 @@ func NewTemplateHandler(
 		menuService:        menuService,
 		fontService:        fontService,
 		advertisingService: advertisingService,
+		coursePackageSvc:   coursePackageService,
 		themeManager:       themeManager,
 		config:             cfg,
 		sanitizer:          policy,
@@ -117,8 +121,20 @@ func (h *TemplateHandler) SetLanguageService(languageService *languageservice.La
 	h.languageService = languageService
 }
 
+// SetCoursePackageService updates the course package service dependency used by the template handler.
+func (h *TemplateHandler) SetCoursePackageService(packageService *courseservice.PackageService) {
+	if h == nil {
+		return
+	}
+	h.coursePackageSvc = packageService
+}
+
 func (h *TemplateHandler) blogEnabled() bool {
 	return h != nil && h.postService != nil
+}
+
+func (h *TemplateHandler) coursesEnabled() bool {
+	return h != nil && h.coursePackageSvc != nil
 }
 
 func (h *TemplateHandler) ensureBlogAvailable(c *gin.Context) bool {

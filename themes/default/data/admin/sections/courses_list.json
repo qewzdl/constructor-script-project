@@ -1,0 +1,15 @@
+{
+    "type": "courses_list",
+    "label": "Courses list",
+    "order": 22,
+    "description": "Highlights available course packages with pricing and topics.",
+    "supports_elements": false,
+    "settings": {
+        "limit": {
+            "label": "Number of courses to display",
+            "default": 3,
+            "min": 1,
+            "max": 12
+        }
+    }
+}

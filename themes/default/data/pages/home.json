@@ -70,6 +70,11 @@
             ]
         },
         {
+            "title": "Featured courses",
+            "type": "courses_list",
+            "limit": 3
+        },
+        {
             "title": "Latest from the blog",
             "type": "posts_list",
             "limit": 3

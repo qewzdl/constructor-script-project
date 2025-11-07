@@ -10,4 +10,9 @@ const (
 	DefaultCategoryListSectionLimit = 10
 	// MaxCategoryListSectionLimit defines an upper bound for category list sections to keep navigation manageable.
 	MaxCategoryListSectionLimit = 30
+
+	// DefaultCourseListSectionLimit defines the default number of courses shown in a course list section.
+	DefaultCourseListSectionLimit = 3
+	// MaxCourseListSectionLimit defines an upper bound for course list sections to keep layouts balanced.
+	MaxCourseListSectionLimit = 12
 )

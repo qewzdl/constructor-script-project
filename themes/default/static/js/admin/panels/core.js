@@ -1198,9 +1198,20 @@
                             <input
                                 type="text"
                                 name="image_url"
+                                id="admin-course-package-image"
                                 class="admin-form__input"
                                 placeholder="/uploads/course-preview.jpg"
                             />
+                            <div class="admin-form__upload-actions">
+                                <button
+                                    type="button"
+                                    class="admin-form__upload-button"
+                                    data-action="open-media-library"
+                                    data-media-target="#admin-course-package-image"
+                                >
+                                    Browse uploads
+                                </button>
+                            </div>
                             <small class="admin-card__description admin-form__hint">
                                 Provide a preview image to feature this package in marketing pages.
                             </small>

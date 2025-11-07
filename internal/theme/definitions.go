@@ -387,6 +387,7 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 	heroSupports := false
 	postsSupports := false
 	categoriesSupports := false
+	coursesSupports := false
 
 	limitDefault := 6
 	limitMin := 1
@@ -395,6 +396,10 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 	categoryLimitDefault := constants.DefaultCategoryListSectionLimit
 	categoryLimitMin := 1
 	categoryLimitMax := constants.MaxCategoryListSectionLimit
+
+	courseLimitDefault := constants.DefaultCourseListSectionLimit
+	courseLimitMin := 1
+	courseLimitMax := constants.MaxCourseListSectionLimit
 
 	return map[string]SectionDefinition{
 		"standard": {
@@ -445,6 +450,21 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 					Default: &categoryLimitDefault,
 					Min:     &categoryLimitMin,
 					Max:     &categoryLimitMax,
+				},
+			},
+		},
+		"courses_list": {
+			Type:             "courses_list",
+			Label:            "Courses list",
+			Order:            22,
+			Description:      "Highlights available course packages with pricing and topics.",
+			SupportsElements: &coursesSupports,
+			Settings: map[string]SectionSettingDefinition{
+				"limit": {
+					Label:   "Number of courses to display",
+					Default: &courseLimitDefault,
+					Min:     &courseLimitMin,
+					Max:     &courseLimitMax,
 				},
 			},
 		},

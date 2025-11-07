@@ -96,6 +96,10 @@ func (f *Feature) Activate() error {
 		}
 	}
 
+	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
+		templateHandler.SetCoursePackageService(packageService)
+	}
+
 	return nil
 }
 
@@ -122,6 +126,10 @@ func (f *Feature) Deactivate() error {
 		courseServices.SetVideo(nil)
 		courseServices.SetTopic(nil)
 		courseServices.SetPackage(nil)
+	}
+
+	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
+		templateHandler.SetCoursePackageService(nil)
 	}
 
 	return nil

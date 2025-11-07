@@ -34,6 +34,10 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			continue
 		}
 
+		if sectionType == "courses_list" && !h.coursesEnabled() {
+			continue
+		}
+
 		title := strings.TrimSpace(section.Title)
 		escapedTitle := template.HTMLEscapeString(title)
 
@@ -64,6 +68,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		case "categories_list":
 			skipElements = true
 			sb.WriteString(h.renderCategoriesListSection(prefix, section))
+		case "courses_list":
+			skipElements = true
+			sb.WriteString(h.renderCoursesListSection(prefix, section))
 		}
 
 		if !skipElements {
@@ -229,6 +236,123 @@ func (h *TemplateHandler) renderCategoriesListSection(prefix string, section mod
 	return sb.String()
 }
 
+func (h *TemplateHandler) renderCoursesListSection(prefix string, section models.Section) string {
+	const maxTopicsPerCourse = 6
+
+	listClass := fmt.Sprintf("%s__course-list courses-list", prefix)
+	emptyClass := fmt.Sprintf("%s__course-list-empty courses-list__empty", prefix)
+	cardClass := fmt.Sprintf("%s__course-card courses-list__item", prefix)
+	mediaClass := fmt.Sprintf("%s__course-media courses-list__media", prefix)
+	imageClass := fmt.Sprintf("%s__course-image courses-list__image", prefix)
+	contentClass := fmt.Sprintf("%s__course-content courses-list__content", prefix)
+	titleClass := fmt.Sprintf("%s__course-title courses-list__title", prefix)
+	priceClass := fmt.Sprintf("%s__course-price courses-list__price", prefix)
+	descriptionClass := fmt.Sprintf("%s__course-description courses-list__description", prefix)
+	topicsClass := fmt.Sprintf("%s__course-topics courses-list__topics", prefix)
+	topicItemClass := fmt.Sprintf("%s__course-topic courses-list__topic", prefix)
+	topicNameClass := fmt.Sprintf("%s__course-topic-name courses-list__topic-name", prefix)
+	topicMetaClass := fmt.Sprintf("%s__course-topic-meta courses-list__topic-meta", prefix)
+
+	limit := section.Limit
+	if limit <= 0 {
+		limit = constants.DefaultCourseListSectionLimit
+	}
+	if limit > constants.MaxCourseListSectionLimit {
+		limit = constants.MaxCourseListSectionLimit
+	}
+
+	if h == nil || h.coursePackageSvc == nil {
+		return `<p class="` + emptyClass + `">Courses are not available right now.</p>`
+	}
+
+	packages, err := h.coursePackageSvc.List()
+	if err != nil {
+		logger.Error(err, "Failed to load course packages for section", map[string]interface{}{"section_id": section.ID})
+		return `<p class="` + emptyClass + `">Unable to load courses at the moment. Please try again later.</p>`
+	}
+
+	if len(packages) == 0 {
+		return `<p class="` + emptyClass + `">No courses available yet. Check back soon!</p>`
+	}
+
+	if limit < len(packages) {
+		packages = packages[:limit]
+	}
+
+	var sb strings.Builder
+	sb.WriteString(`<div class="` + listClass + `">`)
+
+	rendered := 0
+	for i := range packages {
+		pkg := packages[i]
+		title := strings.TrimSpace(pkg.Title)
+		if title == "" {
+			continue
+		}
+
+		rendered++
+		headingID := fmt.Sprintf("%s-course-%d-title", prefix, rendered)
+
+		sb.WriteString(`<article class="` + cardClass + `" aria-labelledby="` + headingID + `">`)
+
+		if image := strings.TrimSpace(pkg.ImageURL); image != "" {
+			sb.WriteString(`<div class="` + mediaClass + `">`)
+			sb.WriteString(`<img class="` + imageClass + `" src="` + template.HTMLEscapeString(image) + `" alt="` + template.HTMLEscapeString(title) + ` course preview" loading="lazy" />`)
+			sb.WriteString(`</div>`)
+		}
+
+		sb.WriteString(`<div class="` + contentClass + `">`)
+		sb.WriteString(`<h3 id="` + headingID + `" class="` + titleClass + `">` + template.HTMLEscapeString(title) + `</h3>`)
+
+		if price := formatCoursePrice(pkg.PriceCents); price != "" {
+			sb.WriteString(`<p class="` + priceClass + `">` + template.HTMLEscapeString(price) + `</p>`)
+		}
+
+		if description := strings.TrimSpace(pkg.Description); description != "" {
+			sb.WriteString(`<div class="` + descriptionClass + `">` + h.SanitizeHTML(description) + `</div>`)
+		}
+
+		topicsRendered := 0
+		for _, topic := range pkg.Topics {
+			if topicsRendered >= maxTopicsPerCourse {
+				break
+			}
+			name := strings.TrimSpace(topic.Title)
+			if name == "" {
+				continue
+			}
+			if topicsRendered == 0 {
+				sb.WriteString(`<ul class="` + topicsClass + `" aria-label="Included topics">`)
+			}
+			sb.WriteString(`<li class="` + topicItemClass + `">`)
+			sb.WriteString(`<span class="` + topicNameClass + `">` + template.HTMLEscapeString(name) + `</span>`)
+			if lessonCount := len(topic.Videos); lessonCount > 0 {
+				lessonLabel := formatLessonCount(lessonCount)
+				if lessonLabel != "" {
+					sb.WriteString(`<span class="` + topicMetaClass + `">` + template.HTMLEscapeString(lessonLabel) + `</span>`)
+				}
+			}
+			sb.WriteString(`</li>`)
+			topicsRendered++
+		}
+
+		if topicsRendered > 0 {
+			sb.WriteString(`</ul>`)
+		}
+
+		sb.WriteString(`</div>`)
+		sb.WriteString(`</article>`)
+	}
+
+	sb.WriteString(`</div>`)
+
+	if rendered == 0 {
+		return `<p class="` + emptyClass + `">No courses available yet. Check back soon!</p>`
+	}
+
+	return sb.String()
+}
+
 func (h *TemplateHandler) renderPostCard(tmpl *template.Template, post *models.Post, wrapperClass, titleID string) (string, error) {
 	if tmpl == nil || post == nil {
 		return "", fmt.Errorf("template or post is nil")
@@ -248,6 +372,31 @@ func (h *TemplateHandler) renderPostCard(tmpl *template.Template, post *models.P
 	}
 
 	return buf.String(), nil
+}
+
+func formatCoursePrice(priceCents int64) string {
+	if priceCents <= 0 {
+		return "Free"
+	}
+
+	dollars := priceCents / 100
+	cents := priceCents % 100
+
+	if cents == 0 {
+		return fmt.Sprintf("$%d", dollars)
+	}
+
+	return fmt.Sprintf("$%d.%02d", dollars, cents)
+}
+
+func formatLessonCount(count int) string {
+	if count <= 0 {
+		return ""
+	}
+	if count == 1 {
+		return "1 lesson"
+	}
+	return fmt.Sprintf("%d lessons", count)
 }
 
 func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement) (string, []string) {

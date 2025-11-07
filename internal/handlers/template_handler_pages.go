@@ -920,6 +920,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 
 	sectionJSON, elementJSON := h.builderDefinitionsJSON()
 	blogEnabled := h.blogEnabled()
+	coursesEnabled := h.coursesEnabled()
 
 	adminEndpoints := gin.H{
 		"Stats":          "/api/v1/admin/stats",
@@ -941,9 +942,12 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"BackupSettings": "/api/v1/admin/backups/settings",
 		"BackupExport":   "/api/v1/admin/backups/export",
 		"BackupImport":   "/api/v1/admin/backups/import",
-		"CourseVideos":   "/api/v1/admin/courses/videos",
-		"CourseTopics":   "/api/v1/admin/courses/topics",
-		"CoursePackages": "/api/v1/admin/courses/packages",
+	}
+
+	if coursesEnabled {
+		adminEndpoints["CourseVideos"] = "/api/v1/admin/courses/videos"
+		adminEndpoints["CourseTopics"] = "/api/v1/admin/courses/topics"
+		adminEndpoints["CoursePackages"] = "/api/v1/admin/courses/packages"
 	}
 
 	if blogEnabled {
@@ -963,6 +967,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"ElementDefinitionsJSON": elementJSON,
 		"AdminEndpoints":         adminEndpoints,
 		"BlogEnabled":            blogEnabled,
+		"CoursesEnabled":         coursesEnabled,
 		"LanguageFeatureEnabled": h.languageService != nil,
 		"NoIndex":                true,
 	})
@@ -1032,6 +1037,10 @@ func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
 	if !h.blogEnabled() {
 		delete(sectionDefs, "posts_list")
 		delete(sectionDefs, "categories_list")
+	}
+
+	if !h.coursesEnabled() {
+		delete(sectionDefs, "courses_list")
 	}
 
 	sectionJSON, err := json.Marshal(sectionDefs)

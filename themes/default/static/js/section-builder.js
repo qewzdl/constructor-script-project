@@ -105,6 +105,11 @@
                 return;
             }
 
+            const supportsElementsSource =
+                definition.supportsElements !== undefined
+                    ? definition.supportsElements
+                    : definition.supports_elements;
+
             const entry = {
                 type: normalised,
                 label:
@@ -117,9 +122,13 @@
                         ? definition.description.trim()
                         : '',
                 supportsElements:
-                    definition.supportsElements === undefined
+                    supportsElementsSource === undefined
                         ? true
-                        : Boolean(definition.supportsElements),
+                        : Boolean(
+                              typeof supportsElementsSource === 'string'
+                                  ? supportsElementsSource.toLowerCase() !== 'false'
+                                  : supportsElementsSource
+                          ),
                 validate:
                     typeof definition.validate === 'function'
                         ? definition.validate

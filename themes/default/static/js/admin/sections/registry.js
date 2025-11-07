@@ -10,6 +10,7 @@
 
     const adminRoot = getAdminRoot();
     const blogEnabled = !adminRoot || adminRoot.dataset.blogEnabled !== 'false';
+    const coursesEnabled = !adminRoot || adminRoot.dataset.coursesEnabled !== 'false';
 
     const normaliseType = (type) =>
         typeof type === 'string' ? type.trim().toLowerCase() : '';
@@ -19,6 +20,11 @@
         if (!normalised || !definition) {
             return;
         }
+
+        const supportsElementsSource =
+            definition.supportsElements !== undefined
+                ? definition.supportsElements
+                : definition.supports_elements;
 
         const entry = {
             type: normalised,
@@ -32,9 +38,13 @@
                     ? definition.description.trim()
                     : '',
             supportsElements:
-                definition.supportsElements === undefined
+                supportsElementsSource === undefined
                     ? true
-                    : Boolean(definition.supportsElements),
+                    : Boolean(
+                          typeof supportsElementsSource === 'string'
+                              ? supportsElementsSource.toLowerCase() !== 'false'
+                              : supportsElementsSource
+                      ),
             settings:
                 definition.settings && typeof definition.settings === 'object'
                     ? definition.settings
@@ -148,6 +158,23 @@
                     min: 1,
                     max: 24,
                     default: 6,
+                },
+            },
+        });
+    }
+
+    if (coursesEnabled) {
+        ensureRegistered('courses_list', {
+            label: 'Courses list',
+            order: 22,
+            supportsElements: false,
+            description: 'Highlights available course packages with pricing and topics.',
+            settings: {
+                limit: {
+                    label: 'Number of courses to display',
+                    min: 1,
+                    max: 12,
+                    default: 3,
                 },
             },
         });

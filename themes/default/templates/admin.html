@@ -5,6 +5,7 @@
     aria-labelledby="admin-title"
     data-page="admin"
     data-blog-enabled="{{ if .BlogEnabled }}true{{ else }}false{{ end }}"
+    data-courses-enabled="{{ if .CoursesEnabled }}true{{ else }}false{{ end }}"
     data-language-feature-enabled="{{ if .LanguageFeatureEnabled }}true{{ else }}false{{ end }}"
     data-endpoint-stats="{{ index $endpoints "Stats" }}"
     {{- if .BlogEnabled }}
@@ -33,9 +34,15 @@
     data-endpoint-backup-export="{{ index $endpoints "BackupExport" }}"
     data-endpoint-backup-import="{{ index $endpoints "BackupImport" }}"
     data-endpoint-backup-settings="{{ index $endpoints "BackupSettings" }}"
-    data-endpoint-courses-videos="{{ index $endpoints "CourseVideos" }}"
-    data-endpoint-courses-topics="{{ index $endpoints "CourseTopics" }}"
-    data-endpoint-courses-packages="{{ index $endpoints "CoursePackages" }}"
+    {{- with index $endpoints "CourseVideos" }}
+    data-endpoint-courses-videos="{{ . }}"
+    {{- end }}
+    {{- with index $endpoints "CourseTopics" }}
+    data-endpoint-courses-topics="{{ . }}"
+    {{- end }}
+    {{- with index $endpoints "CoursePackages" }}
+    data-endpoint-courses-packages="{{ . }}"
+    {{- end }}
     data-current-user-id="{{ if .CurrentUser }}{{ .CurrentUser.ID }}{{ end }}"
 >
     <script type="application/json" id="section-definitions-data">

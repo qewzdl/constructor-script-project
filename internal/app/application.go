@@ -673,6 +673,7 @@ func (a *Application) initHandlers() error {
 		a.services.Menu,
 		a.services.Font,
 		a.services.Advertising,
+		nil,
 		a.cfg,
 		a.themeManager,
 	)
