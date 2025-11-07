@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -337,21 +338,25 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 
 		metaItems := make([]string, 0, 4)
 
-		if price := formatCoursePrice(pkg.PriceCents); price != "" {
-			metaItems = append(metaItems, `<span class="`+priceClass+`">`+template.HTMLEscapeString(price)+`</span>`)
+		priceLabel := formatCoursePrice(pkg.PriceCents)
+		if priceLabel != "" {
+			metaItems = append(metaItems, `<span class="`+priceClass+`">`+template.HTMLEscapeString(priceLabel)+`</span>`)
 		}
 
 		topicCount, lessonCount, totalDuration := coursePackageStats(pkg)
 
-		if topicLabel := formatTopicCount(topicCount); topicLabel != "" {
+		topicLabel := formatTopicCount(topicCount)
+		if topicLabel != "" {
 			metaItems = append(metaItems, `<span class="`+metaItemClass+`">`+template.HTMLEscapeString(topicLabel)+`</span>`)
 		}
 
-		if lessonLabel := formatLessonCount(lessonCount); lessonLabel != "" {
+		lessonLabel := formatLessonCount(lessonCount)
+		if lessonLabel != "" {
 			metaItems = append(metaItems, `<span class="`+metaItemClass+`">`+template.HTMLEscapeString(lessonLabel)+`</span>`)
 		}
 
-		if durationLabel := formatVideoDuration(totalDuration); durationLabel != "" {
+		durationLabel := formatVideoDuration(totalDuration)
+		if durationLabel != "" {
 			metaItems = append(metaItems, `<span class="`+metaItemClass+` `+durationClass+`">`+template.HTMLEscapeString(durationLabel)+`</span>`)
 		}
 
@@ -366,6 +371,8 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 		if description := strings.TrimSpace(pkg.Description); description != "" {
 			sb.WriteString(`<div class="` + descriptionClass + `">` + h.SanitizeHTML(description) + `</div>`)
 		}
+
+		modalTopics := buildCourseModalTopics(pkg.Topics, h)
 
 		topicsRendered := 0
 		for _, topic := range pkg.Topics {
@@ -396,6 +403,23 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 			sb.WriteString(`</ul>`)
 		}
 
+		if detailsJSON := buildCourseModalDetails(courseModalDetailsInput{
+			Package:         pkg,
+			Title:           title,
+			DescriptionHTML: sanitizedDescription,
+			ImageURL:        strings.TrimSpace(pkg.ImageURL),
+			PriceLabel:      priceLabel,
+			TopicLabel:      topicLabel,
+			LessonLabel:     lessonLabel,
+			DurationLabel:   durationLabel,
+			Topics:          modalTopics,
+			CourseID:        courseID,
+		}); detailsJSON != "" {
+			sb.WriteString(`<script type="application/json" data-course-details>`)
+			sb.WriteString(detailsJSON)
+			sb.WriteString(`</script>`)
+		}
+
 		sb.WriteString(`</div>`)
 		sb.WriteString(`</article>`)
 	}
@@ -407,6 +431,158 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 	}
 
 	return sb.String()
+}
+
+type courseModalLesson struct {
+	Title         string `json:"title,omitempty"`
+	DurationLabel string `json:"duration_label,omitempty"`
+}
+
+type courseModalTopic struct {
+	Title           string              `json:"title,omitempty"`
+	DescriptionHTML string              `json:"description_html,omitempty"`
+	LessonCount     int                 `json:"lesson_count,omitempty"`
+	LessonLabel     string              `json:"lesson_label,omitempty"`
+	DurationLabel   string              `json:"duration_label,omitempty"`
+	Lessons         []courseModalLesson `json:"lessons,omitempty"`
+}
+
+type courseModalDetails struct {
+	ID              string             `json:"id,omitempty"`
+	Title           string             `json:"title,omitempty"`
+	PriceText       string             `json:"price_text,omitempty"`
+	DescriptionHTML string             `json:"description_html,omitempty"`
+	ImageURL        string             `json:"image_url,omitempty"`
+	ImageAlt        string             `json:"image_alt,omitempty"`
+	Meta            []string           `json:"meta,omitempty"`
+	Topics          []courseModalTopic `json:"topics,omitempty"`
+}
+
+type courseModalDetailsInput struct {
+	Package         models.CoursePackage
+	Title           string
+	DescriptionHTML string
+	ImageURL        string
+	PriceLabel      string
+	TopicLabel      string
+	LessonLabel     string
+	DurationLabel   string
+	Topics          []courseModalTopic
+	CourseID        string
+}
+
+func buildCourseModalTopics(topics []models.CourseTopic, h *TemplateHandler) []courseModalTopic {
+	if len(topics) == 0 {
+		return nil
+	}
+
+	result := make([]courseModalTopic, 0, len(topics))
+	for _, topic := range topics {
+		title := strings.TrimSpace(topic.Title)
+		if title == "" {
+			continue
+		}
+
+		descriptionHTML := ""
+		if h != nil {
+			if description := strings.TrimSpace(topic.Description); description != "" {
+				sanitized := strings.TrimSpace(h.SanitizeHTML(description))
+				if sanitized != "" {
+					descriptionHTML = sanitized
+				}
+			}
+		}
+
+		lessonCount := len(topic.Videos)
+		totalDuration := 0
+		lessons := make([]courseModalLesson, 0, lessonCount)
+		for _, video := range topic.Videos {
+			if video.DurationSeconds > 0 {
+				totalDuration += video.DurationSeconds
+			}
+			lessonTitle := strings.TrimSpace(video.Title)
+			lesson := courseModalLesson{}
+			if lessonTitle != "" {
+				lesson.Title = lessonTitle
+			}
+			if durationLabel := formatVideoDuration(video.DurationSeconds); durationLabel != "" {
+				lesson.DurationLabel = durationLabel
+			}
+			if lesson.Title != "" || lesson.DurationLabel != "" {
+				lessons = append(lessons, lesson)
+			}
+		}
+
+		topicData := courseModalTopic{
+			Title:           title,
+			DescriptionHTML: descriptionHTML,
+		}
+
+		if lessonCount > 0 {
+			topicData.LessonCount = lessonCount
+			if lessonLabel := formatLessonCount(lessonCount); lessonLabel != "" {
+				topicData.LessonLabel = lessonLabel
+			}
+		}
+
+		if totalDuration > 0 {
+			if durationLabel := formatVideoDuration(totalDuration); durationLabel != "" {
+				topicData.DurationLabel = durationLabel
+			}
+		}
+
+		if len(lessons) > 0 {
+			topicData.Lessons = lessons
+		}
+
+		result = append(result, topicData)
+	}
+
+	return result
+}
+
+func buildCourseModalDetails(input courseModalDetailsInput) string {
+	title := strings.TrimSpace(input.Title)
+	priceText := strings.TrimSpace(input.PriceLabel)
+	descriptionHTML := strings.TrimSpace(input.DescriptionHTML)
+	imageURL := strings.TrimSpace(input.ImageURL)
+
+	details := courseModalDetails{
+		ID:              input.CourseID,
+		Title:           title,
+		PriceText:       priceText,
+		DescriptionHTML: descriptionHTML,
+		Topics:          input.Topics,
+	}
+
+	if imageURL != "" {
+		details.ImageURL = imageURL
+		if title != "" {
+			details.ImageAlt = fmt.Sprintf("%s course preview", title)
+		}
+	}
+
+	meta := make([]string, 0, 3)
+	if value := strings.TrimSpace(input.TopicLabel); value != "" {
+		meta = append(meta, value)
+	}
+	if value := strings.TrimSpace(input.LessonLabel); value != "" {
+		meta = append(meta, value)
+	}
+	if value := strings.TrimSpace(input.DurationLabel); value != "" {
+		meta = append(meta, value)
+	}
+	if len(meta) > 0 {
+		details.Meta = meta
+	}
+
+	jsonData, err := json.Marshal(details)
+	if err != nil {
+		logger.Error(err, "Failed to marshal course modal details", map[string]interface{}{"course_id": input.Package.ID})
+		return ""
+	}
+
+	return string(jsonData)
 }
 
 func (h *TemplateHandler) renderPostCard(tmpl *template.Template, post *models.Post, wrapperClass, titleID string) (string, error) {

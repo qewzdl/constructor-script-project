@@ -25,10 +25,103 @@
             .filter(Boolean);
     }
 
-    function prepareTopicItem(text) {
+    function parseCourseDetails(card) {
+        const dataNode = card.querySelector("[data-course-details]");
+        if (!dataNode) {
+            return null;
+        }
+
+        const raw = dataNode.textContent || "";
+        const text = raw.trim();
+        if (!text) {
+            return null;
+        }
+
+        try {
+            const parsed = JSON.parse(text);
+            if (parsed && typeof parsed === "object") {
+                return parsed;
+            }
+        } catch (error) {
+            console.error("Failed to parse course details", error);
+        }
+
+        return null;
+    }
+
+    function prepareTopicItem(topic) {
         const item = document.createElement("li");
         item.className = "course-modal__topics-item";
-        item.textContent = text;
+
+        if (typeof topic === "string") {
+            item.textContent = topic;
+            return item;
+        }
+
+        if (!topic || typeof topic !== "object") {
+            return item;
+        }
+
+        const title = document.createElement("h5");
+        title.className = "course-modal__topic-title";
+        title.textContent = typeof topic.title === "string" ? topic.title : "";
+        item.appendChild(title);
+
+        const metaParts = [];
+        if (typeof topic.lesson_label === "string" && topic.lesson_label.trim() !== "") {
+            metaParts.push(topic.lesson_label.trim());
+        }
+
+        if (typeof topic.duration_label === "string" && topic.duration_label.trim() !== "") {
+            metaParts.push(topic.duration_label.trim());
+        }
+
+        if (metaParts.length > 0) {
+            const meta = document.createElement("p");
+            meta.className = "course-modal__topic-meta";
+            meta.textContent = metaParts.join(" • ");
+            item.appendChild(meta);
+        }
+
+        if (typeof topic.description_html === "string" && topic.description_html.trim() !== "") {
+            const description = document.createElement("div");
+            description.className = "course-modal__topic-description";
+            description.innerHTML = topic.description_html;
+            item.appendChild(description);
+        }
+
+        if (Array.isArray(topic.lessons) && topic.lessons.length > 0) {
+            const lessonsList = document.createElement("ul");
+            lessonsList.className = "course-modal__lessons-list";
+
+            topic.lessons.forEach((lesson) => {
+                if (!lesson || typeof lesson !== "object") {
+                    return;
+                }
+
+                const lessonItem = document.createElement("li");
+                lessonItem.className = "course-modal__lesson-item";
+
+                const lessonTitle = document.createElement("span");
+                lessonTitle.className = "course-modal__lesson-title";
+                lessonTitle.textContent = typeof lesson.title === "string" ? lesson.title : "";
+                lessonItem.appendChild(lessonTitle);
+
+                if (typeof lesson.duration_label === "string" && lesson.duration_label.trim() !== "") {
+                    const lessonDuration = document.createElement("span");
+                    lessonDuration.className = "course-modal__lesson-duration";
+                    lessonDuration.textContent = lesson.duration_label.trim();
+                    lessonItem.appendChild(lessonDuration);
+                }
+
+                lessonsList.appendChild(lessonItem);
+            });
+
+            if (lessonsList.children.length > 0) {
+                item.appendChild(lessonsList);
+            }
+        }
+
         return item;
     }
 
@@ -45,6 +138,7 @@
         const titleElement = modal.querySelector("[data-course-modal-title]");
         const priceElement = modal.querySelector("[data-course-modal-price]");
         const descriptionElement = modal.querySelector("[data-course-modal-description]");
+        const metaElement = modal.querySelector("[data-course-modal-meta]");
         const topicsWrapper = modal.querySelector("[data-course-modal-topics-wrapper]");
         const topicsList = modal.querySelector("[data-course-modal-topics]");
         const mediaWrapper = modal.querySelector("[data-course-modal-media]");
@@ -127,11 +221,24 @@
             activeCard = card;
             lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-            const title = card.querySelector(".post-card__link")?.textContent.trim() || "";
-            const priceText = card.querySelector(".courses-list__price")?.textContent.trim() || "";
-            const descriptionSource = card.querySelector(".post-card__description");
+            const details = parseCourseDetails(card) || {};
+
+            const title = typeof details.title === "string" && details.title.trim() !== ""
+                ? details.title.trim()
+                : card.querySelector(".post-card__link")?.textContent.trim() || "";
+
+            const priceText = typeof details.price_text === "string" && details.price_text.trim() !== ""
+                ? details.price_text.trim()
+                : card.querySelector(".courses-list__price")?.textContent.trim() || "";
+
+            const descriptionSource = typeof details.description_html === "string" && details.description_html.trim() !== ""
+                ? details.description_html
+                : null;
+
             const image = card.querySelector(".post-card__image");
-            const topics = collectCourseTopics(card);
+            const topics = Array.isArray(details.topics) && details.topics.length > 0
+                ? details.topics
+                : collectCourseTopics(card);
             const courseId = card.getAttribute("data-course-id") || "";
 
             titleElement.textContent = title;
@@ -144,12 +251,36 @@
                 setHidden(priceElement, true);
             }
 
+            if (metaElement) {
+                metaElement.innerHTML = "";
+                if (Array.isArray(details.meta) && details.meta.length > 0) {
+                    details.meta.forEach((metaText) => {
+                        if (typeof metaText !== "string" || metaText.trim() === "") {
+                            return;
+                        }
+                        const metaItem = document.createElement("li");
+                        metaItem.className = "course-modal__meta-item";
+                        metaItem.textContent = metaText.trim();
+                        metaElement.appendChild(metaItem);
+                    });
+                    setHidden(metaElement, metaElement.children.length === 0);
+                } else {
+                    setHidden(metaElement, true);
+                }
+            }
+
             if (descriptionSource) {
-                descriptionElement.innerHTML = descriptionSource.innerHTML;
+                descriptionElement.innerHTML = descriptionSource;
                 setHidden(descriptionElement, false);
             } else {
-                descriptionElement.innerHTML = "";
-                setHidden(descriptionElement, true);
+                const fallbackDescription = card.querySelector(".post-card__description");
+                if (fallbackDescription) {
+                    descriptionElement.innerHTML = fallbackDescription.innerHTML;
+                    setHidden(descriptionElement, false);
+                } else {
+                    descriptionElement.innerHTML = "";
+                    setHidden(descriptionElement, true);
+                }
             }
 
             topicsList.innerHTML = "";
@@ -162,7 +293,18 @@
                 setHidden(topicsWrapper, true);
             }
 
-            if (image instanceof HTMLImageElement && image.src) {
+            const detailImageURL = typeof details.image_url === "string" && details.image_url.trim() !== ""
+                ? details.image_url.trim()
+                : "";
+            const detailImageAlt = typeof details.image_alt === "string" && details.image_alt.trim() !== ""
+                ? details.image_alt.trim()
+                : "";
+
+            if (detailImageURL) {
+                imageElement.src = detailImageURL;
+                imageElement.alt = detailImageAlt || title;
+                setHidden(mediaWrapper, false);
+            } else if (image instanceof HTMLImageElement && image.src) {
                 imageElement.src = image.src;
                 imageElement.alt = image.alt || title;
                 setHidden(mediaWrapper, false);
