@@ -941,6 +941,9 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"BackupSettings": "/api/v1/admin/backups/settings",
 		"BackupExport":   "/api/v1/admin/backups/export",
 		"BackupImport":   "/api/v1/admin/backups/import",
+		"CourseVideos":   "/api/v1/admin/courses/videos",
+		"CourseTopics":   "/api/v1/admin/courses/topics",
+		"CoursePackages": "/api/v1/admin/courses/packages",
 	}
 
 	if blogEnabled {

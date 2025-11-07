@@ -120,6 +120,73 @@ type Comment struct {
 	Replies  []*Comment `gorm:"foreignKey:ParentID" json:"replies,omitempty"`
 }
 
+type CourseVideo struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Title           string `gorm:"not null" json:"title"`
+	Description     string `json:"description"`
+	FileURL         string `gorm:"not null" json:"file_url"`
+	Filename        string `gorm:"not null" json:"filename"`
+	DurationSeconds int    `gorm:"not null" json:"duration_seconds"`
+}
+
+type CourseTopic struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Title       string `gorm:"not null" json:"title"`
+	Description string `json:"description"`
+
+	Videos []CourseVideo `gorm:"-" json:"videos"`
+}
+
+type CoursePackage struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Title       string `gorm:"not null" json:"title"`
+	Description string `json:"description"`
+	PriceCents  int64  `gorm:"not null" json:"price_cents"`
+	ImageURL    string `json:"image_url"`
+
+	Topics []CourseTopic `gorm:"-" json:"topics"`
+}
+
+type CourseTopicVideo struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	TopicID  uint `gorm:"not null;index" json:"topic_id"`
+	VideoID  uint `gorm:"not null;index" json:"video_id"`
+	Position int  `gorm:"not null;default:0" json:"position"`
+
+	Topic CourseTopic `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
+	Video CourseVideo `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
+}
+
+type CoursePackageTopic struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	PackageID uint `gorm:"not null;index" json:"package_id"`
+	TopicID   uint `gorm:"not null;index" json:"topic_id"`
+	Position  int  `gorm:"not null;default:0" json:"position"`
+
+	Package CoursePackage `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
+	Topic   CourseTopic   `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
+}
+
 type RegisterRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=50"`
 	Email    string `json:"email" binding:"required,email"`
@@ -144,6 +211,51 @@ type CreateCommentRequest struct {
 type UpdateCommentRequest struct {
 	Content  string `json:"content" binding:"required"`
 	Approved *bool  `json:"approved"`
+}
+
+type CreateCourseVideoRequest struct {
+	Title       string `form:"title" binding:"required"`
+	Description string `form:"description"`
+	Preferred   string `form:"preferred_name"`
+}
+
+type UpdateCourseVideoRequest struct {
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description"`
+}
+
+type CreateCourseTopicRequest struct {
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description"`
+	VideoIDs    []uint `json:"video_ids"`
+}
+
+type UpdateCourseTopicRequest struct {
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description"`
+}
+
+type ReorderCourseTopicVideosRequest struct {
+	VideoIDs []uint `json:"video_ids" binding:"required"`
+}
+
+type CreateCoursePackageRequest struct {
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description"`
+	PriceCents  int64  `json:"price_cents" binding:"required"`
+	ImageURL    string `json:"image_url"`
+	TopicIDs    []uint `json:"topic_ids"`
+}
+
+type UpdateCoursePackageRequest struct {
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description"`
+	PriceCents  int64  `json:"price_cents" binding:"required"`
+	ImageURL    string `json:"image_url"`
+}
+
+type ReorderCoursePackageTopicsRequest struct {
+	TopicIDs []uint `json:"topic_ids" binding:"required"`
 }
 
 type AuthResponse struct {
@@ -366,19 +478,19 @@ type PluginInfo struct {
 }
 
 type SiteSettings struct {
-        Name                    string       `json:"name"`
-        Description             string       `json:"description"`
-        URL                     string       `json:"url"`
-        Favicon                 string       `json:"favicon"`
-        FaviconType             string       `json:"favicon_type"`
-        Logo                    string       `json:"logo"`
-        UnusedTagRetentionHours int          `json:"unused_tag_retention_hours"`
-        SocialLinks             []SocialLink `json:"social_links"`
-        MenuItems               []MenuItem   `json:"menu_items"`
-        DefaultLanguage         string       `json:"default_language"`
-        SupportedLanguages      []string     `json:"supported_languages"`
-        Fonts                   []FontAsset  `json:"fonts"`
-        FontPreconnects         []string     `json:"font_preconnects"`
+	Name                    string       `json:"name"`
+	Description             string       `json:"description"`
+	URL                     string       `json:"url"`
+	Favicon                 string       `json:"favicon"`
+	FaviconType             string       `json:"favicon_type"`
+	Logo                    string       `json:"logo"`
+	UnusedTagRetentionHours int          `json:"unused_tag_retention_hours"`
+	SocialLinks             []SocialLink `json:"social_links"`
+	MenuItems               []MenuItem   `json:"menu_items"`
+	DefaultLanguage         string       `json:"default_language"`
+	SupportedLanguages      []string     `json:"supported_languages"`
+	Fonts                   []FontAsset  `json:"fonts"`
+	FontPreconnects         []string     `json:"font_preconnects"`
 }
 
 type BackupSettings struct {
@@ -404,49 +516,49 @@ type ThemeInfo struct {
 }
 
 type UpdateSiteSettingsRequest struct {
-        Name                    string   `json:"name" binding:"required"`
-        Description             string   `json:"description"`
-        URL                     string   `json:"url" binding:"required"`
-        Favicon                 string   `json:"favicon"`
-        Logo                    string   `json:"logo"`
-        UnusedTagRetentionHours int      `json:"unused_tag_retention_hours" binding:"required,min=1"`
-        DefaultLanguage         string   `json:"default_language"`
-        SupportedLanguages      []string `json:"supported_languages"`
+	Name                    string   `json:"name" binding:"required"`
+	Description             string   `json:"description"`
+	URL                     string   `json:"url" binding:"required"`
+	Favicon                 string   `json:"favicon"`
+	Logo                    string   `json:"logo"`
+	UnusedTagRetentionHours int      `json:"unused_tag_retention_hours" binding:"required,min=1"`
+	DefaultLanguage         string   `json:"default_language"`
+	SupportedLanguages      []string `json:"supported_languages"`
 }
 
 type FontAsset struct {
-        ID          string   `json:"id"`
-        Name        string   `json:"name"`
-        Snippet     string   `json:"snippet"`
-        Preconnects []string `json:"preconnects,omitempty"`
-        Order       int      `json:"order"`
-        Enabled     bool     `json:"enabled"`
-        Notes       string   `json:"notes,omitempty"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Snippet     string   `json:"snippet"`
+	Preconnects []string `json:"preconnects,omitempty"`
+	Order       int      `json:"order"`
+	Enabled     bool     `json:"enabled"`
+	Notes       string   `json:"notes,omitempty"`
 }
 
 type CreateFontAssetRequest struct {
-        Name        string   `json:"name" binding:"required"`
-        Snippet     string   `json:"snippet" binding:"required"`
-        Preconnects []string `json:"preconnects"`
-        Enabled     *bool    `json:"enabled"`
-        Notes       string   `json:"notes"`
+	Name        string   `json:"name" binding:"required"`
+	Snippet     string   `json:"snippet" binding:"required"`
+	Preconnects []string `json:"preconnects"`
+	Enabled     *bool    `json:"enabled"`
+	Notes       string   `json:"notes"`
 }
 
 type UpdateFontAssetRequest struct {
-        Name        *string   `json:"name"`
-        Snippet     *string   `json:"snippet"`
-        Preconnects *[]string `json:"preconnects"`
-        Enabled     *bool     `json:"enabled"`
-        Notes       *string   `json:"notes"`
+	Name        *string   `json:"name"`
+	Snippet     *string   `json:"snippet"`
+	Preconnects *[]string `json:"preconnects"`
+	Enabled     *bool     `json:"enabled"`
+	Notes       *string   `json:"notes"`
 }
 
 type FontAssetOrder struct {
-        ID    string `json:"id"`
-        Order int    `json:"order"`
+	ID    string `json:"id"`
+	Order int    `json:"order"`
 }
 
 type ReorderFontAssetsRequest struct {
-        Items []FontAssetOrder `json:"items"`
+	Items []FontAssetOrder `json:"items"`
 }
 
 type HomepagePage struct {
@@ -546,15 +658,15 @@ func DetectFaviconType(favicon string) string {
 }
 
 type SetupRequest struct {
-        AdminUsername string `json:"admin_username" binding:"required,min=3,max=50"`
+	AdminUsername string `json:"admin_username" binding:"required,min=3,max=50"`
 	AdminEmail    string `json:"admin_email" binding:"required,email"`
 	AdminPassword string `json:"admin_password" binding:"required,min=8"`
 
 	SiteName               string   `json:"site_name" binding:"required"`
 	SiteDescription        string   `json:"site_description"`
 	SiteURL                string   `json:"site_url" binding:"required"`
-        SiteFavicon            string   `json:"site_favicon"`
-        SiteLogo               string   `json:"site_logo"`
+	SiteFavicon            string   `json:"site_favicon"`
+	SiteLogo               string   `json:"site_logo"`
 	SiteDefaultLanguage    string   `json:"site_default_language"`
 	SiteSupportedLanguages []string `json:"site_supported_languages"`
 }

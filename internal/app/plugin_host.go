@@ -11,6 +11,8 @@ import (
 	"constructor-script-backend/pkg/cache"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	coursehandlers "constructor-script-backend/plugins/courses/handlers"
+	courseservice "constructor-script-backend/plugins/courses/service"
 	languageservice "constructor-script-backend/plugins/language/service"
 )
 
@@ -27,6 +29,14 @@ type applicationBlogServices struct {
 }
 
 type applicationBlogHandlers struct {
+	app *Application
+}
+
+type applicationCourseServices struct {
+	app *Application
+}
+
+type applicationCourseHandlers struct {
 	app *Application
 }
 
@@ -72,6 +82,14 @@ func (a *Application) BlogServices() host.BlogServiceAccess {
 
 func (a *Application) BlogHandlers() host.BlogHandlerAccess {
 	return applicationBlogHandlers{app: a}
+}
+
+func (a *Application) CourseServices() host.CourseServiceAccess {
+	return applicationCourseServices{app: a}
+}
+
+func (a *Application) CourseHandlers() host.CourseHandlerAccess {
+	return applicationCourseHandlers{app: a}
 }
 
 func (a *Application) TemplateHandler() *handlers.TemplateHandler {
@@ -144,6 +162,27 @@ func (r applicationRepositoryAccess) User() repository.UserRepository {
 	return r.app.repositories.User
 }
 
+func (r applicationRepositoryAccess) CourseVideo() repository.CourseVideoRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.CourseVideo
+}
+
+func (r applicationRepositoryAccess) CourseTopic() repository.CourseTopicRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.CourseTopic
+}
+
+func (r applicationRepositoryAccess) CoursePackage() repository.CoursePackageRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.CoursePackage
+}
+
 func (s applicationCoreServices) Auth() *service.AuthService {
 	if s.app == nil {
 		return nil
@@ -177,6 +216,13 @@ func (s applicationCoreServices) Menu() *service.MenuService {
 		return nil
 	}
 	return s.app.services.Menu
+}
+
+func (s applicationCoreServices) Upload() *service.UploadService {
+	if s.app == nil {
+		return nil
+	}
+	return s.app.services.Upload
 }
 
 func (s applicationCoreServices) Advertising() *service.AdvertisingService {
@@ -256,6 +302,48 @@ func (s applicationBlogServices) SetSearch(search *blogservice.SearchService) {
 	s.app.services.Search = search
 }
 
+func (s applicationCourseServices) Video() *courseservice.VideoService {
+	if s.app == nil {
+		return nil
+	}
+	return s.app.services.CourseVideo
+}
+
+func (s applicationCourseServices) SetVideo(video *courseservice.VideoService) {
+	if s.app == nil {
+		return
+	}
+	s.app.services.CourseVideo = video
+}
+
+func (s applicationCourseServices) Topic() *courseservice.TopicService {
+	if s.app == nil {
+		return nil
+	}
+	return s.app.services.CourseTopic
+}
+
+func (s applicationCourseServices) SetTopic(topic *courseservice.TopicService) {
+	if s.app == nil {
+		return
+	}
+	s.app.services.CourseTopic = topic
+}
+
+func (s applicationCourseServices) Package() *courseservice.PackageService {
+	if s.app == nil {
+		return nil
+	}
+	return s.app.services.CoursePackage
+}
+
+func (s applicationCourseServices) SetPackage(pkg *courseservice.PackageService) {
+	if s.app == nil {
+		return
+	}
+	s.app.services.CoursePackage = pkg
+}
+
 func (h applicationBlogHandlers) Post() *bloghandlers.PostHandler {
 	if h.app == nil {
 		return nil
@@ -310,4 +398,46 @@ func (h applicationBlogHandlers) SetSearch(handler *bloghandlers.SearchHandler) 
 		return
 	}
 	h.app.handlers.Search = handler
+}
+
+func (h applicationCourseHandlers) Video() *coursehandlers.VideoHandler {
+	if h.app == nil {
+		return nil
+	}
+	return h.app.handlers.CourseVideo
+}
+
+func (h applicationCourseHandlers) SetVideo(handler *coursehandlers.VideoHandler) {
+	if h.app == nil {
+		return
+	}
+	h.app.handlers.CourseVideo = handler
+}
+
+func (h applicationCourseHandlers) Topic() *coursehandlers.TopicHandler {
+	if h.app == nil {
+		return nil
+	}
+	return h.app.handlers.CourseTopic
+}
+
+func (h applicationCourseHandlers) SetTopic(handler *coursehandlers.TopicHandler) {
+	if h.app == nil {
+		return
+	}
+	h.app.handlers.CourseTopic = handler
+}
+
+func (h applicationCourseHandlers) Package() *coursehandlers.PackageHandler {
+	if h.app == nil {
+		return nil
+	}
+	return h.app.handlers.CoursePackage
+}
+
+func (h applicationCourseHandlers) SetPackage(handler *coursehandlers.PackageHandler) {
+	if h.app == nil {
+		return
+	}
+	h.app.handlers.CoursePackage = handler
 }

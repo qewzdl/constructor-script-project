@@ -13,14 +13,17 @@ import (
 
 	"github.com/google/uuid"
 
+	"constructor-script-backend/pkg/media"
 	"constructor-script-backend/pkg/utils"
 	"constructor-script-backend/pkg/validator"
 )
 
 type UploadService struct {
-	uploadDir    string
-	maxSize      int64
-	allowedTypes []string
+	uploadDir         string
+	maxSize           int64
+	allowedTypes      []string
+	videoMaxSize      int64
+	videoAllowedTypes []string
 }
 
 type UploadInfo struct {
@@ -42,9 +45,11 @@ func NewUploadService(uploadDir string) *UploadService {
 	}
 
 	return &UploadService{
-		uploadDir:    uploadDir,
-		maxSize:      10 * 1024 * 1024,
-		allowedTypes: []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".ico"},
+		uploadDir:         uploadDir,
+		maxSize:           10 * 1024 * 1024,
+		allowedTypes:      []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".ico"},
+		videoMaxSize:      1024 * 1024 * 1024,
+		videoAllowedTypes: []string{".mp4", ".m4v", ".mov"},
 	}
 }
 
@@ -55,7 +60,7 @@ func (s *UploadService) UploadImage(file *multipart.FileHeader, preferredName st
 	}
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
-	if !s.isAllowedType(ext) {
+	if !s.isAllowedType(ext, s.allowedTypes) {
 		return "", "", errors.New("file type not allowed")
 	}
 
@@ -100,6 +105,58 @@ func (s *UploadService) UploadMultipleImages(files []*multipart.FileHeader) ([]s
 	return urls, nil
 }
 
+func (s *UploadService) UploadVideo(file *multipart.FileHeader, preferredName string) (string, string, time.Duration, error) {
+	if s == nil {
+		return "", "", 0, errors.New("upload service is not configured")
+	}
+	if file == nil {
+		return "", "", 0, errors.New("video file is required")
+	}
+
+	if file.Size > s.videoMaxSize {
+		return "", "", 0, errors.New("file size exceeds maximum allowed size")
+	}
+
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if !s.isAllowedType(ext, s.videoAllowedTypes) {
+		return "", "", 0, errors.New("file type not allowed")
+	}
+
+	filename := s.generateFilename(file.Filename, preferredName, ext)
+	filePath := filepath.Join(s.uploadDir, filename)
+
+	src, err := file.Open()
+	if err != nil {
+		return "", "", 0, err
+	}
+	defer src.Close()
+
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return "", "", 0, err
+	}
+
+	if _, err := io.Copy(dst, src); err != nil {
+		dst.Close()
+		os.Remove(filePath)
+		return "", "", 0, err
+	}
+
+	if err := dst.Close(); err != nil {
+		os.Remove(filePath)
+		return "", "", 0, err
+	}
+
+	duration, err := media.MP4Duration(filePath)
+	if err != nil {
+		os.Remove(filePath)
+		return "", "", 0, err
+	}
+
+	url := "/uploads/" + filename
+	return url, filename, duration, nil
+}
+
 func (s *UploadService) DeleteImage(url string) error {
 
 	filename := filepath.Base(url)
@@ -129,8 +186,8 @@ func (s *UploadService) DeleteImage(url string) error {
 	return nil
 }
 
-func (s *UploadService) isAllowedType(ext string) bool {
-	for _, allowedExt := range s.allowedTypes {
+func (s *UploadService) isAllowedType(ext string, allowed []string) bool {
+	for _, allowedExt := range allowed {
 		if ext == allowedExt {
 			return true
 		}
@@ -224,7 +281,7 @@ func (s *UploadService) RenameImage(current string, newName string) (UploadInfo,
 	}
 
 	ext := strings.ToLower(filepath.Ext(filename))
-	if !s.isAllowedType(ext) {
+	if !s.isAllowedType(ext, s.allowedTypes) {
 		return UploadInfo{}, ErrUploadNotFound
 	}
 
@@ -335,7 +392,7 @@ func (s *UploadService) ListImages() ([]UploadInfo, error) {
 
 		name := entry.Name()
 		ext := strings.ToLower(filepath.Ext(name))
-		if !s.isAllowedType(ext) {
+		if !s.isAllowedType(ext, s.allowedTypes) {
 			continue
 		}
 

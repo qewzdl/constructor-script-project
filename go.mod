@@ -1,6 +1,6 @@
 module constructor-script-backend
 
-go 1.25.0
+go 1.24.0
 
 require (
 	github.com/aymerick/douceur v0.2.0 // indirect

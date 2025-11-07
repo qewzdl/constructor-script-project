@@ -332,6 +332,9 @@
             backupExport: root.dataset.endpointBackupExport,
             backupImport: root.dataset.endpointBackupImport,
             backupSettings: root.dataset.endpointBackupSettings,
+            coursesVideos: root.dataset.endpointCoursesVideos,
+            coursesTopics: root.dataset.endpointCoursesTopics,
+            coursesPackages: root.dataset.endpointCoursesPackages,
         };
 
         const currentUserIdValue = Number.parseInt(
@@ -616,6 +619,9 @@
             pages: root.querySelector('#admin-pages-table'),
             categories: root.querySelector('#admin-categories-table'),
             users: root.querySelector('#admin-users-table'),
+            courseVideos: root.querySelector('#admin-course-videos-table'),
+            courseTopics: root.querySelector('#admin-course-topics-table'),
+            coursePackages: root.querySelector('#admin-course-packages-table'),
         };
         const postSearchInput = root.querySelector('[data-role="post-search"]');
         const pageSearchInput = root.querySelector('[data-role="page-search"]');
@@ -704,6 +710,38 @@
         const menuCustomLocationHint = menuForm?.querySelector(
             '[data-role="menu-custom-location-hint"]'
         );
+
+        const courseVideoForm = root.querySelector('#admin-course-video-form');
+        const courseVideoTitleInput = courseVideoForm?.querySelector('input[name="title"]');
+        const courseVideoDescriptionInput = courseVideoForm?.querySelector('textarea[name="description"]');
+        const courseVideoDurationField = courseVideoForm?.querySelector('[data-role="course-video-duration"]');
+        const courseVideoUploadGroup = courseVideoForm?.querySelector('[data-role="course-video-upload-group"]');
+        const courseVideoUploadHint = courseVideoForm?.querySelector('[data-role="course-video-upload-hint"]');
+        const courseVideoFileInput = courseVideoForm?.querySelector('input[name="video"]');
+        const courseVideoSubmitButton = courseVideoForm?.querySelector('[data-role="course-video-submit"]');
+        const courseVideoDeleteButton = courseVideoForm?.querySelector('[data-role="course-video-delete"]');
+
+        const courseTopicForm = root.querySelector('#admin-course-topic-form');
+        const courseTopicTitleInput = courseTopicForm?.querySelector('input[name="title"]');
+        const courseTopicDescriptionInput = courseTopicForm?.querySelector('textarea[name="description"]');
+        const courseTopicVideoSelect = courseTopicForm?.querySelector('[data-role="course-topic-video-select"]');
+        const courseTopicVideoAddButton = courseTopicForm?.querySelector('[data-role="course-topic-video-add"]');
+        const courseTopicVideoList = courseTopicForm?.querySelector('[data-role="course-topic-video-list"]');
+        const courseTopicVideoEmpty = courseTopicForm?.querySelector('[data-role="course-topic-video-empty"]');
+        const courseTopicSubmitButton = courseTopicForm?.querySelector('[data-role="course-topic-submit"]');
+        const courseTopicDeleteButton = courseTopicForm?.querySelector('[data-role="course-topic-delete"]');
+
+        const coursePackageForm = root.querySelector('#admin-course-package-form');
+        const coursePackageTitleInput = coursePackageForm?.querySelector('input[name="title"]');
+        const coursePackageDescriptionInput = coursePackageForm?.querySelector('textarea[name="description"]');
+        const coursePackagePriceInput = coursePackageForm?.querySelector('input[name="price"]');
+        const coursePackageImageInput = coursePackageForm?.querySelector('input[name="image_url"]');
+        const coursePackageTopicSelect = coursePackageForm?.querySelector('[data-role="course-package-topic-select"]');
+        const coursePackageTopicAddButton = coursePackageForm?.querySelector('[data-role="course-package-topic-add"]');
+        const coursePackageTopicList = coursePackageForm?.querySelector('[data-role="course-package-topic-list"]');
+        const coursePackageTopicEmpty = coursePackageForm?.querySelector('[data-role="course-package-topic-empty"]');
+        const coursePackageSubmitButton = coursePackageForm?.querySelector('[data-role="course-package-submit"]');
+        const coursePackageDeleteButton = coursePackageForm?.querySelector('[data-role="course-package-delete"]');
 
         const CUSTOM_FOOTER_OPTION = '__custom_footer__';
         const COMMON_LANGUAGE_CODES = [
@@ -868,6 +906,19 @@
             language: {
                 default: '',
                 supported: [],
+            },
+            courses: {
+                videos: [],
+                topics: [],
+                packages: [],
+                hasLoadedVideos: false,
+                hasLoadedTopics: false,
+                hasLoadedPackages: false,
+                selectedVideoId: '',
+                selectedTopicId: '',
+                selectedPackageId: '',
+                topicVideoIds: [],
+                packageTopicIds: [],
             },
         };
 
@@ -3340,6 +3391,1455 @@
                 item.appendChild(actions);
                 commentsList.appendChild(item);
             });
+        };
+
+        const normaliseIdentifier = (value) => {
+            if (value === undefined || value === null) {
+                return '';
+            }
+            if (typeof value === 'object') {
+                if (
+                    Object.prototype.hasOwnProperty.call(value, 'id') ||
+                    Object.prototype.hasOwnProperty.call(value, 'ID')
+                ) {
+                    return normaliseIdentifier(value.id ?? value.ID);
+                }
+                if (
+                    Object.prototype.hasOwnProperty.call(value, 'value') ||
+                    Object.prototype.hasOwnProperty.call(value, 'Value')
+                ) {
+                    return normaliseIdentifier(value.value ?? value.Value);
+                }
+            }
+            const result = String(value).trim();
+            return result;
+        };
+
+        const extractCourseVideoId = (video) =>
+            normaliseIdentifier(video?.id ?? video?.ID ?? '');
+        const extractCourseTopicId = (topic) =>
+            normaliseIdentifier(topic?.id ?? topic?.ID ?? '');
+        const extractCoursePackageId = (pkg) =>
+            normaliseIdentifier(pkg?.id ?? pkg?.ID ?? '');
+
+        const getCourseVideoTitle = (video) =>
+            normaliseString(video?.title ?? video?.Title ?? 'Untitled video');
+
+        const getCourseTopicVideos = (topic) => {
+            if (Array.isArray(topic?.videos)) {
+                return topic.videos;
+            }
+            if (Array.isArray(topic?.Videos)) {
+                return topic.Videos;
+            }
+            return [];
+        };
+
+        const getCoursePackageTopics = (pkg) => {
+            if (Array.isArray(pkg?.topics)) {
+                return pkg.topics;
+            }
+            if (Array.isArray(pkg?.Topics)) {
+                return pkg.Topics;
+            }
+            return [];
+        };
+
+        const formatVideoDuration = (value) => {
+            const totalSeconds = Number(value);
+            if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+                return '—';
+            }
+            const wholeSeconds = Math.max(0, Math.floor(totalSeconds));
+            const hours = Math.floor(wholeSeconds / 3600);
+            const minutes = Math.floor((wholeSeconds % 3600) / 60);
+            const seconds = wholeSeconds % 60;
+            if (hours > 0) {
+                return `${hours}:${String(minutes).padStart(2, '0')}:${String(
+                    seconds
+                ).padStart(2, '0')}`;
+            }
+            return `${minutes}:${String(seconds).padStart(2, '0')}`;
+        };
+
+        const formatPriceAmount = (value) => {
+            const cents = Number(value);
+            if (!Number.isFinite(cents)) {
+                return '—';
+            }
+            const amount = cents / 100;
+            try {
+                return amount.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                });
+            } catch (error) {
+                return amount.toFixed(2);
+            }
+        };
+
+        const formatPriceInputValue = (value) => {
+            const cents = Number(value);
+            if (!Number.isFinite(cents)) {
+                return '';
+            }
+            const amount = cents / 100;
+            try {
+                return amount.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                });
+            } catch (error) {
+                return amount.toFixed(2);
+            }
+        };
+
+        const parsePriceInputValue = (value) => {
+            if (typeof value !== 'string') {
+                return null;
+            }
+            const trimmed = value.trim();
+            if (!trimmed) {
+                return null;
+            }
+            const normalised = trimmed.replace(/,/g, '.');
+            const amount = Number(normalised);
+            if (!Number.isFinite(amount) || amount < 0) {
+                return null;
+            }
+            return Math.round(amount * 100);
+        };
+
+        const slugifyPreferredName = (value) => {
+            const normalised = normaliseString(value).toLowerCase();
+            if (!normalised) {
+                return '';
+            }
+            return normalised
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 80);
+        };
+
+        const findCourseVideo = (id) =>
+            state.courses.videos.find(
+                (video) => extractCourseVideoId(video) === String(id)
+            );
+        const findCourseTopic = (id) =>
+            state.courses.topics.find(
+                (topic) => extractCourseTopicId(topic) === String(id)
+            );
+        const findCoursePackage = (id) =>
+            state.courses.packages.find(
+                (pkg) => extractCoursePackageId(pkg) === String(id)
+            );
+
+        const renderCourseVideos = () => {
+            const table = tables.courseVideos;
+            if (!table) {
+                return;
+            }
+            table.innerHTML = '';
+            const videos = Array.isArray(state.courses.videos)
+                ? state.courses.videos.slice()
+                : [];
+            if (!videos.length) {
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No videos uploaded yet.',
+                });
+                cell.colSpan = 3;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            videos.sort((a, b) => {
+                const aDate = new Date(
+                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
+                ).getTime();
+                const bDate = new Date(
+                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
+                ).getTime();
+                return bDate - aDate;
+            });
+            videos.forEach((video) => {
+                const id = extractCourseVideoId(video);
+                if (!id) {
+                    return;
+                }
+                const row = createElement('tr');
+                row.dataset.id = id;
+                row.appendChild(
+                    createElement('td', { textContent: getCourseVideoTitle(video) })
+                );
+                const duration =
+                    video?.duration_seconds ??
+                    video?.durationSeconds ??
+                    video?.DurationSeconds;
+                row.appendChild(
+                    createElement('td', { textContent: formatVideoDuration(duration) })
+                );
+                const updated =
+                    video?.updated_at || video?.updatedAt || video?.UpdatedAt;
+                row.appendChild(
+                    createElement('td', { textContent: formatDate(updated) })
+                );
+                row.addEventListener('click', () => selectCourseVideo(id));
+                table.appendChild(row);
+            });
+            highlightRow(table, courseVideoForm?.dataset.id);
+        };
+
+        const renderCourseTopics = () => {
+            const table = tables.courseTopics;
+            if (!table) {
+                return;
+            }
+            table.innerHTML = '';
+            const topics = Array.isArray(state.courses.topics)
+                ? state.courses.topics.slice()
+                : [];
+            if (!topics.length) {
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No topics created yet.',
+                });
+                cell.colSpan = 3;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            topics.sort((a, b) => {
+                const aDate = new Date(
+                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
+                ).getTime();
+                const bDate = new Date(
+                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
+                ).getTime();
+                return bDate - aDate;
+            });
+            topics.forEach((topic) => {
+                const id = extractCourseTopicId(topic);
+                if (!id) {
+                    return;
+                }
+                const row = createElement('tr');
+                row.dataset.id = id;
+                row.appendChild(
+                    createElement('td', {
+                        textContent:
+                            normaliseString(topic?.title ?? topic?.Title ?? '') ||
+                            'Untitled topic',
+                    })
+                );
+                const videoCount = getCourseTopicVideos(topic).length;
+                row.appendChild(
+                    createElement('td', {
+                        textContent:
+                            videoCount === 1
+                                ? '1 video'
+                                : `${videoCount} videos`,
+                    })
+                );
+                const updated =
+                    topic?.updated_at || topic?.updatedAt || topic?.UpdatedAt;
+                row.appendChild(
+                    createElement('td', { textContent: formatDate(updated) })
+                );
+                row.addEventListener('click', () => selectCourseTopic(id));
+                table.appendChild(row);
+            });
+            highlightRow(table, courseTopicForm?.dataset.id);
+        };
+
+        const renderCoursePackages = () => {
+            const table = tables.coursePackages;
+            if (!table) {
+                return;
+            }
+            table.innerHTML = '';
+            const packages = Array.isArray(state.courses.packages)
+                ? state.courses.packages.slice()
+                : [];
+            if (!packages.length) {
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No packages configured yet.',
+                });
+                cell.colSpan = 4;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            packages.sort((a, b) => {
+                const aDate = new Date(
+                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
+                ).getTime();
+                const bDate = new Date(
+                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
+                ).getTime();
+                return bDate - aDate;
+            });
+            packages.forEach((pkg) => {
+                const id = extractCoursePackageId(pkg);
+                if (!id) {
+                    return;
+                }
+                const row = createElement('tr');
+                row.dataset.id = id;
+                row.appendChild(
+                    createElement('td', {
+                        textContent:
+                            normaliseString(pkg?.title ?? pkg?.Title ?? '') ||
+                            'Untitled package',
+                    })
+                );
+                row.appendChild(
+                    createElement('td', {
+                        textContent: formatPriceAmount(
+                            pkg?.price_cents ?? pkg?.priceCents ?? pkg?.PriceCents
+                        ),
+                    })
+                );
+                const topics = getCoursePackageTopics(pkg);
+                row.appendChild(
+                    createElement('td', {
+                        textContent:
+                            topics.length === 1
+                                ? '1 topic'
+                                : `${topics.length} topics`,
+                    })
+                );
+                const updated =
+                    pkg?.updated_at || pkg?.updatedAt || pkg?.UpdatedAt;
+                row.appendChild(
+                    createElement('td', { textContent: formatDate(updated) })
+                );
+                row.addEventListener('click', () => selectCoursePackage(id));
+                table.appendChild(row);
+            });
+            highlightRow(table, coursePackageForm?.dataset.id);
+        };
+
+        const renderCourseTopicVideoOptions = () => {
+            if (!courseTopicVideoSelect) {
+                return;
+            }
+            const currentValue = courseTopicVideoSelect.value;
+            courseTopicVideoSelect.innerHTML = '';
+            courseTopicVideoSelect.appendChild(
+                createElement('option', {
+                    value: '',
+                    textContent: 'Select a video…',
+                })
+            );
+            const selectedIds = new Set(
+                state.courses.topicVideoIds.map((id) => String(id))
+            );
+            state.courses.videos.forEach((video) => {
+                const id = extractCourseVideoId(video);
+                if (!id || selectedIds.has(String(id))) {
+                    return;
+                }
+                const option = createElement('option', {
+                    value: id,
+                    textContent: getCourseVideoTitle(video),
+                });
+                courseTopicVideoSelect.appendChild(option);
+            });
+            let found = false;
+            Array.from(courseTopicVideoSelect.options).forEach((option) => {
+                if (option.value === currentValue) {
+                    found = true;
+                }
+            });
+            courseTopicVideoSelect.value = found ? currentValue : '';
+        };
+
+        const renderCourseTopicVideoList = () => {
+            if (!courseTopicVideoList || !courseTopicVideoEmpty) {
+                return;
+            }
+            courseTopicVideoList.innerHTML = '';
+            const ids = state.courses.topicVideoIds.filter((id) =>
+                Boolean(findCourseVideo(id))
+            );
+            state.courses.topicVideoIds = ids.slice();
+            if (!ids.length) {
+                courseTopicVideoEmpty.hidden = false;
+                courseTopicVideoList.appendChild(courseTopicVideoEmpty);
+                return;
+            }
+            courseTopicVideoEmpty.hidden = true;
+            ids.forEach((id, index) => {
+                const video = findCourseVideo(id);
+                if (!video) {
+                    return;
+                }
+                const item = createElement('li', {
+                    className: 'admin-courses__selection-item',
+                });
+                item.dataset.id = String(id);
+                const info = createElement('div', {
+                    className: 'admin-courses__selection-info',
+                });
+                info.appendChild(
+                    createElement('span', {
+                        className: 'admin-courses__selection-label',
+                        textContent: getCourseVideoTitle(video),
+                    })
+                );
+                const duration =
+                    video?.duration_seconds ??
+                    video?.durationSeconds ??
+                    video?.DurationSeconds;
+                info.appendChild(
+                    createElement('span', {
+                        className: 'admin-courses__selection-meta',
+                        textContent: `Duration ${formatVideoDuration(duration)}`,
+                    })
+                );
+                const actions = createElement('div', {
+                    className: 'admin-courses__selection-actions',
+                });
+                const upButton = createElement('button', {
+                    className: 'admin-navigation__reorder-button',
+                    textContent: 'Move up',
+                });
+                upButton.type = 'button';
+                upButton.dataset.action = 'move-up';
+                upButton.dataset.id = String(id);
+                upButton.disabled = index === 0;
+                const downButton = createElement('button', {
+                    className: 'admin-navigation__reorder-button',
+                    textContent: 'Move down',
+                });
+                downButton.type = 'button';
+                downButton.dataset.action = 'move-down';
+                downButton.dataset.id = String(id);
+                downButton.disabled = index === ids.length - 1;
+                const removeButton = createElement('button', {
+                    className:
+                        'admin-navigation__button admin-navigation__button--danger',
+                    textContent: 'Remove',
+                });
+                removeButton.type = 'button';
+                removeButton.dataset.action = 'remove';
+                removeButton.dataset.id = String(id);
+                actions.appendChild(upButton);
+                actions.appendChild(downButton);
+                actions.appendChild(removeButton);
+                item.appendChild(info);
+                item.appendChild(actions);
+                courseTopicVideoList.appendChild(item);
+            });
+        };
+
+        const renderCoursePackageTopicOptions = () => {
+            if (!coursePackageTopicSelect) {
+                return;
+            }
+            const currentValue = coursePackageTopicSelect.value;
+            coursePackageTopicSelect.innerHTML = '';
+            coursePackageTopicSelect.appendChild(
+                createElement('option', {
+                    value: '',
+                    textContent: 'Select a topic…',
+                })
+            );
+            const selectedIds = new Set(
+                state.courses.packageTopicIds.map((id) => String(id))
+            );
+            state.courses.topics.forEach((topic) => {
+                const id = extractCourseTopicId(topic);
+                if (!id || selectedIds.has(String(id))) {
+                    return;
+                }
+                const option = createElement('option', {
+                    value: id,
+                    textContent:
+                        normaliseString(topic?.title ?? topic?.Title ?? '') ||
+                        'Untitled topic',
+                });
+                coursePackageTopicSelect.appendChild(option);
+            });
+            let found = false;
+            Array.from(coursePackageTopicSelect.options).forEach((option) => {
+                if (option.value === currentValue) {
+                    found = true;
+                }
+            });
+            coursePackageTopicSelect.value = found ? currentValue : '';
+        };
+
+        const renderCoursePackageTopicList = () => {
+            if (!coursePackageTopicList || !coursePackageTopicEmpty) {
+                return;
+            }
+            coursePackageTopicList.innerHTML = '';
+            const ids = state.courses.packageTopicIds.filter((id) =>
+                Boolean(findCourseTopic(id))
+            );
+            state.courses.packageTopicIds = ids.slice();
+            if (!ids.length) {
+                coursePackageTopicEmpty.hidden = false;
+                coursePackageTopicList.appendChild(coursePackageTopicEmpty);
+                return;
+            }
+            coursePackageTopicEmpty.hidden = true;
+            ids.forEach((id, index) => {
+                const topic = findCourseTopic(id);
+                if (!topic) {
+                    return;
+                }
+                const item = createElement('li', {
+                    className: 'admin-courses__selection-item',
+                });
+                item.dataset.id = String(id);
+                const info = createElement('div', {
+                    className: 'admin-courses__selection-info',
+                });
+                info.appendChild(
+                    createElement('span', {
+                        className: 'admin-courses__selection-label',
+                        textContent:
+                            normaliseString(topic?.title ?? topic?.Title ?? '') ||
+                            'Untitled topic',
+                    })
+                );
+                const videoCount = getCourseTopicVideos(topic).length;
+                info.appendChild(
+                    createElement('span', {
+                        className: 'admin-courses__selection-meta',
+                        textContent:
+                            videoCount === 1
+                                ? 'Includes 1 video'
+                                : `Includes ${videoCount} videos`,
+                    })
+                );
+                const actions = createElement('div', {
+                    className: 'admin-courses__selection-actions',
+                });
+                const upButton = createElement('button', {
+                    className: 'admin-navigation__reorder-button',
+                    textContent: 'Move up',
+                });
+                upButton.type = 'button';
+                upButton.dataset.action = 'move-up';
+                upButton.dataset.id = String(id);
+                upButton.disabled = index === 0;
+                const downButton = createElement('button', {
+                    className: 'admin-navigation__reorder-button',
+                    textContent: 'Move down',
+                });
+                downButton.type = 'button';
+                downButton.dataset.action = 'move-down';
+                downButton.dataset.id = String(id);
+                downButton.disabled = index === ids.length - 1;
+                const removeButton = createElement('button', {
+                    className:
+                        'admin-navigation__button admin-navigation__button--danger',
+                    textContent: 'Remove',
+                });
+                removeButton.type = 'button';
+                removeButton.dataset.action = 'remove';
+                removeButton.dataset.id = String(id);
+                actions.appendChild(upButton);
+                actions.appendChild(downButton);
+                actions.appendChild(removeButton);
+                item.appendChild(info);
+                item.appendChild(actions);
+                coursePackageTopicList.appendChild(item);
+            });
+        };
+
+        const resetCourseVideoForm = () => {
+            if (!courseVideoForm) {
+                return;
+            }
+            courseVideoForm.reset();
+            delete courseVideoForm.dataset.id;
+            state.courses.selectedVideoId = '';
+            if (courseVideoSubmitButton) {
+                courseVideoSubmitButton.textContent = 'Upload video';
+            }
+            if (courseVideoDeleteButton) {
+                courseVideoDeleteButton.hidden = true;
+            }
+            if (courseVideoUploadGroup) {
+                courseVideoUploadGroup.hidden = false;
+            }
+            if (courseVideoUploadHint) {
+                courseVideoUploadHint.hidden = true;
+            }
+            if (courseVideoFileInput) {
+                courseVideoFileInput.required = true;
+                courseVideoFileInput.value = '';
+            }
+            if (courseVideoDurationField) {
+                courseVideoDurationField.textContent = '—';
+            }
+            highlightRow(tables.courseVideos);
+            bringFormIntoView(courseVideoForm);
+        };
+
+        const populateCourseVideoForm = (video, { scroll = true } = {}) => {
+            if (!courseVideoForm || !video) {
+                return;
+            }
+            const id = extractCourseVideoId(video);
+            if (id) {
+                courseVideoForm.dataset.id = id;
+                state.courses.selectedVideoId = id;
+            } else {
+                delete courseVideoForm.dataset.id;
+                state.courses.selectedVideoId = '';
+            }
+            if (courseVideoTitleInput) {
+                courseVideoTitleInput.value = normaliseString(
+                    video?.title ?? video?.Title ?? ''
+                );
+            }
+            if (courseVideoDescriptionInput) {
+                courseVideoDescriptionInput.value = normaliseString(
+                    video?.description ?? video?.Description ?? ''
+                );
+            }
+            if (courseVideoUploadGroup) {
+                courseVideoUploadGroup.hidden = true;
+            }
+            if (courseVideoUploadHint) {
+                courseVideoUploadHint.hidden = false;
+            }
+            if (courseVideoFileInput) {
+                courseVideoFileInput.required = false;
+                courseVideoFileInput.value = '';
+            }
+            if (courseVideoDeleteButton) {
+                courseVideoDeleteButton.hidden = false;
+            }
+            if (courseVideoSubmitButton) {
+                courseVideoSubmitButton.textContent = 'Update video';
+            }
+            const duration =
+                video?.duration_seconds ??
+                video?.durationSeconds ??
+                video?.DurationSeconds;
+            if (courseVideoDurationField) {
+                courseVideoDurationField.textContent = formatVideoDuration(duration);
+            }
+            highlightRow(tables.courseVideos, id);
+            if (scroll) {
+                bringFormIntoView(courseVideoForm);
+            }
+        };
+
+        const selectCourseVideo = (id) => {
+            if (!courseVideoForm) {
+                return;
+            }
+            const video = findCourseVideo(id);
+            if (!video) {
+                return;
+            }
+            populateCourseVideoForm(video);
+        };
+
+        const populateCourseTopicForm = (topic, { scroll = true } = {}) => {
+            if (!courseTopicForm || !topic) {
+                return;
+            }
+            const id = extractCourseTopicId(topic);
+            if (id) {
+                courseTopicForm.dataset.id = id;
+                state.courses.selectedTopicId = id;
+            } else {
+                delete courseTopicForm.dataset.id;
+                state.courses.selectedTopicId = '';
+            }
+            if (courseTopicTitleInput) {
+                courseTopicTitleInput.value = normaliseString(
+                    topic?.title ?? topic?.Title ?? ''
+                );
+            }
+            if (courseTopicDescriptionInput) {
+                courseTopicDescriptionInput.value = normaliseString(
+                    topic?.description ?? topic?.Description ?? ''
+                );
+            }
+            state.courses.topicVideoIds = getCourseTopicVideos(topic)
+                .map((video) => extractCourseVideoId(video))
+                .filter(Boolean);
+            if (courseTopicSubmitButton) {
+                courseTopicSubmitButton.textContent = 'Update topic';
+            }
+            if (courseTopicDeleteButton) {
+                courseTopicDeleteButton.hidden = false;
+            }
+            renderCourseTopicVideoOptions();
+            renderCourseTopicVideoList();
+            highlightRow(tables.courseTopics, id);
+            if (scroll) {
+                bringFormIntoView(courseTopicForm);
+            }
+        };
+
+        const selectCourseTopic = (id) => {
+            if (!courseTopicForm) {
+                return;
+            }
+            const topic = findCourseTopic(id);
+            if (!topic) {
+                return;
+            }
+            populateCourseTopicForm(topic);
+        };
+
+        const populateCoursePackageForm = (pkg, { scroll = true } = {}) => {
+            if (!coursePackageForm || !pkg) {
+                return;
+            }
+            const id = extractCoursePackageId(pkg);
+            if (id) {
+                coursePackageForm.dataset.id = id;
+                state.courses.selectedPackageId = id;
+            } else {
+                delete coursePackageForm.dataset.id;
+                state.courses.selectedPackageId = '';
+            }
+            if (coursePackageTitleInput) {
+                coursePackageTitleInput.value = normaliseString(
+                    pkg?.title ?? pkg?.Title ?? ''
+                );
+            }
+            if (coursePackageDescriptionInput) {
+                coursePackageDescriptionInput.value = normaliseString(
+                    pkg?.description ?? pkg?.Description ?? ''
+                );
+            }
+            if (coursePackagePriceInput) {
+                coursePackagePriceInput.value = formatPriceInputValue(
+                    pkg?.price_cents ?? pkg?.priceCents ?? pkg?.PriceCents
+                );
+            }
+            if (coursePackageImageInput) {
+                coursePackageImageInput.value = normaliseString(
+                    pkg?.image_url ?? pkg?.imageUrl ?? pkg?.ImageURL ?? ''
+                );
+            }
+            state.courses.packageTopicIds = getCoursePackageTopics(pkg)
+                .map((topic) => extractCourseTopicId(topic))
+                .filter(Boolean);
+            if (coursePackageSubmitButton) {
+                coursePackageSubmitButton.textContent = 'Update package';
+            }
+            if (coursePackageDeleteButton) {
+                coursePackageDeleteButton.hidden = false;
+            }
+            renderCoursePackageTopicOptions();
+            renderCoursePackageTopicList();
+            highlightRow(tables.coursePackages, id);
+            if (scroll) {
+                bringFormIntoView(coursePackageForm);
+            }
+        };
+
+        const selectCoursePackage = (id) => {
+            if (!coursePackageForm) {
+                return;
+            }
+            const pkg = findCoursePackage(id);
+            if (!pkg) {
+                return;
+            }
+            populateCoursePackageForm(pkg);
+        };
+
+        const resetCourseTopicForm = () => {
+            if (!courseTopicForm) {
+                return;
+            }
+            courseTopicForm.reset();
+            delete courseTopicForm.dataset.id;
+            state.courses.selectedTopicId = '';
+            state.courses.topicVideoIds = [];
+            if (courseTopicSubmitButton) {
+                courseTopicSubmitButton.textContent = 'Create topic';
+            }
+            if (courseTopicDeleteButton) {
+                courseTopicDeleteButton.hidden = true;
+            }
+            renderCourseTopicVideoOptions();
+            renderCourseTopicVideoList();
+            highlightRow(tables.courseTopics);
+            bringFormIntoView(courseTopicForm);
+        };
+
+        const resetCoursePackageForm = () => {
+            if (!coursePackageForm) {
+                return;
+            }
+            coursePackageForm.reset();
+            delete coursePackageForm.dataset.id;
+            state.courses.selectedPackageId = '';
+            state.courses.packageTopicIds = [];
+            if (coursePackageSubmitButton) {
+                coursePackageSubmitButton.textContent = 'Create package';
+            }
+            if (coursePackageDeleteButton) {
+                coursePackageDeleteButton.hidden = true;
+            }
+            renderCoursePackageTopicOptions();
+            renderCoursePackageTopicList();
+            highlightRow(tables.coursePackages);
+            bringFormIntoView(coursePackageForm);
+        };
+
+        const handleCourseVideoSubmit = async (event) => {
+            if (!courseVideoForm) {
+                return;
+            }
+            event.preventDefault();
+            const title = normaliseString(courseVideoTitleInput?.value).trim();
+            const description = normaliseString(
+                courseVideoDescriptionInput?.value
+            );
+            if (!title) {
+                showAlert('Please provide a video title.', 'error');
+                return;
+            }
+            if (!endpoints.coursesVideos) {
+                showAlert('Video uploads are not configured.', 'error');
+                return;
+            }
+            const id = courseVideoForm.dataset.id;
+            try {
+                if (id) {
+                    await apiRequest(
+                        buildCourseEndpoint(endpoints.coursesVideos, id),
+                        {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                title,
+                                description,
+                            }),
+                        }
+                    );
+                    showAlert('Video updated successfully.', 'success');
+                } else {
+                    const file = courseVideoFileInput?.files?.[0];
+                    if (!file) {
+                        showAlert('Select a video file to upload.', 'error');
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('title', title);
+                    if (description) {
+                        formData.append('description', description);
+                    }
+                    const preferred = slugifyPreferredName(title);
+                    if (preferred) {
+                        formData.append('preferred_name', preferred);
+                    }
+                    formData.append('video', file);
+                    const response = await apiRequest(endpoints.coursesVideos, {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    showAlert('Video uploaded successfully.', 'success');
+                    const created = response?.video;
+                    await loadCourseVideos(true);
+                    await loadCourseTopics(true);
+                    await loadCoursePackages(true);
+                    if (created) {
+                        const createdId = extractCourseVideoId(created);
+                        if (createdId) {
+                            const video = findCourseVideo(createdId);
+                            if (video) {
+                                populateCourseVideoForm(video, { scroll: true });
+                            }
+                        }
+                    } else {
+                        resetCourseVideoForm();
+                    }
+                    return;
+                }
+                await loadCourseVideos(true);
+                await loadCourseTopics(true);
+                await loadCoursePackages(true);
+                const updatedVideo = findCourseVideo(id);
+                if (updatedVideo) {
+                    populateCourseVideoForm(updatedVideo, { scroll: false });
+                }
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleCourseVideoDelete = async () => {
+            if (!courseVideoForm) {
+                return;
+            }
+            const id = courseVideoForm.dataset.id;
+            if (!id) {
+                showAlert('Select a video to delete first.', 'info');
+                return;
+            }
+            if (
+                !window.confirm(
+                    'Delete this video permanently? Any topics using it will no longer list the lesson.'
+                )
+            ) {
+                return;
+            }
+            if (!endpoints.coursesVideos) {
+                showAlert('Video deletion is not configured.', 'error');
+                return;
+            }
+            try {
+                await apiRequest(buildCourseEndpoint(endpoints.coursesVideos, id), {
+                    method: 'DELETE',
+                });
+                showAlert('Video deleted successfully.', 'success');
+                resetCourseVideoForm();
+                await loadCourseVideos(true);
+                await loadCourseTopics(true);
+                await loadCoursePackages(true);
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleCourseTopicVideoAdd = () => {
+            if (!courseTopicVideoSelect) {
+                return;
+            }
+            const value = courseTopicVideoSelect.value;
+            if (!value) {
+                showAlert('Select a video to add.', 'info');
+                return;
+            }
+            if (
+                state.courses.topicVideoIds.some(
+                    (entry) => String(entry) === String(value)
+                )
+            ) {
+                showAlert('This video is already attached to the topic.', 'info');
+                return;
+            }
+            state.courses.topicVideoIds.push(String(value));
+            renderCourseTopicVideoOptions();
+            renderCourseTopicVideoList();
+            courseTopicVideoSelect.value = '';
+        };
+
+        const handleCourseTopicVideoListClick = (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            const button = target.closest('button[data-action]');
+            if (!button || !courseTopicVideoList?.contains(button)) {
+                return;
+            }
+            event.preventDefault();
+            const id = button.dataset.id;
+            if (!id) {
+                return;
+            }
+            const index = state.courses.topicVideoIds.findIndex(
+                (entry) => String(entry) === String(id)
+            );
+            if (index === -1) {
+                return;
+            }
+            const action = button.dataset.action;
+            if (action === 'remove') {
+                state.courses.topicVideoIds.splice(index, 1);
+            } else if (action === 'move-up' && index > 0) {
+                const [entry] = state.courses.topicVideoIds.splice(index, 1);
+                state.courses.topicVideoIds.splice(index - 1, 0, entry);
+            } else if (
+                action === 'move-down' &&
+                index < state.courses.topicVideoIds.length - 1
+            ) {
+                const [entry] = state.courses.topicVideoIds.splice(index, 1);
+                state.courses.topicVideoIds.splice(index + 1, 0, entry);
+            }
+            renderCourseTopicVideoOptions();
+            renderCourseTopicVideoList();
+        };
+
+        const handleCourseTopicSubmit = async (event) => {
+            if (!courseTopicForm) {
+                return;
+            }
+            event.preventDefault();
+            const title = normaliseString(courseTopicTitleInput?.value).trim();
+            const description = normaliseString(
+                courseTopicDescriptionInput?.value
+            );
+            if (!title) {
+                showAlert('Please provide a topic title.', 'error');
+                return;
+            }
+            if (!endpoints.coursesTopics) {
+                showAlert('Topic management is not configured.', 'error');
+                return;
+            }
+            const videoIds = state.courses.topicVideoIds
+                .map((entry) => Number.parseInt(String(entry), 10))
+                .filter((value) => Number.isFinite(value) && value > 0);
+            const id = courseTopicForm.dataset.id;
+            try {
+                if (id) {
+                    await apiRequest(
+                        buildCourseEndpoint(endpoints.coursesTopics, id),
+                        {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                title,
+                                description,
+                            }),
+                        }
+                    );
+                    await apiRequest(
+                        buildCourseEndpoint(endpoints.coursesTopics, id, 'videos'),
+                        {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ video_ids: videoIds }),
+                        }
+                    );
+                    showAlert('Topic updated successfully.', 'success');
+                } else {
+                    const response = await apiRequest(endpoints.coursesTopics, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            title,
+                            description,
+                            video_ids: videoIds,
+                        }),
+                    });
+                    showAlert('Topic created successfully.', 'success');
+                    const created = response?.topic;
+                    await loadCourseTopics(true);
+                    await loadCoursePackages(true);
+                    if (created) {
+                        const createdId = extractCourseTopicId(created);
+                        if (createdId) {
+                            const topic = findCourseTopic(createdId);
+                            if (topic) {
+                                populateCourseTopicForm(topic, { scroll: true });
+                            }
+                        }
+                    } else {
+                        resetCourseTopicForm();
+                    }
+                    return;
+                }
+                await loadCourseTopics(true);
+                await loadCoursePackages(true);
+                const updatedTopic = findCourseTopic(id);
+                if (updatedTopic) {
+                    populateCourseTopicForm(updatedTopic, { scroll: false });
+                }
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleCourseTopicDelete = async () => {
+            if (!courseTopicForm) {
+                return;
+            }
+            const id = courseTopicForm.dataset.id;
+            if (!id) {
+                showAlert('Select a topic to delete first.', 'info');
+                return;
+            }
+            if (
+                !window.confirm(
+                    'Delete this topic permanently? Packages referencing it will lose the topic.'
+                )
+            ) {
+                return;
+            }
+            if (!endpoints.coursesTopics) {
+                showAlert('Topic management is not configured.', 'error');
+                return;
+            }
+            try {
+                await apiRequest(buildCourseEndpoint(endpoints.coursesTopics, id), {
+                    method: 'DELETE',
+                });
+                showAlert('Topic deleted successfully.', 'success');
+                resetCourseTopicForm();
+                await loadCourseTopics(true);
+                await loadCoursePackages(true);
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleCoursePackageTopicAdd = () => {
+            if (!coursePackageTopicSelect) {
+                return;
+            }
+            const value = coursePackageTopicSelect.value;
+            if (!value) {
+                showAlert('Select a topic to add.', 'info');
+                return;
+            }
+            if (
+                state.courses.packageTopicIds.some(
+                    (entry) => String(entry) === String(value)
+                )
+            ) {
+                showAlert('This topic is already part of the package.', 'info');
+                return;
+            }
+            state.courses.packageTopicIds.push(String(value));
+            renderCoursePackageTopicOptions();
+            renderCoursePackageTopicList();
+            coursePackageTopicSelect.value = '';
+        };
+
+        const handleCoursePackageTopicListClick = (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            const button = target.closest('button[data-action]');
+            if (!button || !coursePackageTopicList?.contains(button)) {
+                return;
+            }
+            event.preventDefault();
+            const id = button.dataset.id;
+            if (!id) {
+                return;
+            }
+            const index = state.courses.packageTopicIds.findIndex(
+                (entry) => String(entry) === String(id)
+            );
+            if (index === -1) {
+                return;
+            }
+            const action = button.dataset.action;
+            if (action === 'remove') {
+                state.courses.packageTopicIds.splice(index, 1);
+            } else if (action === 'move-up' && index > 0) {
+                const [entry] = state.courses.packageTopicIds.splice(index, 1);
+                state.courses.packageTopicIds.splice(index - 1, 0, entry);
+            } else if (
+                action === 'move-down' &&
+                index < state.courses.packageTopicIds.length - 1
+            ) {
+                const [entry] = state.courses.packageTopicIds.splice(index, 1);
+                state.courses.packageTopicIds.splice(index + 1, 0, entry);
+            }
+            renderCoursePackageTopicOptions();
+            renderCoursePackageTopicList();
+        };
+
+        const handleCoursePackageSubmit = async (event) => {
+            if (!coursePackageForm) {
+                return;
+            }
+            event.preventDefault();
+            const title = normaliseString(coursePackageTitleInput?.value).trim();
+            const description = normaliseString(
+                coursePackageDescriptionInput?.value
+            );
+            if (!title) {
+                showAlert('Please provide a package title.', 'error');
+                return;
+            }
+            const priceValue = coursePackagePriceInput?.value || '';
+            const priceCents = parsePriceInputValue(priceValue);
+            if (priceCents === null) {
+                showAlert('Enter a valid package price (e.g. 99.90).', 'error');
+                return;
+            }
+            if (!endpoints.coursesPackages) {
+                showAlert('Package management is not configured.', 'error');
+                return;
+            }
+            const imageUrl = normaliseString(coursePackageImageInput?.value);
+            const topicIds = state.courses.packageTopicIds
+                .map((entry) => Number.parseInt(String(entry), 10))
+                .filter((value) => Number.isFinite(value) && value > 0);
+            const id = coursePackageForm.dataset.id;
+            try {
+                if (id) {
+                    await apiRequest(
+                        buildCourseEndpoint(endpoints.coursesPackages, id),
+                        {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                title,
+                                description,
+                                price_cents: priceCents,
+                                image_url: imageUrl,
+                            }),
+                        }
+                    );
+                    await apiRequest(
+                        buildCourseEndpoint(endpoints.coursesPackages, id, 'topics'),
+                        {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ topic_ids: topicIds }),
+                        }
+                    );
+                    showAlert('Package updated successfully.', 'success');
+                } else {
+                    const response = await apiRequest(endpoints.coursesPackages, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            title,
+                            description,
+                            price_cents: priceCents,
+                            image_url: imageUrl,
+                            topic_ids: topicIds,
+                        }),
+                    });
+                    showAlert('Package created successfully.', 'success');
+                    const created = response?.package;
+                    await loadCoursePackages(true);
+                    if (created) {
+                        const createdId = extractCoursePackageId(created);
+                        if (createdId) {
+                            const pkg = findCoursePackage(createdId);
+                            if (pkg) {
+                                populateCoursePackageForm(pkg, { scroll: true });
+                            }
+                        }
+                    } else {
+                        resetCoursePackageForm();
+                    }
+                    return;
+                }
+                await loadCoursePackages(true);
+                const updatedPackage = findCoursePackage(id);
+                if (updatedPackage) {
+                    populateCoursePackageForm(updatedPackage, { scroll: false });
+                }
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleCoursePackageDelete = async () => {
+            if (!coursePackageForm) {
+                return;
+            }
+            const id = coursePackageForm.dataset.id;
+            if (!id) {
+                showAlert('Select a package to delete first.', 'info');
+                return;
+            }
+            if (
+                !window.confirm(
+                    'Delete this package permanently? Customers will no longer see it in the catalog.'
+                )
+            ) {
+                return;
+            }
+            if (!endpoints.coursesPackages) {
+                showAlert('Package management is not configured.', 'error');
+                return;
+            }
+            try {
+                await apiRequest(
+                    buildCourseEndpoint(endpoints.coursesPackages, id),
+                    { method: 'DELETE' }
+                );
+                showAlert('Package deleted successfully.', 'success');
+                resetCoursePackageForm();
+                await loadCoursePackages(true);
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const buildCourseEndpoint = (base, id, suffix = '') => {
+            if (!base) {
+                return '';
+            }
+            const trimmed = base.endsWith('/') ? base.slice(0, -1) : base;
+            if (!id) {
+                return trimmed;
+            }
+            const encoded = encodeURIComponent(String(id));
+            const normalisedSuffix = suffix
+                ? `/${suffix.replace(/^\/+/, '')}`
+                : '';
+            return `${trimmed}/${encoded}${normalisedSuffix}`;
+        };
+
+        const syncTopicSelection = () => {
+            state.courses.topicVideoIds = state.courses.topicVideoIds.filter(
+                (id) => Boolean(findCourseVideo(id))
+            );
+            renderCourseTopicVideoOptions();
+            renderCourseTopicVideoList();
+        };
+
+        const syncPackageSelection = () => {
+            state.courses.packageTopicIds = state.courses.packageTopicIds.filter(
+                (id) => Boolean(findCourseTopic(id))
+            );
+            renderCoursePackageTopicOptions();
+            renderCoursePackageTopicList();
+        };
+
+        const updateVideoFormAfterLoad = () => {
+            if (!courseVideoForm) {
+                return;
+            }
+            if (!state.courses.selectedVideoId) {
+                resetCourseVideoForm();
+                return;
+            }
+            const video = findCourseVideo(state.courses.selectedVideoId);
+            if (video) {
+                populateCourseVideoForm(video, { scroll: false });
+            } else {
+                resetCourseVideoForm();
+            }
+        };
+
+        const updateTopicFormAfterLoad = () => {
+            if (!courseTopicForm) {
+                return;
+            }
+            if (!state.courses.selectedTopicId) {
+                state.courses.topicVideoIds = [];
+                renderCourseTopicVideoOptions();
+                renderCourseTopicVideoList();
+                return;
+            }
+            const topic = findCourseTopic(state.courses.selectedTopicId);
+            if (topic) {
+                populateCourseTopicForm(topic, { scroll: false });
+            } else {
+                resetCourseTopicForm();
+            }
+        };
+
+        const updatePackageFormAfterLoad = () => {
+            if (!coursePackageForm) {
+                return;
+            }
+            if (!state.courses.selectedPackageId) {
+                state.courses.packageTopicIds = [];
+                renderCoursePackageTopicOptions();
+                renderCoursePackageTopicList();
+                return;
+            }
+            const pkg = findCoursePackage(state.courses.selectedPackageId);
+            if (pkg) {
+                populateCoursePackageForm(pkg, { scroll: false });
+            } else {
+                resetCoursePackageForm();
+            }
+        };
+
+        const loadCourseVideos = async (force = false) => {
+            if (!endpoints.coursesVideos) {
+                return;
+            }
+            if (state.courses.hasLoadedVideos && !force) {
+                renderCourseVideos();
+                return;
+            }
+            try {
+                const response = await apiRequest(endpoints.coursesVideos);
+                const videos = Array.isArray(response?.videos)
+                    ? response.videos
+                    : [];
+                state.courses.videos = videos;
+                state.courses.hasLoadedVideos = true;
+                renderCourseVideos();
+                syncTopicSelection();
+                updateVideoFormAfterLoad();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const loadCourseTopics = async (force = false) => {
+            if (!endpoints.coursesTopics) {
+                return;
+            }
+            if (state.courses.hasLoadedTopics && !force) {
+                renderCourseTopics();
+                return;
+            }
+            try {
+                const response = await apiRequest(endpoints.coursesTopics);
+                const topics = Array.isArray(response?.topics)
+                    ? response.topics
+                    : [];
+                state.courses.topics = topics;
+                state.courses.hasLoadedTopics = true;
+                renderCourseTopics();
+                syncTopicSelection();
+                syncPackageSelection();
+                updateTopicFormAfterLoad();
+                updatePackageFormAfterLoad();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const loadCoursePackages = async (force = false) => {
+            if (!endpoints.coursesPackages) {
+                return;
+            }
+            if (state.courses.hasLoadedPackages && !force) {
+                renderCoursePackages();
+                return;
+            }
+            try {
+                const response = await apiRequest(endpoints.coursesPackages);
+                const packages = Array.isArray(response?.packages)
+                    ? response.packages
+                    : [];
+                state.courses.packages = packages;
+                state.courses.hasLoadedPackages = true;
+                renderCoursePackages();
+                syncPackageSelection();
+                updatePackageFormAfterLoad();
+            } catch (error) {
+                handleRequestError(error);
+            }
         };
 
         const selectPost = (id) => {
@@ -8157,8 +9657,23 @@
             'click',
             resetUserForm
         );
+        root.querySelector('[data-action="course-video-reset"]')?.addEventListener(
+            'click',
+            resetCourseVideoForm
+        );
+        root.querySelector('[data-action="course-topic-reset"]')?.addEventListener(
+            'click',
+            resetCourseTopicForm
+        );
+        root.querySelector('[data-action="course-package-reset"]')?.addEventListener(
+            'click',
+            resetCoursePackageForm
+        );
 
         resetUserForm();
+        resetCourseVideoForm();
+        resetCourseTopicForm();
+        resetCoursePackageForm();
 
         const attachSearchHandler = (input, callback) => {
             if (!input || typeof callback !== 'function') {
@@ -8195,6 +9710,31 @@
         categoryDeleteButton?.addEventListener('click', handleCategoryDelete);
         userForm?.addEventListener('submit', handleUserSubmit);
         userDeleteButton?.addEventListener('click', handleUserDelete);
+        courseVideoForm?.addEventListener('submit', handleCourseVideoSubmit);
+        courseVideoDeleteButton?.addEventListener('click', handleCourseVideoDelete);
+        courseTopicForm?.addEventListener('submit', handleCourseTopicSubmit);
+        courseTopicDeleteButton?.addEventListener('click', handleCourseTopicDelete);
+        courseTopicVideoAddButton?.addEventListener(
+            'click',
+            handleCourseTopicVideoAdd
+        );
+        courseTopicVideoList?.addEventListener(
+            'click',
+            handleCourseTopicVideoListClick
+        );
+        coursePackageForm?.addEventListener('submit', handleCoursePackageSubmit);
+        coursePackageDeleteButton?.addEventListener(
+            'click',
+            handleCoursePackageDelete
+        );
+        coursePackageTopicAddButton?.addEventListener(
+            'click',
+            handleCoursePackageTopicAdd
+        );
+        coursePackageTopicList?.addEventListener(
+            'click',
+            handleCoursePackageTopicListClick
+        );
         backupDownloadButton?.addEventListener('click', handleBackupDownload);
         backupImportForm?.addEventListener('submit', handleBackupImport);
         backupSettingsForm?.addEventListener('submit', handleBackupSettingsSubmit);
@@ -8271,6 +9811,18 @@
         renderMetricsChart(state.activityTrend);
         loadStats();
         loadTags();
+        const loadCourseData = async () => {
+            await loadCourseVideos();
+            await loadCourseTopics();
+            await loadCoursePackages();
+        };
+        if (
+            endpoints.coursesVideos ||
+            endpoints.coursesTopics ||
+            endpoints.coursesPackages
+        ) {
+            loadCourseData();
+        }
         loadCategories().then(() => {
             renderCategoryOptions();
             loadPosts();

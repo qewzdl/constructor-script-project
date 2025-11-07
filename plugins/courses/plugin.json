@@ -1,0 +1,8 @@
+{
+  "name": "Courses",
+  "slug": "courses",
+  "version": "1.0.0",
+  "description": "Adds course package, topic, and video management capabilities with duration-aware uploads.",
+  "author": "Constructor Script",
+  "homepage": "https://constructor-script.example.com"
+}

@@ -10,6 +10,8 @@ import (
 	"constructor-script-backend/pkg/cache"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	coursehandlers "constructor-script-backend/plugins/courses/handlers"
+	courseservice "constructor-script-backend/plugins/courses/service"
 	languageservice "constructor-script-backend/plugins/language/service"
 )
 
@@ -23,6 +25,8 @@ type Host interface {
 	CoreServices() CoreServiceAccess
 	BlogServices() BlogServiceAccess
 	BlogHandlers() BlogHandlerAccess
+	CourseServices() CourseServiceAccess
+	CourseHandlers() CourseHandlerAccess
 
 	TemplateHandler() *handlers.TemplateHandler
 	SEOHandler() *handlers.SEOHandler
@@ -37,6 +41,9 @@ type RepositoryAccess interface {
 	Search() repository.SearchRepository
 	Setting() repository.SettingRepository
 	User() repository.UserRepository
+	CourseVideo() repository.CourseVideoRepository
+	CourseTopic() repository.CourseTopicRepository
+	CoursePackage() repository.CoursePackageRepository
 }
 
 type CoreServiceAccess interface {
@@ -46,6 +53,7 @@ type CoreServiceAccess interface {
 	SocialLink() *service.SocialLinkService
 	Menu() *service.MenuService
 	Advertising() *service.AdvertisingService
+	Upload() *service.UploadService
 	Language() *languageservice.LanguageService
 	SetLanguage(*languageservice.LanguageService)
 }
@@ -70,4 +78,22 @@ type BlogHandlerAccess interface {
 	SetComment(*bloghandlers.CommentHandler)
 	Search() *bloghandlers.SearchHandler
 	SetSearch(*bloghandlers.SearchHandler)
+}
+
+type CourseServiceAccess interface {
+	Video() *courseservice.VideoService
+	SetVideo(*courseservice.VideoService)
+	Topic() *courseservice.TopicService
+	SetTopic(*courseservice.TopicService)
+	Package() *courseservice.PackageService
+	SetPackage(*courseservice.PackageService)
+}
+
+type CourseHandlerAccess interface {
+	Video() *coursehandlers.VideoHandler
+	SetVideo(*coursehandlers.VideoHandler)
+	Topic() *coursehandlers.TopicHandler
+	SetTopic(*coursehandlers.TopicHandler)
+	Package() *coursehandlers.PackageHandler
+	SetPackage(*coursehandlers.PackageHandler)
 }

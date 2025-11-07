@@ -52,6 +52,16 @@
         order: 20,
     });
 
+    registerQuickAction({
+        id: 'quick-upload-course-video',
+        label: 'Upload course video',
+        navTarget: 'courses',
+        panelAction: 'course-video-reset',
+        order: 30,
+        shouldRender: (context) =>
+            Boolean(context?.dataset?.endpointCoursesVideos),
+    });
+
     registerPanelMarkup({
         id: 'metrics',
         order: 0,
@@ -947,6 +957,290 @@
                 </form>
             </div>
             </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'courses',
+        order: 30,
+        shouldRender: (context) =>
+            Boolean(
+                context?.dataset?.endpointCoursesVideos ||
+                    context?.dataset?.endpointCoursesTopics ||
+                    context?.dataset?.endpointCoursesPackages
+            ),
+        markup: String.raw`
+<section
+        id="admin-panel-courses"
+        class="admin-panel"
+        data-panel="courses"
+        data-nav-group="content"
+        data-nav-group-label="Content"
+        data-nav-group-order="1"
+        data-nav-label="Courses"
+        data-nav-order="3"
+        role="tabpanel"
+        aria-labelledby="admin-tab-courses"
+        hidden
+    >
+        <header class="admin-panel__header">
+            <div>
+                <h2 class="admin-panel__title">Course library</h2>
+                <p class="admin-panel__description">
+                    Manage course videos, topics, and packages. Upload lessons, assemble topics, and build purchasable bundles.
+                </p>
+            </div>
+        </header>
+        <div class="admin-panel__body admin-panel__body--stacked">
+            <section class="admin-card admin-courses" aria-labelledby="admin-course-videos-title">
+                <header class="admin-card__header admin-courses__header">
+                    <div>
+                        <h3 id="admin-course-videos-title" class="admin-card__title">Course videos</h3>
+                        <p class="admin-card__description">
+                            Upload lesson videos. Duration is detected automatically during upload.
+                        </p>
+                    </div>
+                    <button type="button" class="admin-panel__reset" data-action="course-video-reset">
+                        New video
+                    </button>
+                </header>
+                <div class="admin-card__body admin-courses__columns">
+                    <div class="admin-courses__list" aria-live="polite">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Title</th>
+                                    <th scope="col">Duration</th>
+                                    <th scope="col">Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-course-videos-table">
+                                <tr class="admin-table__placeholder">
+                                    <td colspan="3">Loading videos…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <form id="admin-course-video-form" class="admin-form admin-courses__form" novalidate>
+                        <label class="admin-form__label">
+                            Title
+                            <input type="text" name="title" required class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__label">
+                            Description
+                            <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                        </label>
+                        <div class="admin-form__group" data-role="course-video-upload-group">
+                            <label class="admin-form__label">
+                                Video file
+                                <input
+                                    type="file"
+                                    name="video"
+                                    accept="video/mp4,video/m4v,video/quicktime"
+                                    class="admin-form__input"
+                                    required
+                                />
+                                <small class="admin-card__description admin-form__hint">
+                                    Accepted formats: MP4, M4V, MOV. Duration is stored automatically.
+                                </small>
+                            </label>
+                        </div>
+                        <p
+                            class="admin-card__description admin-form__hint"
+                            data-role="course-video-upload-hint"
+                            hidden
+                        >
+                            Uploads are only available when creating a new video. Delete and recreate the entry to replace the file.
+                        </p>
+                        <p class="admin-courses__meta">
+                            Duration:
+                            <span data-role="course-video-duration">—</span>
+                        </p>
+                        <div class="admin-form__actions">
+                            <button type="submit" class="admin-form__submit" data-role="course-video-submit">
+                                Upload video
+                            </button>
+                            <button type="button" class="admin-form__delete" data-role="course-video-delete" hidden>
+                                Delete video
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+            <section class="admin-card admin-courses" aria-labelledby="admin-course-topics-title">
+                <header class="admin-card__header admin-courses__header">
+                    <div>
+                        <h3 id="admin-course-topics-title" class="admin-card__title">Course topics</h3>
+                        <p class="admin-card__description">
+                            Group related videos into structured topics. Arrange the attached lessons in the preferred order.
+                        </p>
+                    </div>
+                    <button type="button" class="admin-panel__reset" data-action="course-topic-reset">
+                        New topic
+                    </button>
+                </header>
+                <div class="admin-card__body admin-courses__columns">
+                    <div class="admin-courses__list" aria-live="polite">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Title</th>
+                                    <th scope="col">Videos</th>
+                                    <th scope="col">Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-course-topics-table">
+                                <tr class="admin-table__placeholder">
+                                    <td colspan="3">Loading topics…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <form id="admin-course-topic-form" class="admin-form admin-courses__form" novalidate>
+                        <label class="admin-form__label">
+                            Title
+                            <input type="text" name="title" required class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__label">
+                            Description
+                            <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                        </label>
+                        <fieldset class="admin-form__fieldset admin-courses__fieldset">
+                            <legend class="admin-form__legend">Attached videos</legend>
+                            <p class="admin-card__description admin-form__hint">
+                                Select videos to include in this topic and arrange them in the preferred order.
+                            </p>
+                            <div class="admin-courses__picker">
+                                <select class="admin-form__input" data-role="course-topic-video-select">
+                                    <option value="">Select a video…</option>
+                                </select>
+                                <button type="button" class="admin-navigation__button" data-role="course-topic-video-add">
+                                    Add video
+                                </button>
+                            </div>
+                            <ul
+                                class="admin-courses__selection-list"
+                                data-role="course-topic-video-list"
+                                aria-live="polite"
+                            >
+                                <li class="admin-courses__selection-empty" data-role="course-topic-video-empty">
+                                    No videos selected yet.
+                                </li>
+                            </ul>
+                        </fieldset>
+                        <div class="admin-form__actions">
+                            <button type="submit" class="admin-form__submit" data-role="course-topic-submit">
+                                Save topic
+                            </button>
+                            <button type="button" class="admin-form__delete" data-role="course-topic-delete" hidden>
+                                Delete topic
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+            <section class="admin-card admin-courses" aria-labelledby="admin-course-packages-title">
+                <header class="admin-card__header admin-courses__header">
+                    <div>
+                        <h3 id="admin-course-packages-title" class="admin-card__title">Course packages</h3>
+                        <p class="admin-card__description">
+                            Bundle topics together, define pricing, and add a promotional image for storefront use.
+                        </p>
+                    </div>
+                    <button type="button" class="admin-panel__reset" data-action="course-package-reset">
+                        New package
+                    </button>
+                </header>
+                <div class="admin-card__body admin-courses__columns">
+                    <div class="admin-courses__list" aria-live="polite">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Title</th>
+                                    <th scope="col">Price</th>
+                                    <th scope="col">Topics</th>
+                                    <th scope="col">Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-course-packages-table">
+                                <tr class="admin-table__placeholder">
+                                    <td colspan="4">Loading packages…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <form id="admin-course-package-form" class="admin-form admin-courses__form" novalidate>
+                        <label class="admin-form__label">
+                            Title
+                            <input type="text" name="title" required class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__label">
+                            Description
+                            <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                        </label>
+                        <label class="admin-form__label">
+                            Price
+                            <input
+                                type="number"
+                                name="price"
+                                step="0.01"
+                                min="0"
+                                class="admin-form__input"
+                                placeholder="e.g. 1990.00"
+                                required
+                            />
+                            <small class="admin-card__description admin-form__hint">
+                                Enter the amount in your storefront currency. Values are stored with cent precision.
+                            </small>
+                        </label>
+                        <label class="admin-form__label">
+                            Image URL
+                            <input
+                                type="text"
+                                name="image_url"
+                                class="admin-form__input"
+                                placeholder="/uploads/course-preview.jpg"
+                            />
+                            <small class="admin-card__description admin-form__hint">
+                                Provide a preview image to feature this package in marketing pages.
+                            </small>
+                        </label>
+                        <fieldset class="admin-form__fieldset admin-courses__fieldset">
+                            <legend class="admin-form__legend">Included topics</legend>
+                            <p class="admin-card__description admin-form__hint">
+                                Choose which topics belong to the package and adjust their order.
+                            </p>
+                            <div class="admin-courses__picker">
+                                <select class="admin-form__input" data-role="course-package-topic-select">
+                                    <option value="">Select a topic…</option>
+                                </select>
+                                <button type="button" class="admin-navigation__button" data-role="course-package-topic-add">
+                                    Add topic
+                                </button>
+                            </div>
+                            <ul
+                                class="admin-courses__selection-list"
+                                data-role="course-package-topic-list"
+                                aria-live="polite"
+                            >
+                                <li class="admin-courses__selection-empty" data-role="course-package-topic-empty">
+                                    No topics selected yet.
+                                </li>
+                            </ul>
+                        </fieldset>
+                        <div class="admin-form__actions">
+                            <button type="submit" class="admin-form__submit" data-role="course-package-submit">
+                                Save package
+                            </button>
+                            <button type="button" class="admin-form__delete" data-role="course-package-delete" hidden>
+                                Delete package
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </div>
+    </section>
 `,
     });
 
