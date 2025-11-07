@@ -633,6 +633,7 @@
         const categoryForm = root.querySelector('#admin-category-form');
         const userForm = root.querySelector('#admin-user-form');
         const settingsForm = root.querySelector('#admin-settings-form');
+        const paymentsForm = root.querySelector('#admin-payments-form');
         const languageForm = root.querySelector('#admin-language-form');
         const homepageForm = root.querySelector('#admin-homepage-form');
         const homepageSelect = homepageForm?.querySelector('[data-role="homepage-select"]');
@@ -5307,6 +5308,50 @@
             }
         };
 
+        const getSettingsFieldValue = (name) => {
+            const field = settingsForm?.querySelector(`[name="${name}"]`);
+            if (field && typeof field.value === 'string') {
+                return field.value.trim();
+            }
+
+            const stateValue = state.site?.[name];
+            if (typeof stateValue === 'string') {
+                return stateValue.trim();
+            }
+            if (stateValue !== undefined && stateValue !== null) {
+                return String(stateValue).trim();
+            }
+            return '';
+        };
+
+        const getPaymentsFieldValue = (name) => {
+            const field = paymentsForm?.querySelector(`[name="${name}"]`);
+            if (field && typeof field.value === 'string') {
+                return field.value.trim();
+            }
+
+            const stateValue = state.site?.[name];
+            if (typeof stateValue === 'string') {
+                return stateValue.trim();
+            }
+            if (stateValue !== undefined && stateValue !== null) {
+                return String(stateValue).trim();
+            }
+            return '';
+        };
+
+        const isValidAbsoluteUrl = (value) => {
+            if (!value) {
+                return true;
+            }
+            try {
+                const parsed = new URL(value);
+                return Boolean(parsed.protocol && parsed.host);
+            } catch (error) {
+                return false;
+            }
+        };
+
         const populateSiteSettingsForm = (site) => {
             if (settingsForm) {
                 const entries = [
@@ -5316,11 +5361,6 @@
                     ['favicon', site?.favicon],
                     ['logo', site?.logo],
                     ['unused_tag_retention_hours', site?.unused_tag_retention_hours],
-                    ['stripe_secret_key', site?.stripe_secret_key],
-                    ['stripe_publishable_key', site?.stripe_publishable_key],
-                    ['stripe_webhook_secret', site?.stripe_webhook_secret],
-                    ['course_checkout_success_url', site?.course_checkout_success_url],
-                    ['course_checkout_cancel_url', site?.course_checkout_cancel_url],
                 ];
 
                 entries.forEach(([key, value]) => {
@@ -5330,15 +5370,6 @@
                     }
                     field.value = value || '';
                 });
-
-                const currencyField = settingsForm.querySelector('[name="course_checkout_currency"]');
-                if (currencyField) {
-                    const currencyValue =
-                        typeof site?.course_checkout_currency === 'string'
-                            ? site.course_checkout_currency.toUpperCase()
-                            : '';
-                    currencyField.value = currencyValue;
-                }
             }
 
             updateFaviconPreview(site?.favicon || site?.Favicon || '');
@@ -5360,6 +5391,37 @@
             }
 
             renderLanguageManager();
+        };
+
+        const populatePaymentSettingsForm = (site) => {
+            if (!paymentsForm) {
+                return;
+            }
+
+            const entries = [
+                ['stripe_publishable_key', site?.stripe_publishable_key],
+                ['stripe_secret_key', site?.stripe_secret_key],
+                ['stripe_webhook_secret', site?.stripe_webhook_secret],
+                ['course_checkout_success_url', site?.course_checkout_success_url],
+                ['course_checkout_cancel_url', site?.course_checkout_cancel_url],
+            ];
+
+            entries.forEach(([key, value]) => {
+                const field = paymentsForm.querySelector(`[name="${key}"]`);
+                if (!field) {
+                    return;
+                }
+                field.value = value || '';
+            });
+
+            const currencyField = paymentsForm.querySelector('[name="course_checkout_currency"]');
+            if (currencyField) {
+                const currencyValue =
+                    typeof site?.course_checkout_currency === 'string'
+                        ? site.course_checkout_currency.toUpperCase()
+                        : '';
+                currencyField.value = currencyValue;
+            }
         };
 
         const getHomepageStatusInfo = (page) => {
@@ -6838,6 +6900,7 @@
                 const payload = await apiRequest(endpoints.siteSettings);
                 state.site = payload?.site || null;
                 populateSiteSettingsForm(state.site);
+                populatePaymentSettingsForm(state.site);
             } catch (error) {
                 handleRequestError(error);
             }
@@ -9008,41 +9071,24 @@
 
         const handleSiteSettingsSubmit = async (event) => {
             event.preventDefault();
-            if (!settingsForm || !endpoints.siteSettings) {
+            if (!endpoints.siteSettings) {
                 return;
             }
 
-            const getValue = (name) => {
-                const field = settingsForm.querySelector(`[name="${name}"]`);
-                return field ? field.value.trim() : '';
-            };
-
-            const isValidAbsoluteUrl = (value) => {
-                if (!value) {
-                    return true;
-                }
-                try {
-                    const parsed = new URL(value);
-                    return Boolean(parsed.protocol && parsed.host);
-                } catch (error) {
-                    return false;
-                }
-            };
-
             const payload = {
-                name: getValue('name'),
-                description: getValue('description'),
-                url: getValue('url'),
-                favicon: getValue('favicon'),
-                logo: getValue('logo'),
+                name: getSettingsFieldValue('name'),
+                description: getSettingsFieldValue('description'),
+                url: getSettingsFieldValue('url'),
+                favicon: getSettingsFieldValue('favicon'),
+                logo: getSettingsFieldValue('logo'),
             };
 
-            const stripeSecretKey = getValue('stripe_secret_key');
-            const stripePublishableKey = getValue('stripe_publishable_key');
-            const stripeWebhookSecret = getValue('stripe_webhook_secret');
-            const successUrl = getValue('course_checkout_success_url');
-            const cancelUrl = getValue('course_checkout_cancel_url');
-            const currencyRaw = getValue('course_checkout_currency');
+            const stripeSecretKey = getPaymentsFieldValue('stripe_secret_key');
+            const stripePublishableKey = getPaymentsFieldValue('stripe_publishable_key');
+            const stripeWebhookSecret = getPaymentsFieldValue('stripe_webhook_secret');
+            const successUrl = getPaymentsFieldValue('course_checkout_success_url');
+            const cancelUrl = getPaymentsFieldValue('course_checkout_cancel_url');
+            const currencyRaw = getPaymentsFieldValue('course_checkout_currency');
 
             if (!isValidAbsoluteUrl(successUrl)) {
                 showAlert('Please provide a valid checkout success URL, including the protocol (e.g. https://example.com/success).', 'error');
@@ -9076,8 +9122,7 @@
             payload.default_language = normalisedDefaultLanguage;
             payload.supported_languages = supportedLanguages;
 
-            const retentionField = settingsForm.querySelector('[name="unused_tag_retention_hours"]');
-            const retentionRaw = retentionField ? retentionField.value.trim() : '';
+            const retentionRaw = getSettingsFieldValue('unused_tag_retention_hours');
             const retentionHours = Number.parseInt(retentionRaw, 10);
 
             if (Number.isNaN(retentionHours) || retentionHours < 1) {
@@ -9112,6 +9157,7 @@
 
             disableForm(settingsForm, true);
             disableForm(languageForm, true);
+            disableForm(paymentsForm, true);
             clearAlert();
 
             try {
@@ -9131,12 +9177,14 @@
                     ? [...state.site.supported_languages]
                     : [normalisedDefaultLanguage, ...supportedLanguages];
                 populateSiteSettingsForm(state.site);
+                populatePaymentSettingsForm(state.site);
                 showAlert('Site settings updated successfully.', 'success');
             } catch (error) {
                 handleRequestError(error);
             } finally {
                 disableForm(settingsForm, false);
                 disableForm(languageForm, false);
+                disableForm(paymentsForm, false);
             }
         };
 
@@ -9826,6 +9874,7 @@
         });
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
         languageForm?.addEventListener('submit', handleSiteSettingsSubmit);
+        paymentsForm?.addEventListener('submit', handleSiteSettingsSubmit);
         advertisingForm?.addEventListener('submit', handleAdvertisingSubmit);
         advertisingProviderSelect?.addEventListener('change', handleAdvertisingProviderChange);
         advertisingEnabledToggle?.addEventListener('change', handleAdvertisingEnabledChange);
