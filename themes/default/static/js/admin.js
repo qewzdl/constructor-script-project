@@ -11059,8 +11059,12 @@
             const hasChildren = tab.classList.contains('admin__tab--has-children');
             const isActive = tab.classList.contains('is-active');
             const isOpen = tab.classList.contains('is-open');
-            if (hasChildren && isActive && isOpen && tabId) {
-                closeSubnavigation(tabId);
+            if (hasChildren && isActive && tabId) {
+                if (isOpen) {
+                    closeSubnavigation(tabId);
+                } else {
+                    openSubnavigation(tabId);
+                }
                 return;
             }
             if (tabId) {
