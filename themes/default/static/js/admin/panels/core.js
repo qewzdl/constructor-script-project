@@ -1105,8 +1105,8 @@
                         New video
                     </button>
                 </header>
-                <div class="admin-card__body admin-courses__columns">
-                    <div class="admin-courses__list" aria-live="polite">
+                <div class="admin-card__body">
+                    <div class="admin-panel__list admin-courses__list" aria-live="polite">
                         <table class="admin-table">
                             <thead>
                                 <tr>
@@ -1188,8 +1188,8 @@
                         New topic
                     </button>
                 </header>
-                <div class="admin-card__body admin-courses__columns">
-                    <div class="admin-courses__list" aria-live="polite">
+                <div class="admin-card__body">
+                    <div class="admin-panel__list admin-courses__list" aria-live="polite">
                         <table class="admin-table">
                             <thead>
                                 <tr>
@@ -1269,8 +1269,8 @@
                         New test
                     </button>
                 </header>
-                <div class="admin-card__body admin-courses__columns">
-                    <div class="admin-courses__list" aria-live="polite">
+                <div class="admin-card__body">
+                    <div class="admin-panel__list admin-courses__list" aria-live="polite">
                         <table class="admin-table">
                             <thead>
                                 <tr>
@@ -1349,8 +1349,8 @@
                         New package
                     </button>
                 </header>
-                <div class="admin-card__body admin-courses__columns">
-                    <div class="admin-courses__list" aria-live="polite">
+                <div class="admin-card__body">
+                    <div class="admin-panel__list admin-courses__list" aria-live="polite">
                         <table class="admin-table">
                             <thead>
                                 <tr>

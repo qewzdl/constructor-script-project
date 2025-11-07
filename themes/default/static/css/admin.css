@@ -840,6 +840,11 @@
     gap: var(--size-mid);
 }
 
+.admin-panel__body--stacked {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+}
+
 .admin-panel__details {
     display: grid;
     gap: var(--size-mid);
@@ -3084,17 +3089,6 @@
 
     .admin-media-library__body {
         padding: var(--size-md);
-    }
-}
-
-.admin-courses__columns {
-    display: grid;
-    gap: var(--size-mid);
-}
-
-@media (min-width: 960px) {
-    .admin-courses__columns {
-        grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr);
     }
 }
 
