@@ -947,6 +947,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 	if coursesEnabled {
 		adminEndpoints["CourseVideos"] = "/api/v1/admin/courses/videos"
 		adminEndpoints["CourseTopics"] = "/api/v1/admin/courses/topics"
+		adminEndpoints["CourseTests"] = "/api/v1/admin/courses/tests"
 		adminEndpoints["CoursePackages"] = "/api/v1/admin/courses/packages"
 	}
 

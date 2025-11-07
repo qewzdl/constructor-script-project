@@ -46,8 +46,9 @@ func (f *Feature) Activate() error {
 	videoRepo := repos.CourseVideo()
 	topicRepo := repos.CourseTopic()
 	packageRepo := repos.CoursePackage()
+	testRepo := repos.CourseTest()
 
-	if videoRepo == nil || topicRepo == nil || packageRepo == nil {
+	if videoRepo == nil || topicRepo == nil || packageRepo == nil || testRepo == nil {
 		return fmt.Errorf("course repositories are not configured")
 	}
 
@@ -64,20 +65,28 @@ func (f *Feature) Activate() error {
 		videoService.SetUploadService(uploadService)
 	}
 
+	testService := courseServices.Test()
+	if testService == nil {
+		testService = courseservice.NewTestService(testRepo)
+		courseServices.SetTest(testService)
+	} else {
+		testService.SetRepository(testRepo)
+	}
+
 	topicService := courseServices.Topic()
 	if topicService == nil {
-		topicService = courseservice.NewTopicService(topicRepo, videoRepo)
+		topicService = courseservice.NewTopicService(topicRepo, videoRepo, testRepo)
 		courseServices.SetTopic(topicService)
 	} else {
-		topicService.SetRepositories(topicRepo, videoRepo)
+		topicService.SetRepositories(topicRepo, videoRepo, testRepo)
 	}
 
 	packageService := courseServices.Package()
 	if packageService == nil {
-		packageService = courseservice.NewPackageService(packageRepo, topicRepo, videoRepo)
+		packageService = courseservice.NewPackageService(packageRepo, topicRepo, videoRepo, testRepo)
 		courseServices.SetPackage(packageService)
 	} else {
-		packageService.SetRepositories(packageRepo, topicRepo, videoRepo)
+		packageService.SetRepositories(packageRepo, topicRepo, videoRepo, testRepo)
 	}
 
 	cfg := f.host.Config()
@@ -178,6 +187,12 @@ func (f *Feature) Activate() error {
 			courseHandlers.SetTopic(coursehandlers.NewTopicHandler(topicService))
 		} else {
 			handler.SetService(topicService)
+		}
+
+		if handler := courseHandlers.Test(); handler == nil {
+			courseHandlers.SetTest(coursehandlers.NewTestHandler(testService))
+		} else {
+			handler.SetService(testService)
 		}
 
 		if handler := courseHandlers.Package(); handler == nil {

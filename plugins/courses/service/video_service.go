@@ -39,12 +39,12 @@ func (s *VideoService) Create(req models.CreateCourseVideoRequest, file *multipa
 		return nil, errors.New("upload service is not configured")
 	}
 	if file == nil {
-		return nil, errors.New("video file is required")
+		return nil, newValidationError("video file is required")
 	}
 
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
-		return nil, errors.New("video title is required")
+		return nil, newValidationError("video title is required")
 	}
 
 	url, filename, duration, err := s.uploadService.UploadVideo(file, req.Preferred)
@@ -85,7 +85,7 @@ func (s *VideoService) Update(id uint, req models.UpdateCourseVideoRequest) (*mo
 
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
-		return nil, errors.New("video title is required")
+		return nil, newValidationError("video title is required")
 	}
 
 	video.Title = title

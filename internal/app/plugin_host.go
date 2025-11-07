@@ -183,6 +183,13 @@ func (r applicationRepositoryAccess) CoursePackage() repository.CoursePackageRep
 	return r.app.repositories.CoursePackage
 }
 
+func (r applicationRepositoryAccess) CourseTest() repository.CourseTestRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.CourseTest
+}
+
 func (s applicationCoreServices) Auth() *service.AuthService {
 	if s.app == nil {
 		return nil
@@ -344,6 +351,20 @@ func (s applicationCourseServices) SetPackage(pkg *courseservice.PackageService)
 	s.app.services.CoursePackage = pkg
 }
 
+func (s applicationCourseServices) Test() *courseservice.TestService {
+	if s.app == nil {
+		return nil
+	}
+	return s.app.services.CourseTest
+}
+
+func (s applicationCourseServices) SetTest(test *courseservice.TestService) {
+	if s.app == nil {
+		return
+	}
+	s.app.services.CourseTest = test
+}
+
 func (s applicationCourseServices) Checkout() *courseservice.CheckoutService {
 	if s.app == nil {
 		return nil
@@ -440,6 +461,20 @@ func (h applicationCourseHandlers) SetTopic(handler *coursehandlers.TopicHandler
 		return
 	}
 	h.app.handlers.CourseTopic = handler
+}
+
+func (h applicationCourseHandlers) Test() *coursehandlers.TestHandler {
+	if h.app == nil {
+		return nil
+	}
+	return h.app.handlers.CourseTest
+}
+
+func (h applicationCourseHandlers) SetTest(handler *coursehandlers.TestHandler) {
+	if h.app == nil {
+		return
+	}
+	h.app.handlers.CourseTest = handler
 }
 
 func (h applicationCourseHandlers) Package() *coursehandlers.PackageHandler {

@@ -120,6 +120,17 @@ type Comment struct {
 	Replies  []*Comment `gorm:"foreignKey:ParentID" json:"replies,omitempty"`
 }
 
+const (
+	CourseTopicStepTypeVideo = "video"
+	CourseTopicStepTypeTest  = "test"
+)
+
+const (
+	CourseTestQuestionTypeText           = "text"
+	CourseTestQuestionTypeSingleChoice   = "single_choice"
+	CourseTestQuestionTypeMultipleChoice = "multiple_choice"
+)
+
 type CourseVideo struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -142,7 +153,8 @@ type CourseTopic struct {
 	Title       string `gorm:"not null" json:"title"`
 	Description string `json:"description"`
 
-	Videos []CourseVideo `gorm:"-" json:"videos"`
+	Videos []CourseVideo     `gorm:"-" json:"videos"`
+	Steps  []CourseTopicStep `gorm:"-" json:"steps"`
 }
 
 type CoursePackage struct {
@@ -185,6 +197,77 @@ type CoursePackageTopic struct {
 
 	Package CoursePackage `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
 	Topic   CourseTopic   `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
+}
+
+type CourseTest struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Title       string `gorm:"not null" json:"title"`
+	Description string `json:"description"`
+
+	Questions []CourseTestQuestion `gorm:"-" json:"questions"`
+}
+
+type CourseTestQuestion struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	TestID      uint   `gorm:"not null;index" json:"test_id"`
+	Prompt      string `gorm:"not null" json:"prompt"`
+	Type        string `gorm:"type:varchar(32);not null" json:"type"`
+	Explanation string `json:"explanation"`
+	AnswerText  string `json:"answer_text"`
+	Position    int    `gorm:"not null;default:0" json:"position"`
+
+	Options []CourseTestQuestionOption `gorm:"-" json:"options"`
+}
+
+type CourseTestQuestionOption struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	QuestionID uint   `gorm:"not null;index" json:"question_id"`
+	Text       string `gorm:"not null" json:"text"`
+	Correct    bool   `gorm:"not null" json:"correct"`
+	Position   int    `gorm:"not null;default:0" json:"position"`
+}
+
+type CourseTopicStep struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	TopicID  uint   `gorm:"not null;index" json:"topic_id"`
+	StepType string `gorm:"type:varchar(32);not null;index" json:"type"`
+	Position int    `gorm:"not null;default:0" json:"position"`
+
+	VideoID *uint `gorm:"index" json:"video_id,omitempty"`
+	TestID  *uint `gorm:"index" json:"test_id,omitempty"`
+
+	Video *CourseVideo `gorm:"-" json:"video,omitempty"`
+	Test  *CourseTest  `gorm:"-" json:"test,omitempty"`
+}
+
+type CourseTestResult struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	TestID uint `gorm:"not null;index" json:"test_id"`
+	UserID uint `gorm:"not null;index" json:"user_id"`
+
+	Score    int    `gorm:"not null" json:"score"`
+	MaxScore int    `gorm:"not null" json:"max_score"`
+	Answers  []byte `gorm:"type:jsonb" json:"answers"`
 }
 
 type CourseCheckoutRequest struct {
@@ -266,6 +349,62 @@ type UpdateCoursePackageRequest struct {
 
 type ReorderCoursePackageTopicsRequest struct {
 	TopicIDs []uint `json:"topic_ids" binding:"required"`
+}
+
+type CourseTopicStepReference struct {
+	Type string `json:"type" binding:"required,oneof=video test"`
+	ID   uint   `json:"id" binding:"required,gt=0"`
+}
+
+type UpdateCourseTopicStepsRequest struct {
+	Steps []CourseTopicStepReference `json:"steps" binding:"required"`
+}
+
+type CourseTestQuestionOptionRequest struct {
+	Text    string `json:"text" binding:"required"`
+	Correct bool   `json:"correct"`
+}
+
+type CourseTestQuestionRequest struct {
+	Prompt      string                            `json:"prompt" binding:"required"`
+	Type        string                            `json:"type" binding:"required,oneof=text single_choice multiple_choice"`
+	Explanation string                            `json:"explanation"`
+	AnswerText  string                            `json:"answer_text"`
+	Options     []CourseTestQuestionOptionRequest `json:"options"`
+}
+
+type CreateCourseTestRequest struct {
+	Title       string                      `json:"title" binding:"required"`
+	Description string                      `json:"description"`
+	Questions   []CourseTestQuestionRequest `json:"questions"`
+}
+
+type UpdateCourseTestRequest struct {
+	Title       string                      `json:"title" binding:"required"`
+	Description string                      `json:"description"`
+	Questions   []CourseTestQuestionRequest `json:"questions"`
+}
+
+type CourseTestAnswerSubmission struct {
+	QuestionID uint   `json:"question_id" binding:"required,gt=0"`
+	Text       string `json:"text"`
+	OptionIDs  []uint `json:"option_ids"`
+}
+
+type SubmitCourseTestRequest struct {
+	Answers []CourseTestAnswerSubmission `json:"answers" binding:"required"`
+}
+
+type CourseTestAnswerResult struct {
+	QuestionID  uint   `json:"question_id"`
+	Correct     bool   `json:"correct"`
+	Explanation string `json:"explanation"`
+}
+
+type CourseTestSubmissionResult struct {
+	Score    int                      `json:"score"`
+	MaxScore int                      `json:"max_score"`
+	Answers  []CourseTestAnswerResult `json:"answers"`
 }
 
 type AuthResponse struct {

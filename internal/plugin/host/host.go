@@ -44,6 +44,7 @@ type RepositoryAccess interface {
 	CourseVideo() repository.CourseVideoRepository
 	CourseTopic() repository.CourseTopicRepository
 	CoursePackage() repository.CoursePackageRepository
+	CourseTest() repository.CourseTestRepository
 }
 
 type CoreServiceAccess interface {
@@ -81,23 +82,27 @@ type BlogHandlerAccess interface {
 }
 
 type CourseServiceAccess interface {
-        Video() *courseservice.VideoService
-        SetVideo(*courseservice.VideoService)
-        Topic() *courseservice.TopicService
-        SetTopic(*courseservice.TopicService)
-        Package() *courseservice.PackageService
-        SetPackage(*courseservice.PackageService)
-        Checkout() *courseservice.CheckoutService
-        SetCheckout(*courseservice.CheckoutService)
+	Video() *courseservice.VideoService
+	SetVideo(*courseservice.VideoService)
+	Topic() *courseservice.TopicService
+	SetTopic(*courseservice.TopicService)
+	Package() *courseservice.PackageService
+	SetPackage(*courseservice.PackageService)
+	Test() *courseservice.TestService
+	SetTest(*courseservice.TestService)
+	Checkout() *courseservice.CheckoutService
+	SetCheckout(*courseservice.CheckoutService)
 }
 
 type CourseHandlerAccess interface {
-        Video() *coursehandlers.VideoHandler
-        SetVideo(*coursehandlers.VideoHandler)
-        Topic() *coursehandlers.TopicHandler
-        SetTopic(*coursehandlers.TopicHandler)
-        Package() *coursehandlers.PackageHandler
-        SetPackage(*coursehandlers.PackageHandler)
-        Checkout() *coursehandlers.CheckoutHandler
-        SetCheckout(*coursehandlers.CheckoutHandler)
+	Video() *coursehandlers.VideoHandler
+	SetVideo(*coursehandlers.VideoHandler)
+	Topic() *coursehandlers.TopicHandler
+	SetTopic(*coursehandlers.TopicHandler)
+	Test() *coursehandlers.TestHandler
+	SetTest(*coursehandlers.TestHandler)
+	Package() *coursehandlers.PackageHandler
+	SetPackage(*coursehandlers.PackageHandler)
+	Checkout() *coursehandlers.CheckoutHandler
+	SetCheckout(*coursehandlers.CheckoutHandler)
 }

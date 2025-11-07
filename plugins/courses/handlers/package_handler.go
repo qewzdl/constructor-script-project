@@ -157,8 +157,12 @@ func (h *PackageHandler) List(c *gin.Context) {
 
 func (h *PackageHandler) writeError(c *gin.Context, err error) {
 	switch {
+	case courseservice.IsValidationError(err):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	case errors.Is(err, gorm.ErrRecordNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": "record not found"})
+		return
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}

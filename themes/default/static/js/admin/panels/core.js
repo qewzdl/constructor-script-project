@@ -1166,7 +1166,8 @@
                     <div>
                         <h3 id="admin-course-topics-title" class="admin-card__title">Course topics</h3>
                         <p class="admin-card__description">
-                            Group related videos into structured topics. Arrange the attached lessons in the preferred order.
+                            Combine lessons and assessments into structured learning paths. Arrange the steps exactly how learners
+                            should progress.
                         </p>
                     </div>
                     <button type="button" class="admin-panel__reset" data-action="course-topic-reset">
@@ -1179,7 +1180,7 @@
                             <thead>
                                 <tr>
                                     <th scope="col">Title</th>
-                                    <th scope="col">Videos</th>
+                                    <th scope="col">Steps</th>
                                     <th scope="col">Updated</th>
                                 </tr>
                             </thead>
@@ -1200,25 +1201,26 @@
                             <textarea name="description" rows="3" class="admin-form__input"></textarea>
                         </label>
                         <fieldset class="admin-form__fieldset admin-courses__fieldset">
-                            <legend class="admin-form__legend">Attached videos</legend>
+                            <legend class="admin-form__legend">Topic steps</legend>
                             <p class="admin-card__description admin-form__hint">
-                                Select videos to include in this topic and arrange them in the preferred order.
+                                Mix videos and tests to build the sequence students will follow. Reorder steps to match the
+                                desired flow.
                             </p>
                             <div class="admin-courses__picker">
-                                <select class="admin-form__input" data-role="course-topic-video-select">
-                                    <option value="">Select a video…</option>
+                                <select class="admin-form__input" data-role="course-topic-step-select">
+                                    <option value="">Select a step…</option>
                                 </select>
-                                <button type="button" class="admin-navigation__button" data-role="course-topic-video-add">
-                                    Add video
+                                <button type="button" class="admin-navigation__button" data-role="course-topic-step-add">
+                                    Add step
                                 </button>
                             </div>
                             <ul
                                 class="admin-courses__selection-list"
-                                data-role="course-topic-video-list"
+                                data-role="course-topic-step-list"
                                 aria-live="polite"
                             >
-                                <li class="admin-courses__selection-empty" data-role="course-topic-video-empty">
-                                    No videos selected yet.
+                                <li class="admin-courses__selection-empty" data-role="course-topic-step-empty">
+                                    No steps added yet.
                                 </li>
                             </ul>
                         </fieldset>
@@ -1228,6 +1230,80 @@
                             </button>
                             <button type="button" class="admin-form__delete" data-role="course-topic-delete" hidden>
                                 Delete topic
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+            <section class="admin-card admin-courses" aria-labelledby="admin-course-tests-title">
+                <header class="admin-card__header admin-courses__header">
+                    <div>
+                        <h3 id="admin-course-tests-title" class="admin-card__title">Course tests</h3>
+                        <p class="admin-card__description">
+                            Build quizzes with detailed explanations. Scores are stored automatically and feedback appears after
+                            submission.
+                        </p>
+                    </div>
+                    <button type="button" class="admin-panel__reset" data-action="course-test-reset">
+                        New test
+                    </button>
+                </header>
+                <div class="admin-card__body admin-courses__columns">
+                    <div class="admin-courses__list" aria-live="polite">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Title</th>
+                                    <th scope="col">Questions</th>
+                                    <th scope="col">Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-course-tests-table">
+                                <tr class="admin-table__placeholder">
+                                    <td colspan="3">Loading tests…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <form id="admin-course-test-form" class="admin-form admin-courses__form" novalidate>
+                        <label class="admin-form__label">
+                            Title
+                            <input type="text" name="title" required class="admin-form__input" />
+                        </label>
+                        <label class="admin-form__label">
+                            Description <span class="admin-form__hint">Optional</span>
+                            <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                        </label>
+                        <fieldset class="admin-form__fieldset admin-courses__fieldset">
+                            <legend class="admin-form__legend">Questions</legend>
+                            <p class="admin-card__description admin-form__hint">
+                                Use text answers, single-choice, or multiple-choice questions. Learners see explanations after
+                                completing the test.
+                            </p>
+                            <div class="admin-course-test-questions__actions">
+                                <button
+                                    type="button"
+                                    class="admin-navigation__button"
+                                    data-role="course-test-question-add"
+                                >
+                                    Add question
+                                </button>
+                            </div>
+                            <div
+                                class="admin-course-test-questions"
+                                data-role="course-test-question-list"
+                                aria-live="polite"
+                            ></div>
+                            <p class="admin-course-test-questions__empty" data-role="course-test-question-empty">
+                                No questions added yet.
+                            </p>
+                        </fieldset>
+                        <div class="admin-form__actions">
+                            <button type="submit" class="admin-form__submit" data-role="course-test-submit">
+                                Save test
+                            </button>
+                            <button type="button" class="admin-form__delete" data-role="course-test-delete" hidden>
+                                Delete test
                             </button>
                         </div>
                     </form>

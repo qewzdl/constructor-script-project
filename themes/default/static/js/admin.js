@@ -19,6 +19,8 @@
         formatNumber,
         formatPeriodLabel,
         normaliseString,
+        ensureArray,
+        randomId,
         parseContentDispositionFilename,
     } = utils;
 
@@ -334,6 +336,7 @@
             backupSettings: root.dataset.endpointBackupSettings,
             coursesVideos: root.dataset.endpointCoursesVideos,
             coursesTopics: root.dataset.endpointCoursesTopics,
+            coursesTests: root.dataset.endpointCoursesTests,
             coursesPackages: root.dataset.endpointCoursesPackages,
         };
 
@@ -621,6 +624,7 @@
             users: root.querySelector('#admin-users-table'),
             courseVideos: root.querySelector('#admin-course-videos-table'),
             courseTopics: root.querySelector('#admin-course-topics-table'),
+            courseTests: root.querySelector('#admin-course-tests-table'),
             coursePackages: root.querySelector('#admin-course-packages-table'),
         };
         const postSearchInput = root.querySelector('[data-role="post-search"]');
@@ -725,12 +729,21 @@
         const courseTopicForm = root.querySelector('#admin-course-topic-form');
         const courseTopicTitleInput = courseTopicForm?.querySelector('input[name="title"]');
         const courseTopicDescriptionInput = courseTopicForm?.querySelector('textarea[name="description"]');
-        const courseTopicVideoSelect = courseTopicForm?.querySelector('[data-role="course-topic-video-select"]');
-        const courseTopicVideoAddButton = courseTopicForm?.querySelector('[data-role="course-topic-video-add"]');
-        const courseTopicVideoList = courseTopicForm?.querySelector('[data-role="course-topic-video-list"]');
-        const courseTopicVideoEmpty = courseTopicForm?.querySelector('[data-role="course-topic-video-empty"]');
+        const courseTopicStepSelect = courseTopicForm?.querySelector('[data-role="course-topic-step-select"]');
+        const courseTopicStepAddButton = courseTopicForm?.querySelector('[data-role="course-topic-step-add"]');
+        const courseTopicStepList = courseTopicForm?.querySelector('[data-role="course-topic-step-list"]');
+        const courseTopicStepEmpty = courseTopicForm?.querySelector('[data-role="course-topic-step-empty"]');
         const courseTopicSubmitButton = courseTopicForm?.querySelector('[data-role="course-topic-submit"]');
         const courseTopicDeleteButton = courseTopicForm?.querySelector('[data-role="course-topic-delete"]');
+
+        const courseTestForm = root.querySelector('#admin-course-test-form');
+        const courseTestTitleInput = courseTestForm?.querySelector('input[name="title"]');
+        const courseTestDescriptionInput = courseTestForm?.querySelector('textarea[name="description"]');
+        const courseTestQuestionList = courseTestForm?.querySelector('[data-role="course-test-question-list"]');
+        const courseTestQuestionEmpty = courseTestForm?.querySelector('[data-role="course-test-question-empty"]');
+        const courseTestQuestionAddButton = courseTestForm?.querySelector('[data-role="course-test-question-add"]');
+        const courseTestSubmitButton = courseTestForm?.querySelector('[data-role="course-test-submit"]');
+        const courseTestDeleteButton = courseTestForm?.querySelector('[data-role="course-test-delete"]');
 
         const coursePackageForm = root.querySelector('#admin-course-package-form');
         const coursePackageTitleInput = coursePackageForm?.querySelector('input[name="title"]');
@@ -911,15 +924,19 @@
             courses: {
                 videos: [],
                 topics: [],
+                tests: [],
                 packages: [],
                 hasLoadedVideos: false,
                 hasLoadedTopics: false,
+                hasLoadedTests: false,
                 hasLoadedPackages: false,
                 selectedVideoId: '',
                 selectedTopicId: '',
+                selectedTestId: '',
                 selectedPackageId: '',
-                topicVideoIds: [],
+                topicSteps: [],
                 packageTopicIds: [],
+                testQuestions: [],
             },
         };
 
@@ -3420,18 +3437,23 @@
             normaliseIdentifier(video?.id ?? video?.ID ?? '');
         const extractCourseTopicId = (topic) =>
             normaliseIdentifier(topic?.id ?? topic?.ID ?? '');
+        const extractCourseTestId = (test) =>
+            normaliseIdentifier(test?.id ?? test?.ID ?? '');
         const extractCoursePackageId = (pkg) =>
             normaliseIdentifier(pkg?.id ?? pkg?.ID ?? '');
 
         const getCourseVideoTitle = (video) =>
             normaliseString(video?.title ?? video?.Title ?? 'Untitled video');
 
-        const getCourseTopicVideos = (topic) => {
-            if (Array.isArray(topic?.videos)) {
-                return topic.videos;
+        const getCourseTestTitle = (test) =>
+            normaliseString(test?.title ?? test?.Title ?? 'Untitled test');
+
+        const getCourseTopicSteps = (topic) => {
+            if (Array.isArray(topic?.steps)) {
+                return topic.steps;
             }
-            if (Array.isArray(topic?.Videos)) {
-                return topic.Videos;
+            if (Array.isArray(topic?.Steps)) {
+                return topic.Steps;
             }
             return [];
         };
@@ -3444,6 +3466,54 @@
                 return pkg.Topics;
             }
             return [];
+        };
+
+        const getCourseTestQuestions = (test) => {
+            if (Array.isArray(test?.questions)) {
+                return test.questions;
+            }
+            if (Array.isArray(test?.Questions)) {
+                return test.Questions;
+            }
+            return [];
+        };
+
+        const normaliseQuestionType = (value) => {
+            const type = normaliseString(value).toLowerCase();
+            if (type === 'single_choice' || type === 'multiple_choice') {
+                return type;
+            }
+            return 'text';
+        };
+
+        const createTestOptionState = (option = {}) => ({
+            clientId: randomId(),
+            id: normaliseIdentifier(option?.id ?? option?.ID ?? ''),
+            text: normaliseString(option?.text ?? option?.Text ?? ''),
+            correct: Boolean(option?.correct ?? option?.Correct),
+        });
+
+        const createTestQuestionState = (question = {}) => {
+            const type = normaliseQuestionType(question?.type ?? question?.Type ?? 'text');
+            const options = ensureArray(question?.options ?? question?.Options)
+                .map((option) => createTestOptionState(option))
+                .filter((option) => option.text || option.correct || option.id);
+            return {
+                clientId: randomId(),
+                id: normaliseIdentifier(question?.id ?? question?.ID ?? ''),
+                prompt: normaliseString(question?.prompt ?? question?.Prompt ?? ''),
+                type,
+                explanation: normaliseString(
+                    question?.explanation ?? question?.Explanation ?? ''
+                ),
+                answerText: normaliseString(
+                    question?.answer_text ??
+                        question?.answerText ??
+                        question?.AnswerText ??
+                        ''
+                ),
+                options: type === 'text' ? [] : options,
+            };
         };
 
         const formatVideoDuration = (value) => {
@@ -3529,6 +3599,10 @@
         const findCourseTopic = (id) =>
             state.courses.topics.find(
                 (topic) => extractCourseTopicId(topic) === String(id)
+            );
+        const findCourseTest = (id) =>
+            state.courses.tests.find(
+                (test) => extractCourseTestId(test) === String(id)
             );
         const findCoursePackage = (id) =>
             state.courses.packages.find(
@@ -3637,13 +3711,13 @@
                             'Untitled topic',
                     })
                 );
-                const videoCount = getCourseTopicVideos(topic).length;
+                const stepCount = getCourseTopicSteps(topic).length;
                 row.appendChild(
                     createElement('td', {
                         textContent:
-                            videoCount === 1
-                                ? '1 video'
-                                : `${videoCount} videos`,
+                            stepCount === 1
+                                ? '1 step'
+                                : `${stepCount} steps`,
                     })
                 );
                 const updated =
@@ -3728,94 +3802,222 @@
             highlightRow(table, coursePackageForm?.dataset.id);
         };
 
-        const renderCourseTopicVideoOptions = () => {
-            if (!courseTopicVideoSelect) {
-                return;
+        const parseTopicStepValue = (value) => {
+            if (!value && value !== 0) {
+                return null;
             }
-            const currentValue = courseTopicVideoSelect.value;
-            courseTopicVideoSelect.innerHTML = '';
-            courseTopicVideoSelect.appendChild(
-                createElement('option', {
-                    value: '',
-                    textContent: 'Select a video…',
-                })
-            );
-            const selectedIds = new Set(
-                state.courses.topicVideoIds.map((id) => String(id))
-            );
-            state.courses.videos.forEach((video) => {
-                const id = extractCourseVideoId(video);
-                if (!id || selectedIds.has(String(id))) {
-                    return;
-                }
-                const option = createElement('option', {
-                    value: id,
-                    textContent: getCourseVideoTitle(video),
-                });
-                courseTopicVideoSelect.appendChild(option);
-            });
-            let found = false;
-            Array.from(courseTopicVideoSelect.options).forEach((option) => {
-                if (option.value === currentValue) {
-                    found = true;
-                }
-            });
-            courseTopicVideoSelect.value = found ? currentValue : '';
+            const [typePart, idPart] = String(value)
+                .split(':')
+                .map((part) => part.trim());
+            const type = typePart?.toLowerCase();
+            if (type !== 'video' && type !== 'test') {
+                return null;
+            }
+            const idNumber = Number.parseInt(idPart || '', 10);
+            if (!Number.isFinite(idNumber) || idNumber <= 0) {
+                return null;
+            }
+            return { type, id: String(idNumber) };
         };
 
-        const renderCourseTopicVideoList = () => {
-            if (!courseTopicVideoList || !courseTopicVideoEmpty) {
-                return;
+        const parseTopicStepKey = (key) => parseTopicStepValue(key);
+
+        const mapTopicStepModelToState = (step) => {
+            if (!step) {
+                return null;
             }
-            courseTopicVideoList.innerHTML = '';
-            const ids = state.courses.topicVideoIds.filter((id) =>
-                Boolean(findCourseVideo(id))
-            );
-            state.courses.topicVideoIds = ids.slice();
-            if (!ids.length) {
-                courseTopicVideoEmpty.hidden = false;
-                courseTopicVideoList.appendChild(courseTopicVideoEmpty);
-                return;
+            const type = normaliseString(step?.type ?? step?.Type ?? '').toLowerCase();
+            let idSource = null;
+            if (type === 'video') {
+                idSource =
+                    step?.video_id ??
+                    step?.videoId ??
+                    step?.VideoID ??
+                    step?.video?.id ??
+                    step?.Video?.id ??
+                    step?.video?.ID ??
+                    step?.Video?.ID;
+            } else if (type === 'test') {
+                idSource =
+                    step?.test_id ??
+                    step?.testId ??
+                    step?.TestID ??
+                    step?.test?.id ??
+                    step?.Test?.id ??
+                    step?.test?.ID ??
+                    step?.Test?.ID;
+            } else {
+                return null;
             }
-            courseTopicVideoEmpty.hidden = true;
-            ids.forEach((id, index) => {
-                const video = findCourseVideo(id);
+            const parsed = Number.parseInt(String(idSource ?? ''), 10);
+            if (!Number.isFinite(parsed) || parsed <= 0) {
+                return null;
+            }
+            return { type, id: String(parsed) };
+        };
+
+        const formatTopicStepMeta = (step) => {
+            if (!step) {
+                return '';
+            }
+            if (step.type === 'video') {
+                const video = findCourseVideo(step.id);
                 if (!video) {
-                    return;
+                    return '';
                 }
-                const item = createElement('li', {
-                    className: 'admin-courses__selection-item',
-                });
-                item.dataset.id = String(id);
-                const info = createElement('div', {
-                    className: 'admin-courses__selection-info',
-                });
-                info.appendChild(
-                    createElement('span', {
-                        className: 'admin-courses__selection-label',
-                        textContent: getCourseVideoTitle(video),
-                    })
-                );
                 const duration =
                     video?.duration_seconds ??
                     video?.durationSeconds ??
                     video?.DurationSeconds;
-                info.appendChild(
-                    createElement('span', {
-                        className: 'admin-courses__selection-meta',
-                        textContent: `Duration ${formatVideoDuration(duration)}`,
+                return duration ? `Duration ${formatVideoDuration(duration)}` : '';
+            }
+            if (step.type === 'test') {
+                const test = findCourseTest(step.id);
+                if (!test) {
+                    return '';
+                }
+                const questionCount = getCourseTestQuestions(test).length;
+                if (questionCount === 0) {
+                    return 'No questions yet';
+                }
+                return questionCount === 1
+                    ? 'Includes 1 question'
+                    : `Includes ${questionCount} questions`;
+            }
+            return '';
+        };
+
+        const renderCourseTopicStepOptions = () => {
+            if (!courseTopicStepSelect) {
+                return;
+            }
+            const currentValue = courseTopicStepSelect.value;
+            courseTopicStepSelect.innerHTML = '';
+            courseTopicStepSelect.appendChild(
+                createElement('option', {
+                    value: '',
+                    textContent: 'Select a step…',
+                })
+            );
+            const selectedKeys = new Set(
+                state.courses.topicSteps.map(
+                    (step) => `${step.type}:${String(step.id)}`
+                )
+            );
+            state.courses.videos.forEach((video) => {
+                const id = extractCourseVideoId(video);
+                if (!id) {
+                    return;
+                }
+                const value = `video:${id}`;
+                if (selectedKeys.has(value)) {
+                    return;
+                }
+                courseTopicStepSelect.appendChild(
+                    createElement('option', {
+                        value,
+                        textContent: `Video — ${getCourseVideoTitle(video)}`,
                     })
                 );
+            });
+            state.courses.tests.forEach((test) => {
+                const id = extractCourseTestId(test);
+                if (!id) {
+                    return;
+                }
+                const value = `test:${id}`;
+                if (selectedKeys.has(value)) {
+                    return;
+                }
+                courseTopicStepSelect.appendChild(
+                    createElement('option', {
+                        value,
+                        textContent: `Test — ${getCourseTestTitle(test)}`,
+                    })
+                );
+            });
+            let found = false;
+            Array.from(courseTopicStepSelect.options).forEach((option) => {
+                if (option.value === currentValue) {
+                    found = true;
+                }
+            });
+            courseTopicStepSelect.value = found ? currentValue : '';
+        };
+
+        const renderCourseTopicStepList = () => {
+            if (!courseTopicStepList || !courseTopicStepEmpty) {
+                return;
+            }
+            courseTopicStepList.innerHTML = '';
+            const validSteps = state.courses.topicSteps.filter((step) => {
+                if (!step || !step.type) {
+                    return false;
+                }
+                if (step.type === 'video') {
+                    return Boolean(findCourseVideo(step.id));
+                }
+                if (step.type === 'test') {
+                    return Boolean(findCourseTest(step.id));
+                }
+                return false;
+            });
+            state.courses.topicSteps = validSteps.slice();
+            if (!state.courses.topicSteps.length) {
+                courseTopicStepEmpty.hidden = false;
+                courseTopicStepList.appendChild(courseTopicStepEmpty);
+                return;
+            }
+            courseTopicStepEmpty.hidden = true;
+            state.courses.topicSteps.forEach((step, index) => {
+                const item = createElement('li', {
+                    className: 'admin-courses__selection-item',
+                    dataset: {
+                        type: step.type,
+                        id: String(step.id),
+                    },
+                });
+                const info = createElement('div', {
+                    className: 'admin-courses__selection-info',
+                });
+                let label = '';
+                if (step.type === 'video') {
+                    const video = findCourseVideo(step.id);
+                    label = video
+                        ? getCourseVideoTitle(video)
+                        : 'Missing video';
+                } else if (step.type === 'test') {
+                    const test = findCourseTest(step.id);
+                    label = test
+                        ? getCourseTestTitle(test)
+                        : 'Missing test';
+                }
+                info.appendChild(
+                    createElement('span', {
+                        className: 'admin-courses__selection-label',
+                        textContent: `${step.type === 'video' ? 'Video' : 'Test'} · ${label}`,
+                    })
+                );
+                const meta = formatTopicStepMeta(step);
+                if (meta) {
+                    info.appendChild(
+                        createElement('span', {
+                            className: 'admin-courses__selection-meta',
+                            textContent: meta,
+                        })
+                    );
+                }
                 const actions = createElement('div', {
                     className: 'admin-courses__selection-actions',
                 });
+                const key = `${step.type}:${String(step.id)}`;
                 const upButton = createElement('button', {
                     className: 'admin-navigation__reorder-button',
                     textContent: 'Move up',
                 });
                 upButton.type = 'button';
                 upButton.dataset.action = 'move-up';
-                upButton.dataset.id = String(id);
+                upButton.dataset.step = key;
                 upButton.disabled = index === 0;
                 const downButton = createElement('button', {
                     className: 'admin-navigation__reorder-button',
@@ -3823,8 +4025,8 @@
                 });
                 downButton.type = 'button';
                 downButton.dataset.action = 'move-down';
-                downButton.dataset.id = String(id);
-                downButton.disabled = index === ids.length - 1;
+                downButton.dataset.step = key;
+                downButton.disabled = index === state.courses.topicSteps.length - 1;
                 const removeButton = createElement('button', {
                     className:
                         'admin-navigation__button admin-navigation__button--danger',
@@ -3832,14 +4034,776 @@
                 });
                 removeButton.type = 'button';
                 removeButton.dataset.action = 'remove';
-                removeButton.dataset.id = String(id);
+                removeButton.dataset.step = key;
                 actions.appendChild(upButton);
                 actions.appendChild(downButton);
                 actions.appendChild(removeButton);
                 item.appendChild(info);
                 item.appendChild(actions);
-                courseTopicVideoList.appendChild(item);
+                courseTopicStepList.appendChild(item);
             });
+        };
+
+        const ensureChoiceOptions = (question) => {
+            if (!question) {
+                return;
+            }
+            if (question.type === 'text') {
+                question.options = [];
+                return;
+            }
+            if (!Array.isArray(question.options)) {
+                question.options = [];
+            }
+            while (question.options.length < 2) {
+                question.options.push(createTestOptionState());
+            }
+        };
+
+        const renderCourseTests = () => {
+            const table = tables.courseTests;
+            if (!table) {
+                return;
+            }
+            table.innerHTML = '';
+            const tests = Array.isArray(state.courses.tests)
+                ? state.courses.tests.slice()
+                : [];
+            if (!tests.length) {
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No tests created yet.',
+                });
+                cell.colSpan = 3;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            tests.sort((a, b) => {
+                const aDate = new Date(
+                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
+                ).getTime();
+                const bDate = new Date(
+                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
+                ).getTime();
+                return bDate - aDate;
+            });
+            tests.forEach((test) => {
+                const id = extractCourseTestId(test);
+                if (!id) {
+                    return;
+                }
+                const row = createElement('tr');
+                row.dataset.id = id;
+                row.appendChild(
+                    createElement('td', {
+                        textContent:
+                            getCourseTestTitle(test) || 'Untitled test',
+                    })
+                );
+                const questionCount = getCourseTestQuestions(test).length;
+                row.appendChild(
+                    createElement('td', {
+                        textContent:
+                            questionCount === 1
+                                ? '1 question'
+                                : `${questionCount} questions`,
+                    })
+                );
+                const updated =
+                    test?.updated_at || test?.updatedAt || test?.UpdatedAt;
+                row.appendChild(
+                    createElement('td', { textContent: formatDate(updated) })
+                );
+                row.addEventListener('click', () => selectCourseTest(id));
+                table.appendChild(row);
+            });
+            highlightRow(table, courseTestForm?.dataset.id);
+        };
+
+        const renderCourseTestQuestionList = () => {
+            if (!courseTestQuestionList || !courseTestQuestionEmpty) {
+                return;
+            }
+            courseTestQuestionList.innerHTML = '';
+            const questions = Array.isArray(state.courses.testQuestions)
+                ? state.courses.testQuestions
+                : [];
+            if (!questions.length) {
+                courseTestQuestionEmpty.hidden = false;
+                courseTestQuestionList.appendChild(courseTestQuestionEmpty);
+                return;
+            }
+            courseTestQuestionEmpty.hidden = true;
+            questions.forEach((question, index) => {
+                if (!question.clientId) {
+                    question.clientId = randomId();
+                }
+                question.type = normaliseQuestionType(question.type);
+                ensureChoiceOptions(question);
+
+                const container = createElement('article', {
+                    className: 'admin-course-test-question',
+                    dataset: { questionId: question.clientId },
+                });
+
+                const header = createElement('div', {
+                    className: 'admin-course-test-question__header',
+                });
+                header.appendChild(
+                    createElement('h4', {
+                        className: 'admin-course-test-question__title',
+                        textContent: `Question ${index + 1}`,
+                    })
+                );
+                const headerActions = createElement('div', {
+                    className: 'admin-course-test-question__actions',
+                });
+                const upButton = createElement('button', {
+                    className: 'admin-navigation__reorder-button',
+                    textContent: 'Move up',
+                    type: 'button',
+                    dataset: {
+                        action: 'question-move-up',
+                        questionId: question.clientId,
+                    },
+                });
+                upButton.disabled = index === 0;
+                const downButton = createElement('button', {
+                    className: 'admin-navigation__reorder-button',
+                    textContent: 'Move down',
+                    type: 'button',
+                    dataset: {
+                        action: 'question-move-down',
+                        questionId: question.clientId,
+                    },
+                });
+                downButton.disabled = index === questions.length - 1;
+                const removeButton = createElement('button', {
+                    className:
+                        'admin-navigation__button admin-navigation__button--danger',
+                    textContent: 'Remove',
+                    type: 'button',
+                    dataset: {
+                        action: 'question-remove',
+                        questionId: question.clientId,
+                    },
+                });
+                headerActions.appendChild(upButton);
+                headerActions.appendChild(downButton);
+                headerActions.appendChild(removeButton);
+                header.appendChild(headerActions);
+                container.appendChild(header);
+
+                const fields = createElement('div', {
+                    className: 'admin-course-test-question__fields',
+                });
+
+                const promptLabel = createElement('label', {
+                    className: 'admin-form__label',
+                });
+                promptLabel.append('Prompt');
+                const promptInput = createElement('textarea', {
+                    className: 'admin-form__input',
+                    rows: 2,
+                    value: question.prompt,
+                    dataset: {
+                        questionField: 'prompt',
+                        questionId: question.clientId,
+                    },
+                });
+                promptLabel.appendChild(promptInput);
+                fields.appendChild(promptLabel);
+
+                const typeLabel = createElement('label', {
+                    className: 'admin-form__label',
+                });
+                typeLabel.append('Question type');
+                const typeSelect = createElement('select', {
+                    className: 'admin-form__input',
+                    dataset: {
+                        questionField: 'type',
+                        questionId: question.clientId,
+                    },
+                });
+                [
+                    { value: 'text', label: 'Free text' },
+                    { value: 'single_choice', label: 'Single choice' },
+                    { value: 'multiple_choice', label: 'Multiple choice' },
+                ].forEach(({ value, label }) => {
+                    const option = createElement('option', {
+                        value,
+                        textContent: label,
+                    });
+                    typeSelect.appendChild(option);
+                });
+                typeSelect.value = question.type;
+                typeLabel.appendChild(typeSelect);
+                fields.appendChild(typeLabel);
+
+                const explanationLabel = createElement('label', {
+                    className: 'admin-form__label',
+                });
+                explanationLabel.append('Explanation');
+                const explanationInput = createElement('textarea', {
+                    className: 'admin-form__input',
+                    rows: 2,
+                    value: question.explanation,
+                    dataset: {
+                        questionField: 'explanation',
+                        questionId: question.clientId,
+                    },
+                });
+                explanationInput.placeholder =
+                    'Explain the answer learners should see after submission';
+                explanationLabel.appendChild(explanationInput);
+                fields.appendChild(explanationLabel);
+
+                if (question.type === 'text') {
+                    const answerLabel = createElement('label', {
+                        className: 'admin-form__label',
+                    });
+                    answerLabel.append('Accepted answer');
+                    const answerInput = createElement('input', {
+                        type: 'text',
+                        className: 'admin-form__input',
+                        value: question.answerText,
+                        dataset: {
+                            questionField: 'answerText',
+                            questionId: question.clientId,
+                        },
+                    });
+                    answerInput.placeholder = 'Expected learner response';
+                    answerLabel.appendChild(answerInput);
+                    fields.appendChild(answerLabel);
+                } else {
+                    const optionsContainer = createElement('div', {
+                        className: 'admin-course-test-question__options',
+                        dataset: { questionId: question.clientId },
+                    });
+                    const optionsHint = createElement('p', {
+                        className: 'admin-card__description admin-form__hint',
+                        textContent:
+                            'Add at least two options and mark the correct answers.',
+                    });
+                    optionsContainer.appendChild(optionsHint);
+                    question.options.forEach((option, optionIndex) => {
+                        if (!option.clientId) {
+                            option.clientId = randomId();
+                        }
+                        const optionRow = createElement('div', {
+                            className: 'admin-course-test-option',
+                            dataset: {
+                                questionId: question.clientId,
+                                optionId: option.clientId,
+                            },
+                        });
+                        const optionInput = createElement('input', {
+                            type: 'text',
+                            className: 'admin-form__input',
+                            value: option.text,
+                            attributes: {
+                                'aria-label': `Option ${optionIndex + 1} text`,
+                            },
+                            dataset: {
+                                questionId: question.clientId,
+                                optionId: option.clientId,
+                                optionField: 'text',
+                            },
+                        });
+                        optionInput.placeholder = `Option ${optionIndex + 1}`;
+                        optionRow.appendChild(optionInput);
+                        const controls = createElement('div', {
+                            className: 'admin-course-test-option__controls',
+                        });
+                        const correctToggle = createElement('label', {
+                            className:
+                                'admin-form__checkbox admin-course-test-option__correct',
+                        });
+                        const correctInput = createElement('input', {
+                            type: 'checkbox',
+                            className: 'checkbox__input',
+                            checked: option.correct,
+                            dataset: {
+                                questionId: question.clientId,
+                                optionId: option.clientId,
+                                optionField: 'correct',
+                            },
+                        });
+                        correctToggle.appendChild(correctInput);
+                        correctToggle.appendChild(
+                            createElement('span', {
+                                className: 'checkbox__label',
+                                textContent: 'Correct answer',
+                            })
+                        );
+                        controls.appendChild(correctToggle);
+                        const optionActions = createElement('div', {
+                            className: 'admin-course-test-option__actions',
+                        });
+                        const removeOptionButton = createElement('button', {
+                            type: 'button',
+                            className:
+                                'admin-navigation__button admin-navigation__button--danger',
+                            textContent: 'Remove',
+                            dataset: {
+                                action: 'option-remove',
+                                questionId: question.clientId,
+                                optionId: option.clientId,
+                            },
+                        });
+                        removeOptionButton.disabled = question.options.length <= 2;
+                        optionActions.appendChild(removeOptionButton);
+                        controls.appendChild(optionActions);
+                        optionRow.appendChild(controls);
+                        optionsContainer.appendChild(optionRow);
+                    });
+                    const addOptionWrapper = createElement('div', {
+                        className: 'admin-course-test-option__actions',
+                    });
+                    addOptionWrapper.appendChild(
+                        createElement('button', {
+                            type: 'button',
+                            className: 'admin-navigation__button',
+                            textContent: 'Add option',
+                            dataset: {
+                                action: 'option-add',
+                                questionId: question.clientId,
+                            },
+                        })
+                    );
+                    optionsContainer.appendChild(addOptionWrapper);
+                    fields.appendChild(optionsContainer);
+                }
+
+                container.appendChild(fields);
+                courseTestQuestionList.appendChild(container);
+            });
+        };
+
+        const populateCourseTestForm = (test, { scroll = true } = {}) => {
+            if (!courseTestForm || !test) {
+                return;
+            }
+            const id = extractCourseTestId(test);
+            if (id) {
+                courseTestForm.dataset.id = id;
+                state.courses.selectedTestId = id;
+            } else {
+                delete courseTestForm.dataset.id;
+                state.courses.selectedTestId = '';
+            }
+            if (courseTestTitleInput) {
+                courseTestTitleInput.value = normaliseString(
+                    test?.title ?? test?.Title ?? ''
+                );
+            }
+            if (courseTestDescriptionInput) {
+                courseTestDescriptionInput.value = normaliseString(
+                    test?.description ?? test?.Description ?? ''
+                );
+            }
+            state.courses.testQuestions = getCourseTestQuestions(test)
+                .map((question) => createTestQuestionState(question))
+                .filter(Boolean);
+            if (courseTestSubmitButton) {
+                courseTestSubmitButton.textContent = 'Update test';
+            }
+            if (courseTestDeleteButton) {
+                courseTestDeleteButton.hidden = false;
+            }
+            renderCourseTestQuestionList();
+            highlightRow(tables.courseTests, id);
+            if (scroll) {
+                bringFormIntoView(courseTestForm);
+            }
+        };
+
+        const selectCourseTest = (id) => {
+            if (!courseTestForm) {
+                return;
+            }
+            const test = findCourseTest(id);
+            if (!test) {
+                return;
+            }
+            populateCourseTestForm(test);
+        };
+
+        const resetCourseTestForm = () => {
+            if (!courseTestForm) {
+                return;
+            }
+            courseTestForm.reset();
+            delete courseTestForm.dataset.id;
+            state.courses.selectedTestId = '';
+            state.courses.testQuestions = [];
+            if (courseTestSubmitButton) {
+                courseTestSubmitButton.textContent = 'Create test';
+            }
+            if (courseTestDeleteButton) {
+                courseTestDeleteButton.hidden = true;
+            }
+            renderCourseTestQuestionList();
+            highlightRow(tables.courseTests);
+            bringFormIntoView(courseTestForm);
+        };
+
+        const handleCourseTestQuestionAdd = () => {
+            state.courses.testQuestions.push(createTestQuestionState());
+            renderCourseTestQuestionList();
+        };
+
+        const handleCourseTestQuestionListInput = (event) => {
+            const target = event.target;
+            if (
+                !(
+                    target instanceof HTMLInputElement ||
+                    target instanceof HTMLTextAreaElement
+                )
+            ) {
+                return;
+            }
+            const questionId = target.dataset.questionId;
+            if (!questionId) {
+                return;
+            }
+            const question = state.courses.testQuestions.find(
+                (entry) => entry.clientId === questionId
+            );
+            if (!question) {
+                return;
+            }
+            const field = target.dataset.questionField;
+            if (field === 'prompt') {
+                question.prompt = target.value;
+                return;
+            }
+            if (field === 'explanation') {
+                question.explanation = target.value;
+                return;
+            }
+            if (field === 'answerText') {
+                question.answerText = target.value;
+                return;
+            }
+            const optionId = target.dataset.optionId;
+            const optionField = target.dataset.optionField;
+            if (!optionId || optionField !== 'text') {
+                return;
+            }
+            const option = question.options?.find(
+                (entry) => entry.clientId === optionId
+            );
+            if (option) {
+                option.text = target.value;
+            }
+        };
+
+        const handleCourseTestQuestionListChange = (event) => {
+            const target = event.target;
+            if (
+                !(
+                    target instanceof HTMLInputElement ||
+                    target instanceof HTMLSelectElement
+                )
+            ) {
+                return;
+            }
+            const questionId = target.dataset.questionId;
+            if (!questionId) {
+                return;
+            }
+            const question = state.courses.testQuestions.find(
+                (entry) => entry.clientId === questionId
+            );
+            if (!question) {
+                return;
+            }
+            const field = target.dataset.questionField;
+            if (field === 'type') {
+                question.type = normaliseQuestionType(target.value);
+                ensureChoiceOptions(question);
+                renderCourseTestQuestionList();
+                return;
+            }
+            const optionId = target.dataset.optionId;
+            const optionField = target.dataset.optionField;
+            if (!optionId || optionField !== 'correct') {
+                return;
+            }
+            const option = question.options?.find(
+                (entry) => entry.clientId === optionId
+            );
+            if (!option) {
+                return;
+            }
+            const isChecked = target.checked;
+            if (question.type === 'single_choice' && isChecked) {
+                question.options.forEach((entry) => {
+                    entry.correct = entry.clientId === optionId;
+                });
+            } else {
+                option.correct = isChecked;
+            }
+            renderCourseTestQuestionList();
+        };
+
+        const handleCourseTestQuestionListClick = (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            const button = target.closest('button[data-action]');
+            if (!button || !courseTestQuestionList?.contains(button)) {
+                return;
+            }
+            event.preventDefault();
+            const action = button.dataset.action;
+            const questionId = button.dataset.questionId;
+            if (!action || !questionId) {
+                return;
+            }
+            const questionIndex = state.courses.testQuestions.findIndex(
+                (entry) => entry.clientId === questionId
+            );
+            if (questionIndex === -1) {
+                return;
+            }
+            const question = state.courses.testQuestions[questionIndex];
+            if (!question) {
+                return;
+            }
+            if (action === 'question-remove') {
+                state.courses.testQuestions.splice(questionIndex, 1);
+                renderCourseTestQuestionList();
+                return;
+            }
+            if (action === 'question-move-up' && questionIndex > 0) {
+                const [entry] = state.courses.testQuestions.splice(questionIndex, 1);
+                state.courses.testQuestions.splice(questionIndex - 1, 0, entry);
+                renderCourseTestQuestionList();
+                return;
+            }
+            if (
+                action === 'question-move-down' &&
+                questionIndex < state.courses.testQuestions.length - 1
+            ) {
+                const [entry] = state.courses.testQuestions.splice(questionIndex, 1);
+                state.courses.testQuestions.splice(questionIndex + 1, 0, entry);
+                renderCourseTestQuestionList();
+                return;
+            }
+            if (action === 'option-add') {
+                question.options = question.options || [];
+                question.options.push(createTestOptionState());
+                ensureChoiceOptions(question);
+                renderCourseTestQuestionList();
+                return;
+            }
+            if (action === 'option-remove') {
+                const optionId = button.dataset.optionId;
+                if (!optionId) {
+                    return;
+                }
+                if (!Array.isArray(question.options) || question.options.length <= 2) {
+                    return;
+                }
+                const optionIndex = question.options.findIndex(
+                    (entry) => entry.clientId === optionId
+                );
+                if (optionIndex === -1) {
+                    return;
+                }
+                question.options.splice(optionIndex, 1);
+                ensureChoiceOptions(question);
+                renderCourseTestQuestionList();
+            }
+        };
+
+        const handleCourseTestSubmit = async (event) => {
+            if (!courseTestForm) {
+                return;
+            }
+            event.preventDefault();
+            const title = normaliseString(courseTestTitleInput?.value).trim();
+            const description = normaliseString(
+                courseTestDescriptionInput?.value
+            ).trim();
+            if (!title) {
+                showAlert('Please provide a test title.', 'error');
+                return;
+            }
+            if (!endpoints.coursesTests) {
+                showAlert('Test management is not configured.', 'error');
+                return;
+            }
+            const questions = Array.isArray(state.courses.testQuestions)
+                ? state.courses.testQuestions
+                : [];
+            if (!questions.length) {
+                showAlert('Add at least one question before saving the test.', 'error');
+                return;
+            }
+            const payloadQuestions = [];
+            for (let index = 0; index < questions.length; index += 1) {
+                const question = questions[index];
+                const prompt = normaliseString(question.prompt).trim();
+                if (!prompt) {
+                    showAlert(
+                        `Provide a prompt for question ${index + 1}.`,
+                        'error'
+                    );
+                    return;
+                }
+                const type = normaliseQuestionType(question.type);
+                const explanation = normaliseString(question.explanation).trim();
+                const payload = {
+                    prompt,
+                    type,
+                    explanation,
+                };
+                if (type === 'text') {
+                    const answer = normaliseString(question.answerText).trim();
+                    if (!answer) {
+                        showAlert(
+                            `Provide an answer for question ${index + 1}.`,
+                            'error'
+                        );
+                        return;
+                    }
+                    payload.answer_text = answer;
+                    payload.options = [];
+                } else {
+                    const options = Array.isArray(question.options)
+                        ? question.options
+                        : [];
+                    const serialisedOptions = options
+                        .map((option) => ({
+                            text: normaliseString(option.text).trim(),
+                            correct: Boolean(option.correct),
+                        }))
+                        .filter((option) => option.text !== '');
+                    if (serialisedOptions.length < 2) {
+                        showAlert(
+                            `Add at least two options for question ${index + 1}.`,
+                            'error'
+                        );
+                        return;
+                    }
+                    const correctCount = serialisedOptions.filter(
+                        (option) => option.correct
+                    ).length;
+                    if (correctCount === 0) {
+                        showAlert(
+                            `Mark at least one correct option for question ${
+                                index + 1
+                            }.`,
+                            'error'
+                        );
+                        return;
+                    }
+                    if (type === 'single_choice' && correctCount !== 1) {
+                        showAlert(
+                            `Select exactly one correct option for question ${
+                                index + 1
+                            }.`,
+                            'error'
+                        );
+                        return;
+                    }
+                    payload.answer_text = '';
+                    payload.options = serialisedOptions;
+                }
+                payloadQuestions.push(payload);
+            }
+
+            const id = courseTestForm.dataset.id;
+            try {
+                if (id) {
+                    await apiRequest(buildCourseEndpoint(endpoints.coursesTests, id), {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            title,
+                            description,
+                            questions: payloadQuestions,
+                        }),
+                    });
+                    showAlert('Test updated successfully.', 'success');
+                } else {
+                    const response = await apiRequest(endpoints.coursesTests, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            title,
+                            description,
+                            questions: payloadQuestions,
+                        }),
+                    });
+                    showAlert('Test created successfully.', 'success');
+                    const created = response?.test;
+                    await loadCourseTests(true);
+                    if (created) {
+                        const createdId = extractCourseTestId(created);
+                        if (createdId) {
+                            const test = findCourseTest(createdId);
+                            if (test) {
+                                populateCourseTestForm(test, { scroll: true });
+                                return;
+                            }
+                        }
+                    }
+                    resetCourseTestForm();
+                    return;
+                }
+                await loadCourseTests(true);
+                const updatedTest = id ? findCourseTest(id) : null;
+                if (updatedTest) {
+                    populateCourseTestForm(updatedTest, { scroll: false });
+                }
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const handleCourseTestDelete = async () => {
+            if (!courseTestForm) {
+                return;
+            }
+            const id = courseTestForm.dataset.id;
+            if (!id) {
+                showAlert('Select a test to delete first.', 'info');
+                return;
+            }
+            if (
+                !window.confirm(
+                    'Delete this test permanently? Topics referencing it will no longer include the assessment.'
+                )
+            ) {
+                return;
+            }
+            if (!endpoints.coursesTests) {
+                showAlert('Test management is not configured.', 'error');
+                return;
+            }
+            try {
+                await apiRequest(buildCourseEndpoint(endpoints.coursesTests, id), {
+                    method: 'DELETE',
+                });
+                showAlert('Test deleted successfully.', 'success');
+                resetCourseTestForm();
+                await loadCourseTests(true);
+                syncTopicSelection();
+            } catch (error) {
+                handleRequestError(error);
+            }
         };
 
         const renderCoursePackageTopicOptions = () => {
@@ -3914,14 +4878,14 @@
                             'Untitled topic',
                     })
                 );
-                const videoCount = getCourseTopicVideos(topic).length;
+                const stepCount = getCourseTopicSteps(topic).length;
                 info.appendChild(
                     createElement('span', {
                         className: 'admin-courses__selection-meta',
                         textContent:
-                            videoCount === 1
-                                ? 'Includes 1 video'
-                                : `Includes ${videoCount} videos`,
+                            stepCount === 1
+                                ? 'Includes 1 step'
+                                : `Includes ${stepCount} steps`,
                     })
                 );
                 const actions = createElement('div', {
@@ -4074,8 +5038,8 @@
                     topic?.description ?? topic?.Description ?? ''
                 );
             }
-            state.courses.topicVideoIds = getCourseTopicVideos(topic)
-                .map((video) => extractCourseVideoId(video))
+            state.courses.topicSteps = getCourseTopicSteps(topic)
+                .map((step) => mapTopicStepModelToState(step))
                 .filter(Boolean);
             if (courseTopicSubmitButton) {
                 courseTopicSubmitButton.textContent = 'Update topic';
@@ -4083,8 +5047,8 @@
             if (courseTopicDeleteButton) {
                 courseTopicDeleteButton.hidden = false;
             }
-            renderCourseTopicVideoOptions();
-            renderCourseTopicVideoList();
+            renderCourseTopicStepOptions();
+            renderCourseTopicStepList();
             highlightRow(tables.courseTopics, id);
             if (scroll) {
                 bringFormIntoView(courseTopicForm);
@@ -4169,15 +5133,15 @@
             courseTopicForm.reset();
             delete courseTopicForm.dataset.id;
             state.courses.selectedTopicId = '';
-            state.courses.topicVideoIds = [];
+            state.courses.topicSteps = [];
             if (courseTopicSubmitButton) {
                 courseTopicSubmitButton.textContent = 'Create topic';
             }
             if (courseTopicDeleteButton) {
                 courseTopicDeleteButton.hidden = true;
             }
-            renderCourseTopicVideoOptions();
-            renderCourseTopicVideoList();
+            renderCourseTopicStepOptions();
+            renderCourseTopicStepList();
             highlightRow(tables.courseTopics);
             bringFormIntoView(courseTopicForm);
         };
@@ -4320,64 +5284,66 @@
             }
         };
 
-        const handleCourseTopicVideoAdd = () => {
-            if (!courseTopicVideoSelect) {
+        const handleCourseTopicStepAdd = () => {
+            if (!courseTopicStepSelect) {
                 return;
             }
-            const value = courseTopicVideoSelect.value;
+            const value = parseTopicStepValue(courseTopicStepSelect.value);
             if (!value) {
-                showAlert('Select a video to add.', 'info');
+                showAlert('Select a step to add.', 'info');
                 return;
             }
-            if (
-                state.courses.topicVideoIds.some(
-                    (entry) => String(entry) === String(value)
-                )
-            ) {
-                showAlert('This video is already attached to the topic.', 'info');
+            const exists = state.courses.topicSteps.some(
+                (step) => step.type === value.type && String(step.id) === value.id
+            );
+            if (exists) {
+                showAlert('This step is already part of the topic.', 'info');
                 return;
             }
-            state.courses.topicVideoIds.push(String(value));
-            renderCourseTopicVideoOptions();
-            renderCourseTopicVideoList();
-            courseTopicVideoSelect.value = '';
+            state.courses.topicSteps.push({
+                type: value.type,
+                id: value.id,
+            });
+            renderCourseTopicStepOptions();
+            renderCourseTopicStepList();
+            courseTopicStepSelect.value = '';
         };
 
-        const handleCourseTopicVideoListClick = (event) => {
+        const handleCourseTopicStepListClick = (event) => {
             const target = event.target;
             if (!(target instanceof Element)) {
                 return;
             }
             const button = target.closest('button[data-action]');
-            if (!button || !courseTopicVideoList?.contains(button)) {
+            if (!button || !courseTopicStepList?.contains(button)) {
                 return;
             }
             event.preventDefault();
-            const id = button.dataset.id;
-            if (!id) {
+            const parsed = parseTopicStepKey(button.dataset.step);
+            if (!parsed) {
                 return;
             }
-            const index = state.courses.topicVideoIds.findIndex(
-                (entry) => String(entry) === String(id)
+            const index = state.courses.topicSteps.findIndex(
+                (step) => step.type === parsed.type && String(step.id) === parsed.id
             );
             if (index === -1) {
                 return;
             }
             const action = button.dataset.action;
             if (action === 'remove') {
-                state.courses.topicVideoIds.splice(index, 1);
+                state.courses.topicSteps.splice(index, 1);
             } else if (action === 'move-up' && index > 0) {
-                const [entry] = state.courses.topicVideoIds.splice(index, 1);
-                state.courses.topicVideoIds.splice(index - 1, 0, entry);
+                const [entry] = state.courses.topicSteps.splice(index, 1);
+                state.courses.topicSteps.splice(index - 1, 0, entry);
             } else if (
                 action === 'move-down' &&
-                index < state.courses.topicVideoIds.length - 1
+                index < state.courses.topicSteps.length - 1
             ) {
-                const [entry] = state.courses.topicVideoIds.splice(index, 1);
-                state.courses.topicVideoIds.splice(index + 1, 0, entry);
+                const [entry] = state.courses.topicSteps.splice(index, 1);
+                state.courses.topicSteps.splice(index + 1, 0, entry);
             }
-            renderCourseTopicVideoOptions();
-            renderCourseTopicVideoList();
+            renderCourseTopicStepOptions();
+            renderCourseTopicStepList();
         };
 
         const handleCourseTopicSubmit = async (event) => {
@@ -4397,9 +5363,21 @@
                 showAlert('Topic management is not configured.', 'error');
                 return;
             }
-            const videoIds = state.courses.topicVideoIds
-                .map((entry) => Number.parseInt(String(entry), 10))
-                .filter((value) => Number.isFinite(value) && value > 0);
+            const stepRefs = state.courses.topicSteps
+                .map((step) => {
+                    const idValue = Number.parseInt(String(step?.id ?? ''), 10);
+                    if (!Number.isFinite(idValue) || idValue <= 0) {
+                        return null;
+                    }
+                    if (step.type !== 'video' && step.type !== 'test') {
+                        return null;
+                    }
+                    return { type: step.type, id: idValue };
+                })
+                .filter(Boolean);
+            const videoIds = stepRefs
+                .filter((step) => step.type === 'video')
+                .map((step) => step.id);
             const id = courseTopicForm.dataset.id;
             try {
                 if (id) {
@@ -4417,13 +5395,13 @@
                         }
                     );
                     await apiRequest(
-                        buildCourseEndpoint(endpoints.coursesTopics, id, 'videos'),
+                        buildCourseEndpoint(endpoints.coursesTopics, id, 'steps'),
                         {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({ video_ids: videoIds }),
+                            body: JSON.stringify({ steps: stepRefs }),
                         }
                     );
                     showAlert('Topic updated successfully.', 'success');
@@ -4441,6 +5419,29 @@
                     });
                     showAlert('Topic created successfully.', 'success');
                     const created = response?.topic;
+                    if (created) {
+                        const createdId = extractCourseTopicId(created);
+                        if (createdId && stepRefs.length) {
+                            try {
+                                await apiRequest(
+                                    buildCourseEndpoint(
+                                        endpoints.coursesTopics,
+                                        createdId,
+                                        'steps'
+                                    ),
+                                    {
+                                        method: 'PUT',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({ steps: stepRefs }),
+                                    }
+                                );
+                            } catch (error) {
+                                handleRequestError(error);
+                            }
+                        }
+                    }
                     await loadCourseTopics(true);
                     await loadCoursePackages(true);
                     if (created) {
@@ -4705,11 +5706,20 @@
         };
 
         const syncTopicSelection = () => {
-            state.courses.topicVideoIds = state.courses.topicVideoIds.filter(
-                (id) => Boolean(findCourseVideo(id))
-            );
-            renderCourseTopicVideoOptions();
-            renderCourseTopicVideoList();
+            state.courses.topicSteps = state.courses.topicSteps.filter((step) => {
+                if (!step) {
+                    return false;
+                }
+                if (step.type === 'video') {
+                    return Boolean(findCourseVideo(step.id));
+                }
+                if (step.type === 'test') {
+                    return Boolean(findCourseTest(step.id));
+                }
+                return false;
+            });
+            renderCourseTopicStepOptions();
+            renderCourseTopicStepList();
         };
 
         const syncPackageSelection = () => {
@@ -4741,9 +5751,9 @@
                 return;
             }
             if (!state.courses.selectedTopicId) {
-                state.courses.topicVideoIds = [];
-                renderCourseTopicVideoOptions();
-                renderCourseTopicVideoList();
+                state.courses.topicSteps = [];
+                renderCourseTopicStepOptions();
+                renderCourseTopicStepList();
                 return;
             }
             const topic = findCourseTopic(state.courses.selectedTopicId);
@@ -4769,6 +5779,23 @@
                 populateCoursePackageForm(pkg, { scroll: false });
             } else {
                 resetCoursePackageForm();
+            }
+        };
+
+        const updateTestFormAfterLoad = () => {
+            if (!courseTestForm) {
+                return;
+            }
+            if (!state.courses.selectedTestId) {
+                state.courses.testQuestions = [];
+                renderCourseTestQuestionList();
+                return;
+            }
+            const test = findCourseTest(state.courses.selectedTestId);
+            if (test) {
+                populateCourseTestForm(test, { scroll: false });
+            } else {
+                resetCourseTestForm();
             }
         };
 
@@ -4814,7 +5841,32 @@
                 syncTopicSelection();
                 syncPackageSelection();
                 updateTopicFormAfterLoad();
+                renderCourseTopicStepOptions();
+                renderCourseTopicStepList();
                 updatePackageFormAfterLoad();
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const loadCourseTests = async (force = false) => {
+            if (!endpoints.coursesTests) {
+                return;
+            }
+            if (state.courses.hasLoadedTests && !force) {
+                renderCourseTests();
+                return;
+            }
+            try {
+                const response = await apiRequest(endpoints.coursesTests);
+                const tests = Array.isArray(response?.tests)
+                    ? response.tests
+                    : [];
+                state.courses.tests = tests;
+                state.courses.hasLoadedTests = true;
+                renderCourseTests();
+                syncTopicSelection();
+                updateTestFormAfterLoad();
             } catch (error) {
                 handleRequestError(error);
             }
@@ -9769,6 +10821,10 @@
             'click',
             resetCourseTopicForm
         );
+        root.querySelector('[data-action="course-test-reset"]')?.addEventListener(
+            'click',
+            resetCourseTestForm
+        );
         root.querySelector('[data-action="course-package-reset"]')?.addEventListener(
             'click',
             resetCoursePackageForm
@@ -9777,6 +10833,7 @@
         resetUserForm();
         resetCourseVideoForm();
         resetCourseTopicForm();
+        resetCourseTestForm();
         resetCoursePackageForm();
 
         const attachSearchHandler = (input, callback) => {
@@ -9818,13 +10875,34 @@
         courseVideoDeleteButton?.addEventListener('click', handleCourseVideoDelete);
         courseTopicForm?.addEventListener('submit', handleCourseTopicSubmit);
         courseTopicDeleteButton?.addEventListener('click', handleCourseTopicDelete);
-        courseTopicVideoAddButton?.addEventListener(
+        courseTopicStepAddButton?.addEventListener(
             'click',
-            handleCourseTopicVideoAdd
+            handleCourseTopicStepAdd
         );
-        courseTopicVideoList?.addEventListener(
+        courseTopicStepList?.addEventListener(
             'click',
-            handleCourseTopicVideoListClick
+            handleCourseTopicStepListClick
+        );
+        courseTestForm?.addEventListener('submit', handleCourseTestSubmit);
+        courseTestDeleteButton?.addEventListener(
+            'click',
+            handleCourseTestDelete
+        );
+        courseTestQuestionAddButton?.addEventListener(
+            'click',
+            handleCourseTestQuestionAdd
+        );
+        courseTestQuestionList?.addEventListener(
+            'input',
+            handleCourseTestQuestionListInput
+        );
+        courseTestQuestionList?.addEventListener(
+            'change',
+            handleCourseTestQuestionListChange
+        );
+        courseTestQuestionList?.addEventListener(
+            'click',
+            handleCourseTestQuestionListClick
         );
         coursePackageForm?.addEventListener('submit', handleCoursePackageSubmit);
         coursePackageDeleteButton?.addEventListener(
@@ -9918,11 +10996,13 @@
         loadTags();
         const loadCourseData = async () => {
             await loadCourseVideos();
+            await loadCourseTests();
             await loadCourseTopics();
             await loadCoursePackages();
         };
         if (
             endpoints.coursesVideos ||
+            endpoints.coursesTests ||
             endpoints.coursesTopics ||
             endpoints.coursesPackages
         ) {

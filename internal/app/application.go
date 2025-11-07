@@ -81,6 +81,7 @@ type repositoryContainer struct {
 	CourseVideo   repository.CourseVideoRepository
 	CourseTopic   repository.CourseTopicRepository
 	CoursePackage repository.CoursePackageRepository
+	CourseTest    repository.CourseTestRepository
 }
 
 type serviceContainer struct {
@@ -104,6 +105,7 @@ type serviceContainer struct {
 	CourseVideo    *courseservice.VideoService
 	CourseTopic    *courseservice.TopicService
 	CoursePackage  *courseservice.PackageService
+	CourseTest     *courseservice.TestService
 	CourseCheckout *courseservice.CheckoutService
 }
 
@@ -127,6 +129,7 @@ type handlerContainer struct {
 	Font           *handlers.FontHandler
 	CourseVideo    *coursehandlers.VideoHandler
 	CourseTopic    *coursehandlers.TopicHandler
+	CourseTest     *coursehandlers.TestHandler
 	CoursePackage  *coursehandlers.PackageHandler
 	CourseCheckout *coursehandlers.CheckoutHandler
 }
@@ -346,12 +349,21 @@ func (a *Application) runMigrations() error {
 		&models.CoursePackage{},
 		&models.CourseTopicVideo{},
 		&models.CoursePackageTopic{},
+		&models.CourseTest{},
+		&models.CourseTestQuestion{},
+		&models.CourseTestQuestionOption{},
+		&models.CourseTopicStep{},
+		&models.CourseTestResult{},
 		&models.Setting{},
 		&models.SocialLink{},
 		&models.MenuItem{},
 		&models.Plugin{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
+	}
+
+	if err := a.migrateTopicVideosToSteps(); err != nil {
+		return err
 	}
 
 	if err := a.db.Exec(`
@@ -451,6 +463,66 @@ func (a *Application) createIndexes() error {
 	return nil
 }
 
+func (a *Application) migrateTopicVideosToSteps() error {
+	if a.db == nil {
+		return fmt.Errorf("database connection is not initialized")
+	}
+
+	migrator := a.db.Migrator()
+	if !migrator.HasTable(&models.CourseTopicVideo{}) {
+		return nil
+	}
+	if !migrator.HasTable(&models.CourseTopicStep{}) {
+		return nil
+	}
+
+	var stepCount int64
+	if err := a.db.Model(&models.CourseTopicStep{}).Count(&stepCount).Error; err != nil {
+		return fmt.Errorf("failed to count course topic steps: %w", err)
+	}
+	if stepCount > 0 {
+		return nil
+	}
+
+	var legacyCount int64
+	if err := a.db.Model(&models.CourseTopicVideo{}).Count(&legacyCount).Error; err != nil {
+		return fmt.Errorf("failed to count legacy topic videos: %w", err)
+	}
+	if legacyCount == 0 {
+		return nil
+	}
+
+	var links []models.CourseTopicVideo
+	if err := a.db.Order("topic_id ASC, position ASC").Find(&links).Error; err != nil {
+		return fmt.Errorf("failed to load legacy topic videos: %w", err)
+	}
+	if len(links) == 0 {
+		return nil
+	}
+
+	if err := a.db.Transaction(func(tx *gorm.DB) error {
+		for _, link := range links {
+			videoID := link.VideoID
+			step := models.CourseTopicStep{
+				CreatedAt: link.CreatedAt,
+				UpdatedAt: link.UpdatedAt,
+				TopicID:   link.TopicID,
+				StepType:  models.CourseTopicStepTypeVideo,
+				Position:  link.Position,
+				VideoID:   &videoID,
+			}
+			if err := tx.Create(&step).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to migrate topic videos to steps: %w", err)
+	}
+
+	return nil
+}
+
 func (a *Application) initCache() {
 	if !a.cfg.EnableCache || !a.cfg.EnableRedis {
 		disabledCache, err := cache.NewCache("", false)
@@ -493,6 +565,7 @@ func (a *Application) initRepositories() {
 		CourseVideo:   repository.NewCourseVideoRepository(a.db),
 		CourseTopic:   repository.NewCourseTopicRepository(a.db),
 		CoursePackage: repository.NewCoursePackageRepository(a.db),
+		CourseTest:    repository.NewCourseTestRepository(a.db),
 	}
 }
 
@@ -659,6 +732,7 @@ func (a *Application) initHandlers() error {
 		Plugin:         handlers.NewPluginHandler(a.services.Plugin),
 		CourseVideo:    coursehandlers.NewVideoHandler(nil),
 		CourseTopic:    coursehandlers.NewTopicHandler(nil),
+		CourseTest:     coursehandlers.NewTestHandler(nil),
 		CoursePackage:  coursehandlers.NewPackageHandler(nil),
 		CourseCheckout: coursehandlers.NewCheckoutHandler(nil),
 	}
@@ -850,6 +924,8 @@ func (a *Application) initRouter() error {
 			protected.GET("/profile", a.handlers.Auth.GetProfile)
 			protected.PUT("/profile", a.handlers.Auth.UpdateProfile)
 			protected.PUT("/profile/password", a.handlers.Auth.ChangePassword)
+			protected.GET("/courses/tests/:id", a.handlers.CourseTest.Get)
+			protected.POST("/courses/tests/:id/submit", a.handlers.CourseTest.Submit)
 		}
 
 		admin := v1.Group("/admin")
@@ -886,9 +962,16 @@ func (a *Application) initRouter() error {
 			content.POST("/courses/topics", a.handlers.CourseTopic.Create)
 			content.PUT("/courses/topics/:id", a.handlers.CourseTopic.Update)
 			content.PUT("/courses/topics/:id/videos", a.handlers.CourseTopic.UpdateVideos)
+			content.PUT("/courses/topics/:id/steps", a.handlers.CourseTopic.UpdateSteps)
 			content.DELETE("/courses/topics/:id", a.handlers.CourseTopic.Delete)
 			content.GET("/courses/topics", a.handlers.CourseTopic.List)
 			content.GET("/courses/topics/:id", a.handlers.CourseTopic.Get)
+
+			content.POST("/courses/tests", a.handlers.CourseTest.Create)
+			content.PUT("/courses/tests/:id", a.handlers.CourseTest.Update)
+			content.DELETE("/courses/tests/:id", a.handlers.CourseTest.Delete)
+			content.GET("/courses/tests", a.handlers.CourseTest.List)
+			content.GET("/courses/tests/:id", a.handlers.CourseTest.Get)
 
 			content.POST("/courses/packages", a.handlers.CoursePackage.Create)
 			content.PUT("/courses/packages/:id", a.handlers.CoursePackage.Update)

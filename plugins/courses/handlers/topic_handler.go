@@ -104,6 +104,31 @@ func (h *TopicHandler) UpdateVideos(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"topic": topic})
 }
 
+func (h *TopicHandler) UpdateSteps(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
+	id, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req models.UpdateCourseTopicStepsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	topic, err := h.service.UpdateSteps(id, req.Steps)
+	if err != nil {
+		h.writeError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"topic": topic})
+}
+
 func (h *TopicHandler) Delete(c *gin.Context) {
 	if !h.ensureService(c) {
 		return
@@ -157,8 +182,12 @@ func (h *TopicHandler) List(c *gin.Context) {
 
 func (h *TopicHandler) writeError(c *gin.Context, err error) {
 	switch {
+	case courseservice.IsValidationError(err):
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	case errors.Is(err, gorm.ErrRecordNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"error": "record not found"})
+		return
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}

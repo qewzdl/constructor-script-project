@@ -26,8 +26,8 @@ type CourseTopicRepository interface {
 	GetByIDs(ids []uint) ([]models.CourseTopic, error)
 	List() ([]models.CourseTopic, error)
 	Exists(id uint) (bool, error)
-	SetVideos(topicID uint, videoIDs []uint) error
-	ListVideoLinks(topicIDs []uint) (map[uint][]models.CourseTopicVideo, error)
+	SetSteps(topicID uint, steps []models.CourseTopicStep) error
+	ListStepLinks(topicIDs []uint) (map[uint][]models.CourseTopicStep, error)
 }
 
 type CoursePackageRepository interface {
@@ -42,6 +42,19 @@ type CoursePackageRepository interface {
 	ListTopicLinks(packageIDs []uint) (map[uint][]models.CoursePackageTopic, error)
 }
 
+type CourseTestRepository interface {
+	Create(test *models.CourseTest) error
+	Update(test *models.CourseTest) error
+	Delete(id uint) error
+	GetByID(id uint) (*models.CourseTest, error)
+	GetByIDs(ids []uint) ([]models.CourseTest, error)
+	List() ([]models.CourseTest, error)
+	Exists(id uint) (bool, error)
+	ReplaceStructure(testID uint, questions []models.CourseTestQuestion) error
+	ListStructure(testIDs []uint) (map[uint][]models.CourseTestQuestion, error)
+	SaveResult(result *models.CourseTestResult) error
+}
+
 type courseVideoRepository struct {
 	db *gorm.DB
 }
@@ -51,6 +64,10 @@ type courseTopicRepository struct {
 }
 
 type coursePackageRepository struct {
+	db *gorm.DB
+}
+
+type courseTestRepository struct {
 	db *gorm.DB
 }
 
@@ -64,6 +81,10 @@ func NewCourseTopicRepository(db *gorm.DB) CourseTopicRepository {
 
 func NewCoursePackageRepository(db *gorm.DB) CoursePackageRepository {
 	return &coursePackageRepository{db: db}
+}
+
+func NewCourseTestRepository(db *gorm.DB) CourseTestRepository {
+	return &courseTestRepository{db: db}
 }
 
 func (r *courseVideoRepository) Create(video *models.CourseVideo) error {
@@ -91,6 +112,9 @@ func (r *courseVideoRepository) Delete(id uint) error {
 		return errors.New("course video repository is not initialised")
 	}
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("video_id = ?", id).Delete(&models.CourseTopicStep{}).Error; err != nil {
+			return err
+		}
 		if err := tx.Where("video_id = ?", id).Delete(&models.CourseTopicVideo{}).Error; err != nil {
 			return err
 		}
@@ -170,6 +194,9 @@ func (r *courseTopicRepository) Delete(id uint) error {
 		return errors.New("course topic repository is not initialised")
 	}
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("topic_id = ?", id).Delete(&models.CourseTopicStep{}).Error; err != nil {
+			return err
+		}
 		if err := tx.Where("topic_id = ?", id).Delete(&models.CourseTopicVideo{}).Error; err != nil {
 			return err
 		}
@@ -227,22 +254,20 @@ func (r *courseTopicRepository) Exists(id uint) (bool, error) {
 	return count > 0, nil
 }
 
-func (r *courseTopicRepository) SetVideos(topicID uint, videoIDs []uint) error {
+func (r *courseTopicRepository) SetSteps(topicID uint, steps []models.CourseTopicStep) error {
 	if r == nil || r.db == nil {
 		return errors.New("course topic repository is not initialised")
 	}
-	ordered := uniqueOrdered(videoIDs)
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("topic_id = ?", topicID).Delete(&models.CourseTopicVideo{}).Error; err != nil {
+		if err := tx.Where("topic_id = ?", topicID).Delete(&models.CourseTopicStep{}).Error; err != nil {
 			return err
 		}
-		for idx, videoID := range ordered {
-			link := models.CourseTopicVideo{
-				TopicID:  topicID,
-				VideoID:  videoID,
-				Position: idx,
-			}
-			if err := tx.Create(&link).Error; err != nil {
+		for idx := range steps {
+			step := steps[idx]
+			step.ID = 0
+			step.TopicID = topicID
+			step.Position = idx
+			if err := tx.Create(&step).Error; err != nil {
 				return err
 			}
 		}
@@ -250,16 +275,16 @@ func (r *courseTopicRepository) SetVideos(topicID uint, videoIDs []uint) error {
 	})
 }
 
-func (r *courseTopicRepository) ListVideoLinks(topicIDs []uint) (map[uint][]models.CourseTopicVideo, error) {
+func (r *courseTopicRepository) ListStepLinks(topicIDs []uint) (map[uint][]models.CourseTopicStep, error) {
 	if r == nil || r.db == nil {
 		return nil, errors.New("course topic repository is not initialised")
 	}
-	result := make(map[uint][]models.CourseTopicVideo, len(topicIDs))
+	result := make(map[uint][]models.CourseTopicStep, len(topicIDs))
 	if len(topicIDs) == 0 {
 		return result, nil
 	}
-	var links []models.CourseTopicVideo
-	if err := r.db.Where("topic_id IN ?", topicIDs).Order("position ASC").Find(&links).Error; err != nil {
+	var links []models.CourseTopicStep
+	if err := r.db.Where("topic_id IN ?", topicIDs).Order("topic_id ASC, position ASC").Find(&links).Error; err != nil {
 		return nil, err
 	}
 	for _, link := range links {
@@ -403,4 +428,169 @@ func uniqueOrdered(values []uint) []uint {
 		ordered = append(ordered, value)
 	}
 	return ordered
+}
+
+func (r *courseTestRepository) Create(test *models.CourseTest) error {
+	if r == nil || r.db == nil {
+		return errors.New("course test repository is not initialised")
+	}
+	if test == nil {
+		return errors.New("test is required")
+	}
+	return r.db.Create(test).Error
+}
+
+func (r *courseTestRepository) Update(test *models.CourseTest) error {
+	if r == nil || r.db == nil {
+		return errors.New("course test repository is not initialised")
+	}
+	if test == nil {
+		return errors.New("test is required")
+	}
+	return r.db.Save(test).Error
+}
+
+func (r *courseTestRepository) Delete(id uint) error {
+	if r == nil || r.db == nil {
+		return errors.New("course test repository is not initialised")
+	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("test_id = ?", id).Delete(&models.CourseTopicStep{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("test_id = ?", id).Delete(&models.CourseTestResult{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("test_id = ?", id).Delete(&models.CourseTestQuestionOption{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("test_id = ?", id).Delete(&models.CourseTestQuestion{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&models.CourseTest{}, id).Error
+	})
+}
+
+func (r *courseTestRepository) GetByID(id uint) (*models.CourseTest, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course test repository is not initialised")
+	}
+	var test models.CourseTest
+	if err := r.db.First(&test, id).Error; err != nil {
+		return nil, err
+	}
+	return &test, nil
+}
+
+func (r *courseTestRepository) GetByIDs(ids []uint) ([]models.CourseTest, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course test repository is not initialised")
+	}
+	if len(ids) == 0 {
+		return []models.CourseTest{}, nil
+	}
+	var tests []models.CourseTest
+	if err := r.db.Where("id IN ?", ids).Find(&tests).Error; err != nil {
+		return nil, err
+	}
+	return tests, nil
+}
+
+func (r *courseTestRepository) List() ([]models.CourseTest, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course test repository is not initialised")
+	}
+	var tests []models.CourseTest
+	if err := r.db.Order("created_at DESC").Find(&tests).Error; err != nil {
+		return nil, err
+	}
+	return tests, nil
+}
+
+func (r *courseTestRepository) Exists(id uint) (bool, error) {
+	if r == nil || r.db == nil {
+		return false, errors.New("course test repository is not initialised")
+	}
+	var count int64
+	if err := r.db.Model(&models.CourseTest{}).Where("id = ?", id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *courseTestRepository) ReplaceStructure(testID uint, questions []models.CourseTestQuestion) error {
+	if r == nil || r.db == nil {
+		return errors.New("course test repository is not initialised")
+	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("test_id = ?", testID).Delete(&models.CourseTestQuestionOption{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("test_id = ?", testID).Delete(&models.CourseTestQuestion{}).Error; err != nil {
+			return err
+		}
+		for idx := range questions {
+			question := questions[idx]
+			question.ID = 0
+			question.TestID = testID
+			question.Position = idx
+			if err := tx.Create(&question).Error; err != nil {
+				return err
+			}
+			for optIdx := range question.Options {
+				option := question.Options[optIdx]
+				option.ID = 0
+				option.QuestionID = question.ID
+				option.Position = optIdx
+				if err := tx.Create(&option).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func (r *courseTestRepository) ListStructure(testIDs []uint) (map[uint][]models.CourseTestQuestion, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course test repository is not initialised")
+	}
+	result := make(map[uint][]models.CourseTestQuestion, len(testIDs))
+	if len(testIDs) == 0 {
+		return result, nil
+	}
+	var questions []models.CourseTestQuestion
+	if err := r.db.Where("test_id IN ?", testIDs).Order("test_id ASC, position ASC").Find(&questions).Error; err != nil {
+		return nil, err
+	}
+	if len(questions) == 0 {
+		return result, nil
+	}
+	questionIDs := make([]uint, 0, len(questions))
+	for _, question := range questions {
+		questionIDs = append(questionIDs, question.ID)
+	}
+	var options []models.CourseTestQuestionOption
+	if err := r.db.Where("question_id IN ?", questionIDs).Order("question_id ASC, position ASC").Find(&options).Error; err != nil {
+		return nil, err
+	}
+	optionsByQuestion := make(map[uint][]models.CourseTestQuestionOption, len(questionIDs))
+	for _, option := range options {
+		optionsByQuestion[option.QuestionID] = append(optionsByQuestion[option.QuestionID], option)
+	}
+	for _, question := range questions {
+		question.Options = optionsByQuestion[question.ID]
+		result[question.TestID] = append(result[question.TestID], question)
+	}
+	return result, nil
+}
+
+func (r *courseTestRepository) SaveResult(result *models.CourseTestResult) error {
+	if r == nil || r.db == nil {
+		return errors.New("course test repository is not initialised")
+	}
+	if result == nil {
+		return errors.New("result is required")
+	}
+	return r.db.Create(result).Error
 }

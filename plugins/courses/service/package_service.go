@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"gorm.io/gorm"
@@ -15,17 +14,20 @@ type PackageService struct {
 	packageRepo repository.CoursePackageRepository
 	topicRepo   repository.CourseTopicRepository
 	videoRepo   repository.CourseVideoRepository
+	testRepo    repository.CourseTestRepository
 }
 
 func NewPackageService(
 	packageRepo repository.CoursePackageRepository,
 	topicRepo repository.CourseTopicRepository,
 	videoRepo repository.CourseVideoRepository,
+	testRepo repository.CourseTestRepository,
 ) *PackageService {
 	return &PackageService{
 		packageRepo: packageRepo,
 		topicRepo:   topicRepo,
 		videoRepo:   videoRepo,
+		testRepo:    testRepo,
 	}
 }
 
@@ -33,6 +35,7 @@ func (s *PackageService) SetRepositories(
 	packageRepo repository.CoursePackageRepository,
 	topicRepo repository.CourseTopicRepository,
 	videoRepo repository.CourseVideoRepository,
+	testRepo repository.CourseTestRepository,
 ) {
 	if s == nil {
 		return
@@ -40,6 +43,7 @@ func (s *PackageService) SetRepositories(
 	s.packageRepo = packageRepo
 	s.topicRepo = topicRepo
 	s.videoRepo = videoRepo
+	s.testRepo = testRepo
 }
 
 func (s *PackageService) Create(req models.CreateCoursePackageRequest) (*models.CoursePackage, error) {
@@ -49,10 +53,10 @@ func (s *PackageService) Create(req models.CreateCoursePackageRequest) (*models.
 
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
-		return nil, errors.New("package title is required")
+		return nil, newValidationError("package title is required")
 	}
 	if req.PriceCents < 0 {
-		return nil, errors.New("package price must be zero or positive")
+		return nil, newValidationError("package price must be zero or positive")
 	}
 
 	pkg := models.CoursePackage{
@@ -87,10 +91,10 @@ func (s *PackageService) Update(id uint, req models.UpdateCoursePackageRequest) 
 
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
-		return nil, errors.New("package title is required")
+		return nil, newValidationError("package title is required")
 	}
 	if req.PriceCents < 0 {
-		return nil, errors.New("package price must be zero or positive")
+		return nil, newValidationError("package price must be zero or positive")
 	}
 
 	pkg.Title = title
@@ -182,7 +186,7 @@ func (s *PackageService) assignTopics(packageID uint, topicIDs []uint) error {
 		return err
 	}
 	if len(topics) != len(unique) {
-		return fmt.Errorf("one or more topics do not exist")
+		return newValidationError("one or more topics do not exist")
 	}
 
 	return s.packageRepo.SetTopics(packageID, unique)
@@ -238,7 +242,7 @@ func (s *PackageService) populateTopics(packages []models.CoursePackage) error {
 		topicMap[topics[i].ID] = &topics[i]
 	}
 
-	if err := s.populateTopicVideos(topicMap); err != nil {
+	if err := s.populateTopicSteps(topicMap); err != nil {
 		return err
 	}
 
@@ -265,53 +269,86 @@ func (s *PackageService) populateTopics(packages []models.CoursePackage) error {
 	return nil
 }
 
-func (s *PackageService) populateTopicVideos(topics map[uint]*models.CourseTopic) error {
+func (s *PackageService) populateTopicSteps(topics map[uint]*models.CourseTopic) error {
 	if len(topics) == 0 {
 		return nil
 	}
-	if s.topicRepo == nil || s.videoRepo == nil {
+	if s.topicRepo == nil {
 		return errors.New("course topic repository is not configured")
 	}
 
 	topicIDs := make([]uint, 0, len(topics))
 	for id, topic := range topics {
 		topic.Videos = []models.CourseVideo{}
+		topic.Steps = []models.CourseTopicStep{}
 		topicIDs = append(topicIDs, id)
 	}
 
-	linksByTopic, err := s.topicRepo.ListVideoLinks(topicIDs)
+	linksByTopic, err := s.topicRepo.ListStepLinks(topicIDs)
 	if err != nil {
 		return err
 	}
-
 	if len(linksByTopic) == 0 {
 		return nil
 	}
 
 	videoIDSet := make(map[uint]struct{})
+	testIDSet := make(map[uint]struct{})
 	for _, links := range linksByTopic {
 		for _, link := range links {
-			videoIDSet[link.VideoID] = struct{}{}
+			if link.StepType == models.CourseTopicStepTypeVideo && link.VideoID != nil {
+				videoIDSet[*link.VideoID] = struct{}{}
+			}
+			if link.StepType == models.CourseTopicStepTypeTest && link.TestID != nil {
+				testIDSet[*link.TestID] = struct{}{}
+			}
 		}
 	}
 
-	if len(videoIDSet) == 0 {
-		return nil
+	videoMap := make(map[uint]models.CourseVideo, len(videoIDSet))
+	if len(videoIDSet) > 0 {
+		if s.videoRepo == nil {
+			return errors.New("course video repository is not configured")
+		}
+		ids := make([]uint, 0, len(videoIDSet))
+		for id := range videoIDSet {
+			ids = append(ids, id)
+		}
+		videos, err := s.videoRepo.GetByIDs(ids)
+		if err != nil {
+			return err
+		}
+		for _, video := range videos {
+			videoMap[video.ID] = video
+		}
 	}
 
-	videoIDs := make([]uint, 0, len(videoIDSet))
-	for id := range videoIDSet {
-		videoIDs = append(videoIDs, id)
-	}
-
-	videos, err := s.videoRepo.GetByIDs(videoIDs)
-	if err != nil {
-		return err
-	}
-
-	videoMap := make(map[uint]models.CourseVideo, len(videos))
-	for _, video := range videos {
-		videoMap[video.ID] = video
+	testMap := make(map[uint]models.CourseTest, len(testIDSet))
+	if len(testIDSet) > 0 {
+		if s.testRepo == nil {
+			return errors.New("course test repository is not configured")
+		}
+		ids := make([]uint, 0, len(testIDSet))
+		for id := range testIDSet {
+			ids = append(ids, id)
+		}
+		tests, err := s.testRepo.GetByIDs(ids)
+		if err != nil {
+			return err
+		}
+		structures, err := s.testRepo.ListStructure(ids)
+		if err != nil {
+			return err
+		}
+		for i := range tests {
+			test := tests[i]
+			if questions, ok := structures[test.ID]; ok {
+				test.Questions = questions
+			} else {
+				test.Questions = []models.CourseTestQuestion{}
+			}
+			testMap[test.ID] = test
+		}
 	}
 
 	for topicID, links := range linksByTopic {
@@ -319,13 +356,27 @@ func (s *PackageService) populateTopicVideos(topics map[uint]*models.CourseTopic
 		if !ok {
 			continue
 		}
-		ordered := make([]models.CourseVideo, 0, len(links))
+		ordered := make([]models.CourseTopicStep, 0, len(links))
 		for _, link := range links {
-			if video, exists := videoMap[link.VideoID]; exists {
-				ordered = append(ordered, video)
+			step := link
+			step.Video = nil
+			step.Test = nil
+			if link.StepType == models.CourseTopicStepTypeVideo && link.VideoID != nil {
+				if video, exists := videoMap[*link.VideoID]; exists {
+					videoCopy := video
+					step.Video = &videoCopy
+					topic.Videos = append(topic.Videos, videoCopy)
+				}
 			}
+			if link.StepType == models.CourseTopicStepTypeTest && link.TestID != nil {
+				if test, exists := testMap[*link.TestID]; exists {
+					testCopy := test
+					step.Test = &testCopy
+				}
+			}
+			ordered = append(ordered, step)
 		}
-		topic.Videos = ordered
+		topic.Steps = ordered
 	}
 
 	return nil

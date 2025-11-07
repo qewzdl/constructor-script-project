@@ -40,6 +40,9 @@
     {{- with index $endpoints "CourseTopics" }}
     data-endpoint-courses-topics="{{ . }}"
     {{- end }}
+    {{- with index $endpoints "CourseTests" }}
+    data-endpoint-courses-tests="{{ . }}"
+    {{- end }}
     {{- with index $endpoints "CoursePackages" }}
     data-endpoint-courses-packages="{{ . }}"
     {{- end }}

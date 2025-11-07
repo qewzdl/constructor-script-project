@@ -388,7 +388,7 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 			}
 			sb.WriteString(`<li class="` + topicItemClass + `">`)
 			sb.WriteString(`<span class="` + topicNameClass + `">` + template.HTMLEscapeString(name))
-			if lessonCount := len(topic.Videos); lessonCount > 0 {
+			if lessonCount := countTopicLessons(topic); lessonCount > 0 {
 				lessonLabel := formatLessonCount(lessonCount)
 				if lessonLabel != "" {
 					sb.WriteString(` <span class="` + topicMetaClass + `">` + template.HTMLEscapeString(lessonLabel) + `</span>`)
@@ -493,23 +493,58 @@ func buildCourseModalTopics(topics []models.CourseTopic, h *TemplateHandler) []c
 			}
 		}
 
-		lessonCount := len(topic.Videos)
+		lessonCount := countTopicLessons(topic)
 		totalDuration := 0
 		lessons := make([]courseModalLesson, 0, lessonCount)
-		for _, video := range topic.Videos {
-			if video.DurationSeconds > 0 {
-				totalDuration += video.DurationSeconds
+		if len(topic.Steps) > 0 {
+			for _, step := range topic.Steps {
+				switch step.StepType {
+				case models.CourseTopicStepTypeVideo:
+					if step.Video == nil {
+						continue
+					}
+					video := *step.Video
+					if video.DurationSeconds > 0 {
+						totalDuration += video.DurationSeconds
+					}
+					lessonTitle := strings.TrimSpace(video.Title)
+					lesson := courseModalLesson{}
+					if lessonTitle != "" {
+						lesson.Title = lessonTitle
+					}
+					if durationLabel := formatVideoDuration(video.DurationSeconds); durationLabel != "" {
+						lesson.DurationLabel = durationLabel
+					}
+					if lesson.Title != "" || lesson.DurationLabel != "" {
+						lessons = append(lessons, lesson)
+					}
+				case models.CourseTopicStepTypeTest:
+					lessonTitle := "Test"
+					if step.Test != nil {
+						name := strings.TrimSpace(step.Test.Title)
+						if name != "" {
+							lessonTitle = fmt.Sprintf("Test: %s", name)
+						}
+					}
+					lessons = append(lessons, courseModalLesson{Title: lessonTitle})
+				}
 			}
-			lessonTitle := strings.TrimSpace(video.Title)
-			lesson := courseModalLesson{}
-			if lessonTitle != "" {
-				lesson.Title = lessonTitle
-			}
-			if durationLabel := formatVideoDuration(video.DurationSeconds); durationLabel != "" {
-				lesson.DurationLabel = durationLabel
-			}
-			if lesson.Title != "" || lesson.DurationLabel != "" {
-				lessons = append(lessons, lesson)
+		} else {
+			for _, video := range topic.Videos {
+				if video.DurationSeconds > 0 {
+					totalDuration += video.DurationSeconds
+				}
+				lessonTitle := strings.TrimSpace(video.Title)
+				lesson := courseModalLesson{}
+				if lessonTitle != "" {
+					lesson.Title = lessonTitle
+				}
+				if durationLabel := formatVideoDuration(video.DurationSeconds); durationLabel != "" {
+					lesson.DurationLabel = durationLabel
+				}
+				if lesson.Title != "" || lesson.DurationLabel != "" {
+					lessons = append(lessons, lesson)
+				}
 			}
 		}
 
@@ -631,6 +666,21 @@ func formatLessonCount(count int) string {
 	return fmt.Sprintf("%d lessons", count)
 }
 
+func countTopicLessons(topic models.CourseTopic) int {
+	if len(topic.Steps) == 0 {
+		return len(topic.Videos)
+	}
+	count := 0
+	for _, step := range topic.Steps {
+		switch step.StepType {
+		case models.CourseTopicStepTypeVideo,
+			models.CourseTopicStepTypeTest:
+			count++
+		}
+	}
+	return count
+}
+
 func formatTopicCount(count int) string {
 	if count <= 0 {
 		return ""
@@ -672,6 +722,32 @@ func coursePackageStats(pkg models.CoursePackage) (topics int, lessons int, dura
 
 	seen := make(map[uint]struct{})
 	for _, topic := range pkg.Topics {
+		if len(topic.Steps) > 0 {
+			for _, step := range topic.Steps {
+				switch step.StepType {
+				case models.CourseTopicStepTypeVideo:
+					if step.Video == nil {
+						continue
+					}
+					video := *step.Video
+					if video.ID == 0 {
+						duration += video.DurationSeconds
+						lessons++
+						continue
+					}
+					if _, ok := seen[video.ID]; ok {
+						continue
+					}
+					seen[video.ID] = struct{}{}
+					duration += video.DurationSeconds
+					lessons++
+				case models.CourseTopicStepTypeTest:
+					lessons++
+				}
+			}
+			continue
+		}
+
 		for _, video := range topic.Videos {
 			if video.ID == 0 {
 				duration += video.DurationSeconds
