@@ -10565,6 +10565,157 @@
             }
         };
 
+        const getChildSectionLabel = (element) => {
+            if (!element) {
+                return '';
+            }
+            const labelledBy = element.getAttribute('aria-labelledby');
+            if (labelledBy) {
+                const labelElement = root.querySelector(`#${labelledBy}`);
+                if (labelElement) {
+                    return labelElement.textContent?.trim() || '';
+                }
+            }
+            const heading = element.querySelector('h1, h2, h3, h4, h5, h6');
+            if (heading) {
+                return heading.textContent?.trim() || '';
+            }
+            return '';
+        };
+
+        let navigationTabs = [];
+        let subnavContainers = new Map();
+        let subnavButtons = new Map();
+        let panelsWithSubnavigation = new Set();
+        let openSubnavPanelId = '';
+        let subnavStateInitialized = false;
+        const subnavActiveTargets = new Map();
+        const sectionHighlightTimers = new WeakMap();
+
+        const setActiveSubnav = (panelId, targetId) => {
+            const buttons = subnavButtons.get(panelId) || [];
+            let matched = false;
+            buttons.forEach((button) => {
+                const isActive = Boolean(targetId) && button.dataset.target === targetId;
+                button.classList.toggle('is-active', isActive);
+                if (isActive) {
+                    button.setAttribute('aria-current', 'location');
+                    matched = true;
+                } else {
+                    button.removeAttribute('aria-current');
+                }
+            });
+            if (matched && targetId) {
+                subnavActiveTargets.set(panelId, targetId);
+            } else {
+                subnavActiveTargets.delete(panelId);
+            }
+        };
+
+        const ensureDefaultSubnav = (panelId) => {
+            const buttons = subnavButtons.get(panelId) || [];
+            if (!buttons.length) {
+                return;
+            }
+            const storedTarget = subnavActiveTargets.get(panelId);
+            if (storedTarget) {
+                const storedButton = buttons.find(
+                    (button) => button.dataset.target === storedTarget
+                );
+                if (storedButton) {
+                    setActiveSubnav(panelId, storedTarget);
+                    return;
+                }
+            }
+            const defaultTarget = buttons[0].dataset.target || '';
+            if (defaultTarget) {
+                setActiveSubnav(panelId, defaultTarget);
+            } else {
+                setActiveSubnav(panelId, '');
+            }
+        };
+
+        const syncSubnavigationState = () => {
+            subnavContainers.forEach(({ container, toggleButton }, panelId) => {
+                const shouldBeOpen = panelId === openSubnavPanelId;
+                container.hidden = !shouldBeOpen;
+                toggleButton.setAttribute('aria-expanded', String(Boolean(shouldBeOpen)));
+                toggleButton.classList.toggle('is-open', shouldBeOpen);
+                if (shouldBeOpen) {
+                    ensureDefaultSubnav(panelId);
+                }
+            });
+        };
+
+        const openSubnavigation = (panelId) => {
+            if (!panelId || !panelsWithSubnavigation.has(panelId)) {
+                return;
+            }
+            if (openSubnavPanelId !== panelId) {
+                openSubnavPanelId = panelId;
+            }
+            syncSubnavigationState();
+            subnavStateInitialized = true;
+        };
+
+        const closeSubnavigation = (panelId) => {
+            if (!panelId) {
+                return;
+            }
+            if (openSubnavPanelId === panelId) {
+                openSubnavPanelId = '';
+                syncSubnavigationState();
+            }
+        };
+
+        const scrollSectionIntoView = (section) => {
+            if (!section) {
+                return;
+            }
+            if (
+                contentScrollContainer &&
+                contentScrollContainer.contains(section) &&
+                typeof contentScrollContainer.scrollTo === 'function'
+            ) {
+                const containerRect = contentScrollContainer.getBoundingClientRect();
+                const sectionRect = section.getBoundingClientRect();
+                const offset = sectionRect.top - containerRect.top + contentScrollContainer.scrollTop;
+                const targetOffset = Math.max(0, offset - 16);
+                try {
+                    contentScrollContainer.scrollTo({
+                        top: targetOffset,
+                        behavior: 'smooth',
+                    });
+                } catch (error) {
+                    contentScrollContainer.scrollTop = targetOffset;
+                }
+                return;
+            }
+            if (typeof section.scrollIntoView === 'function') {
+                try {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } catch (error) {
+                    section.scrollIntoView();
+                }
+            }
+        };
+
+        const highlightSection = (section) => {
+            if (!(section instanceof HTMLElement)) {
+                return;
+            }
+            section.classList.add('admin__section--highlighted');
+            const previousTimer = sectionHighlightTimers.get(section);
+            if (previousTimer) {
+                window.clearTimeout(previousTimer);
+            }
+            const timer = window.setTimeout(() => {
+                section.classList.remove('admin__section--highlighted');
+                sectionHighlightTimers.delete(section);
+            }, 1600);
+            sectionHighlightTimers.set(section, timer);
+        };
+
         const buildNavigation = () => {
             if (!navigationContainer) {
                 return [];
@@ -10577,6 +10728,9 @@
             }
 
             const groups = new Map();
+            subnavContainers = new Map();
+            subnavButtons = new Map();
+            panelsWithSubnavigation = new Set();
 
             panels.forEach((panel, index) => {
                 const panelKey = panel.dataset.panel;
@@ -10623,6 +10777,10 @@
                 }
                 return (a.label || '').localeCompare(b.label || '');
             });
+
+            if (!panelsWithSubnavigation.has(openSubnavPanelId)) {
+                openSubnavPanelId = '';
+            }
 
             navigationContainer.innerHTML = '';
             const tabs = [];
@@ -10672,7 +10830,101 @@
                     tab.setAttribute('aria-selected', String(Boolean(panelMeta.isActive)));
                     tab.classList.toggle('is-active', panelMeta.isActive);
                     panelMeta.panel.setAttribute('aria-labelledby', tabId);
-                    tabList.appendChild(tab);
+
+                    const navItem = createElement('div', {
+                        className: 'admin__nav-item',
+                    });
+
+                    const childElements = Array.from(
+                        panelMeta.panel.querySelectorAll('[data-nav-child-of]')
+                    ).filter((child) => child.dataset.navChildOf === panelMeta.id);
+
+                    const childDefinitions = childElements
+                        .map((child, childIndex) => {
+                            if (child instanceof HTMLElement) {
+                                child.classList.add('admin__section');
+                            }
+                            const order = parseOrder(child.dataset.navChildOrder, childIndex);
+                            const targetId = child.dataset.navChildTarget || child.id;
+                            if (!targetId && child instanceof HTMLElement) {
+                                const generatedId = `${panelMeta.id}-section-${childIndex + 1}`;
+                                child.id = generatedId;
+                            }
+                            const label =
+                                child.dataset.navChildLabel ||
+                                getChildSectionLabel(child) ||
+                                `Section ${childIndex + 1}`;
+                            const sectionId = child.dataset.navChildTarget || child.id;
+                            if (!sectionId) {
+                                return null;
+                            }
+                            return {
+                                element: child,
+                                order,
+                                label,
+                                sectionId,
+                            };
+                        })
+                        .filter((definition) => Boolean(definition))
+                        .sort((a, b) => {
+                            if (a.order !== b.order) {
+                                return a.order - b.order;
+                            }
+                            return a.label.localeCompare(b.label);
+                        });
+
+                    navItem.appendChild(tab);
+
+                    if (childDefinitions.length > 0) {
+                        panelsWithSubnavigation.add(panelMeta.id);
+                        tab.classList.add('admin__tab--has-children');
+                        tab.setAttribute('aria-haspopup', 'true');
+                        tab.setAttribute('aria-expanded', 'false');
+                        tab.classList.remove('is-open');
+                        const subnav = createElement('div', {
+                            className: 'admin__subnav',
+                        });
+                        subnav.dataset.parentPanel = panelMeta.id;
+                        subnav.hidden = true;
+                        subnav.setAttribute(
+                            'aria-label',
+                            `${panelMeta.label || 'Sections'} subsections`
+                        );
+                        subnav.setAttribute('role', 'group');
+
+                        const buttons = [];
+                        childDefinitions.forEach((childDefinition) => {
+                            const subTab = createElement('button', {
+                                className: 'admin__subtab',
+                                textContent: childDefinition.label,
+                            });
+                            subTab.type = 'button';
+                            subTab.dataset.target = childDefinition.sectionId;
+                            subTab.dataset.parentPanel = panelMeta.id;
+                            subTab.setAttribute('aria-controls', childDefinition.sectionId);
+                            subnav.appendChild(subTab);
+                            buttons.push(subTab);
+                        });
+
+                        navItem.appendChild(subnav);
+                        subnavContainers.set(panelMeta.id, {
+                            container: subnav,
+                            toggleButton: tab,
+                        });
+                        subnavButtons.set(panelMeta.id, buttons);
+
+                        const storedTarget = subnavActiveTargets.get(panelMeta.id);
+                        if (storedTarget) {
+                            setActiveSubnav(panelMeta.id, storedTarget);
+                        }
+                    } else {
+                        tab.classList.remove('admin__tab--has-children');
+                        tab.classList.remove('is-open');
+                        tab.removeAttribute('aria-haspopup');
+                        tab.removeAttribute('aria-expanded');
+                    }
+
+                    tabList.appendChild(navItem);
                     tabs.push(tab);
                 });
 
@@ -10686,6 +10938,7 @@
         const activateTab = (targetId) => {
             if (!targetId) {
                 setStoredActiveTab('');
+                closeSubnavigation(openSubnavPanelId || '');
                 return;
             }
             const targetPanel = root.querySelector(
@@ -10693,6 +10946,7 @@
             );
             if (!targetPanel) {
                 setStoredActiveTab('');
+                closeSubnavigation(openSubnavPanelId || '');
                 return;
             }
             root.querySelectorAll('.admin__tab').forEach((tab) => {
@@ -10706,9 +10960,14 @@
                 panel.classList.toggle('is-active', isActive);
             });
             setStoredActiveTab(targetId);
+            if (panelsWithSubnavigation.has(targetId)) {
+                openSubnavigation(targetId);
+            } else if (openSubnavPanelId) {
+                closeSubnavigation(openSubnavPanelId);
+            } else {
+                syncSubnavigationState();
+            }
         };
-
-        let navigationTabs = [];
 
         const refreshNavigation = () => {
             navigationTabs = buildNavigation() || [];
@@ -10742,6 +11001,18 @@
                     activateTab(defaultTab);
                 }
             }
+
+            if (!subnavStateInitialized) {
+                const activeTab = navigationTabs.find((tab) =>
+                    tab.classList.contains('is-active')
+                );
+                const activePanelId = activeTab?.dataset?.tab || '';
+                if (activePanelId && panelsWithSubnavigation.has(activePanelId)) {
+                    openSubnavPanelId = activePanelId;
+                }
+                subnavStateInitialized = true;
+            }
+            syncSubnavigationState();
         };
 
         refreshNavigation();
@@ -10751,12 +11022,47 @@
             if (!(target instanceof Element)) {
                 return;
             }
+            const subTab = target.closest('.admin__subtab[data-target]');
+            if (subTab && navigationContainer.contains(subTab)) {
+                event.preventDefault();
+                const parentPanelId = subTab.dataset.parentPanel || '';
+                if (parentPanelId) {
+                    const parentTab = navigationTabs.find(
+                        (tab) => tab.dataset.tab === parentPanelId
+                    );
+                    if (parentTab && !parentTab.classList.contains('is-active')) {
+                        activateTab(parentPanelId);
+                    } else {
+                        openSubnavigation(parentPanelId);
+                    }
+                }
+                const targetSectionId = subTab.dataset.target;
+                if (parentPanelId) {
+                    setActiveSubnav(parentPanelId, targetSectionId || '');
+                }
+                if (targetSectionId) {
+                    const section = document.getElementById(targetSectionId);
+                    if (section) {
+                        scrollSectionIntoView(section);
+                        highlightSection(section);
+                    }
+                }
+                subTab.blur();
+                return;
+            }
             const tab = target.closest('.admin__tab[data-tab]');
             if (!tab || !navigationContainer.contains(tab)) {
                 return;
             }
             event.preventDefault();
             const tabId = tab.dataset.tab;
+            const hasChildren = tab.classList.contains('admin__tab--has-children');
+            const isActive = tab.classList.contains('is-active');
+            const isOpen = tab.classList.contains('is-open');
+            if (hasChildren && isActive && isOpen && tabId) {
+                closeSubnavigation(tabId);
+                return;
+            }
             if (tabId) {
                 activateTab(tabId);
             }

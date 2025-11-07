@@ -1086,7 +1086,14 @@
             </div>
         </header>
         <div class="admin-panel__body admin-panel__body--stacked">
-            <section class="admin-card admin-courses" aria-labelledby="admin-course-videos-title">
+            <section
+                class="admin-card admin-courses admin__section"
+                aria-labelledby="admin-course-videos-title"
+                id="admin-course-videos-section"
+                data-nav-child-of="courses"
+                data-nav-child-label="Videos"
+                data-nav-child-order="1"
+            >
                 <header class="admin-card__header admin-courses__header">
                     <div>
                         <h3 id="admin-course-videos-title" class="admin-card__title">Course videos</h3>
@@ -1161,7 +1168,14 @@
                     </form>
                 </div>
             </section>
-            <section class="admin-card admin-courses" aria-labelledby="admin-course-topics-title">
+            <section
+                class="admin-card admin-courses admin__section"
+                aria-labelledby="admin-course-topics-title"
+                id="admin-course-topics-section"
+                data-nav-child-of="courses"
+                data-nav-child-label="Topics"
+                data-nav-child-order="2"
+            >
                 <header class="admin-card__header admin-courses__header">
                     <div>
                         <h3 id="admin-course-topics-title" class="admin-card__title">Course topics</h3>
@@ -1235,7 +1249,14 @@
                     </form>
                 </div>
             </section>
-            <section class="admin-card admin-courses" aria-labelledby="admin-course-tests-title">
+            <section
+                class="admin-card admin-courses admin__section"
+                aria-labelledby="admin-course-tests-title"
+                id="admin-course-tests-section"
+                data-nav-child-of="courses"
+                data-nav-child-label="Tests"
+                data-nav-child-order="3"
+            >
                 <header class="admin-card__header admin-courses__header">
                     <div>
                         <h3 id="admin-course-tests-title" class="admin-card__title">Course tests</h3>
@@ -1309,7 +1330,14 @@
                     </form>
                 </div>
             </section>
-            <section class="admin-card admin-courses" aria-labelledby="admin-course-packages-title">
+            <section
+                class="admin-card admin-courses admin__section"
+                aria-labelledby="admin-course-packages-title"
+                id="admin-course-packages-section"
+                data-nav-child-of="courses"
+                data-nav-child-label="Packages"
+                data-nav-child-order="4"
+            >
                 <header class="admin-card__header admin-courses__header">
                     <div>
                         <h3 id="admin-course-packages-title" class="admin-card__title">Course packages</h3>

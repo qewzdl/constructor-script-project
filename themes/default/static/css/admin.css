@@ -490,6 +490,12 @@
     min-height: 0;
 }
 
+.admin__nav-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-xxs);
+}
+
 .admin__shortcuts {
     display: grid;
     gap: var(--size-sm);
@@ -586,6 +592,27 @@
     text-align: left;
 }
 
+.admin__tab--has-children {
+    justify-content: space-between;
+    gap: var(--size-xs);
+}
+
+.admin__tab--has-children::after {
+    content: '';
+    display: inline-block;
+    width: 0.6rem;
+    height: 0.6rem;
+    border: 2px solid currentColor;
+    border-left: 0;
+    border-top: 0;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+.admin__tab--has-children.is-open::after {
+    transform: rotate(-135deg);
+}
+
 .admin__tab:hover,
 .admin__tab:focus-visible {
     border-color: var(--color-primary);
@@ -606,6 +633,51 @@
     );
     border-color: var(--color-primary);
     color: var(--color-primary);
+    box-shadow: inset 4px 0 0 var(--color-primary);
+}
+
+.admin__subnav {
+    display: grid;
+    gap: var(--size-xs);
+    padding: var(--size-xs);
+    border: 1px solid var(--color-primary);
+    border-top: none;
+}
+
+.admin__subtab {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    padding: var(--size-sm) var(--size-base);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-tertiary);
+    text-align: left;
+}
+
+.admin__subtab:hover,
+.admin__subtab:focus-visible {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 55%,
+        var(--color-bg-top)
+    );
+    outline: none;
+}
+
+.admin__subtab.is-active {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: color-mix(
+        in srgb,
+        var(--color-primary) 12%,
+        var(--color-bg-top)
+    );
     box-shadow: inset 4px 0 0 var(--color-primary);
 }
 
@@ -662,6 +734,15 @@
 
 .admin-panel[hidden] {
     display: none !important;
+}
+
+.admin__section {
+    scroll-margin-top: calc(var(--header-height) + var(--size-base));
+}
+
+.admin__section--highlighted {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 75%, transparent);
+    transition: box-shadow 0.2s ease;
 }
 
 .admin-panel__header {
