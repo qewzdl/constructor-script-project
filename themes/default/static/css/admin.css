@@ -640,7 +640,7 @@
     display: grid;
     gap: var(--size-xs);
     padding: var(--size-xs);
-    border: 1px solid var(--color-primary);
+    border: 1px solid var(--color-border);
     border-top: none;
 }
 
@@ -654,7 +654,7 @@
     padding: var(--size-sm) var(--size-base);
     font-size: var(--font-size-xs);
     font-weight: 600;
-    color: var(--color-tertiary);
+    color: var(--color-secondary);
     text-align: left;
 }
 
