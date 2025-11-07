@@ -35,6 +35,18 @@
     margin-left: var(--size-xs);
 }
 
+.courses-list__meta-item,
+.courses-list__duration {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-xxs);
+    white-space: nowrap;
+}
+
+.courses-list__duration {
+    font-variant-numeric: tabular-nums;
+}
+
 .courses-list__empty {
     color: var(--color-secondary);
     font-size: var(--font-size-base);

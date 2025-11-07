@@ -254,6 +254,8 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 	linkClass := fmt.Sprintf("%s__course-link post-card__link post-card__link--static", prefix)
 	priceClass := fmt.Sprintf("%s__course-price courses-list__price", prefix)
 	metaClass := fmt.Sprintf("%s__course-meta post-card__meta", prefix)
+	metaItemClass := fmt.Sprintf("%s__course-meta-item courses-list__meta-item", prefix)
+	durationClass := fmt.Sprintf("%s__course-duration courses-list__duration", prefix)
 	descriptionClass := fmt.Sprintf("%s__course-description post-card__description", prefix)
 	topicsClass := fmt.Sprintf("%s__course-topics post-card__tags courses-list__topics", prefix)
 	topicItemClass := fmt.Sprintf("%s__course-topic post-card__tag", prefix)
@@ -333,9 +335,31 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 		sb.WriteString(`<span class="` + linkClass + `">` + template.HTMLEscapeString(title) + `</span>`)
 		sb.WriteString(`</h3>`)
 
+		metaItems := make([]string, 0, 4)
+
 		if price := formatCoursePrice(pkg.PriceCents); price != "" {
-			sb.WriteString(`<div class="` + metaClass + `">`)
-			sb.WriteString(`<span class="` + priceClass + `">` + template.HTMLEscapeString(price) + `</span>`)
+			metaItems = append(metaItems, `<span class="`+priceClass+`">`+template.HTMLEscapeString(price)+`</span>`)
+		}
+
+		topicCount, lessonCount, totalDuration := coursePackageStats(pkg)
+
+		if topicLabel := formatTopicCount(topicCount); topicLabel != "" {
+			metaItems = append(metaItems, `<span class="`+metaItemClass+`">`+template.HTMLEscapeString(topicLabel)+`</span>`)
+		}
+
+		if lessonLabel := formatLessonCount(lessonCount); lessonLabel != "" {
+			metaItems = append(metaItems, `<span class="`+metaItemClass+`">`+template.HTMLEscapeString(lessonLabel)+`</span>`)
+		}
+
+		if durationLabel := formatVideoDuration(totalDuration); durationLabel != "" {
+			metaItems = append(metaItems, `<span class="`+metaItemClass+` `+durationClass+`">`+template.HTMLEscapeString(durationLabel)+`</span>`)
+		}
+
+		if len(metaItems) > 0 {
+			sb.WriteString(`<div class="` + metaClass + `" aria-label="Course summary">`)
+			for _, item := range metaItems {
+				sb.WriteString(item)
+			}
 			sb.WriteString(`</div>`)
 		}
 
@@ -429,6 +453,65 @@ func formatLessonCount(count int) string {
 		return "1 lesson"
 	}
 	return fmt.Sprintf("%d lessons", count)
+}
+
+func formatTopicCount(count int) string {
+	if count <= 0 {
+		return ""
+	}
+	if count == 1 {
+		return "1 topic"
+	}
+	return fmt.Sprintf("%d topics", count)
+}
+
+func formatVideoDuration(totalSeconds int) string {
+	if totalSeconds <= 0 {
+		return ""
+	}
+
+	hours := totalSeconds / 3600
+	minutes := (totalSeconds % 3600) / 60
+	seconds := totalSeconds % 60
+
+	parts := make([]string, 0, 3)
+	if hours > 0 {
+		parts = append(parts, fmt.Sprintf("%dh", hours))
+	}
+	if minutes > 0 {
+		parts = append(parts, fmt.Sprintf("%dm", minutes))
+	}
+	if hours == 0 && minutes == 0 && seconds > 0 {
+		parts = append(parts, fmt.Sprintf("%ds", seconds))
+	}
+
+	return strings.Join(parts, " ")
+}
+
+func coursePackageStats(pkg models.CoursePackage) (topics int, lessons int, duration int) {
+	topics = len(pkg.Topics)
+	if topics == 0 {
+		return
+	}
+
+	seen := make(map[uint]struct{})
+	for _, topic := range pkg.Topics {
+		for _, video := range topic.Videos {
+			if video.ID == 0 {
+				duration += video.DurationSeconds
+				lessons++
+				continue
+			}
+			if _, ok := seen[video.ID]; ok {
+				continue
+			}
+			seen[video.ID] = struct{}{}
+			duration += video.DurationSeconds
+			lessons++
+		}
+	}
+
+	return
 }
 
 func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement) (string, []string) {

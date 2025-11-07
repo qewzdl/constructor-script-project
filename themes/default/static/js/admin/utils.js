@@ -53,16 +53,78 @@
     const booleanLabel = (value) => (value ? 'Yes' : 'No');
 
     const createElement = (tag, options = {}) => {
+        const {
+            className,
+            textContent,
+            html,
+            attributes,
+            dataset,
+            children,
+            ...rest
+        } = options || {};
+
         const element = document.createElement(tag);
-        if (options.className) {
-            element.className = options.className;
+
+        if (className) {
+            element.className = className;
         }
-        if (options.textContent !== undefined) {
-            element.textContent = options.textContent;
+        if (textContent !== undefined) {
+            element.textContent = textContent;
         }
-        if (options.html !== undefined) {
-            element.innerHTML = options.html;
+        if (html !== undefined) {
+            element.innerHTML = html;
         }
+
+        const assignPropertyOrAttribute = (key, value) => {
+            if (value === undefined || value === null) {
+                return;
+            }
+            if (key === 'style' && typeof value === 'object') {
+                Object.assign(element.style, value);
+                return;
+            }
+            if (key in element) {
+                try {
+                    element[key] = value;
+                    return;
+                } catch (error) {
+                    // Fall back to setAttribute below
+                }
+            }
+            element.setAttribute(key, value);
+        };
+
+        if (attributes && typeof attributes === 'object') {
+            Object.entries(attributes).forEach(([key, value]) => {
+                assignPropertyOrAttribute(key, value);
+            });
+        }
+
+        if (dataset && typeof dataset === 'object') {
+            Object.entries(dataset).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    element.dataset[key] = value;
+                }
+            });
+        }
+
+        Object.entries(rest).forEach(([key, value]) => {
+            assignPropertyOrAttribute(key, value);
+        });
+
+        if (Array.isArray(children)) {
+            const appendChild = (child) => {
+                if (child instanceof Node) {
+                    element.appendChild(child);
+                } else if (Array.isArray(child)) {
+                    child.forEach(appendChild);
+                } else if (child !== undefined && child !== null) {
+                    element.append(String(child));
+                }
+            };
+            children.forEach(appendChild);
+        }
+
         return element;
     };
 
