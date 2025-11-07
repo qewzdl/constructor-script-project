@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/payments/stripe"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/lang"
 	"constructor-script-backend/pkg/logger"
@@ -52,12 +53,12 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 		Enabled:  h.courseCheckoutEnabled(),
 		Endpoint: "/api/v1/courses/checkout",
 	}
-	if key := strings.TrimSpace(site.StripePublishableKey); key != "" {
+	if key := strings.TrimSpace(site.StripePublishableKey); stripe.IsPublishableKey(key) {
 		checkoutData.PublishableKey = key
 	}
 	if h.config != nil {
 		if checkoutData.PublishableKey == "" {
-			if key := strings.TrimSpace(h.config.StripePublishableKey); key != "" {
+			if key := strings.TrimSpace(h.config.StripePublishableKey); stripe.IsPublishableKey(key) {
 				checkoutData.PublishableKey = key
 			}
 		}

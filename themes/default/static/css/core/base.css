@@ -1792,7 +1792,7 @@ body.course-modal-open {
 
 .course-modal__dialog {
     position: relative;
-    width: min(720px, 100%);
+    width: min(840px, 100%);
     max-height: min(90vh, 720px);
     overflow: hidden auto;
     background-color: var(--color-bg-top);
@@ -1806,7 +1806,7 @@ body.course-modal-open {
 
 .course-modal__content {
     display: grid;
-    gap: clamp(1rem, 3vw, 2rem);
+    gap: var(--size-mid);
 }
 
 @media (min-width: 768px) {
@@ -1819,6 +1819,12 @@ body.course-modal-open {
 @media (max-width: 768px) {
     .course-modal__media {
         height: 200px;
+    }
+}
+
+@media (max-width: 500px) {
+    .course-modal__actions {
+        flex-direction: column;
     }
 }
 

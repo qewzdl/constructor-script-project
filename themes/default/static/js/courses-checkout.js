@@ -74,10 +74,18 @@
                 return;
             }
             if (loading) {
+                if (!target.dataset.originalLabel) {
+                    target.dataset.originalLabel = target.textContent.trim();
+                }
+                const loadingLabel = target.getAttribute("data-course-modal-loading-label") || "Processing...";
+                target.textContent = loadingLabel;
                 target.disabled = true;
                 target.classList.add("course-modal__purchase--loading");
                 target.setAttribute("aria-busy", "true");
             } else {
+                if (target.dataset.originalLabel) {
+                    target.textContent = target.dataset.originalLabel;
+                }
                 target.disabled = false;
                 target.classList.remove("course-modal__purchase--loading");
                 target.removeAttribute("aria-busy");

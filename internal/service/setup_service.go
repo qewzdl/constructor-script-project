@@ -15,6 +15,7 @@ import (
 
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/payments/stripe"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/lang"
 	blogservice "constructor-script-backend/plugins/blog/service"
@@ -463,6 +464,31 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		return fmt.Errorf("invalid course checkout currency: must be a three-letter ISO code")
 	}
 
+	stripeSecret := strings.TrimSpace(req.StripeSecretKey)
+	if stripeSecret != "" && !stripe.IsSecretKey(stripeSecret) {
+		return fmt.Errorf(
+			"invalid Stripe secret key: must start with %q or %q",
+			stripe.SecretKeyPrefixStandard,
+			stripe.SecretKeyPrefixRestricted,
+		)
+	}
+
+	stripePublish := strings.TrimSpace(req.StripePublishableKey)
+	if stripePublish != "" && !stripe.IsPublishableKey(stripePublish) {
+		return fmt.Errorf(
+			"invalid Stripe publishable key: must start with %q",
+			stripe.PublishableKeyPrefix,
+		)
+	}
+
+	stripeWebhook := strings.TrimSpace(req.StripeWebhookSecret)
+	if stripeWebhook != "" && !stripe.IsWebhookSecret(stripeWebhook) {
+		return fmt.Errorf(
+			"invalid Stripe webhook secret: must start with %q",
+			stripe.WebhookSecretPrefix,
+		)
+	}
+
 	updates := map[string]string{
 		settingKeySiteName:                 strings.TrimSpace(req.Name),
 		settingKeySiteDescription:          strings.TrimSpace(req.Description),
@@ -470,9 +496,9 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		settingKeySiteFavicon:              strings.TrimSpace(req.Favicon),
 		settingKeySiteLogo:                 strings.TrimSpace(req.Logo),
 		settingKeyTagRetentionHours:        strconv.Itoa(req.UnusedTagRetentionHours),
-		settingKeyStripeSecretKey:          strings.TrimSpace(req.StripeSecretKey),
-		settingKeyStripePublishableKey:     strings.TrimSpace(req.StripePublishableKey),
-		settingKeyStripeWebhookSecret:      strings.TrimSpace(req.StripeWebhookSecret),
+		settingKeyStripeSecretKey:          stripeSecret,
+		settingKeyStripePublishableKey:     stripePublish,
+		settingKeyStripeWebhookSecret:      stripeWebhook,
 		settingKeyCourseCheckoutSuccessURL: successURL,
 		settingKeyCourseCheckoutCancelURL:  cancelURL,
 		settingKeyCourseCheckoutCurrency:   currency,

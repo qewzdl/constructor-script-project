@@ -134,6 +134,19 @@ func (f *Feature) Activate() error {
 		}
 	}
 
+	if stripeSecret != "" && !stripe.IsSecretKey(stripeSecret) {
+		logger.Warn("Invalid Stripe secret key provided; course checkout disabled", map[string]interface{}{"feature": "courses"})
+		stripeSecret = ""
+	}
+	if stripePublish != "" && !stripe.IsPublishableKey(stripePublish) {
+		logger.Warn("Invalid Stripe publishable key provided; ignoring value", map[string]interface{}{"feature": "courses"})
+		stripePublish = ""
+	}
+	if stripeWebhook != "" && !stripe.IsWebhookSecret(stripeWebhook) {
+		logger.Warn("Invalid Stripe webhook secret provided; ignoring value", map[string]interface{}{"feature": "courses"})
+		stripeWebhook = ""
+	}
+
 	if stripeSecret != "" {
 		provider, err := stripe.NewProvider(stripeSecret)
 		if err != nil {
