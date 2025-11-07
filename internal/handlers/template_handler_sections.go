@@ -295,7 +295,22 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 		rendered++
 		headingID := fmt.Sprintf("%s-course-%d-title", prefix, rendered)
 
-		sb.WriteString(`<article class="` + cardClass + `" aria-labelledby="` + headingID + `">`)
+		description := strings.TrimSpace(pkg.Description)
+		sanitizedDescription := ""
+		descriptionID := ""
+		if description != "" {
+			sanitizedDescription = strings.TrimSpace(h.SanitizeHTML(description))
+			if sanitizedDescription != "" {
+				descriptionID = fmt.Sprintf("%s-course-%d-description", prefix, rendered)
+			}
+		}
+
+		articleAttrs := `<article class="` + cardClass + `" aria-labelledby="` + headingID + `"`
+		if descriptionID != "" {
+			articleAttrs += ` aria-describedby="` + descriptionID + `"`
+		}
+		articleAttrs += `>`
+		sb.WriteString(articleAttrs)
 
 		if image := strings.TrimSpace(pkg.ImageURL); image != "" {
 			sb.WriteString(`<figure class="` + mediaClass + `">`)
