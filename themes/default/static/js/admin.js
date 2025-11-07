@@ -631,6 +631,10 @@
         const pageSearchInput = root.querySelector('[data-role="page-search"]');
         const categorySearchInput = root.querySelector('[data-role="category-search"]');
         const userSearchInput = root.querySelector('[data-role="user-search"]');
+        const courseVideoSearchInput = root.querySelector('[data-role="course-video-search"]');
+        const courseTopicSearchInput = root.querySelector('[data-role="course-topic-search"]');
+        const courseTestSearchInput = root.querySelector('[data-role="course-test-search"]');
+        const coursePackageSearchInput = root.querySelector('[data-role="course-package-search"]');
         const commentsList = root.querySelector('#admin-comments-list');
         const postForm = root.querySelector('#admin-post-form');
         const pageForm = root.querySelector('#admin-page-form');
@@ -937,6 +941,10 @@
                 topicSteps: [],
                 packageTopicIds: [],
                 testQuestions: [],
+                videoSearchQuery: '',
+                topicSearchQuery: '',
+                testSearchQuery: '',
+                packageSearchQuery: '',
             },
         };
 
@@ -2966,6 +2974,50 @@
             }
         };
 
+        const setCourseVideoSearchQuery = (value) => {
+            const next = normaliseSearchQuery(value);
+            if (state.courses.videoSearchQuery === next) {
+                return;
+            }
+            state.courses.videoSearchQuery = next;
+            if (state.courses.hasLoadedVideos) {
+                renderCourseVideos();
+            }
+        };
+
+        const setCourseTopicSearchQuery = (value) => {
+            const next = normaliseSearchQuery(value);
+            if (state.courses.topicSearchQuery === next) {
+                return;
+            }
+            state.courses.topicSearchQuery = next;
+            if (state.courses.hasLoadedTopics) {
+                renderCourseTopics();
+            }
+        };
+
+        const setCourseTestSearchQuery = (value) => {
+            const next = normaliseSearchQuery(value);
+            if (state.courses.testSearchQuery === next) {
+                return;
+            }
+            state.courses.testSearchQuery = next;
+            if (state.courses.hasLoadedTests) {
+                renderCourseTests();
+            }
+        };
+
+        const setCoursePackageSearchQuery = (value) => {
+            const next = normaliseSearchQuery(value);
+            if (state.courses.packageSearchQuery === next) {
+                return;
+            }
+            state.courses.packageSearchQuery = next;
+            if (state.courses.hasLoadedPackages) {
+                renderCoursePackages();
+            }
+        };
+
         const extractUserId = (user) => {
             if (!user) {
                 return '';
@@ -3445,8 +3497,40 @@
         const getCourseVideoTitle = (video) =>
             normaliseString(video?.title ?? video?.Title ?? 'Untitled video');
 
+        const getCourseVideoSearchFields = (video) => [
+            extractCourseVideoId(video),
+            video?.title,
+            video?.Title,
+            video?.description,
+            video?.Description,
+        ];
+
         const getCourseTestTitle = (test) =>
             normaliseString(test?.title ?? test?.Title ?? 'Untitled test');
+
+        const getCourseTopicSearchFields = (topic) => [
+            extractCourseTopicId(topic),
+            topic?.title,
+            topic?.Title,
+            topic?.description,
+            topic?.Description,
+        ];
+
+        const getCourseTestSearchFields = (test) => [
+            extractCourseTestId(test),
+            test?.title,
+            test?.Title,
+            test?.description,
+            test?.Description,
+        ];
+
+        const getCoursePackageSearchFields = (pkg) => [
+            extractCoursePackageId(pkg),
+            pkg?.title,
+            pkg?.Title,
+            pkg?.description,
+            pkg?.Description,
+        ];
 
         const getCourseTopicSteps = (topic) => {
             if (Array.isArray(topic?.steps)) {
@@ -3623,7 +3707,25 @@
                 table.appendChild(row);
                 return;
             }
-            videos.sort((a, b) => {
+            const query = state.courses.videoSearchQuery;
+            const filteredVideos = query
+                ? videos.filter((video) =>
+                      matchesSearchQuery(getCourseVideoSearchFields(video), query)
+                  )
+                : videos;
+            if (!filteredVideos.length) {
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No videos match your search.',
+                });
+                cell.colSpan = 3;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            filteredVideos.sort((a, b) => {
                 const aDate = new Date(
                     a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
                 ).getTime();
@@ -3632,7 +3734,7 @@
                 ).getTime();
                 return bDate - aDate;
             });
-            videos.forEach((video) => {
+            filteredVideos.forEach((video) => {
                 const id = extractCourseVideoId(video);
                 if (!id) {
                     return;
@@ -3681,7 +3783,25 @@
                 table.appendChild(row);
                 return;
             }
-            topics.sort((a, b) => {
+            const topicQuery = state.courses.topicSearchQuery;
+            const filteredTopics = topicQuery
+                ? topics.filter((topic) =>
+                      matchesSearchQuery(getCourseTopicSearchFields(topic), topicQuery)
+                  )
+                : topics;
+            if (!filteredTopics.length) {
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No topics match your search.',
+                });
+                cell.colSpan = 3;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            filteredTopics.sort((a, b) => {
                 const aDate = new Date(
                     a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
                 ).getTime();
@@ -3690,7 +3810,7 @@
                 ).getTime();
                 return bDate - aDate;
             });
-            topics.forEach((topic) => {
+            filteredTopics.forEach((topic) => {
                 const id = extractCourseTopicId(topic);
                 if (!id) {
                     return;
@@ -3745,7 +3865,25 @@
                 table.appendChild(row);
                 return;
             }
-            packages.sort((a, b) => {
+            const packageQuery = state.courses.packageSearchQuery;
+            const filteredPackages = packageQuery
+                ? packages.filter((pkg) =>
+                      matchesSearchQuery(getCoursePackageSearchFields(pkg), packageQuery)
+                  )
+                : packages;
+            if (!filteredPackages.length) {
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No packages match your search.',
+                });
+                cell.colSpan = 4;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            filteredPackages.sort((a, b) => {
                 const aDate = new Date(
                     a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
                 ).getTime();
@@ -3754,7 +3892,7 @@
                 ).getTime();
                 return bDate - aDate;
             });
-            packages.forEach((pkg) => {
+            filteredPackages.forEach((pkg) => {
                 const id = extractCoursePackageId(pkg);
                 if (!id) {
                     return;
@@ -4074,7 +4212,25 @@
                 table.appendChild(row);
                 return;
             }
-            tests.sort((a, b) => {
+            const testQuery = state.courses.testSearchQuery;
+            const filteredTests = testQuery
+                ? tests.filter((test) =>
+                      matchesSearchQuery(getCourseTestSearchFields(test), testQuery)
+                  )
+                : tests;
+            if (!filteredTests.length) {
+                const row = createElement('tr', {
+                    className: 'admin-table__placeholder',
+                });
+                const cell = createElement('td', {
+                    textContent: 'No tests match your search.',
+                });
+                cell.colSpan = 3;
+                row.appendChild(cell);
+                table.appendChild(row);
+                return;
+            }
+            filteredTests.sort((a, b) => {
                 const aDate = new Date(
                     a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
                 ).getTime();
@@ -4083,7 +4239,7 @@
                 ).getTime();
                 return bDate - aDate;
             });
-            tests.forEach((test) => {
+            filteredTests.forEach((test) => {
                 const id = extractCourseTestId(test);
                 if (!id) {
                     return;
@@ -11206,6 +11362,10 @@
         attachSearchHandler(pageSearchInput, setPageSearchQuery);
         attachSearchHandler(categorySearchInput, setCategorySearchQuery);
         attachSearchHandler(userSearchInput, setUserSearchQuery);
+        attachSearchHandler(courseVideoSearchInput, setCourseVideoSearchQuery);
+        attachSearchHandler(courseTopicSearchInput, setCourseTopicSearchQuery);
+        attachSearchHandler(courseTestSearchInput, setCourseTestSearchQuery);
+        attachSearchHandler(coursePackageSearchInput, setCoursePackageSearchQuery);
 
         if (postSearchInput?.value) {
             setPostSearchQuery(postSearchInput.value);
@@ -11218,6 +11378,18 @@
         }
         if (userSearchInput?.value) {
             setUserSearchQuery(userSearchInput.value);
+        }
+        if (courseVideoSearchInput?.value) {
+            setCourseVideoSearchQuery(courseVideoSearchInput.value);
+        }
+        if (courseTopicSearchInput?.value) {
+            setCourseTopicSearchQuery(courseTopicSearchInput.value);
+        }
+        if (courseTestSearchInput?.value) {
+            setCourseTestSearchQuery(courseTestSearchInput.value);
+        }
+        if (coursePackageSearchInput?.value) {
+            setCoursePackageSearchQuery(coursePackageSearchInput.value);
         }
 
         postForm?.addEventListener('submit', handlePostSubmit);
