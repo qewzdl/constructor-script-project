@@ -424,6 +424,53 @@
             />
         </div>
 
+        <div class="course-modal" data-course-modal hidden aria-hidden="true">
+            <div
+                class="course-modal__dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="course-modal-title"
+                aria-describedby="course-modal-description"
+                tabindex="-1"
+            >
+                <button
+                    type="button"
+                    class="course-modal__close"
+                    data-course-modal-close
+                    aria-label="Закрыть модальное окно"
+                ></button>
+                <div class="course-modal__content">
+                    <figure class="course-modal__media" data-course-modal-media hidden>
+                        <img
+                            src=""
+                            alt=""
+                            class="course-modal__image"
+                            data-course-modal-image
+                        />
+                    </figure>
+                    <div class="course-modal__details">
+                        <h3 class="course-modal__title" id="course-modal-title" data-course-modal-title></h3>
+                        <div class="course-modal__price" data-course-modal-price hidden></div>
+                        <div
+                            class="course-modal__description"
+                            id="course-modal-description"
+                            data-course-modal-description
+                            hidden
+                        ></div>
+                        <div class="course-modal__topics-wrapper" data-course-modal-topics-wrapper hidden>
+                            <h4 class="course-modal__topics-title">Темы курса</h4>
+                            <ul class="course-modal__topics-list" data-course-modal-topics></ul>
+                        </div>
+                        <div class="course-modal__actions">
+                            <button type="button" class="course-modal__purchase" data-course-modal-purchase>
+                                Купить курс
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script src="{{ asset "/static/js/theme.js" }}" defer></script>
         <script src="{{ asset "/static/js/header.js" }}" defer></script>
         <script src="{{ asset "/static/js/auth.js" }}" defer></script>

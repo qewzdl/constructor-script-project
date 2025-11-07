@@ -1763,6 +1763,200 @@ body.post-image-modal-open .post-progress {
     display: none;
 }
 
+body.course-modal-open {
+    overflow: hidden;
+}
+
+.course-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--color-lg);
+    background-color: var(--modal-outside-bg);
+    backdrop-filter: blur(3px);
+    z-index: 1100;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.course-modal--active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.course-modal[hidden] {
+    display: none;
+}
+
+.course-modal__dialog {
+    position: relative;
+    width: min(720px, 100%);
+    max-height: min(90vh, 720px);
+    overflow: hidden auto;
+    background-color: var(--color-bg-top);
+    color: var(--color-text);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    margin-inline: var(--size-base);
+    outline: none;
+}
+
+.course-modal__close {
+    position: absolute;
+    top: var(--size-base);
+    right: var(--size-base);
+    width: var(--size-mid);
+    height: var(--size-mid);
+    border-radius: 999px;
+    border: none;
+    background-color: transparent;
+    color: var(--color-text);
+    font-size: 0;
+    cursor: pointer;
+}
+
+.course-modal__close::before,
+.course-modal__close::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 2px;
+    background-color: currentColor;
+    border-radius: 999px;
+    left: 50%;
+    top: 50%;
+    transform-origin: center;
+}
+
+.course-modal__close::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.course-modal__close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.course-modal__content {
+    display: grid;
+    gap: clamp(1rem, 3vw, 2rem);
+}
+
+@media (min-width: 768px) {
+    .course-modal__content {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+        align-items: start;
+    }
+}
+
+@media (max-width: 768px) {
+    .course-modal__media {
+        height: 200px;
+    }
+}
+
+.course-modal__details {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.course-modal__media[hidden] {
+    display: none;
+}
+
+.course-modal__image {
+    width: 100%;
+    height: 200px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+}
+
+.course-modal__title {
+    font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+    line-height: 1.2;
+}
+
+.course-modal__price {
+    margin-top: var(--size-sm);
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.course-modal__price[hidden] {
+    display: none;
+}
+
+.course-modal__description {
+    margin-top: var(--size-base);
+    font-size: var(--font-size-base);
+    line-height: 1.6;
+}
+
+.course-modal__description[hidden] {
+    display: none;
+}
+
+.course-modal__topics-wrapper {
+    margin-top: var(--size-base);
+}
+
+.course-modal__topics-wrapper[hidden] {
+    display: none;
+}
+
+.course-modal__topics-title {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--size-sm);
+}
+
+.course-modal__topics-list {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-sm);
+    padding: 0;
+    margin: 0;
+}
+
+.course-modal__topics-item {
+    background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-text-accent);
+    border-radius: 999px;
+    padding: var(--size-xs) var(--size-sm);
+    font-size: var(--font-size-sm);
+}
+
+.course-modal__actions {
+    margin-top: var(--size-base);
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--size-sm);
+}
+
+.course-modal__purchase {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--size-sm) var(--size-lg);
+    background: var(--color-primary);
+    color: var(--color-primary-opposite);
+    border: none;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+}
+
+.course-modal__purchase:hover,
+.course-modal__purchase:focus-visible {
+    background: var(--color-primary-hover);
+    outline: none;
+}
+
 .page-view {
     display: grid;
     gap: var(--size-max);

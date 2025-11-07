@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"strconv"
 	"strings"
 
 	"constructor-script-backend/internal/constants"
@@ -70,6 +71,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sb.WriteString(h.renderCategoriesListSection(prefix, section))
 		case "courses_list":
 			skipElements = true
+			scripts = appendScripts(scripts, []string{"/static/js/courses-modal.js"})
 			sb.WriteString(h.renderCoursesListSection(prefix, section))
 		}
 
@@ -294,6 +296,7 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 
 		rendered++
 		headingID := fmt.Sprintf("%s-course-%d-title", prefix, rendered)
+		courseID := strconv.FormatUint(uint64(pkg.ID), 10)
 
 		description := strings.TrimSpace(pkg.Description)
 		sanitizedDescription := ""
@@ -305,7 +308,11 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 			}
 		}
 
-		articleAttrs := `<article class="` + cardClass + `" aria-labelledby="` + headingID + `"`
+		articleAttrs := `<article class="` + cardClass + `" data-course-card`
+		if courseID != "0" {
+			articleAttrs += ` data-course-id="` + courseID + `"`
+		}
+		articleAttrs += ` role="button" tabindex="0" aria-haspopup="dialog" aria-labelledby="` + headingID + `"`
 		if descriptionID != "" {
 			articleAttrs += ` aria-describedby="` + descriptionID + `"`
 		}

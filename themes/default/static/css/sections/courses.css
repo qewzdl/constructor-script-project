@@ -4,6 +4,20 @@
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.courses-list__item {
+    cursor: pointer;
+}
+
+.courses-list__item:hover,
+.courses-list__item:focus-visible {
+    outline: none;
+}
+
+.courses-list__item:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+}
+
 .courses-list__price {
     font-weight: 600;
     color: var(--color-accent, var(--color-primary));
