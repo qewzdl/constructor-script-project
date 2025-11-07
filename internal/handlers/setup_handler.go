@@ -31,9 +31,11 @@ func NewSetupHandler(setupService *service.SetupService, fontService *service.Fo
 
 func (h *SetupHandler) Status(c *gin.Context) {
 	if h.setupService == nil {
+		defaults := h.defaultSiteSettings()
+		h.sanitizeSensitiveSettings(&defaults)
 		c.JSON(http.StatusOK, gin.H{
 			"setup_required": false,
-			"site":           h.defaultSiteSettings(),
+			"site":           defaults,
 		})
 		return
 	}
@@ -53,6 +55,7 @@ func (h *SetupHandler) Status(c *gin.Context) {
 	}
 
 	h.applyFontSettings(&settings)
+	h.sanitizeSensitiveSettings(&settings)
 
 	c.JSON(http.StatusOK, gin.H{
 		"setup_required": !complete,
@@ -117,10 +120,16 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 	}
 
 	settings := models.SiteSettings{
-		Logo:                    logo,
-		UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours,
-		DefaultLanguage:         defaultLanguage,
-		SupportedLanguages:      supportedLanguages,
+		Logo:                     logo,
+		UnusedTagRetentionHours:  blogservice.DefaultUnusedTagRetentionHours,
+		DefaultLanguage:          defaultLanguage,
+		SupportedLanguages:       supportedLanguages,
+		StripeSecretKey:          "",
+		StripePublishableKey:     "",
+		StripeWebhookSecret:      "",
+		CourseCheckoutSuccessURL: "",
+		CourseCheckoutCancelURL:  "",
+		CourseCheckoutCurrency:   "",
 	}
 
 	if h.config != nil {
@@ -129,6 +138,12 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 		settings.URL = h.config.SiteURL
 		settings.Favicon = h.config.SiteFavicon
 		settings.FaviconType = models.DetectFaviconType(h.config.SiteFavicon)
+		settings.StripeSecretKey = strings.TrimSpace(h.config.StripeSecretKey)
+		settings.StripePublishableKey = strings.TrimSpace(h.config.StripePublishableKey)
+		settings.StripeWebhookSecret = strings.TrimSpace(h.config.StripeWebhookSecret)
+		settings.CourseCheckoutSuccessURL = strings.TrimSpace(h.config.CourseCheckoutSuccessURL)
+		settings.CourseCheckoutCancelURL = strings.TrimSpace(h.config.CourseCheckoutCancelURL)
+		settings.CourseCheckoutCurrency = strings.ToLower(strings.TrimSpace(h.config.CourseCheckoutCurrency))
 	}
 
 	h.applyFontSettings(&settings)
@@ -155,6 +170,14 @@ func (h *SetupHandler) applyFontSettings(settings *models.SiteSettings) {
 
 	settings.Fonts = fonts
 	settings.FontPreconnects = service.CollectFontPreconnects(fonts)
+}
+
+func (h *SetupHandler) sanitizeSensitiveSettings(settings *models.SiteSettings) {
+	if settings == nil {
+		return
+	}
+	settings.StripeSecretKey = ""
+	settings.StripeWebhookSecret = ""
 }
 
 func (h *SetupHandler) GetSiteSettings(c *gin.Context) {

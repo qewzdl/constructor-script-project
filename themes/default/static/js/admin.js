@@ -5316,6 +5316,11 @@
                     ['favicon', site?.favicon],
                     ['logo', site?.logo],
                     ['unused_tag_retention_hours', site?.unused_tag_retention_hours],
+                    ['stripe_secret_key', site?.stripe_secret_key],
+                    ['stripe_publishable_key', site?.stripe_publishable_key],
+                    ['stripe_webhook_secret', site?.stripe_webhook_secret],
+                    ['course_checkout_success_url', site?.course_checkout_success_url],
+                    ['course_checkout_cancel_url', site?.course_checkout_cancel_url],
                 ];
 
                 entries.forEach(([key, value]) => {
@@ -5325,6 +5330,15 @@
                     }
                     field.value = value || '';
                 });
+
+                const currencyField = settingsForm.querySelector('[name="course_checkout_currency"]');
+                if (currencyField) {
+                    const currencyValue =
+                        typeof site?.course_checkout_currency === 'string'
+                            ? site.course_checkout_currency.toUpperCase()
+                            : '';
+                    currencyField.value = currencyValue;
+                }
             }
 
             updateFaviconPreview(site?.favicon || site?.Favicon || '');
@@ -9003,6 +9017,18 @@
                 return field ? field.value.trim() : '';
             };
 
+            const isValidAbsoluteUrl = (value) => {
+                if (!value) {
+                    return true;
+                }
+                try {
+                    const parsed = new URL(value);
+                    return Boolean(parsed.protocol && parsed.host);
+                } catch (error) {
+                    return false;
+                }
+            };
+
             const payload = {
                 name: getValue('name'),
                 description: getValue('description'),
@@ -9010,6 +9036,23 @@
                 favicon: getValue('favicon'),
                 logo: getValue('logo'),
             };
+
+            const stripeSecretKey = getValue('stripe_secret_key');
+            const stripePublishableKey = getValue('stripe_publishable_key');
+            const stripeWebhookSecret = getValue('stripe_webhook_secret');
+            const successUrl = getValue('course_checkout_success_url');
+            const cancelUrl = getValue('course_checkout_cancel_url');
+            const currencyRaw = getValue('course_checkout_currency');
+
+            if (!isValidAbsoluteUrl(successUrl)) {
+                showAlert('Please provide a valid checkout success URL, including the protocol (e.g. https://example.com/success).', 'error');
+                return;
+            }
+
+            if (!isValidAbsoluteUrl(cancelUrl)) {
+                showAlert('Please provide a valid checkout cancel URL, including the protocol (e.g. https://example.com/cancel).', 'error');
+                return;
+            }
 
             const defaultLanguageValue = defaultLanguageInput
                 ? defaultLanguageInput.value.trim()
@@ -9043,6 +9086,19 @@
             }
 
             payload.unused_tag_retention_hours = retentionHours;
+
+            const normalisedCurrency = currencyRaw ? currencyRaw.toLowerCase() : '';
+            if (normalisedCurrency && !/^[a-z]{3}$/.test(normalisedCurrency)) {
+                showAlert('Please provide a valid three-letter ISO currency code (for example, usd or eur).', 'error');
+                return;
+            }
+
+            payload.stripe_secret_key = stripeSecretKey;
+            payload.stripe_publishable_key = stripePublishableKey;
+            payload.stripe_webhook_secret = stripeWebhookSecret;
+            payload.course_checkout_success_url = successUrl;
+            payload.course_checkout_cancel_url = cancelUrl;
+            payload.course_checkout_currency = normalisedCurrency;
 
             if (!payload.name) {
                 showAlert('Please provide a site name.', 'error');

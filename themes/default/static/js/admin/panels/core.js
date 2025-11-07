@@ -954,6 +954,62 @@
                             </div>
                         </label>
                     </fieldset>
+                    <fieldset class="admin-card admin-form__fieldset">
+                        <legend class="admin-card__title admin-form__legend">Course payments</legend>
+                        <p class="admin-card__description admin-form__hint">
+                            Provide Stripe credentials and checkout preferences for selling course packages.
+                        </p>
+                        <label class="admin-form__label">
+                            Stripe publishable key
+                            <input type="text" name="stripe_publishable_key" class="admin-form__input" autocomplete="off" />
+                        </label>
+                        <label class="admin-form__label">
+                            Stripe secret key
+                            <input type="password" name="stripe_secret_key" class="admin-form__input" autocomplete="off" />
+                            <small class="admin-card__description admin-form__hint">
+                                Use a restricted key with permissions to create Checkout Sessions.
+                            </small>
+                        </label>
+                        <label class="admin-form__label">
+                            Stripe webhook secret
+                            <input type="password" name="stripe_webhook_secret" class="admin-form__input" autocomplete="off" />
+                            <small class="admin-card__description admin-form__hint">
+                                Optional. Required if Stripe webhooks are configured for post-payment processing.
+                            </small>
+                        </label>
+                        <label class="admin-form__label">
+                            Checkout success URL
+                            <input
+                                type="url"
+                                name="course_checkout_success_url"
+                                class="admin-form__input"
+                                placeholder="https://example.com/courses/checkout/success"
+                            />
+                        </label>
+                        <label class="admin-form__label">
+                            Checkout cancel URL
+                            <input
+                                type="url"
+                                name="course_checkout_cancel_url"
+                                class="admin-form__input"
+                                placeholder="https://example.com/courses/checkout/cancel"
+                            />
+                        </label>
+                        <label class="admin-form__label">
+                            Checkout currency
+                            <input
+                                type="text"
+                                name="course_checkout_currency"
+                                class="admin-form__input"
+                                maxlength="3"
+                                placeholder="usd"
+                                autocomplete="off"
+                            />
+                            <small class="admin-card__description admin-form__hint">
+                                Specify a three-letter ISO currency code (for example, <code>usd</code> or <code>eur</code>).
+                            </small>
+                        </label>
+                    </fieldset>
                 </form>
             </div>
             </section>

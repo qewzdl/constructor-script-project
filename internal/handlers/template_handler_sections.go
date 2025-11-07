@@ -72,6 +72,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		case "courses_list":
 			skipElements = true
 			scripts = appendScripts(scripts, []string{"/static/js/courses-modal.js"})
+			if h.courseCheckoutEnabled() {
+				scripts = appendScripts(scripts, []string{"/static/js/courses-checkout.js"})
+			}
 			sb.WriteString(h.renderCoursesListSection(prefix, section))
 		}
 

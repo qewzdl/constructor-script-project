@@ -424,7 +424,16 @@
             />
         </div>
 
-        <div class="course-modal" data-course-modal hidden aria-hidden="true">
+        {{ $checkout := .CourseCheckout }}
+        <div
+            class="course-modal"
+            data-course-modal
+            data-course-checkout-enabled="{{ if and $checkout $checkout.Enabled }}true{{ else }}false{{ end }}"
+            data-course-checkout-endpoint="{{ if and $checkout $checkout.Endpoint }}{{ $checkout.Endpoint }}{{ end }}"
+            data-course-checkout-publishable-key="{{ if and $checkout $checkout.PublishableKey }}{{ $checkout.PublishableKey }}{{ end }}"
+            hidden
+            aria-hidden="true"
+        >
             <div
                 class="course-modal__dialog"
                 role="dialog"
@@ -461,6 +470,7 @@
                             <h4 class="course-modal__topics-title">Темы курса</h4>
                             <ul class="course-modal__topics-list" data-course-modal-topics></ul>
                         </div>
+                        <p class="course-modal__error" data-course-modal-error hidden role="alert"></p>
                         <div class="course-modal__actions">
                             <button type="button" class="course-modal__purchase" data-course-modal-purchase>
                                 Купить курс

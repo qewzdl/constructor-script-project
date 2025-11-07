@@ -21,15 +21,21 @@ func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService,
 	}
 
 	defaults := models.SiteSettings{
-		Name:                    cfg.SiteName,
-		Description:             cfg.SiteDescription,
-		URL:                     cfg.SiteURL,
-		Favicon:                 cfg.SiteFavicon,
-		FaviconType:             models.DetectFaviconType(cfg.SiteFavicon),
-		Logo:                    cfg.SiteLogo,
-		UnusedTagRetentionHours: blogservice.DefaultUnusedTagRetentionHours,
-		DefaultLanguage:         defaultLanguage,
-		SupportedLanguages:      supportedLanguages,
+		Name:                     cfg.SiteName,
+		Description:              cfg.SiteDescription,
+		URL:                      cfg.SiteURL,
+		Favicon:                  cfg.SiteFavicon,
+		FaviconType:              models.DetectFaviconType(cfg.SiteFavicon),
+		Logo:                     cfg.SiteLogo,
+		UnusedTagRetentionHours:  blogservice.DefaultUnusedTagRetentionHours,
+		DefaultLanguage:          defaultLanguage,
+		SupportedLanguages:       supportedLanguages,
+		StripeSecretKey:          cfg.StripeSecretKey,
+		StripePublishableKey:     cfg.StripePublishableKey,
+		StripeWebhookSecret:      cfg.StripeWebhookSecret,
+		CourseCheckoutSuccessURL: cfg.CourseCheckoutSuccessURL,
+		CourseCheckoutCancelURL:  cfg.CourseCheckoutCancelURL,
+		CourseCheckoutCurrency:   strings.ToLower(strings.TrimSpace(cfg.CourseCheckoutCurrency)),
 	}
 
 	if strings.TrimSpace(defaults.Logo) == "" {
@@ -56,6 +62,9 @@ func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService,
 	if len(settings.SupportedLanguages) == 0 {
 		settings.SupportedLanguages = []string{settings.DefaultLanguage}
 	}
+
+	settings.StripeSecretKey = ""
+	settings.StripeWebhookSecret = ""
 
 	return settings, nil
 }

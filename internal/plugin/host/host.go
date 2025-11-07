@@ -81,19 +81,23 @@ type BlogHandlerAccess interface {
 }
 
 type CourseServiceAccess interface {
-	Video() *courseservice.VideoService
-	SetVideo(*courseservice.VideoService)
-	Topic() *courseservice.TopicService
-	SetTopic(*courseservice.TopicService)
-	Package() *courseservice.PackageService
-	SetPackage(*courseservice.PackageService)
+        Video() *courseservice.VideoService
+        SetVideo(*courseservice.VideoService)
+        Topic() *courseservice.TopicService
+        SetTopic(*courseservice.TopicService)
+        Package() *courseservice.PackageService
+        SetPackage(*courseservice.PackageService)
+        Checkout() *courseservice.CheckoutService
+        SetCheckout(*courseservice.CheckoutService)
 }
 
 type CourseHandlerAccess interface {
-	Video() *coursehandlers.VideoHandler
-	SetVideo(*coursehandlers.VideoHandler)
-	Topic() *coursehandlers.TopicHandler
-	SetTopic(*coursehandlers.TopicHandler)
-	Package() *coursehandlers.PackageHandler
-	SetPackage(*coursehandlers.PackageHandler)
+        Video() *coursehandlers.VideoHandler
+        SetVideo(*coursehandlers.VideoHandler)
+        Topic() *coursehandlers.TopicHandler
+        SetTopic(*coursehandlers.TopicHandler)
+        Package() *coursehandlers.PackageHandler
+        SetPackage(*coursehandlers.PackageHandler)
+        Checkout() *coursehandlers.CheckoutHandler
+        SetCheckout(*coursehandlers.CheckoutHandler)
 }

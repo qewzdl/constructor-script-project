@@ -344,6 +344,20 @@ func (s applicationCourseServices) SetPackage(pkg *courseservice.PackageService)
 	s.app.services.CoursePackage = pkg
 }
 
+func (s applicationCourseServices) Checkout() *courseservice.CheckoutService {
+	if s.app == nil {
+		return nil
+	}
+	return s.app.services.CourseCheckout
+}
+
+func (s applicationCourseServices) SetCheckout(checkout *courseservice.CheckoutService) {
+	if s.app == nil {
+		return
+	}
+	s.app.services.CourseCheckout = checkout
+}
+
 func (h applicationBlogHandlers) Post() *bloghandlers.PostHandler {
 	if h.app == nil {
 		return nil
@@ -440,4 +454,18 @@ func (h applicationCourseHandlers) SetPackage(handler *coursehandlers.PackageHan
 		return
 	}
 	h.app.handlers.CoursePackage = handler
+}
+
+func (h applicationCourseHandlers) Checkout() *coursehandlers.CheckoutHandler {
+	if h.app == nil {
+		return nil
+	}
+	return h.app.handlers.CourseCheckout
+}
+
+func (h applicationCourseHandlers) SetCheckout(handler *coursehandlers.CheckoutHandler) {
+	if h.app == nil {
+		return
+	}
+	h.app.handlers.CourseCheckout = handler
 }

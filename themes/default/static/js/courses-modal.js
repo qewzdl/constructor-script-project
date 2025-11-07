@@ -41,6 +41,7 @@
         const dialog = modal.querySelector(".course-modal__dialog");
         const closeButton = modal.querySelector("[data-course-modal-close]");
         const purchaseButton = modal.querySelector("[data-course-modal-purchase]");
+        const errorElement = modal.querySelector("[data-course-modal-error]");
         const titleElement = modal.querySelector("[data-course-modal-title]");
         const priceElement = modal.querySelector("[data-course-modal-price]");
         const descriptionElement = modal.querySelector("[data-course-modal-description]");
@@ -174,6 +175,14 @@
             purchaseButton.dataset.courseId = courseId;
             purchaseButton.dataset.courseTitle = title;
             purchaseButton.dataset.coursePrice = priceText;
+            purchaseButton.classList.remove("course-modal__purchase--loading");
+            purchaseButton.removeAttribute("aria-busy");
+            purchaseButton.disabled = false;
+
+            if (errorElement) {
+                errorElement.textContent = "";
+                errorElement.hidden = true;
+            }
 
             modal.hidden = false;
             requestAnimationFrame(() => {
@@ -275,7 +284,8 @@
             const detail = {
                 id: purchaseButton.dataset.courseId || "",
                 title: purchaseButton.dataset.courseTitle || "",
-                price: purchaseButton.dataset.coursePrice || ""
+                price: purchaseButton.dataset.coursePrice || "",
+                button: purchaseButton
             };
             dispatchLifecycleEvent("courses:purchase", detail);
         });

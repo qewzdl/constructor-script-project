@@ -91,6 +91,14 @@ type Config struct {
 	BackupS3Region      string
 	BackupS3UseSSL      bool
 	BackupS3Prefix      string
+
+	// Payments
+	StripeSecretKey          string
+	StripePublishableKey     string
+	StripeWebhookSecret      string
+	CourseCheckoutSuccessURL string
+	CourseCheckoutCancelURL  string
+	CourseCheckoutCurrency   string
 }
 
 func New() *Config {
@@ -179,6 +187,33 @@ func New() *Config {
 		BackupS3Region:      getEnv("BACKUP_S3_REGION", ""),
 		BackupS3UseSSL:      getEnvAsBool("BACKUP_S3_USE_SSL", true),
 		BackupS3Prefix:      getEnv("BACKUP_S3_PREFIX", ""),
+
+		// Payments
+		StripeSecretKey:        strings.TrimSpace(getEnv("STRIPE_SECRET_KEY", "")),
+		StripePublishableKey:   strings.TrimSpace(getEnv("STRIPE_PUBLISHABLE_KEY", "")),
+		StripeWebhookSecret:    strings.TrimSpace(getEnv("STRIPE_WEBHOOK_SECRET", "")),
+		CourseCheckoutCurrency: strings.ToLower(strings.TrimSpace(getEnv("COURSE_CURRENCY", "usd"))),
+	}
+
+	successURL := strings.TrimSpace(getEnv("COURSE_CHECKOUT_SUCCESS_URL", ""))
+	cancelURL := strings.TrimSpace(getEnv("COURSE_CHECKOUT_CANCEL_URL", ""))
+
+	baseSiteURL := strings.TrimSpace(c.SiteURL)
+	if baseSiteURL == "" {
+		baseSiteURL = "http://localhost:8081"
+	}
+	normalizedBase := strings.TrimRight(baseSiteURL, "/")
+
+	if successURL == "" {
+		c.CourseCheckoutSuccessURL = normalizedBase + "/courses/checkout/success"
+	} else {
+		c.CourseCheckoutSuccessURL = successURL
+	}
+
+	if cancelURL == "" {
+		c.CourseCheckoutCancelURL = normalizedBase + "/courses/checkout/cancel"
+	} else {
+		c.CourseCheckoutCancelURL = cancelURL
 	}
 
 	if databaseURL, ok := getEnvWithPresence("DATABASE_URL"); ok {

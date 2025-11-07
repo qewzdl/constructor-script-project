@@ -2,10 +2,14 @@ package courses
 
 import (
 	"fmt"
+	"strings"
 
+	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/payments/stripe"
 	"constructor-script-backend/internal/plugin/host"
 	"constructor-script-backend/internal/plugin/registry"
 	pluginruntime "constructor-script-backend/internal/plugin/runtime"
+	"constructor-script-backend/pkg/logger"
 	coursehandlers "constructor-script-backend/plugins/courses/handlers"
 	courseservice "constructor-script-backend/plugins/courses/service"
 )
@@ -76,6 +80,80 @@ func (f *Feature) Activate() error {
 		packageService.SetRepositories(packageRepo, topicRepo, videoRepo)
 	}
 
+	cfg := f.host.Config()
+	checkoutConfig := courseservice.CheckoutConfig{}
+	var (
+		checkoutProvider *stripe.Provider
+		stripeSecret     string
+		stripePublish    string
+		stripeWebhook    string
+	)
+	if cfg != nil {
+		checkoutConfig = courseservice.CheckoutConfig{
+			SuccessURL: cfg.CourseCheckoutSuccessURL,
+			CancelURL:  cfg.CourseCheckoutCancelURL,
+			Currency:   cfg.CourseCheckoutCurrency,
+		}
+		stripeSecret = strings.TrimSpace(cfg.StripeSecretKey)
+		stripePublish = strings.TrimSpace(cfg.StripePublishableKey)
+		stripeWebhook = strings.TrimSpace(cfg.StripeWebhookSecret)
+	} else {
+		logger.Debug("Configuration unavailable; course checkout remains disabled", map[string]interface{}{"feature": "courses"})
+	}
+
+	if setupService := coreServices.Setup(); setupService != nil {
+		defaults := models.SiteSettings{
+			StripeSecretKey:          stripeSecret,
+			StripePublishableKey:     stripePublish,
+			StripeWebhookSecret:      stripeWebhook,
+			CourseCheckoutSuccessURL: checkoutConfig.SuccessURL,
+			CourseCheckoutCancelURL:  checkoutConfig.CancelURL,
+			CourseCheckoutCurrency:   checkoutConfig.Currency,
+		}
+		if settings, err := setupService.GetSiteSettings(defaults); err != nil {
+			logger.Error(err, "Failed to load site settings for checkout", map[string]interface{}{"feature": "courses"})
+		} else {
+			if key := strings.TrimSpace(settings.StripeSecretKey); key != "" {
+				stripeSecret = key
+			}
+			if key := strings.TrimSpace(settings.StripePublishableKey); key != "" {
+				stripePublish = key
+			}
+			if key := strings.TrimSpace(settings.StripeWebhookSecret); key != "" {
+				stripeWebhook = key
+			}
+			if url := strings.TrimSpace(settings.CourseCheckoutSuccessURL); url != "" {
+				checkoutConfig.SuccessURL = url
+			}
+			if url := strings.TrimSpace(settings.CourseCheckoutCancelURL); url != "" {
+				checkoutConfig.CancelURL = url
+			}
+			if currency := strings.TrimSpace(settings.CourseCheckoutCurrency); currency != "" {
+				checkoutConfig.Currency = strings.ToLower(currency)
+			}
+		}
+	}
+
+	if stripeSecret != "" {
+		provider, err := stripe.NewProvider(stripeSecret)
+		if err != nil {
+			logger.Error(err, "Failed to initialise Stripe provider", map[string]interface{}{"feature": "courses"})
+		} else {
+			checkoutProvider = provider
+		}
+	} else {
+		logger.Debug("Stripe secret key not provided; course checkout remains disabled", map[string]interface{}{"feature": "courses"})
+	}
+
+	checkoutService := courseServices.Checkout()
+	if checkoutService == nil {
+		checkoutService = courseservice.NewCheckoutService(packageRepo, checkoutProvider, checkoutConfig)
+		courseServices.SetCheckout(checkoutService)
+	} else {
+		checkoutService.SetDependencies(packageRepo, checkoutProvider)
+		checkoutService.SetConfig(checkoutConfig)
+	}
+
 	if courseHandlers != nil {
 		if handler := courseHandlers.Video(); handler == nil {
 			courseHandlers.SetVideo(coursehandlers.NewVideoHandler(videoService))
@@ -94,10 +172,16 @@ func (f *Feature) Activate() error {
 		} else {
 			handler.SetService(packageService)
 		}
+		if handler := courseHandlers.Checkout(); handler == nil {
+			courseHandlers.SetCheckout(coursehandlers.NewCheckoutHandler(checkoutService))
+		} else {
+			handler.SetService(checkoutService)
+		}
 	}
 
 	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
 		templateHandler.SetCoursePackageService(packageService)
+		templateHandler.SetCourseCheckoutService(checkoutService)
 	}
 
 	return nil
@@ -119,6 +203,9 @@ func (f *Feature) Deactivate() error {
 		if handler := courseHandlers.Package(); handler != nil {
 			handler.SetService(nil)
 		}
+		if handler := courseHandlers.Checkout(); handler != nil {
+			handler.SetService(nil)
+		}
 	}
 
 	courseServices := f.host.CourseServices()
@@ -126,10 +213,12 @@ func (f *Feature) Deactivate() error {
 		courseServices.SetVideo(nil)
 		courseServices.SetTopic(nil)
 		courseServices.SetPackage(nil)
+		courseServices.SetCheckout(nil)
 	}
 
 	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
 		templateHandler.SetCoursePackageService(nil)
+		templateHandler.SetCourseCheckoutService(nil)
 	}
 
 	return nil

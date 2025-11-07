@@ -1939,6 +1939,12 @@ body.course-modal-open {
     gap: var(--size-sm);
 }
 
+.course-modal__error {
+    margin-top: var(--size-sm);
+    color: var(--color-error);
+    font-size: var(--font-size-sm);
+}
+
 .course-modal__purchase {
     display: inline-flex;
     align-items: center;
@@ -1951,10 +1957,37 @@ body.course-modal-open {
     font-weight: 600;
 }
 
+.course-modal__purchase:disabled,
+.course-modal__purchase[aria-busy="true"] {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.course-modal__purchase--loading::after {
+    content: "";
+    width: 1em;
+    height: 1em;
+    border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--color-primary-opposite) 25%, transparent);
+    border-top-color: var(--color-primary-opposite);
+    margin-left: var(--size-sm);
+    animation: course-modal-spinner 0.8s linear infinite;
+}
+
 .course-modal__purchase:hover,
 .course-modal__purchase:focus-visible {
     background: var(--color-primary-hover);
     outline: none;
+}
+
+@keyframes course-modal-spinner {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .page-view {

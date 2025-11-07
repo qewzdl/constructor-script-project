@@ -84,49 +84,51 @@ type repositoryContainer struct {
 }
 
 type serviceContainer struct {
-	Auth          *service.AuthService
-	Category      *blogservice.CategoryService
-	Post          *blogservice.PostService
-	Comment       *blogservice.CommentService
-	Search        *blogservice.SearchService
-	Upload        *service.UploadService
-	Backup        *service.BackupService
-	Page          *service.PageService
-	Setup         *service.SetupService
-	Language      *languageservice.LanguageService
-	Homepage      *service.HomepageService
-	SocialLink    *service.SocialLinkService
-	Menu          *service.MenuService
-	Theme         *service.ThemeService
-	Advertising   *service.AdvertisingService
-	Plugin        *service.PluginService
-	Font          *service.FontService
-	CourseVideo   *courseservice.VideoService
-	CourseTopic   *courseservice.TopicService
-	CoursePackage *courseservice.PackageService
+	Auth           *service.AuthService
+	Category       *blogservice.CategoryService
+	Post           *blogservice.PostService
+	Comment        *blogservice.CommentService
+	Search         *blogservice.SearchService
+	Upload         *service.UploadService
+	Backup         *service.BackupService
+	Page           *service.PageService
+	Setup          *service.SetupService
+	Language       *languageservice.LanguageService
+	Homepage       *service.HomepageService
+	SocialLink     *service.SocialLinkService
+	Menu           *service.MenuService
+	Theme          *service.ThemeService
+	Advertising    *service.AdvertisingService
+	Plugin         *service.PluginService
+	Font           *service.FontService
+	CourseVideo    *courseservice.VideoService
+	CourseTopic    *courseservice.TopicService
+	CoursePackage  *courseservice.PackageService
+	CourseCheckout *courseservice.CheckoutService
 }
 
 type handlerContainer struct {
-	Auth          *handlers.AuthHandler
-	Category      *bloghandlers.CategoryHandler
-	Post          *bloghandlers.PostHandler
-	Comment       *bloghandlers.CommentHandler
-	Search        *bloghandlers.SearchHandler
-	Upload        *handlers.UploadHandler
-	Backup        *handlers.BackupHandler
-	Page          *handlers.PageHandler
-	Setup         *handlers.SetupHandler
-	Homepage      *handlers.HomepageHandler
-	SocialLink    *handlers.SocialLinkHandler
-	Menu          *handlers.MenuHandler
-	SEO           *handlers.SEOHandler
-	Theme         *handlers.ThemeHandler
-	Advertising   *handlers.AdvertisingHandler
-	Plugin        *handlers.PluginHandler
-	Font          *handlers.FontHandler
-	CourseVideo   *coursehandlers.VideoHandler
-	CourseTopic   *coursehandlers.TopicHandler
-	CoursePackage *coursehandlers.PackageHandler
+	Auth           *handlers.AuthHandler
+	Category       *bloghandlers.CategoryHandler
+	Post           *bloghandlers.PostHandler
+	Comment        *bloghandlers.CommentHandler
+	Search         *bloghandlers.SearchHandler
+	Upload         *handlers.UploadHandler
+	Backup         *handlers.BackupHandler
+	Page           *handlers.PageHandler
+	Setup          *handlers.SetupHandler
+	Homepage       *handlers.HomepageHandler
+	SocialLink     *handlers.SocialLinkHandler
+	Menu           *handlers.MenuHandler
+	SEO            *handlers.SEOHandler
+	Theme          *handlers.ThemeHandler
+	Advertising    *handlers.AdvertisingHandler
+	Plugin         *handlers.PluginHandler
+	Font           *handlers.FontHandler
+	CourseVideo    *coursehandlers.VideoHandler
+	CourseTopic    *coursehandlers.TopicHandler
+	CoursePackage  *coursehandlers.PackageHandler
+	CourseCheckout *coursehandlers.CheckoutHandler
 }
 
 func New(cfg *config.Config, opts Options) (*Application, error) {
@@ -613,23 +615,24 @@ func (a *Application) initServices() {
 	)
 
 	a.services = serviceContainer{
-		Auth:        authService,
-		Category:    nil,
-		Post:        nil,
-		Comment:     nil,
-		Search:      nil,
-		Upload:      uploadService,
-		Backup:      backupService,
-		Page:        pageService,
-		Setup:       setupService,
-		Language:    languageService,
-		Homepage:    homepageService,
-		SocialLink:  socialLinkService,
-		Menu:        menuService,
-		Theme:       themeService,
-		Advertising: advertisingService,
-		Plugin:      pluginService,
-		Font:        fontService,
+		Auth:           authService,
+		Category:       nil,
+		Post:           nil,
+		Comment:        nil,
+		Search:         nil,
+		Upload:         uploadService,
+		Backup:         backupService,
+		Page:           pageService,
+		Setup:          setupService,
+		Language:       languageService,
+		Homepage:       homepageService,
+		SocialLink:     socialLinkService,
+		Menu:           menuService,
+		Theme:          themeService,
+		Advertising:    advertisingService,
+		Plugin:         pluginService,
+		Font:           fontService,
+		CourseCheckout: nil,
 	}
 
 	backupService.InitializeAutoBackups()
@@ -639,24 +642,25 @@ func (a *Application) initHandlers() error {
 	commentGuard := bloghandlers.NewCommentGuard(a.cfg)
 
 	a.handlers = handlerContainer{
-		Auth:          handlers.NewAuthHandler(a.services.Auth),
-		Category:      bloghandlers.NewCategoryHandler(nil),
-		Post:          bloghandlers.NewPostHandler(nil),
-		Comment:       bloghandlers.NewCommentHandler(nil, a.services.Auth, commentGuard),
-		Search:        bloghandlers.NewSearchHandler(nil),
-		Upload:        handlers.NewUploadHandler(a.services.Upload),
-		Backup:        handlers.NewBackupHandler(a.services.Backup),
-		Page:          handlers.NewPageHandler(a.services.Page),
-		Setup:         handlers.NewSetupHandler(a.services.Setup, a.services.Font, a.cfg),
-		Homepage:      handlers.NewHomepageHandler(a.services.Homepage),
-		SocialLink:    handlers.NewSocialLinkHandler(a.services.SocialLink),
-		Menu:          handlers.NewMenuHandler(a.services.Menu),
-		SEO:           handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.services.Language, a.cfg),
-		Advertising:   handlers.NewAdvertisingHandler(a.services.Advertising),
-		Plugin:        handlers.NewPluginHandler(a.services.Plugin),
-		CourseVideo:   coursehandlers.NewVideoHandler(nil),
-		CourseTopic:   coursehandlers.NewTopicHandler(nil),
-		CoursePackage: coursehandlers.NewPackageHandler(nil),
+		Auth:           handlers.NewAuthHandler(a.services.Auth),
+		Category:       bloghandlers.NewCategoryHandler(nil),
+		Post:           bloghandlers.NewPostHandler(nil),
+		Comment:        bloghandlers.NewCommentHandler(nil, a.services.Auth, commentGuard),
+		Search:         bloghandlers.NewSearchHandler(nil),
+		Upload:         handlers.NewUploadHandler(a.services.Upload),
+		Backup:         handlers.NewBackupHandler(a.services.Backup),
+		Page:           handlers.NewPageHandler(a.services.Page),
+		Setup:          handlers.NewSetupHandler(a.services.Setup, a.services.Font, a.cfg),
+		Homepage:       handlers.NewHomepageHandler(a.services.Homepage),
+		SocialLink:     handlers.NewSocialLinkHandler(a.services.SocialLink),
+		Menu:           handlers.NewMenuHandler(a.services.Menu),
+		SEO:            handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.services.Language, a.cfg),
+		Advertising:    handlers.NewAdvertisingHandler(a.services.Advertising),
+		Plugin:         handlers.NewPluginHandler(a.services.Plugin),
+		CourseVideo:    coursehandlers.NewVideoHandler(nil),
+		CourseTopic:    coursehandlers.NewTopicHandler(nil),
+		CoursePackage:  coursehandlers.NewPackageHandler(nil),
+		CourseCheckout: coursehandlers.NewCheckoutHandler(nil),
 	}
 
 	templateHandler, err := handlers.NewTemplateHandler(
@@ -673,6 +677,7 @@ func (a *Application) initHandlers() error {
 		a.services.Menu,
 		a.services.Font,
 		a.services.Advertising,
+		nil,
 		nil,
 		a.cfg,
 		a.themeManager,
@@ -832,6 +837,7 @@ func (a *Application) initRouter() error {
 
 			public.GET("/tags", a.handlers.Post.GetAllTags)
 			public.GET("/tags/:slug/posts", a.handlers.Post.GetPostsByTag)
+			public.POST("/courses/checkout", a.handlers.CourseCheckout.CreateSession)
 		}
 
 		protected := v1.Group("")

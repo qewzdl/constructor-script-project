@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -22,6 +24,7 @@ import (
 var (
 	// ErrSetupAlreadyCompleted is returned when setup has already been completed.
 	ErrSetupAlreadyCompleted = errors.New("setup already completed")
+	currencyCodePattern      = regexp.MustCompile(`^[a-z]{3}$`)
 )
 
 type InvalidFaviconError struct {
@@ -242,6 +245,54 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 		}
 	}
 
+	if value, getErr := s.getSettingValue(settingKeyStripeSecretKey); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = getErr
+		}
+	} else if value != "" {
+		result.StripeSecretKey = strings.TrimSpace(value)
+	}
+
+	if value, getErr := s.getSettingValue(settingKeyStripePublishableKey); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = getErr
+		}
+	} else if value != "" {
+		result.StripePublishableKey = strings.TrimSpace(value)
+	}
+
+	if value, getErr := s.getSettingValue(settingKeyStripeWebhookSecret); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = getErr
+		}
+	} else if value != "" {
+		result.StripeWebhookSecret = strings.TrimSpace(value)
+	}
+
+	if value, getErr := s.getSettingValue(settingKeyCourseCheckoutSuccessURL); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = getErr
+		}
+	} else if value != "" {
+		result.CourseCheckoutSuccessURL = strings.TrimSpace(value)
+	}
+
+	if value, getErr := s.getSettingValue(settingKeyCourseCheckoutCancelURL); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = getErr
+		}
+	} else if value != "" {
+		result.CourseCheckoutCancelURL = strings.TrimSpace(value)
+	}
+
+	if value, getErr := s.getSettingValue(settingKeyCourseCheckoutCurrency); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = getErr
+		}
+	} else if value != "" {
+		result.CourseCheckoutCurrency = strings.ToLower(strings.TrimSpace(value))
+	}
+
 	defaultLang, supported, langErr := s.resolveSiteLanguages(result.DefaultLanguage, result.SupportedLanguages)
 	if langErr != nil {
 		err = errors.Join(err, langErr)
@@ -249,6 +300,25 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 
 	result.DefaultLanguage = defaultLang
 	result.SupportedLanguages = supported
+
+	if strings.TrimSpace(result.StripeSecretKey) == "" {
+		result.StripeSecretKey = strings.TrimSpace(defaults.StripeSecretKey)
+	}
+	if strings.TrimSpace(result.StripePublishableKey) == "" {
+		result.StripePublishableKey = strings.TrimSpace(defaults.StripePublishableKey)
+	}
+	if strings.TrimSpace(result.StripeWebhookSecret) == "" {
+		result.StripeWebhookSecret = strings.TrimSpace(defaults.StripeWebhookSecret)
+	}
+	if strings.TrimSpace(result.CourseCheckoutSuccessURL) == "" {
+		result.CourseCheckoutSuccessURL = strings.TrimSpace(defaults.CourseCheckoutSuccessURL)
+	}
+	if strings.TrimSpace(result.CourseCheckoutCancelURL) == "" {
+		result.CourseCheckoutCancelURL = strings.TrimSpace(defaults.CourseCheckoutCancelURL)
+	}
+	if strings.TrimSpace(result.CourseCheckoutCurrency) == "" {
+		result.CourseCheckoutCurrency = strings.ToLower(strings.TrimSpace(defaults.CourseCheckoutCurrency))
+	}
 
 	return result, err
 }
@@ -367,13 +437,45 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		return errors.New("setting repository not configured")
 	}
 
+	normalizeCheckoutURL := func(value, label string) (string, error) {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			return "", nil
+		}
+		parsed, err := url.Parse(trimmed)
+		if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+			return "", fmt.Errorf("invalid %s URL: must be absolute and include scheme and host", label)
+		}
+		return trimmed, nil
+	}
+
+	successURL, err := normalizeCheckoutURL(req.CourseCheckoutSuccessURL, "course checkout success")
+	if err != nil {
+		return err
+	}
+	cancelURL, err := normalizeCheckoutURL(req.CourseCheckoutCancelURL, "course checkout cancel")
+	if err != nil {
+		return err
+	}
+
+	currency := strings.ToLower(strings.TrimSpace(req.CourseCheckoutCurrency))
+	if currency != "" && !currencyCodePattern.MatchString(currency) {
+		return fmt.Errorf("invalid course checkout currency: must be a three-letter ISO code")
+	}
+
 	updates := map[string]string{
-		settingKeySiteName:          strings.TrimSpace(req.Name),
-		settingKeySiteDescription:   strings.TrimSpace(req.Description),
-		settingKeySiteURL:           strings.TrimSpace(req.URL),
-		settingKeySiteFavicon:       strings.TrimSpace(req.Favicon),
-		settingKeySiteLogo:          strings.TrimSpace(req.Logo),
-		settingKeyTagRetentionHours: strconv.Itoa(req.UnusedTagRetentionHours),
+		settingKeySiteName:                 strings.TrimSpace(req.Name),
+		settingKeySiteDescription:          strings.TrimSpace(req.Description),
+		settingKeySiteURL:                  strings.TrimSpace(req.URL),
+		settingKeySiteFavicon:              strings.TrimSpace(req.Favicon),
+		settingKeySiteLogo:                 strings.TrimSpace(req.Logo),
+		settingKeyTagRetentionHours:        strconv.Itoa(req.UnusedTagRetentionHours),
+		settingKeyStripeSecretKey:          strings.TrimSpace(req.StripeSecretKey),
+		settingKeyStripePublishableKey:     strings.TrimSpace(req.StripePublishableKey),
+		settingKeyStripeWebhookSecret:      strings.TrimSpace(req.StripeWebhookSecret),
+		settingKeyCourseCheckoutSuccessURL: successURL,
+		settingKeyCourseCheckoutCancelURL:  cancelURL,
+		settingKeyCourseCheckoutCurrency:   currency,
 	}
 
 	for key, value := range updates {
@@ -501,13 +603,19 @@ func (s *SetupService) getSettingValue(key string) (string, error) {
 }
 
 const (
-	settingKeySetupComplete          = "setup.completed"
-	settingKeySiteName               = "site.name"
-	settingKeySiteDescription        = "site.description"
-	settingKeySiteURL                = "site.url"
-	settingKeySiteFavicon            = "site.favicon"
-	settingKeySiteLogo               = "site.logo"
-	settingKeyTagRetentionHours      = blogservice.SettingKeyTagRetentionHours
-	settingKeySiteDefaultLanguage    = "site.default_language"
-	settingKeySiteSupportedLanguages = "site.supported_languages"
+	settingKeySetupComplete            = "setup.completed"
+	settingKeySiteName                 = "site.name"
+	settingKeySiteDescription          = "site.description"
+	settingKeySiteURL                  = "site.url"
+	settingKeySiteFavicon              = "site.favicon"
+	settingKeySiteLogo                 = "site.logo"
+	settingKeyTagRetentionHours        = blogservice.SettingKeyTagRetentionHours
+	settingKeySiteDefaultLanguage      = "site.default_language"
+	settingKeySiteSupportedLanguages   = "site.supported_languages"
+	settingKeyStripeSecretKey          = "payments.stripe.secret_key"
+	settingKeyStripePublishableKey     = "payments.stripe.publishable_key"
+	settingKeyStripeWebhookSecret      = "payments.stripe.webhook_secret"
+	settingKeyCourseCheckoutSuccessURL = "courses.checkout.success_url"
+	settingKeyCourseCheckoutCancelURL  = "courses.checkout.cancel_url"
+	settingKeyCourseCheckoutCurrency   = "courses.checkout.currency"
 )

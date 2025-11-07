@@ -35,12 +35,33 @@ func (d advertisingTemplateData) hasPlacements() bool {
 	return len(d.Placements) > 0
 }
 
+type courseCheckoutTemplateData struct {
+	Enabled        bool
+	Endpoint       string
+	PublishableKey string
+}
+
 func (h *TemplateHandler) basePageData(title, description string, extra gin.H) gin.H {
 	site := h.siteSettings()
 
 	headerMenu, footerMenu := splitMenuItems(site.MenuItems)
 
 	advertising := h.advertisingTemplateData()
+
+	checkoutData := courseCheckoutTemplateData{
+		Enabled:  h.courseCheckoutEnabled(),
+		Endpoint: "/api/v1/courses/checkout",
+	}
+	if key := strings.TrimSpace(site.StripePublishableKey); key != "" {
+		checkoutData.PublishableKey = key
+	}
+	if h.config != nil {
+		if checkoutData.PublishableKey == "" {
+			if key := strings.TrimSpace(h.config.StripePublishableKey); key != "" {
+				checkoutData.PublishableKey = key
+			}
+		}
+	}
 
 	data := gin.H{
 		"Title":       fmt.Sprintf("%s - %s", title, site.Name),
@@ -62,9 +83,10 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 			"Fonts":              site.Fonts,
 			"FontPreconnects":    site.FontPreconnects,
 		},
-		"SearchQuery": "",
-		"SearchType":  "all",
-		"Advertising": advertising,
+		"SearchQuery":    "",
+		"SearchType":     "all",
+		"Advertising":    advertising,
+		"CourseCheckout": checkoutData,
 	}
 
 	for k, v := range extra {

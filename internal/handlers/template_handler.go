@@ -35,6 +35,7 @@ type TemplateHandler struct {
 	menuService        *service.MenuService
 	advertisingService *service.AdvertisingService
 	coursePackageSvc   *courseservice.PackageService
+	courseCheckoutSvc  *courseservice.CheckoutService
 	fontService        *service.FontService
 	templates          *template.Template
 	templatesMu        sync.RWMutex
@@ -60,6 +61,7 @@ func NewTemplateHandler(
 	fontService *service.FontService,
 	advertisingService *service.AdvertisingService,
 	coursePackageService *courseservice.PackageService,
+	courseCheckoutService *courseservice.CheckoutService,
 	cfg *config.Config,
 	themeManager *theme.Manager,
 ) (*TemplateHandler, error) {
@@ -82,6 +84,7 @@ func NewTemplateHandler(
 		fontService:        fontService,
 		advertisingService: advertisingService,
 		coursePackageSvc:   coursePackageService,
+		courseCheckoutSvc:  courseCheckoutService,
 		themeManager:       themeManager,
 		config:             cfg,
 		sanitizer:          policy,
@@ -129,12 +132,24 @@ func (h *TemplateHandler) SetCoursePackageService(packageService *courseservice.
 	h.coursePackageSvc = packageService
 }
 
+// SetCourseCheckoutService updates the course checkout service dependency used by the template handler.
+func (h *TemplateHandler) SetCourseCheckoutService(checkoutService *courseservice.CheckoutService) {
+	if h == nil {
+		return
+	}
+	h.courseCheckoutSvc = checkoutService
+}
+
 func (h *TemplateHandler) blogEnabled() bool {
 	return h != nil && h.postService != nil
 }
 
 func (h *TemplateHandler) coursesEnabled() bool {
 	return h != nil && h.coursePackageSvc != nil
+}
+
+func (h *TemplateHandler) courseCheckoutEnabled() bool {
+	return h != nil && h.courseCheckoutSvc != nil && h.courseCheckoutSvc.Enabled()
 }
 
 func (h *TemplateHandler) ensureBlogAvailable(c *gin.Context) bool {
