@@ -3555,14 +3555,7 @@
                 return '';
             }
             const amount = cents / 100;
-            try {
-                return amount.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                });
-            } catch (error) {
-                return amount.toFixed(2);
-            }
+            return amount.toFixed(2);
         };
 
         const parsePriceInputValue = (value) => {
