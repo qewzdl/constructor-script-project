@@ -96,7 +96,7 @@ func readBoxHeader(r io.ReadSeeker, limit int64) (boxHeader, error) {
 		header.size = int64(size)
 	}
 
-	if header.size <= header.headerLen {
+	if header.size < header.headerLen {
 		return boxHeader{}, fmt.Errorf("invalid box size for %s", header.boxType)
 	}
 	if header.start+header.size > limit {

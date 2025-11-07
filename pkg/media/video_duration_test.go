@@ -52,6 +52,24 @@ func TestMP4DurationVersion1(t *testing.T) {
 	}
 }
 
+func TestMP4DurationIgnoresEmptyBoxes(t *testing.T) {
+	t.Helper()
+
+	mvhd := buildMvhdVersion0Payload(1000, 45*1000)
+	moovPayload := append(buildBox("free", nil), buildBox("mvhd", mvhd)...)
+	data := append(buildBox("ftyp", []byte("isom")), buildBox("moov", moovPayload)...)
+
+	got, err := mp4DurationFromReader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := 45 * time.Second
+	if got != expected {
+		t.Fatalf("expected duration %v, got %v", expected, got)
+	}
+}
+
 func TestMP4DurationErrors(t *testing.T) {
 	t.Run("no moov", func(t *testing.T) {
 		data := buildBox("ftyp", []byte("isom"))
@@ -88,13 +106,19 @@ func buildBox(boxType string, payload []byte) []byte {
 	if len(boxType) != 4 {
 		panic("box type must be 4 characters")
 	}
-	size := uint32(len(payload) + 8)
+	payloadLen := 0
+	if payload != nil {
+		payloadLen = len(payload)
+	}
+	size := uint32(payloadLen + 8)
 	buf := make([]byte, 0, size)
 	header := make([]byte, 4)
 	binary.BigEndian.PutUint32(header, size)
 	buf = append(buf, header...)
 	buf = append(buf, boxType...)
-	buf = append(buf, payload...)
+	if payloadLen > 0 {
+		buf = append(buf, payload...)
+	}
 	return buf
 }
 
