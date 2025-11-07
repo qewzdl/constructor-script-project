@@ -1804,41 +1804,6 @@ body.course-modal-open {
     outline: none;
 }
 
-.course-modal__close {
-    position: absolute;
-    top: var(--size-base);
-    right: var(--size-base);
-    width: var(--size-mid);
-    height: var(--size-mid);
-    border-radius: 999px;
-    border: none;
-    background-color: transparent;
-    color: var(--color-text);
-    font-size: 0;
-    cursor: pointer;
-}
-
-.course-modal__close::before,
-.course-modal__close::after {
-    content: "";
-    position: absolute;
-    width: 20px;
-    height: 2px;
-    background-color: currentColor;
-    border-radius: 999px;
-    left: 50%;
-    top: 50%;
-    transform-origin: center;
-}
-
-.course-modal__close::before {
-    transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.course-modal__close::after {
-    transform: translate(-50%, -50%) rotate(-45deg);
-}
-
 .course-modal__content {
     display: grid;
     gap: clamp(1rem, 3vw, 2rem);
@@ -1939,6 +1904,23 @@ body.course-modal-open {
     gap: var(--size-sm);
 }
 
+.course-modal__cancel {
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-secondary);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    padding: var(--size-sm) var(--size-lg);
+    cursor: pointer;
+}
+
+.course-modal__cancel:hover,
+.course-modal__cancel:focus-visible {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    outline: none;
+}
+
 .course-modal__error {
     margin-top: var(--size-sm);
     color: var(--color-error);
@@ -1963,31 +1945,10 @@ body.course-modal-open {
     cursor: not-allowed;
 }
 
-.course-modal__purchase--loading::after {
-    content: "";
-    width: 1em;
-    height: 1em;
-    border-radius: 50%;
-    border: 2px solid color-mix(in srgb, var(--color-primary-opposite) 25%, transparent);
-    border-top-color: var(--color-primary-opposite);
-    margin-left: var(--size-sm);
-    animation: course-modal-spinner 0.8s linear infinite;
-}
-
 .course-modal__purchase:hover,
 .course-modal__purchase:focus-visible {
     background: var(--color-primary-hover);
     outline: none;
-}
-
-@keyframes course-modal-spinner {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
 }
 
 .page-view {

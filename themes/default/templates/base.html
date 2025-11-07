@@ -442,12 +442,6 @@
                 aria-describedby="course-modal-description"
                 tabindex="-1"
             >
-                <button
-                    type="button"
-                    class="course-modal__close"
-                    data-course-modal-close
-                    aria-label="Закрыть модальное окно"
-                ></button>
                 <div class="course-modal__content">
                     <figure class="course-modal__media" data-course-modal-media hidden>
                         <img
@@ -472,8 +466,11 @@
                         </div>
                         <p class="course-modal__error" data-course-modal-error hidden role="alert"></p>
                         <div class="course-modal__actions">
+                            <button type="button" class="course-modal__cancel" data-course-modal-close>
+                                Cancel
+                            </button>
                             <button type="button" class="course-modal__purchase" data-course-modal-purchase>
-                                Купить курс
+                                Buy course
                             </button>
                         </div>
                     </div>
