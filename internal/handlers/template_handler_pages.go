@@ -1166,7 +1166,7 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		topic := &pkg.Topics[topicIndex]
 		for stepIndex := range topic.Steps {
 			step := &topic.Steps[stepIndex]
-			if step == nil || step.StepType != models.CourseTopicStepTypeVideo || step.Video == nil {
+			if step.StepType != models.CourseTopicStepTypeVideo || step.Video == nil {
 				continue
 			}
 			sections := step.Video.Sections
