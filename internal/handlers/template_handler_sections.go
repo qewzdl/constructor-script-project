@@ -242,6 +242,52 @@ func (h *TemplateHandler) renderCategoriesListSection(prefix string, section mod
 	return sb.String()
 }
 
+type coursesListTemplateData struct {
+	ListClass string
+	Cards     []courseCardTemplateData
+}
+
+type courseCardTemplateData struct {
+	CardClass        string
+	MediaClass       string
+	ImageClass       string
+	ContentClass     string
+	TitleClass       string
+	LinkClass        string
+	MetaClass        string
+	DescriptionClass string
+	TopicsClass      string
+	TopicItemClass   string
+	TopicNameClass   string
+	TopicMetaClass   string
+
+	HeadingID     string
+	DescriptionID string
+	HasCourseID   bool
+	CourseID      string
+	Title         string
+	Image         *courseCardImage
+	MetaItems     []courseCardMetaItem
+	Description   template.HTML
+	Topics        []courseCardTopic
+	ModalDetails  template.JS
+}
+
+type courseCardMetaItem struct {
+	Class string
+	Label string
+}
+
+type courseCardTopic struct {
+	Name string
+	Meta string
+}
+
+type courseCardImage struct {
+	URL string
+	Alt string
+}
+
 func (h *TemplateHandler) renderCoursesListSection(prefix string, section models.Section) string {
 	const maxTopicsPerCourse = 6
 
@@ -289,10 +335,14 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 		packages = packages[:limit]
 	}
 
-	var sb strings.Builder
-	sb.WriteString(`<div class="` + listClass + `">`)
+	tmpl, err := h.templateClone()
+	if err != nil {
+		logger.Error(err, "Failed to clone templates for course list section", map[string]interface{}{"section_id": section.ID})
+		return `<p class="` + emptyClass + `">Unable to display courses at the moment.</p>`
+	}
 
-	rendered := 0
+	cards := make([]courseCardTemplateData, 0, len(packages))
+
 	for i := range packages {
 		pkg := packages[i]
 		title := strings.TrimSpace(pkg.Title)
@@ -300,80 +350,44 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 			continue
 		}
 
-		rendered++
-		headingID := fmt.Sprintf("%s-course-%d-title", prefix, rendered)
+		index := len(cards) + 1
+		headingID := fmt.Sprintf("%s-course-%d-title", prefix, index)
 		courseID := strconv.FormatUint(uint64(pkg.ID), 10)
 
 		description := strings.TrimSpace(pkg.Description)
-		sanitizedDescription := ""
+		sanitizedDescription := strings.TrimSpace(h.SanitizeHTML(description))
 		descriptionID := ""
-		if description != "" {
-			sanitizedDescription = strings.TrimSpace(h.SanitizeHTML(description))
-			if sanitizedDescription != "" {
-				descriptionID = fmt.Sprintf("%s-course-%d-description", prefix, rendered)
-			}
+		descriptionHTML := template.HTML("")
+		if sanitizedDescription != "" {
+			descriptionID = fmt.Sprintf("%s-course-%d-description", prefix, index)
+			descriptionHTML = template.HTML(sanitizedDescription)
 		}
 
-		articleAttrs := `<article class="` + cardClass + `" data-course-card`
-		if courseID != "0" {
-			articleAttrs += ` data-course-id="` + courseID + `"`
-		}
-		articleAttrs += ` role="button" tabindex="0" aria-haspopup="dialog" aria-labelledby="` + headingID + `"`
-		if descriptionID != "" {
-			articleAttrs += ` aria-describedby="` + descriptionID + `"`
-		}
-		articleAttrs += `>`
-		sb.WriteString(articleAttrs)
-
-		if image := strings.TrimSpace(pkg.ImageURL); image != "" {
-			sb.WriteString(`<figure class="` + mediaClass + `">`)
-			sb.WriteString(`<img class="` + imageClass + `" src="` + template.HTMLEscapeString(image) + `" alt="` + template.HTMLEscapeString(title) + ` course preview" loading="lazy" />`)
-			sb.WriteString(`</figure>`)
-		}
-
-		sb.WriteString(`<div class="` + contentClass + `">`)
-		sb.WriteString(`<h3 id="` + headingID + `" class="` + titleClass + `">`)
-		sb.WriteString(`<span class="` + linkClass + `">` + template.HTMLEscapeString(title) + `</span>`)
-		sb.WriteString(`</h3>`)
-
-		metaItems := make([]string, 0, 4)
+		metaItems := make([]courseCardMetaItem, 0, 4)
 
 		priceLabel := formatCoursePrice(pkg.PriceCents)
 		if priceLabel != "" {
-			metaItems = append(metaItems, `<span class="`+priceClass+`">`+template.HTMLEscapeString(priceLabel)+`</span>`)
+			metaItems = append(metaItems, courseCardMetaItem{Class: priceClass, Label: priceLabel})
 		}
 
 		topicCount, lessonCount, totalDuration := coursePackageStats(pkg)
 
 		topicLabel := formatTopicCount(topicCount)
 		if topicLabel != "" {
-			metaItems = append(metaItems, `<span class="`+metaItemClass+`">`+template.HTMLEscapeString(topicLabel)+`</span>`)
+			metaItems = append(metaItems, courseCardMetaItem{Class: metaItemClass, Label: topicLabel})
 		}
 
 		lessonLabel := formatLessonCount(lessonCount)
 		if lessonLabel != "" {
-			metaItems = append(metaItems, `<span class="`+metaItemClass+`">`+template.HTMLEscapeString(lessonLabel)+`</span>`)
+			metaItems = append(metaItems, courseCardMetaItem{Class: metaItemClass, Label: lessonLabel})
 		}
 
 		durationLabel := formatVideoDuration(totalDuration)
 		if durationLabel != "" {
-			metaItems = append(metaItems, `<span class="`+metaItemClass+` `+durationClass+`">`+template.HTMLEscapeString(durationLabel)+`</span>`)
+			metaItems = append(metaItems, courseCardMetaItem{Class: metaItemClass + " " + durationClass, Label: durationLabel})
 		}
 
-		if len(metaItems) > 0 {
-			sb.WriteString(`<div class="` + metaClass + `" aria-label="Course summary">`)
-			for _, item := range metaItems {
-				sb.WriteString(item)
-			}
-			sb.WriteString(`</div>`)
-		}
-
-		if description := strings.TrimSpace(pkg.Description); description != "" {
-			sb.WriteString(`<div class="` + descriptionClass + `">` + h.SanitizeHTML(description) + `</div>`)
-		}
-
-		modalTopics := buildCourseModalTopics(pkg.Topics, h)
-
+		topicsData := make([]courseCardTopic, 0, maxTopicsPerCourse)
 		topicsRendered := 0
 		for _, topic := range pkg.Topics {
 			if topicsRendered >= maxTopicsPerCourse {
@@ -383,26 +397,49 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 			if name == "" {
 				continue
 			}
-			if topicsRendered == 0 {
-				sb.WriteString(`<ul class="` + topicsClass + `" aria-label="Included topics">`)
-			}
-			sb.WriteString(`<li class="` + topicItemClass + `">`)
-			sb.WriteString(`<span class="` + topicNameClass + `">` + template.HTMLEscapeString(name))
+
+			topicData := courseCardTopic{Name: name}
 			if lessonCount := countTopicLessons(topic); lessonCount > 0 {
-				lessonLabel := formatLessonCount(lessonCount)
-				if lessonLabel != "" {
-					sb.WriteString(` <span class="` + topicMetaClass + `">` + template.HTMLEscapeString(lessonLabel) + `</span>`)
+				if label := formatLessonCount(lessonCount); label != "" {
+					topicData.Meta = label
 				}
 			}
-			sb.WriteString(`</span>`)
-			sb.WriteString(`</li>`)
+
+			topicsData = append(topicsData, topicData)
 			topicsRendered++
 		}
 
-		if topicsRendered > 0 {
-			sb.WriteString(`</ul>`)
+		card := courseCardTemplateData{
+			CardClass:        cardClass,
+			MediaClass:       mediaClass,
+			ImageClass:       imageClass,
+			ContentClass:     contentClass,
+			TitleClass:       titleClass,
+			LinkClass:        linkClass,
+			MetaClass:        metaClass,
+			DescriptionClass: descriptionClass,
+			TopicsClass:      topicsClass,
+			TopicItemClass:   topicItemClass,
+			TopicNameClass:   topicNameClass,
+			TopicMetaClass:   topicMetaClass,
+			HeadingID:        headingID,
+			DescriptionID:    descriptionID,
+			HasCourseID:      pkg.ID > 0,
+			CourseID:         courseID,
+			Title:            title,
+			MetaItems:        metaItems,
+			Description:      descriptionHTML,
+			Topics:           topicsData,
 		}
 
+		if image := strings.TrimSpace(pkg.ImageURL); image != "" {
+			card.Image = &courseCardImage{
+				URL: strings.TrimSpace(image),
+				Alt: fmt.Sprintf("%s course preview", title),
+			}
+		}
+
+		modalTopics := buildCourseModalTopics(pkg.Topics, h)
 		if detailsJSON := buildCourseModalDetails(courseModalDetailsInput{
 			Package:         pkg,
 			Title:           title,
@@ -415,22 +452,28 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 			Topics:          modalTopics,
 			CourseID:        courseID,
 		}); detailsJSON != "" {
-			sb.WriteString(`<script type="application/json" data-course-details>`)
-			sb.WriteString(detailsJSON)
-			sb.WriteString(`</script>`)
+			card.ModalDetails = template.JS(detailsJSON)
 		}
 
-		sb.WriteString(`</div>`)
-		sb.WriteString(`</article>`)
+		cards = append(cards, card)
 	}
 
-	sb.WriteString(`</div>`)
-
-	if rendered == 0 {
+	if len(cards) == 0 {
 		return `<p class="` + emptyClass + `">No courses available yet. Check back soon!</p>`
 	}
 
-	return sb.String()
+	data := coursesListTemplateData{
+		ListClass: listClass,
+		Cards:     cards,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, "components/courses-list", data); err != nil {
+		logger.Error(err, "Failed to render courses list template", map[string]interface{}{"section_id": section.ID})
+		return `<p class="` + emptyClass + `">Unable to display courses at the moment.</p>`
+	}
+
+	return buf.String()
 }
 
 type courseModalLesson struct {

@@ -1,0 +1,58 @@
+{{ define "components/course-card" }}
+    {{- $card := . }}
+    <article
+        class="{{ $card.CardClass }}"
+        data-course-card
+        {{- if $card.HasCourseID }} data-course-id="{{ $card.CourseID }}"{{- end }}
+        role="button"
+        tabindex="0"
+        aria-haspopup="dialog"
+        aria-labelledby="{{ $card.HeadingID }}"
+        {{- if $card.DescriptionID }} aria-describedby="{{ $card.DescriptionID }}"{{- end }}
+    >
+        {{- if $card.Image }}
+        <figure class="{{ $card.MediaClass }}">
+            <img
+                class="{{ $card.ImageClass }}"
+                src="{{ $card.Image.URL }}"
+                alt="{{ $card.Image.Alt }}"
+                loading="lazy"
+            />
+        </figure>
+        {{- end }}
+
+        <div class="{{ $card.ContentClass }}">
+            <h3 id="{{ $card.HeadingID }}" class="{{ $card.TitleClass }}">
+                <span class="{{ $card.LinkClass }}">{{ $card.Title }}</span>
+            </h3>
+
+            {{- if $card.MetaItems }}
+            <div class="{{ $card.MetaClass }}" aria-label="Course summary">
+                {{- range $card.MetaItems }}
+                <span class="{{ .Class }}">{{ .Label }}</span>
+                {{- end }}
+            </div>
+            {{- end }}
+
+            {{- if $card.Description }}
+            <div class="{{ $card.DescriptionClass }}"{{ if $card.DescriptionID }} id="{{ $card.DescriptionID }}"{{ end }}>
+                {{ $card.Description }}
+            </div>
+            {{- end }}
+
+            {{- if $card.Topics }}
+            <ul class="{{ $card.TopicsClass }}" aria-label="Included topics">
+                {{- range $card.Topics }}
+                <li class="{{ $card.TopicItemClass }}">
+                    <span class="{{ $card.TopicNameClass }}">{{ .Name }}{{ if .Meta }} <span class="{{ $card.TopicMetaClass }}">{{ .Meta }}</span>{{ end }}</span>
+                </li>
+                {{- end }}
+            </ul>
+            {{- end }}
+
+            {{- if $card.ModalDetails }}
+            <script type="application/json" data-course-details>{{ $card.ModalDetails }}</script>
+            {{- end }}
+        </div>
+    </article>
+{{ end }}

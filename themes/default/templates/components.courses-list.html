@@ -1,0 +1,9 @@
+{{ define "components/courses-list" }}
+    {{- if and .ListClass .Cards }}
+    <div class="{{ .ListClass }}">
+        {{- range .Cards }}
+            {{- template "components/course-card" . }}
+        {{- end }}
+    </div>
+    {{- end }}
+{{ end }}
