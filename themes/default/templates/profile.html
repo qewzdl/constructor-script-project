@@ -155,7 +155,7 @@
                         {{ $pkg := .Package }}
                         {{ $access := .Access }}
                         <li class="profile-courses__item">
-                            <article class="profile-course post-card">
+                            <{{ if $pkg.ID }}a class="profile-course post-card profile-course--link" href="/courses/{{ $pkg.ID }}"{{ else }}article class="profile-course post-card"{{ end }}>
                                 {{ with $pkg.ImageURL }}
                                     <figure class="profile-course__media post-card__figure">
                                         <img
@@ -189,15 +189,8 @@
                                             <span class="profile-course__meta-item">No expiration</span>
                                         {{ end }}
                                     </div>
-                                    {{ if $pkg.ID }}
-                                        <div class="profile-course__actions">
-                                            <a class="button button--primary profile-course__action" href="/courses/{{ $pkg.ID }}">
-                                                Open course
-                                            </a>
-                                        </div>
-                                    {{ end }}
                                 </div>
-                            </article>
+                            </{{ if $pkg.ID }}a{{ else }}article{{ end }}>
                         </li>
                     {{ end }}
                 </ul>

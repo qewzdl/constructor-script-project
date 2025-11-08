@@ -638,6 +638,20 @@ textarea.form-field__input {
     list-style: none;
 }
 
+.profile-course {
+    color: inherit;
+    text-decoration: none;
+}
+
+.profile-course:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+}
+
+.profile-course:not(.profile-course--link) {
+    cursor: default;
+}
+
 .profile-courses__item:hover .profile-course__title {
     color: var(--color-primary);
 }
@@ -667,17 +681,6 @@ textarea.form-field__input {
     display: flex;
     gap: var(--size-sm);
     align-items: center;
-}
-
-.profile-course__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--size-sm);
-    margin-top: var(--size-sm);
-}
-
-.profile-course__action {
-    flex: 0 0 auto;
 }
 
 .course-player {

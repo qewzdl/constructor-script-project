@@ -437,8 +437,16 @@
             const item = document.createElement("li");
             item.className = "profile-courses__item";
 
-            const article = document.createElement("article");
-            article.className = "profile-course post-card";
+            const cardElement = pkg.id
+                ? document.createElement("a")
+                : document.createElement("article");
+            cardElement.className = pkg.id
+                ? "profile-course post-card profile-course--link"
+                : "profile-course post-card";
+
+            if (pkg.id) {
+                cardElement.href = `/courses/${pkg.id}`;
+            }
 
             if (pkg.image_url) {
                 const figure = document.createElement("figure");
@@ -451,7 +459,7 @@
                 img.className = "profile-course__image post-card__image";
 
                 figure.appendChild(img);
-                article.appendChild(figure);
+                cardElement.appendChild(figure);
             }
 
             const content = document.createElement("div");
@@ -512,21 +520,8 @@
             meta.appendChild(expiresItem);
             content.appendChild(meta);
 
-            if (pkg.id) {
-                const actions = document.createElement("div");
-                actions.className = "profile-course__actions";
-
-                const openLink = document.createElement("a");
-                openLink.className = "button button--primary profile-course__action";
-                openLink.href = `/courses/${pkg.id}`;
-                openLink.textContent = "Open course";
-
-                actions.appendChild(openLink);
-                content.appendChild(actions);
-            }
-
-            article.appendChild(content);
-            item.appendChild(article);
+            cardElement.appendChild(content);
+            item.appendChild(cardElement);
             list.appendChild(item);
         });
     };
