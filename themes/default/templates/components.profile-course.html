@@ -1,0 +1,42 @@
+{{ define "components/profile-course" }}
+    {{- $pkg := .Package }}
+    {{- $access := .Access }}
+    <li class="profile-courses__item">
+        <{{ if $pkg.ID }}a class="profile-course post-card profile-course--link" href="/courses/{{ $pkg.ID }}"{{ else }}article class="profile-course post-card"{{ end }}>
+            {{- with $pkg.ImageURL }}
+            <figure class="profile-course__media post-card__figure">
+                <img
+                    src="{{ asset . }}"
+                    alt="{{ default "Course cover" $pkg.Title }}"
+                    loading="lazy"
+                    class="profile-course__image post-card__image"
+                />
+            </figure>
+            {{- end }}
+            <div class="profile-course__content post-card__content">
+                <h3 class="profile-course__title post-card__title">{{ default "Untitled course" $pkg.Title }}</h3>
+                {{- if $pkg.Description }}
+                <p class="profile-course__description post-card__description">{{ $pkg.Description }}</p>
+                {{- end }}
+                <div class="profile-course__meta post-card__meta">
+                    <span class="profile-course__meta-item">
+                        Granted
+                        <time datetime="{{ $access.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}">
+                            {{ formatDate $access.CreatedAt "medium" }}
+                        </time>
+                    </span>
+                    {{- with $access.ExpiresAt }}
+                    <span class="profile-course__meta-item">
+                        Expires
+                        <time datetime="{{ .Format "2006-01-02T15:04:05Z07:00" }}">
+                            {{ formatDate . "medium" }}
+                        </time>
+                    </span>
+                    {{- else }}
+                    <span class="profile-course__meta-item">No expiration</span>
+                    {{- end }}
+                </div>
+            </div>
+        </{{ if $pkg.ID }}a{{ else }}article{{ end }}>
+    </li>
+{{ end }}
