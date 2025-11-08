@@ -1180,6 +1180,71 @@
                 });
         };
 
+        const openMediaLibraryStandalone = () => {
+            if (!mediaLibrary) {
+                showAlert('Media library is not available in this environment.', 'error');
+                return;
+            }
+
+            try {
+                mediaLibrary
+                    .open()
+                    .then((selection) => {
+                        if (!selection) {
+                            return;
+                        }
+
+                        const selectedUrl =
+                            (typeof selection === 'string' && selection) ||
+                            (selection && typeof selection.url === 'string' && selection.url) ||
+                            (selection && typeof selection.URL === 'string' && selection.URL) ||
+                            '';
+                        const normalizedUrl =
+                            typeof selectedUrl === 'string' ? selectedUrl.trim() : '';
+                        if (!normalizedUrl) {
+                            return;
+                        }
+
+                        const clipboard =
+                            typeof navigator !== 'undefined' && navigator
+                                ? navigator.clipboard
+                                : null;
+                        const copyPromise =
+                            clipboard && typeof clipboard.writeText === 'function'
+                                ? clipboard.writeText(normalizedUrl)
+                                : null;
+
+                        if (copyPromise) {
+                            copyPromise
+                                .then(() => {
+                                    showAlert('Image URL copied to clipboard.', 'info');
+                                })
+                                .catch(() => {
+                                    showAlert(`Selected image URL: ${normalizedUrl}`, 'info');
+                                });
+                        } else {
+                            showAlert(`Selected image URL: ${normalizedUrl}`, 'info');
+                        }
+                    })
+                    .catch((error) => {
+                        if (!error) {
+                            return;
+                        }
+                        const message =
+                            typeof error.message === 'string'
+                                ? error.message
+                                : 'Failed to open media library.';
+                        showAlert(message, 'error');
+                    });
+            } catch (error) {
+                const message =
+                    error && typeof error.message === 'string'
+                        ? error.message
+                        : 'Failed to open media library.';
+                showAlert(message, 'error');
+            }
+        };
+
         root.addEventListener('click', (event) => {
             const target = event.target instanceof HTMLElement
                 ? event.target
@@ -1194,6 +1259,7 @@
             event.preventDefault();
 
             const selector = trigger.dataset.mediaTarget || '';
+            const mode = trigger.dataset.mediaMode || '';
             let input = null;
 
             if (selector) {
@@ -1214,6 +1280,10 @@
             }
 
             if (!(input instanceof HTMLElement)) {
+                if (mode === 'standalone') {
+                    openMediaLibraryStandalone();
+                    return;
+                }
                 showAlert('Unable to locate the image field to update.', 'error');
                 return;
             }

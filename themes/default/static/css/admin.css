@@ -38,6 +38,40 @@
     align-items: flex-start;
 }
 
+.admin__header-actions {
+    margin-left: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--size-base);
+}
+
+.admin__media-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-xxs);
+    padding: var(--size-sm) var(--size-base);
+    border: 1px solid transparent;
+    background: var(--color-primary);
+    color: var(--color-primary-opposite);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.admin__media-button:hover,
+.admin__media-button:focus-visible {
+    background: var(--color-primary-hover);
+}
+
+.admin__media-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 .admin__intro {
     display: grid;
     gap: var(--size-sm);
@@ -57,6 +91,10 @@
     margin-left: auto;
     display: grid;
     gap: var(--size-xs);
+}
+
+.admin__header-actions .admin__profile {
+    margin-left: 0;
 }
 
 .admin__profile-label {
@@ -1101,7 +1139,6 @@
 
 .admin-languages__add-button {
     border: 1px solid var(--color-primary);
-    border-radius: var(--radius-sm);
     background: var(--color-primary);
     color: var(--color-primary-opposite);
     font-weight: 600;
@@ -1177,7 +1214,6 @@
 .admin-form__favicon-image {
     width: 32px;
     height: 32px;
-    border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
     background: var(--color-bg-top);
     object-fit: contain;
@@ -1195,7 +1231,6 @@
     max-height: 64px;
     width: auto;
     height: auto;
-    border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
     background: var(--color-bg-top);
     object-fit: contain;
@@ -1230,7 +1265,6 @@
     gap: var(--size-sm);
     padding: var(--size-base);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
     background: var(--color-bg-top);
 }
 
@@ -1382,7 +1416,6 @@
     background: transparent;
     color: var(--color-secondary);
     font-weight: 600;
-    border-radius: var(--radius-sm);
     cursor: pointer;
 }
 
@@ -1534,7 +1567,6 @@
     background: transparent;
     color: var(--color-secondary);
     font-weight: 600;
-    border-radius: var(--radius-sm);
     cursor: pointer;
 }
 
@@ -1551,7 +1583,6 @@
     background: var(--color-bg-top);
     color: var(--color-error);
     font-weight: 600;
-    border-radius: var(--radius-sm);
     cursor: pointer;
     width: 100%;
 }
@@ -1654,7 +1685,6 @@
     justify-content: center;
     min-width: 36px;
     padding: var(--size-2xs);
-    border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
     background: var(--color-bg-top);
     font-weight: 600;
@@ -1687,7 +1717,6 @@
 .admin-fonts__snippet {
     margin: 0;
     padding: var(--size-2xs) var(--size-xs);
-    border-radius: var(--radius-sm);
     border: 1px solid var(--color-border-subtle);
     background: var(--color-bg-top);
     font-family: var(--font-family-monospace, 'Fira Code', monospace);
@@ -1748,7 +1777,6 @@
 }
 .admin-fonts__form-actions .admin-form__button {
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
     padding: var(--size-2xs) var(--size-sm);
     background: var(--color-bg-top);
     color: var(--color-secondary);
@@ -1829,7 +1857,6 @@
     justify-content: center;
     min-width: 36px;
     padding: var(--size-xs);
-    border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
     font-weight: 600;
     font-size: var(--font-size-xs);
@@ -1952,7 +1979,6 @@
     align-items: center;
     gap: var(--size-2xs);
     padding: 0 var(--size-xs);
-    border-radius: var(--radius-sm);
     font-weight: 600;
     font-size: var(--font-size-sm);
     background: color-mix(in srgb, var(--color-border) 20%, transparent);
@@ -2011,7 +2037,6 @@
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
     background: color-mix(in srgb, var(--color-border-subtle) 25%, transparent);
-    border-radius: var(--radius-sm);
     padding: var(--size-xs) var(--size-sm);
 }
 
@@ -2562,7 +2587,6 @@
         var(--color-border-subtle) 35%,
         transparent
     );
-    border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
 }
@@ -3274,7 +3298,6 @@
 .admin-courses__preview-media {
     width: 100%;
     max-height: 22.5rem;
-    border-radius: var(--radius-sm);
     background: var(--color-bg-subtle);
     box-shadow: var(--shadow-xs);
     border: 1px solid var(--color-border);
@@ -3322,7 +3345,6 @@
     width: 100%;
     padding: var(--size-sm);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
     background: var(--color-bg-base);
     color: inherit;
     text-align: left;
@@ -3351,7 +3373,6 @@
     display: grid;
     gap: var(--size-xs);
     padding: var(--size-sm);
-    border-radius: var(--radius-sm);
     border: 1px dashed var(--color-border);
     background: var(--color-bg-subtle);
 }
@@ -3381,7 +3402,6 @@
     gap: var(--size-sm);
     padding: var(--size-base);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
     background: var(--color-bg-base);
 }
 
@@ -3439,7 +3459,6 @@
     padding: var(--size-base);
     border: 1px solid var(--color-border);
     border-left: 4px solid var(--color-primary);
-    border-radius: var(--radius-sm);
     background: var(--color-bg-base);
 }
 

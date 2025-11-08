@@ -7,11 +7,21 @@
                 community feedback from a single dashboard.
             </p>
         </div>
-        {{ if .CurrentUser }}
-        <aside class="admin__profile" aria-label="Signed in administrator">
-            <span class="admin__profile-label">Signed in as</span>
-            <span class="admin__profile-name">{{ .CurrentUser.Username }}</span>
-        </aside>
-        {{ end }}
+        <div class="admin__header-actions">
+            <button
+                type="button"
+                class="admin__media-button"
+                data-action="open-media-library"
+                data-media-mode="standalone"
+            >
+                Open media library
+            </button>
+            {{ if .CurrentUser }}
+            <aside class="admin__profile" aria-label="Signed in administrator">
+                <span class="admin__profile-label">Signed in as</span>
+                <span class="admin__profile-name">{{ .CurrentUser.Username }}</span>
+            </aside>
+            {{ end }}
+        </div>
     </header>
 {{ end }}
