@@ -458,6 +458,7 @@
     display: grid;
     gap: var(--size-mid);
     padding: var(--size-max) var(--side-padding);
+    overflow-anchor: none;
 }
 
 .admin__sidebar {
@@ -719,6 +720,7 @@
         min-height: 0;
         overflow-y: auto;
         scrollbar-gutter: stable;
+        overflow-anchor: none;
         padding: var(--size-max);
     }
 
