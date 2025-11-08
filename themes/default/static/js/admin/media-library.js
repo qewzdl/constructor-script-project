@@ -50,6 +50,7 @@
             this.pendingUpload = null;
             this.pendingRename = null;
             this.resolveClose = null;
+            this.allowSelection = true;
         }
 
         ensureElements() {
@@ -235,7 +236,7 @@
                     return;
                 }
                 this.setSelection(index);
-                if (this.currentSelection) {
+                if (this.allowSelection && this.currentSelection) {
                     this.confirmSelection();
                 }
             });
@@ -480,7 +481,13 @@
         updateChooseState() {
             const hasSelection = Boolean(this.currentSelection);
             if (this.chooseButton) {
-                this.chooseButton.disabled = !hasSelection;
+                if (!this.allowSelection) {
+                    this.chooseButton.hidden = true;
+                    this.chooseButton.disabled = true;
+                } else {
+                    this.chooseButton.hidden = false;
+                    this.chooseButton.disabled = !hasSelection;
+                }
             }
             if (this.renameButton && this.renameUpload) {
                 const shouldDisable =
@@ -489,8 +496,13 @@
             }
         }
 
+        setAllowSelection(value) {
+            this.allowSelection = Boolean(value);
+            this.updateChooseState();
+        }
+
         confirmSelection() {
-            if (!this.currentSelection || !this.resolveClose) {
+            if (!this.allowSelection || !this.currentSelection || !this.resolveClose) {
                 return;
             }
             const payload = this.currentSelection;
@@ -634,7 +646,7 @@
         }
 
         async open(options = {}) {
-            const { currentUrl = '', onSelect } = options;
+            const { currentUrl = '', onSelect, allowSelection = true } = options;
             if (!this.fetchUploads) {
                 throw new Error('Media library is not configured with fetchUploads');
             }
@@ -644,6 +656,7 @@
             }
             this.root.hidden = false;
             document.body.style.overflow = 'hidden';
+            this.setAllowSelection(allowSelection);
             this.currentSelection = null;
             this.updateChooseState();
             this.showStatus('');

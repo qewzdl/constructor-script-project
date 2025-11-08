@@ -1188,7 +1188,7 @@
 
             try {
                 mediaLibrary
-                    .open()
+                    .open({ allowSelection: false })
                     .then((selection) => {
                         if (!selection) {
                             return;
