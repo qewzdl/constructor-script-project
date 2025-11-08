@@ -61,10 +61,11 @@ func (f *Feature) Activate() error {
 
 	videoService := courseServices.Video()
 	if videoService == nil {
-		videoService = courseservice.NewVideoService(videoRepo, uploadService)
+		videoService = courseservice.NewVideoService(videoRepo, uploadService, f.host.ThemeManager())
 		courseServices.SetVideo(videoService)
 	} else {
 		videoService.SetUploadService(uploadService)
+		videoService.SetThemeManager(f.host.ThemeManager())
 	}
 
 	testService := courseServices.Test()

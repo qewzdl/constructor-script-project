@@ -1145,6 +1145,22 @@
                                 Description
                                 <textarea name="description" rows="3" class="admin-form__input"></textarea>
                             </label>
+                            <fieldset class="admin-card admin-form__fieldset admin-form__fieldset--sections">
+                                <legend class="admin-card__title admin-form__legend">Lesson content</legend>
+                                <p class="admin-card__description admin-form__hint">
+                                    Use the visual builder to add structured content that appears before the video. Combine
+                                    text, images, and other elements to introduce each lesson.
+                                </p>
+                                <div class="section-builder" data-section-builder="course-video">
+                                    <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
+                                    <ol class="section-builder__list" data-role="section-list"></ol>
+                                    <div class="section-builder__actions">
+                                        <button type="button" class="section-builder__add" data-role="section-add">
+                                            Add section
+                                        </button>
+                                    </div>
+                                </div>
+                            </fieldset>
                             <div class="admin-form__group" data-role="course-video-upload-group">
                                 <label class="admin-form__label">
                                     Video file

@@ -1155,6 +1155,36 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		return
 	}
 
+	pkg := course.Package
+	title := strings.TrimSpace(pkg.Title)
+	if title == "" {
+		title = "Course"
+	}
+	description := strings.TrimSpace(pkg.Description)
+
+	var sectionScripts []string
+	for topicIndex := range pkg.Topics {
+		topic := &pkg.Topics[topicIndex]
+		for stepIndex := range topic.Steps {
+			step := &topic.Steps[stepIndex]
+			if step == nil || step.StepType != models.CourseTopicStepTypeVideo || step.Video == nil {
+				continue
+			}
+			sections := step.Video.Sections
+			if len(sections) == 0 {
+				step.Video.SectionsHTML = ""
+				continue
+			}
+			html, scripts := h.renderSectionsWithPrefix(sections, "course-player")
+			if html != "" {
+				step.Video.SectionsHTML = string(html)
+			} else {
+				step.Video.SectionsHTML = ""
+			}
+			sectionScripts = appendScripts(sectionScripts, scripts)
+		}
+	}
+
 	payload, err := json.Marshal(course)
 	if err != nil {
 		logger.Error(err, "Failed to serialise course", map[string]interface{}{"course_id": courseID, "user_id": user.ID})
@@ -1162,13 +1192,6 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		return
 	}
 	payload = bytes.ReplaceAll(payload, []byte("</"), []byte("<\\/"))
-
-	pkg := course.Package
-	title := strings.TrimSpace(pkg.Title)
-	if title == "" {
-		title = "Course"
-	}
-	description := strings.TrimSpace(pkg.Description)
 
 	canonicalPath := fmt.Sprintf("/courses/%d", pkg.ID)
 	canonical := h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath)
@@ -1178,6 +1201,8 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		lessonCount += len(topic.Steps)
 	}
 
+	scripts := appendScripts([]string{"/static/js/course-player.js"}, sectionScripts)
+
 	data := gin.H{
 		"Course":              course,
 		"CourseJSON":          template.JS(string(payload)),
@@ -1186,7 +1211,7 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		"CourseTopicCount":    len(pkg.Topics),
 		"CourseLessonCount":   lessonCount,
 		"CourseCanonicalPath": canonicalPath,
-		"Scripts":             []string{"/static/js/course-player.js"},
+		"Scripts":             scripts,
 		"Canonical":           canonical,
 		"NoIndex":             true,
 	}

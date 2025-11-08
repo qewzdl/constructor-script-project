@@ -877,6 +877,7 @@
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
         const postSectionsManager = createSectionBuilder(postForm);
         const pageSectionsManager = createSectionBuilder(pageForm);
+        const courseVideoSectionsManager = createSectionBuilder(courseVideoForm);
         const pageContentField = pageForm?.querySelector('[name="content"]');
         const postContentField = postForm?.querySelector('[name="content"]');
         const pagePublishAtInput = pageForm?.querySelector(
@@ -5656,6 +5657,9 @@
             courseVideoForm.reset();
             delete courseVideoForm.dataset.id;
             state.courses.selectedVideoId = '';
+            if (courseVideoSectionsManager) {
+                courseVideoSectionsManager.reset();
+            }
             if (courseVideoSubmitButton) {
                 courseVideoSubmitButton.textContent = 'Upload video';
             }
@@ -5714,6 +5718,14 @@
                 courseVideoDescriptionInput.value = normaliseString(
                     video?.description ?? video?.Description ?? ''
                 );
+            }
+            if (courseVideoSectionsManager) {
+                const rawSections = Array.isArray(video?.sections)
+                    ? video.sections
+                    : Array.isArray(video?.Sections)
+                    ? video.Sections
+                    : [];
+                courseVideoSectionsManager.setSections(rawSections);
             }
             if (courseVideoUploadGroup) {
                 courseVideoUploadGroup.hidden = true;
@@ -5962,6 +5974,9 @@
             const description = normaliseString(
                 courseVideoDescriptionInput?.value
             );
+            const sections = courseVideoSectionsManager
+                ? courseVideoSectionsManager.getSections()
+                : [];
             if (!title) {
                 showAlert('Please provide a video title.', 'error');
                 return;
@@ -5983,6 +5998,7 @@
                             body: JSON.stringify({
                                 title,
                                 description,
+                                sections,
                             }),
                         }
                     );
@@ -5998,6 +6014,7 @@
                     if (description) {
                         formData.append('description', description);
                     }
+                    formData.append('sections', JSON.stringify(sections));
                     const preferred = slugifyPreferredName(title);
                     if (preferred) {
                         formData.append('preferred_name', preferred);

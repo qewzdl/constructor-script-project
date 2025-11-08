@@ -300,13 +300,23 @@
 
         const renderVideo = (topic, step) => {
             const video = step?.video || {};
-            const fragment = document.createDocumentFragment();
+            const container = document.createElement("div");
+            container.className = "course-player__lesson-content";
 
             if (video?.description) {
                 const description = document.createElement("p");
                 description.className = "course-player__lesson-description";
                 description.textContent = video.description;
-                fragment.appendChild(description);
+                container.appendChild(description);
+            }
+
+            const sectionsHTML =
+                video?.sections_html ?? video?.sectionsHtml ?? video?.SectionsHTML;
+            if (sectionsHTML) {
+                const sections = document.createElement("div");
+                sections.className = "course-player__lesson-sections";
+                sections.innerHTML = sectionsHTML;
+                container.appendChild(sections);
             }
 
             if (video?.file_url) {
@@ -321,9 +331,11 @@
                     videoEl.setAttribute("title", video.filename);
                 }
                 wrapper.appendChild(videoEl);
-                fragment.appendChild(wrapper);
+                container.appendChild(wrapper);
             }
 
+            const fragment = document.createDocumentFragment();
+            fragment.appendChild(container);
             return fragment;
         };
 

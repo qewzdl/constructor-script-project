@@ -77,54 +77,6 @@ func formatCourseCardDate(t time.Time, format string) string {
 	return t.Format(format)
 }
 
-func buildProfileCourseCards(courses []models.UserCoursePackage) []courseCardTemplateData {
-	entries := buildProfileCourseEntries(courses)
-	if len(entries) == 0 {
-		return nil
-	}
-
-	cards := make([]courseCardTemplateData, 0, len(entries))
-	for i := range entries {
-		entry := entries[i]
-		headingID := fmt.Sprintf("profile-course-%d-title", i+1)
-		descriptionID := ""
-		descriptionHTML := template.HTML("")
-		if entry.Description != "" {
-			descriptionID = fmt.Sprintf("profile-course-%d-description", i+1)
-			descriptionHTML = template.HTML(template.HTMLEscapeString(entry.Description))
-		}
-
-		card := courseCardTemplateData{
-			Element:          entry.Element,
-			Href:             entry.Href,
-			CardClass:        "profile-course post-card" + entry.CardModifier,
-			MediaClass:       "profile-course__media post-card__figure",
-			ImageClass:       "profile-course__image post-card__image",
-			ContentClass:     "profile-course__content post-card__content",
-			TitleClass:       "profile-course__title post-card__title",
-			MetaClass:        "profile-course__meta post-card__meta",
-			DescriptionClass: "profile-course__description post-card__description",
-			DescriptionTag:   "p",
-			HeadingID:        headingID,
-			DescriptionID:    descriptionID,
-			Title:            entry.Title,
-			MetaItems:        entry.MetaItems,
-			Description:      descriptionHTML,
-			Interactive:      false,
-			HasCourseID:      entry.HasCourseID,
-			CourseID:         entry.CourseID,
-		}
-
-		if entry.Image != nil {
-			card.Image = &courseCardImage{URL: entry.Image.URL, Alt: entry.Image.Alt}
-		}
-
-		cards = append(cards, card)
-	}
-
-	return cards
-}
-
 type profileCourseEntry struct {
 	Element      string
 	Href         string

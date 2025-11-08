@@ -142,6 +142,9 @@ type CourseVideo struct {
 	FileURL         string `gorm:"not null" json:"file_url"`
 	Filename        string `gorm:"not null" json:"filename"`
 	DurationSeconds int    `gorm:"not null" json:"duration_seconds"`
+
+	Sections     PostSections `gorm:"type:jsonb" json:"sections"`
+	SectionsHTML string       `gorm:"-" json:"sections_html,omitempty"`
 }
 
 type CourseTopic struct {
@@ -328,11 +331,13 @@ type CreateCourseVideoRequest struct {
 	Title       string `form:"title" binding:"required"`
 	Description string `form:"description"`
 	Preferred   string `form:"preferred_name"`
+	Sections    []Section
 }
 
 type UpdateCourseVideoRequest struct {
-	Title       string `json:"title" binding:"required"`
-	Description string `json:"description"`
+	Title       string     `json:"title" binding:"required"`
+	Description string     `json:"description"`
+	Sections    *[]Section `json:"sections"`
 }
 
 type CreateCourseTopicRequest struct {

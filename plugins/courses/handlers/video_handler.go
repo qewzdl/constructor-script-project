@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -43,6 +44,13 @@ func (h *VideoHandler) Create(c *gin.Context) {
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	if rawSections := c.PostForm("sections"); rawSections != "" {
+		if err := json.Unmarshal([]byte(rawSections), &req.Sections); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sections payload"})
+			return
+		}
 	}
 
 	file, err := c.FormFile("video")

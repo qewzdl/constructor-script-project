@@ -10,17 +10,20 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/internal/service"
+	"constructor-script-backend/internal/theme"
 )
 
 type VideoService struct {
 	videoRepo     repository.CourseVideoRepository
 	uploadService *service.UploadService
+	themes        *theme.Manager
 }
 
-func NewVideoService(videoRepo repository.CourseVideoRepository, uploadService *service.UploadService) *VideoService {
+func NewVideoService(videoRepo repository.CourseVideoRepository, uploadService *service.UploadService, themes *theme.Manager) *VideoService {
 	return &VideoService{
 		videoRepo:     videoRepo,
 		uploadService: uploadService,
+		themes:        themes,
 	}
 }
 
@@ -29,6 +32,13 @@ func (s *VideoService) SetUploadService(uploadService *service.UploadService) {
 		return
 	}
 	s.uploadService = uploadService
+}
+
+func (s *VideoService) SetThemeManager(manager *theme.Manager) {
+	if s == nil {
+		return
+	}
+	s.themes = manager
 }
 
 func (s *VideoService) Create(req models.CreateCourseVideoRequest, file *multipart.FileHeader) (*models.CourseVideo, error) {
@@ -57,12 +67,18 @@ func (s *VideoService) Create(req models.CreateCourseVideoRequest, file *multipa
 		seconds = 1
 	}
 
+	sections, err := service.PrepareSections(req.Sections, s.themes, service.PrepareSectionsOptions{NormaliseSpacing: true})
+	if err != nil {
+		return nil, err
+	}
+
 	video := models.CourseVideo{
 		Title:           title,
 		Description:     strings.TrimSpace(req.Description),
 		FileURL:         url,
 		Filename:        filename,
 		DurationSeconds: seconds,
+		Sections:        sections,
 	}
 
 	if err := s.videoRepo.Create(&video); err != nil {
@@ -90,6 +106,14 @@ func (s *VideoService) Update(id uint, req models.UpdateCourseVideoRequest) (*mo
 
 	video.Title = title
 	video.Description = strings.TrimSpace(req.Description)
+
+	if req.Sections != nil {
+		sections, err := service.PrepareSections(*req.Sections, s.themes, service.PrepareSectionsOptions{NormaliseSpacing: true})
+		if err != nil {
+			return nil, err
+		}
+		video.Sections = sections
+	}
 
 	if err := s.videoRepo.Update(video); err != nil {
 		return nil, err
