@@ -1136,6 +1136,9 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 	}
 
 	course, err := h.coursePackageSvc.GetForUser(uint(courseID), user.ID)
+	if err == nil && course == nil {
+		err = fmt.Errorf("course package was nil without error")
+	}
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
@@ -1149,10 +1152,6 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 			h.renderError(c, http.StatusInternalServerError, "Course unavailable", "We couldn't load this course right now.")
 			return
 		}
-	}
-	if course == nil {
-		h.renderError(c, http.StatusNotFound, "Course not found", "Requested course could not be found.")
-		return
 	}
 
 	pkg := course.Package
