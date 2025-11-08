@@ -1,0 +1,36 @@
+{{ define "components/profile-courses" }}
+<section
+    class="profile-card profile-card--courses"
+    aria-labelledby="profile-courses-title"
+>
+    <header class="profile-card__header">
+        <h2 id="profile-courses-title" class="profile-card__title">Courses</h2>
+        <p class="profile-card__description">
+            Review the learning packages currently available to your account.
+        </p>
+    </header>
+
+    <div class="profile-courses" id="profile-courses">
+        {{ $hasCourses := gt (len .ProfileCourseCards) 0 }}
+        <p class="profile-courses__empty" {{ if $hasCourses }}hidden{{ end }}>
+            You don't have any courses yet.
+        </p>
+        <ul
+            class="profile-courses__list courses-list"
+            {{
+            if
+            not
+            $hasCourses
+            }}hidden{{
+            end
+            }}
+        >
+            {{- range $index, $card := .ProfileCourseCards }}
+            <li class="profile-courses__item">
+                {{- template "components/course-card" $card }}
+            </li>
+            {{- end }}
+        </ul>
+    </div>
+</section>
+{{ end }}

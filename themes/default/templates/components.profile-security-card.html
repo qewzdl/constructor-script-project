@@ -1,0 +1,79 @@
+{{ define "components/profile-security-card" }}
+<section class="profile-card" aria-labelledby="security-title">
+    <header class="profile-card__header">
+        <h2 id="security-title" class="profile-card__title">Security</h2>
+        <p class="profile-card__description">
+            Change your password regularly and review connected devices.
+        </p>
+    </header>
+
+    <div
+        class="profile__alert"
+        id="profile-password-alert"
+        role="alert"
+        hidden
+    ></div>
+
+    <form
+        id="password-form"
+        class="profile-form"
+        method="post"
+        data-action="{{ .PasswordChangeAction }}"
+        novalidate
+    >
+        <input
+            type="text"
+            name="username"
+            value="{{ if .CurrentUser }}{{ .CurrentUser.Username }}{{ end }}"
+            autocomplete="username"
+            hidden
+        />
+        <div class="form-field">
+            <label class="form-field__label" for="current-password"
+                >Current password</label
+            >
+            <input
+                id="current-password"
+                name="old_password"
+                type="password"
+                class="form-field__input"
+                autocomplete="current-password"
+                required
+            />
+        </div>
+
+        <div class="form-grid">
+            <div class="form-field">
+                <label class="form-field__label" for="new-password"
+                    >New password</label
+                >
+                <input
+                    id="new-password"
+                    name="new_password"
+                    type="password"
+                    class="form-field__input"
+                    autocomplete="new-password"
+                    required
+                />
+            </div>
+            <div class="form-field">
+                <label class="form-field__label" for="confirm-password"
+                    >Confirm password</label
+                >
+                <input
+                    id="confirm-password"
+                    name="confirm_password"
+                    type="password"
+                    class="form-field__input"
+                    autocomplete="new-password"
+                    required
+                />
+            </div>
+        </div>
+
+        <button type="submit" class="button button--secondary">
+            Update password
+        </button>
+    </form>
+</section>
+{{ end }}

@@ -1,0 +1,77 @@
+{{ define "components/profile-account-card" }}
+<section class="profile-card" aria-labelledby="profile-details-title">
+    <header class="profile-card__header">
+        <h2 id="profile-details-title" class="profile-card__title">
+            Account details
+        </h2>
+        <p class="profile-card__description">
+            The information below appears in comments and author bylines.
+        </p>
+    </header>
+
+    <div
+        class="profile__alert"
+        id="profile-details-alert"
+        role="alert"
+        hidden
+    ></div>
+
+    <form
+        id="profile-form"
+        class="profile-form"
+        method="post"
+        data-action="{{ .ProfileAction }}"
+        novalidate
+    >
+        <div class="form-grid">
+            <div class="form-field">
+                <label class="form-field__label" for="profile-username"
+                    >Username</label
+                >
+                <input
+                    id="profile-username"
+                    name="username"
+                    type="text"
+                    class="form-field__input"
+                    placeholder="Display name"
+                    autocomplete="username"
+                    value="{{ if .CurrentUser }}{{ .CurrentUser.Username }}{{ end }}"
+                    required
+                />
+            </div>
+            <div class="form-field">
+                <label class="form-field__label" for="profile-email"
+                    >Email</label
+                >
+                <input
+                    id="profile-email"
+                    name="email"
+                    type="email"
+                    class="form-field__input"
+                    placeholder="name@example.com"
+                    autocomplete="email"
+                    value="{{ if .CurrentUser }}{{ .CurrentUser.Email }}{{ end }}"
+                    required
+                />
+            </div>
+        </div>
+
+        <div class="form-field">
+            <label class="form-field__label" for="profile-role">Role</label>
+            <input
+                id="profile-role"
+                name="role"
+                type="text"
+                class="form-field__input"
+                value="{{ if .CurrentUser }}{{ .CurrentUser.Role }}{{ else }}user{{ end }}"
+                readonly
+                aria-readonly="true"
+            />
+        </div>
+
+        <button type="submit" class="button button--primary">
+            Save changes
+        </button>
+    </form>
+</section>
+{{ end }}
