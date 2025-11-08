@@ -3308,6 +3308,10 @@
     font-size: var(--font-size-sm);
 }
 
+.admin-course-test-question--collapsed .admin-course-test-question__summary {
+    display: block;
+}
+
 .admin-course-test-question:not(.admin-course-test-question--collapsed)
     .admin-course-test-question__summary {
     display: none;
@@ -3336,6 +3340,10 @@
 .admin-course-test-question__fields {
     display: grid;
     gap: var(--size-sm);
+}
+
+.admin-course-test-question--collapsed .admin-course-test-question__fields {
+    display: none;
 }
 
 .admin-course-test-question__options {
