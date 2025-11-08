@@ -3,6 +3,7 @@
     const createEvents = ({
         listElement,
         onSectionRemove,
+        onSectionMove,
         onElementRemove,
         onElementAdd,
         onGroupImageAdd,
@@ -25,6 +26,13 @@
             }
             const sectionClientId = sectionNode.dataset.sectionClient;
             if (!sectionClientId) {
+                return;
+            }
+
+            if (target.matches('[data-action="section-move"]')) {
+                event.preventDefault();
+                const direction = target.dataset.direction || '';
+                onSectionMove?.(sectionClientId, direction);
                 return;
             }
 

@@ -177,6 +177,8 @@
                 ? orderedSectionTypes
                 : Object.keys(sectionDefinitions || {});
 
+            const totalSections = sections.length;
+
             sections.forEach((section, index) => {
                 const sectionItem = createElement('li', {
                     className: 'admin-builder__section',
@@ -186,6 +188,8 @@
 
                 const sectionDefinition = sectionDefinitions?.[section.type] || {};
                 const allowElements = sectionDefinition.supportsElements !== false;
+                const isFirstSection = index === 0;
+                const isLastSection = index === totalSections - 1;
 
                 const sectionHeader = createElement('div', {
                     className: 'admin-builder__section-header',
@@ -194,13 +198,35 @@
                     className: 'admin-builder__section-title',
                     textContent: `Section ${index + 1}`,
                 });
+                const sectionActions = createElement('div', {
+                    className: 'admin-builder__section-actions',
+                });
+                const moveUpButton = createElement('button', {
+                    className: 'admin-builder__button',
+                    textContent: 'Move up',
+                });
+                moveUpButton.type = 'button';
+                moveUpButton.dataset.action = 'section-move';
+                moveUpButton.dataset.direction = 'up';
+                moveUpButton.dataset.role = 'section-move-up';
+                moveUpButton.disabled = isFirstSection;
+                const moveDownButton = createElement('button', {
+                    className: 'admin-builder__button',
+                    textContent: 'Move down',
+                });
+                moveDownButton.type = 'button';
+                moveDownButton.dataset.action = 'section-move';
+                moveDownButton.dataset.direction = 'down';
+                moveDownButton.dataset.role = 'section-move-down';
+                moveDownButton.disabled = isLastSection;
                 const removeButton = createElement('button', {
                     className: 'admin-builder__remove',
                     textContent: 'Remove section',
                 });
                 removeButton.type = 'button';
                 removeButton.dataset.action = 'section-remove';
-                sectionHeader.append(sectionTitle, removeButton);
+                sectionActions.append(moveUpButton, moveDownButton, removeButton);
+                sectionHeader.append(sectionTitle, sectionActions);
                 sectionItem.append(sectionHeader);
 
                 const typeField = createElement('label', {

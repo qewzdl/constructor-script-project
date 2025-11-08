@@ -137,6 +137,31 @@
             emitChange();
         };
 
+        const moveSection = (sectionClientId, direction) => {
+            const nextIndex = state.moveSection(sectionClientId, direction);
+            if (nextIndex < 0) {
+                return;
+            }
+            render();
+            emitChange();
+            let focusRole = '';
+            if (direction === 'up') {
+                focusRole = nextIndex <= 0 ? 'section-move-down' : 'section-move-up';
+            } else if (direction === 'down') {
+                const lastIndex = state.getState().length - 1;
+                focusRole = nextIndex >= lastIndex ? 'section-move-up' : 'section-move-down';
+            }
+            if (focusRole) {
+                view.focusField(
+                    `[data-section-client="${sectionClientId}"] [data-role="${focusRole}"]`
+                );
+            } else {
+                view.focusField(
+                    `[data-section-client="${sectionClientId}"] [data-field="section-title"]`
+                );
+            }
+        };
+
         const addElementToSection = (sectionClientId, type) => {
             const element = state.addElementToSection(sectionClientId, type);
             if (!element) {
@@ -214,6 +239,7 @@
         const events = eventsModule.bind({
             listElement: sectionList,
             onSectionRemove: removeSection,
+            onSectionMove: moveSection,
             onElementRemove: removeElementFromSection,
             onElementAdd: addElementToSection,
             onGroupImageAdd: addGroupImage,

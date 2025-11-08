@@ -386,6 +386,44 @@
             return sections;
         };
 
+        const moveSection = (sectionClientId, direction) => {
+            const currentIndex = sections.findIndex(
+                (section) => section.clientId === sectionClientId
+            );
+            if (currentIndex < 0) {
+                return -1;
+            }
+
+            let targetIndex = currentIndex;
+            if (direction === 'up') {
+                targetIndex -= 1;
+            } else if (direction === 'down') {
+                targetIndex += 1;
+            } else if (typeof direction === 'number' && Number.isFinite(direction)) {
+                targetIndex = Math.trunc(direction);
+            } else if (typeof direction === 'string' && direction.trim()) {
+                const parsed = Number.parseInt(direction, 10);
+                if (Number.isFinite(parsed)) {
+                    targetIndex = parsed;
+                }
+            }
+
+            if (targetIndex < 0) {
+                targetIndex = 0;
+            }
+            if (targetIndex >= sections.length) {
+                targetIndex = sections.length - 1;
+            }
+
+            if (targetIndex === currentIndex || targetIndex < 0) {
+                return -1;
+            }
+
+            const [section] = sections.splice(currentIndex, 1);
+            sections.splice(targetIndex, 0, section);
+            return targetIndex;
+        };
+
         const addElementToSection = (sectionClientId, type) => {
             const section = findSection(sectionClientId);
             if (!section) {
@@ -543,6 +581,7 @@
             reset,
             addSection,
             removeSection,
+            moveSection,
             addElementToSection,
             removeElementFromSection,
             addGroupImage,
