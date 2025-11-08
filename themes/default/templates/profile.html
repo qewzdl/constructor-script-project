@@ -150,27 +150,28 @@
                 <p class="profile-courses__empty" {{ if $hasCourses }}hidden{{ end }}>
                     You don't have any courses yet.
                 </p>
-                <ul class="profile-courses__list" {{ if not $hasCourses }}hidden{{ end }}>
+                <ul class="profile-courses__list courses-list" {{ if not $hasCourses }}hidden{{ end }}>
                     {{ range .UserCourses }}
                         {{ $pkg := .Package }}
                         {{ $access := .Access }}
                         <li class="profile-courses__item">
-                            <article class="profile-course">
+                            <article class="profile-course post-card">
                                 {{ with $pkg.ImageURL }}
-                                    <figure class="profile-course__media">
+                                    <figure class="profile-course__media post-card__figure">
                                         <img
                                             src="{{ asset . }}"
                                             alt="{{ default "Course cover" $pkg.Title }}"
                                             loading="lazy"
+                                            class="profile-course__image post-card__image"
                                         />
                                     </figure>
                                 {{ end }}
-                                <div class="profile-course__content">
-                                    <h3 class="profile-course__title">{{ default "Untitled course" $pkg.Title }}</h3>
+                                <div class="profile-course__content post-card__content">
+                                    <h3 class="profile-course__title post-card__title">{{ default "Untitled course" $pkg.Title }}</h3>
                                     {{ if $pkg.Description }}
-                                        <p class="profile-course__description">{{ $pkg.Description }}</p>
+                                        <p class="profile-course__description post-card__description">{{ $pkg.Description }}</p>
                                     {{ end }}
-                                    <p class="profile-course__meta">
+                                    <div class="profile-course__meta post-card__meta">
                                         <span class="profile-course__meta-item">
                                             Granted
                                             <time datetime="{{ $access.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}">
@@ -187,7 +188,7 @@
                                         {{ else }}
                                             <span class="profile-course__meta-item">No expiration</span>
                                         {{ end }}
-                                    </p>
+                                    </div>
                                 </div>
                             </article>
                         </li>

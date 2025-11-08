@@ -39,7 +39,7 @@
 .courses-list__duration {
     display: inline-flex;
     align-items: center;
-    gap: var(--size-xxs);
+    gap: var(--size-xs);
     white-space: nowrap;
 }
 

@@ -15,7 +15,6 @@
         {{- if $articleLabelledby -}}aria-labelledby="{{ $articleLabelledby }}"{{- else -}}aria-label="Read post: {{ $post.Title }}"{{- end }}
     >
         {{ if and $post.FeaturedImg (not $.HideImage) }}
-            {{ if $.UseFigure }}
             <figure class="post-card__figure">
                 <img
                     src="{{ $post.FeaturedImg }}"
@@ -24,14 +23,6 @@
                     {{ if $.LazyLoad }}loading="lazy"{{ end }}
                 />
             </figure>
-            {{ else }}
-            <img
-                src="{{ $post.FeaturedImg }}"
-                alt="{{ $post.Title }}"
-                class="post-card__image"
-                {{ if $.LazyLoad }}loading="lazy"{{ end }}
-            />
-            {{ end }}
         {{ end }}
 
         <div class="post-card__content">

@@ -438,38 +438,39 @@
             item.className = "profile-courses__item";
 
             const article = document.createElement("article");
-            article.className = "profile-course";
+            article.className = "profile-course post-card";
 
             if (pkg.image_url) {
                 const figure = document.createElement("figure");
-                figure.className = "profile-course__media";
+                figure.className = "profile-course__media post-card__figure";
 
                 const img = document.createElement("img");
                 img.src = pkg.image_url;
                 img.alt = pkg.title ? `${pkg.title} cover` : "Course cover";
                 img.loading = "lazy";
+                img.className = "profile-course__image post-card__image";
 
                 figure.appendChild(img);
                 article.appendChild(figure);
             }
 
             const content = document.createElement("div");
-            content.className = "profile-course__content";
+            content.className = "profile-course__content post-card__content";
 
             const title = document.createElement("h3");
-            title.className = "profile-course__title";
+            title.className = "profile-course__title post-card__title";
             title.textContent = pkg.title || "Untitled course";
             content.appendChild(title);
 
             if (pkg.description) {
                 const description = document.createElement("p");
-                description.className = "profile-course__description";
+                description.className = "profile-course__description post-card__description";
                 description.textContent = pkg.description;
                 content.appendChild(description);
             }
 
-            const meta = document.createElement("p");
-            meta.className = "profile-course__meta";
+            const meta = document.createElement("div");
+            meta.className = "profile-course__meta post-card__meta";
 
             const grantedItem = document.createElement("span");
             grantedItem.className = "profile-course__meta-item";
