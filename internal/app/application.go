@@ -331,6 +331,12 @@ func (a *Application) runMigrations() error {
 
 	migrator := a.db.Migrator()
 
+	if migrator.HasTable(&models.CourseTopicStep{}) && !migrator.HasColumn(&models.CourseTopicStep{}, "test_id") {
+		if err := a.db.Exec("ALTER TABLE course_topic_steps ADD COLUMN test_id bigint").Error; err != nil {
+			return fmt.Errorf("failed to add course topic step test reference: %w", err)
+		}
+	}
+
 	if migrator.HasTable(&models.Page{}) && !migrator.HasColumn(&models.Page{}, "path") {
 		if err := a.db.Exec("ALTER TABLE pages ADD COLUMN path text").Error; err != nil {
 			return fmt.Errorf("failed to add page path column: %w", err)
@@ -362,6 +368,12 @@ func (a *Application) runMigrations() error {
 		&models.Plugin{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
+	}
+
+	if migrator.HasTable(&models.CourseTopicStep{}) {
+		if err := a.db.Exec("CREATE INDEX IF NOT EXISTS idx_course_topic_steps_test_id ON course_topic_steps(test_id)").Error; err != nil {
+			return fmt.Errorf("failed to ensure course topic step test index: %w", err)
+		}
 	}
 
 	if err := a.migrateTopicVideosToSteps(); err != nil {
