@@ -247,47 +247,6 @@ type coursesListTemplateData struct {
 	Cards     []courseCardTemplateData
 }
 
-type courseCardTemplateData struct {
-	CardClass        string
-	MediaClass       string
-	ImageClass       string
-	ContentClass     string
-	TitleClass       string
-	LinkClass        string
-	MetaClass        string
-	DescriptionClass string
-	TopicsClass      string
-	TopicItemClass   string
-	TopicNameClass   string
-	TopicMetaClass   string
-
-	HeadingID     string
-	DescriptionID string
-	HasCourseID   bool
-	CourseID      string
-	Title         string
-	Image         *courseCardImage
-	MetaItems     []courseCardMetaItem
-	Description   template.HTML
-	Topics        []courseCardTopic
-	ModalDetails  template.JS
-}
-
-type courseCardMetaItem struct {
-	Class string
-	Label string
-}
-
-type courseCardTopic struct {
-	Name string
-	Meta string
-}
-
-type courseCardImage struct {
-	URL string
-	Alt string
-}
-
 func (h *TemplateHandler) renderCoursesListSection(prefix string, section models.Section) string {
 	const maxTopicsPerCourse = 6
 
@@ -410,6 +369,7 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 		}
 
 		card := courseCardTemplateData{
+			Element:          "article",
 			CardClass:        cardClass,
 			MediaClass:       mediaClass,
 			ImageClass:       imageClass,
@@ -418,6 +378,7 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 			LinkClass:        linkClass,
 			MetaClass:        metaClass,
 			DescriptionClass: descriptionClass,
+			DescriptionTag:   "div",
 			TopicsClass:      topicsClass,
 			TopicItemClass:   topicItemClass,
 			TopicNameClass:   topicNameClass,
@@ -430,6 +391,7 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 			MetaItems:        metaItems,
 			Description:      descriptionHTML,
 			Topics:           topicsData,
+			Interactive:      true,
 		}
 
 		if image := strings.TrimSpace(pkg.ImageURL); image != "" {

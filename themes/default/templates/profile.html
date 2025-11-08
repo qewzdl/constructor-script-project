@@ -146,13 +146,15 @@
             </header>
 
             <div class="profile-courses" id="profile-courses">
-                {{ $hasCourses := gt (len .UserCourses) 0 }}
+                {{ $hasCourses := gt (len .ProfileCourseCards) 0 }}
                 <p class="profile-courses__empty" {{ if $hasCourses }}hidden{{ end }}>
                     You don't have any courses yet.
                 </p>
                 <ul class="profile-courses__list courses-list" {{ if not $hasCourses }}hidden{{ end }}>
-                    {{- range .UserCourses }}
-                        {{- template "components/profile-course" . }}
+                    {{- range $index, $card := .ProfileCourseCards }}
+                        <li class="profile-courses__item">
+                            {{- template "components/course-card" $card }}
+                        </li>
                     {{- end }}
                 </ul>
             </div>

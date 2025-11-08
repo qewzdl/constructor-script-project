@@ -1,20 +1,39 @@
-{{ define "components/course-card" }}
+{{ define "components/course-card__interactive-attrs" }}
     {{- $card := . }}
-    <article
-        class="{{ $card.CardClass }}"
+    {{- if $card.Interactive }}
         data-course-card
         {{- if $card.HasCourseID }} data-course-id="{{ $card.CourseID }}"{{- end }}
         role="button"
         tabindex="0"
         aria-haspopup="dialog"
-        aria-labelledby="{{ $card.HeadingID }}"
-        {{- if $card.DescriptionID }} aria-describedby="{{ $card.DescriptionID }}"{{- end }}
+    {{- else if $card.HasCourseID }}
+        data-course-id="{{ $card.CourseID }}"
+    {{- end }}
+    {{- if $card.HeadingID }} aria-labelledby="{{ $card.HeadingID }}"{{- end }}
+    {{- if $card.DescriptionID }} aria-describedby="{{ $card.DescriptionID }}"{{- end }}
+{{ end }}
+
+{{ define "components/course-card" }}
+    {{- $card := . }}
+    {{- $element := default "article" $card.Element }}
+    {{- $isLink := and (eq $element "a") $card.Href }}
+    {{- if $isLink }}
+    <a
+        class="{{ $card.CardClass }}"
+        href="{{ $card.Href }}"
+        {{- template "components/course-card__interactive-attrs" $card }}
     >
+    {{- else }}
+    <article
+        class="{{ $card.CardClass }}"
+        {{- template "components/course-card__interactive-attrs" $card }}
+    >
+    {{- end }}
         {{- if $card.Image }}
         <figure class="{{ $card.MediaClass }}">
             <img
                 class="{{ $card.ImageClass }}"
-                src="{{ $card.Image.URL }}"
+                src="{{ asset $card.Image.URL }}"
                 alt="{{ $card.Image.Alt }}"
                 loading="lazy"
             />
@@ -23,21 +42,40 @@
 
         <div class="{{ $card.ContentClass }}">
             <h3 id="{{ $card.HeadingID }}" class="{{ $card.TitleClass }}">
+                {{- if $card.LinkClass }}
                 <span class="{{ $card.LinkClass }}">{{ $card.Title }}</span>
+                {{- else }}
+                {{ $card.Title }}
+                {{- end }}
             </h3>
 
             {{- if $card.MetaItems }}
             <div class="{{ $card.MetaClass }}" aria-label="Course summary">
                 {{- range $card.MetaItems }}
-                <span class="{{ .Class }}">{{ .Label }}</span>
+                <span class="{{ .Class }}">
+                    {{- if .Label -}}
+                        {{ .Label }}
+                    {{- end -}}
+                    {{- if .Time -}}
+                        {{- if .Label }} {{ end -}}
+                        <time datetime="{{ .Time.DateTime }}">{{ .Time.Display }}</time>
+                    {{- end -}}
+                </span>
                 {{- end }}
             </div>
             {{- end }}
 
             {{- if $card.Description }}
+            {{- $descriptionTag := default "div" $card.DescriptionTag }}
+            {{- if eq $descriptionTag "p" }}
+            <p class="{{ $card.DescriptionClass }}"{{ if $card.DescriptionID }} id="{{ $card.DescriptionID }}"{{ end }}>
+                {{ $card.Description }}
+            </p>
+            {{- else }}
             <div class="{{ $card.DescriptionClass }}"{{ if $card.DescriptionID }} id="{{ $card.DescriptionID }}"{{ end }}>
                 {{ $card.Description }}
             </div>
+            {{- end }}
             {{- end }}
 
             {{- if $card.Topics }}
@@ -54,5 +92,9 @@
             <script type="application/json" data-course-details>{{ $card.ModalDetails }}</script>
             {{- end }}
         </div>
+    {{- if $isLink }}
+    </a>
+    {{- else }}
     </article>
+    {{- end }}
 {{ end }}

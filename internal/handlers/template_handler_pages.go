@@ -906,6 +906,7 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		"ProfileAction":        "/api/v1/profile",
 		"PasswordChangeAction": "/api/v1/profile/password",
 		"UserCourses":          courses,
+		"ProfileCourseCards":   buildProfileCourseCards(courses),
 	})
 }
 

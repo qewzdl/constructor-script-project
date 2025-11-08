@@ -427,12 +427,16 @@
 
         list.hidden = false;
 
-        entries.forEach((entry) => {
+        entries.forEach((entry, index) => {
             if (!entry || typeof entry !== "object") {
                 return;
             }
             const pkg = entry.package || {};
             const access = entry.access || {};
+
+            const cardIndex = index + 1;
+            const headingId = `profile-course-${cardIndex}-title`;
+            const descriptionId = pkg.description ? `profile-course-${cardIndex}-description` : "";
 
             const item = document.createElement("li");
             item.className = "profile-courses__item";
@@ -446,6 +450,11 @@
 
             if (pkg.id) {
                 cardElement.href = `/courses/${pkg.id}`;
+            }
+
+            cardElement.setAttribute("aria-labelledby", headingId);
+            if (descriptionId) {
+                cardElement.setAttribute("aria-describedby", descriptionId);
             }
 
             if (pkg.image_url) {
@@ -467,12 +476,14 @@
 
             const title = document.createElement("h3");
             title.className = "profile-course__title post-card__title";
+            title.id = headingId;
             title.textContent = pkg.title || "Untitled course";
             content.appendChild(title);
 
             if (pkg.description) {
                 const description = document.createElement("p");
                 description.className = "profile-course__description post-card__description";
+                description.id = descriptionId;
                 description.textContent = pkg.description;
                 content.appendChild(description);
             }
