@@ -1,0 +1,97 @@
+{{ define "components/footer" }}
+    {{ $ads := .Advertising }}
+    <footer class="footer" role="contentinfo">
+        {{ if and $ads ($ads.Enabled) }}
+        {{ range index $ads.Placements "footer" }}
+        {{ . }}
+        {{ end }}
+        {{ end }}
+        <div class="footer__container">
+            <section class="footer__info">
+                <a
+                    href="/"
+                    class="footer__brand-link"
+                    aria-label="Go to {{ .Site.Name }} homepage"
+                >
+                    {{ .Site.Name }}
+                </a>
+                <p class="footer__text">
+                    Build, publish, and grow your content with confidence.
+                </p>
+            </section>
+            <nav class="footer__nav" aria-label="Footer navigation">
+                {{ $footerMenu := .Site.FooterMenuItems }}
+                {{ if gt (len $footerMenu) 0 }}
+                {{ range $footerMenu }}
+                <div class="footer__group">
+                    <h2 class="footer__heading">{{ .Title }}</h2>
+                    <ul class="footer__list">
+                        {{ if eq .Key "footer:account" }}
+                        <li
+                            class="footer__item"
+                            data-auth="auth"
+                            {{ if not $.IsAuthenticated }}hidden{{ end }}
+                        >
+                            <a href="/profile" class="footer__link">Profile</a>
+                        </li>
+                        {{ range .Items }}
+                        <li
+                            class="footer__item"
+                            data-auth="guest"
+                            {{ if $.IsAuthenticated }}hidden{{ end }}
+                        >
+                            <a href="{{ .URL }}" class="footer__link">{{ .Title }}</a>
+                        </li>
+                        {{ end }}
+                        {{ else }}
+                        {{ range .Items }}
+                        <li class="footer__item">
+                            <a href="{{ .URL }}" class="footer__link">{{ .Title }}</a>
+                        </li>
+                        {{ end }}
+                        {{ end }}
+                    </ul>
+                </div>
+                {{ end }}
+                {{ end }}
+            </nav>
+            {{ if .Site.SocialLinks }}
+            <aside class="footer__social" aria-label="Social media links">
+                <ul class="footer__social-list">
+                    {{ range .Site.SocialLinks }}
+                    <li class="footer__social-item">
+                        <a
+                            href="{{ .URL }}"
+                            class="footer__social-link"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="{{ .Name }}"
+                        >
+                            {{ if .Icon }}
+                            <img
+                                src="{{ safeURL .Icon }}"
+                                alt=""
+                                class="footer__social-icon"
+                                loading="lazy"
+                            />
+                            <span class="footer__social-label">{{ .Name }}</span>
+                            {{ else }}
+                            <span class="footer__social-fallback">{{ .Name }}</span>
+                            {{ end }}
+                        </a>
+                    </li>
+                    {{ end }}
+                </ul>
+            </aside>
+            {{ end }}
+        </div>
+        <div class="footer__bottom">
+            <p class="footer__copyright">
+                &copy;
+                <time datetime="2025" class="footer__year">2025</time>
+                <span class="footer__brand">{{ .Site.Name }}</span>. All
+                rights reserved.
+            </p>
+        </div>
+    </footer>
+{{ end }}

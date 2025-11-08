@@ -1,0 +1,119 @@
+{{ define "components/header" }}
+    <header class="header" role="banner">
+        <nav
+            class="header__nav"
+            role="navigation"
+            aria-label="Main navigation"
+        >
+            <a
+                href="/"
+                class="header__logo"
+                aria-label="Go to {{ .Site.Name }} homepage"
+            >
+                <img
+                    src="{{ .Site.Logo }}"
+                    alt="{{ .Site.Name }} Logo"
+                    class="header__logo-image"
+                />
+            </a>
+            <button
+                type="button"
+                class="header__menu-toggle"
+                data-menu-toggle
+                aria-controls="primary-navigation"
+                aria-expanded="false"
+            >
+                <span class="header__menu-icon" aria-hidden="true"></span>
+            </button>
+            {{ $activeNav := .ActiveNav }}
+            {{ $activePath := .ActivePath }}
+            {{ $headerMenu := .Site.HeaderMenuItems }}
+            <ul class="header__nav-list" id="primary-navigation" data-menu>
+                {{ range $headerMenu }}
+                {{ $isActive := pathEquals $activePath .URL }}
+                <li class="header__nav-item">
+                    <a
+                        href="{{ .URL }}"
+                        class="header__nav-link{{ if $isActive }} header__nav-link--active{{ end }}"
+                        {{ if $isActive }}aria-current="page"{{ end }}
+                        >{{ .Title }}</a
+                    >
+                </li>
+                {{ end }}
+                {{ with .CurrentUser }} {{ if and $.IsAuthenticated (eq .Role "admin") }}
+                <li class="header__nav-item" data-auth="auth">
+                    <a
+                        href="/admin"
+                        class="header__nav-link{{ if eq $activeNav "admin" }} header__nav-link--active{{ end }}"
+                        {{ if eq $activeNav "admin" }}aria-current="page"{{ end }}
+                        >Admin</a
+                    >
+                </li>
+                {{ end }} {{ end }}
+                {{ if .IsAuthenticated }}
+                <li
+                    class="header__nav-item"
+                    data-auth="auth"
+                    {{ if not .IsAuthenticated }}hidden{{ end }}
+                >
+                    <a
+                        href="/profile"
+                        class="header__nav-link{{ if eq $activeNav "profile" }} header__nav-link--active{{ end }}"
+                        {{ if eq $activeNav "profile" }}aria-current="page"{{ end }}
+                        >Profile</a
+                    >
+                </li>
+                <li
+                    class="header__nav-item"
+                    data-auth="auth"
+                    {{ if not .IsAuthenticated }}hidden{{ end }}
+                >
+                    <button
+                        id="logout-button"
+                        class="header__nav-link header__nav-link--button"
+                        type="button"
+                    >
+                        Log out
+                    </button>
+                </li>
+                {{ else }}
+                <li
+                    class="header__nav-item"
+                    data-auth="guest"
+                    {{ if .IsAuthenticated }}hidden{{ end }}
+                >
+                    <a
+                        href="/login"
+                        class="header__nav-link{{ if eq $activeNav "login" }} header__nav-link--active{{ end }}"
+                        {{ if eq $activeNav "login" }}aria-current="page"{{ end }}
+                        >Sign in</a
+                    >
+                </li>
+                <li
+                    class="header__nav-item"
+                    data-auth="guest"
+                    {{ if .IsAuthenticated }}hidden{{ end }}
+                >
+                    <a
+                        href="/register"
+                        class="header__nav-link{{ if eq $activeNav "register" }} header__nav-link--active{{ end }}"
+                        {{ if eq $activeNav "register" }}aria-current="page"{{ end }}
+                        >Create account</a
+                    >
+                </li>
+                {{ end }}
+            </ul>
+            <button
+                type="button"
+                class="header__theme-toggle"
+                data-theme-toggle
+                aria-label="Toggle dark mode"
+            >
+                <span aria-hidden="true" class="header__theme-icon">🌙</span>
+                <span class="header__theme-label" data-theme-toggle-label>
+                    Dark mode
+                </span>
+            </button>
+        </nav>
+    </header>
+{{ end }}
