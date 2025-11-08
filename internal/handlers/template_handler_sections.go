@@ -55,9 +55,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		}
 
 		if section.Image != "" {
-			sb.WriteString(`<div class="` + sectionImageWrapperClass + `">`)
+			sb.WriteString(`<figure class="` + sectionImageWrapperClass + `">`)
 			sb.WriteString(`<img class="` + sectionImageClass + `" src="` + template.HTMLEscapeString(section.Image) + `" alt="` + escapedTitle + `" />`)
-			sb.WriteString(`</div>`)
+			sb.WriteString(`</figure>`)
 		}
 
 		skipElements := false
