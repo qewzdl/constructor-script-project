@@ -1,0 +1,29 @@
+{{ define "components/post-related" }}
+{{ if .RelatedPosts }}
+<section class="post__related" aria-label="Related posts">
+    <h2 class="post__related-title">Related Articles</h2>
+    <div class="post__related-grid">
+        {{ range .RelatedPosts }}
+        <a class="post__related-card" href="/blog/post/{{ .Slug }}">
+            {{ if .FeaturedImg }}
+            <img
+                src="{{ .FeaturedImg }}"
+                alt="{{ .Title }}"
+                class="post__related-image"
+            />
+            {{ end }}
+            <div class="post__related-content">
+                <h3 class="post__related-heading">{{ .Title }}</h3>
+                {{ $relatedPublished := or .PublishedAt (or .PublishAt .CreatedAt) }}
+                <time
+                    class="post__related-date"
+                    datetime='{{ $relatedPublished.Format "2006-01-02" }}'
+                    >{{ $relatedPublished.Format "02.01.2006" }}</time
+                >
+            </div>
+        </a>
+        {{ end }}
+    </div>
+</section>
+{{ end }}
+{{ end }}

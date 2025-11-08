@@ -1,0 +1,135 @@
+{{ define "components/comments/item" }}
+    {{ $comment := .Comment }}
+    {{ $root := .Root }}
+    <li
+        class="comments__item"
+        data-comment-id="{{ $comment.ID }}"
+        data-author-id="{{ $comment.AuthorID }}"
+        data-comment-raw="{{ $comment.RawContent }}"
+    >
+        <article class="comments__card">
+            <header class="comments__header">
+                <span class="comments__author">{{ $comment.AuthorName }}</span>
+                <time
+                    class="comments__time"
+                    datetime='{{ $comment.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}'
+                >
+                    {{ $comment.CreatedAt.Format "02 Jan 2006 15:04" }}
+                </time>
+            </header>
+            <div class="comments__content">
+                {{ $comment.Content }}
+            </div>
+            {{ $currentUser := $root.CurrentUser }}
+            {{ $canReply := $root.IsAuthenticated }}
+            {{ $canManage := and $root.IsAuthenticated (or $root.IsAdmin (and $currentUser (eq $comment.AuthorID $currentUser.ID ))) }}
+            {{ if or $canReply $canManage }}
+            <div class="comments__actions">
+                {{ if $canReply }}
+                <button
+                    type="button"
+                    class="comments__reply-button"
+                    data-action="reply"
+                    data-comment-id="{{ $comment.ID }}"
+                    data-author="{{ $comment.AuthorName }}"
+                >
+                    Reply
+                </button>
+                {{ end }}
+                {{ if $canManage }}
+                <button
+                    type="button"
+                    class="comments__edit-button"
+                    data-action="edit"
+                    data-comment-id="{{ $comment.ID }}"
+                >
+                    Edit
+                </button>
+                <button
+                    type="button"
+                    class="comments__delete-button"
+                    data-action="delete"
+                    data-comment-id="{{ $comment.ID }}"
+                >
+                    Delete
+                </button>
+                {{ end }}
+            </div>
+            {{ end }}
+        </article>
+        <ol class="comments__replies" data-comments-replies>
+            {{ range $comment.Replies }}
+                {{ template "components/comments/item" (dict "Comment" . "Root" $root) }}
+            {{ end }}
+        </ol>
+    </li>
+{{ end }}
+
+{{ define "components/comments" }}
+    {{ $root := . }}
+    {{ $postPath := printf "/blog/post/%s" .Post.Slug }}
+    {{ $encodedPostPath := urlquery $postPath }}
+
+    <section
+        class="comments"
+        aria-label="Comments"
+        data-comments
+        data-comment-endpoint="/api/v1/comments"
+        data-current-user-id="{{ with .CurrentUser }}{{ .ID }}{{ end }}"
+        data-is-admin="{{ if .IsAdmin }}true{{ else }}false{{ end }}"
+    >
+        <div class="comments__header-row">
+            <h2 class="comments__title">Comments</h2>
+            <span class="comments__count" data-comment-count>{{ .CommentCount }}</span>
+        </div>
+
+        <div id="comment-alert" class="comments__alert" role="status" hidden></div>
+
+        {{ if .IsAuthenticated }}
+        <form
+            id="comment-form"
+            class="comments__form"
+            method="post"
+            novalidate
+            data-action="/api/v1/posts/{{ .Post.ID }}/comments"
+        >
+            <div class="comments__reply-context" data-reply-context hidden>
+                Replying to <span class="comments__reply-target" data-reply-to></span>
+                <button type="button" class="comments__cancel-reply" data-action="cancel-reply">
+                    Cancel
+                </button>
+            </div>
+            <label class="comments__label" for="comment-content">Join the discussion</label>
+            <textarea
+                id="comment-content"
+                name="content"
+                class="comments__textarea"
+                placeholder="Share your thoughts..."
+                rows="5"
+                maxlength="2000"
+                required
+            ></textarea>
+            <input type="hidden" name="parent_id" value="" />
+            <button type="submit" class="comments__submit">Post comment</button>
+        </form>
+        {{ else }}
+        <p class="comments__sign-in">
+            Want to join the conversation?
+            <a href="/login?redirect={{ $encodedPostPath }}">Sign in</a>
+            or
+            <a href="/register?redirect={{ $encodedPostPath }}">create an account</a>
+            to share your thoughts.
+        </p>
+        {{ end }}
+
+        <p class="comments__empty" data-comments-empty {{ if .Comments }}hidden{{ end }}>
+            Be the first to share your thoughts.
+        </p>
+
+        <ol class="comments__list" data-comments-list>
+            {{ range .Comments }}
+            {{ template "components/comments/item" (dict "Comment" . "Root" $root) }}
+            {{ end }}
+        </ol>
+    </section>
+{{ end }}
