@@ -1,0 +1,16 @@
+{{ define "components/admin-sidebar" }}
+    <aside class="admin__sidebar">
+        <nav class="admin__navigation" aria-label="Admin sections">
+            <div class="admin__navigation-card">
+                <div class="admin__nav" data-role="admin-nav"></div>
+            </div>
+        </nav>
+        <section class="admin__shortcuts" aria-labelledby="admin-shortcuts-title">
+            <h2 id="admin-shortcuts-title" class="admin__shortcuts-title">Quick actions</h2>
+            <p class="admin__shortcuts-description">
+                Jump straight to creating content or updating key site settings.
+            </p>
+            <ul class="admin__shortcuts-list" data-role="admin-quick-actions"></ul>
+        </section>
+    </aside>
+{{ end }}

@@ -1,0 +1,17 @@
+{{ define "components/admin-header" }}
+    <header class="admin__header">
+        <div class="admin__intro">
+            <h1 id="admin-title" class="admin__title">Site administration</h1>
+            <p class="admin__subtitle">
+                Manage the content library, curate static pages, organise categories and moderate
+                community feedback from a single dashboard.
+            </p>
+        </div>
+        {{ if .CurrentUser }}
+        <aside class="admin__profile" aria-label="Signed in administrator">
+            <span class="admin__profile-label">Signed in as</span>
+            <span class="admin__profile-name">{{ .CurrentUser.Username }}</span>
+        </aside>
+        {{ end }}
+    </header>
+{{ end }}

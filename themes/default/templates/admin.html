@@ -54,37 +54,10 @@
     <script type="application/json" id="element-definitions-data">
         {{ .ElementDefinitionsJSON }}
     </script>
-    <aside class="admin__sidebar">
-        <nav class="admin__navigation" aria-label="Admin sections">
-            <div class="admin__navigation-card">
-                <div class="admin__nav" data-role="admin-nav"></div>
-            </div>
-        </nav>
-        <section class="admin__shortcuts" aria-labelledby="admin-shortcuts-title">
-            <h2 id="admin-shortcuts-title" class="admin__shortcuts-title">Quick actions</h2>
-            <p class="admin__shortcuts-description">
-                Jump straight to creating content or updating key site settings.
-            </p>
-            <ul class="admin__shortcuts-list" data-role="admin-quick-actions"></ul>
-        </section>
-    </aside>
+    {{ template "components/admin-sidebar" . }}
 
     <div class="admin__content">
-        <header class="admin__header">
-            <div class="admin__intro">
-                <h1 id="admin-title" class="admin__title">Site administration</h1>
-                <p class="admin__subtitle">
-                    Manage the content library, curate static pages, organise categories and moderate
-                    community feedback from a single dashboard.
-                </p>
-            </div>
-            {{ if .CurrentUser }}
-            <aside class="admin__profile" aria-label="Signed in administrator">
-                <span class="admin__profile-label">Signed in as</span>
-                <span class="admin__profile-name">{{ .CurrentUser.Username }}</span>
-            </aside>
-            {{ end }}
-        </header>
+        {{ template "components/admin-header" . }}
 
         <div class="admin__alert" id="admin-alert" role="status" aria-live="assertive" hidden></div>
 
