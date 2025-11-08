@@ -1,0 +1,49 @@
+{
+    "title": "Profile",
+    "slug": "profile",
+    "path": "/profile",
+    "description": "Manage personal details, account security, and connected devices.",
+    "published": true,
+    "template": "profile",
+    "sections": [
+        {
+            "id": "profile-settings",
+            "type": "grid",
+            "elements": [
+                {
+                    "id": "profile-account",
+                    "type": "profile_account_details",
+                    "content": {
+                        "title": "Account details",
+                        "description": "The information below appears in comments and author bylines.",
+                        "button_label": "Save changes"
+                    }
+                },
+                {
+                    "id": "profile-security",
+                    "type": "profile_security",
+                    "content": {
+                        "title": "Security",
+                        "description": "Change your password regularly and review connected devices.",
+                        "button_label": "Update password"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "profile-courses",
+            "type": "standard",
+            "elements": [
+                {
+                    "id": "profile-courses",
+                    "type": "profile_courses",
+                    "content": {
+                        "title": "Courses",
+                        "description": "Review the learning packages currently available to your account.",
+                        "empty_message": "You don't have any courses yet."
+                    }
+                }
+            ]
+        }
+    ]
+}

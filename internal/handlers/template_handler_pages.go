@@ -902,32 +902,52 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		}
 	}
 
-	sections := h.profileSectionsForUser(user)
+	courseCards := buildProfileCourseCards(courses)
+	sections, page := h.profileSectionsForUser(user, buildProfileCourseSectionContent(courses))
 	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(sections, "profile")
 	scripts := appendScripts(nil, sectionScripts)
+
+	pageTitle := "Profile"
+	pageDescription := "Manage personal details, account security, and connected devices."
+	profileHeading := "Personal profile"
+	profileSubtitle := "Update your contact information and keep your account secure across every device."
+	if page != nil {
+		if trimmed := strings.TrimSpace(page.Title); trimmed != "" {
+			pageTitle = trimmed
+			profileHeading = trimmed
+		}
+		if trimmed := strings.TrimSpace(page.Description); trimmed != "" {
+			pageDescription = trimmed
+			profileSubtitle = trimmed
+		}
+	}
 
 	data := gin.H{
 		"ProfileAction":        "/api/v1/profile",
 		"PasswordChangeAction": "/api/v1/profile/password",
 		"UserCourses":          courses,
-		"ProfileCourseCards":   buildProfileCourseCards(courses),
+		"ProfileCourseCards":   courseCards,
 		"ProfileSections":      sectionsHTML,
+		"ProfileTitle":         profileHeading,
+		"ProfileSubtitle":      profileSubtitle,
 	}
 	if len(scripts) > 0 {
 		data["Scripts"] = scripts
 	}
 
-	h.renderTemplate(c, "profile", "Profile", "Manage personal details, account security, and connected devices.", data)
+	h.renderTemplate(c, "profile", pageTitle, pageDescription, data)
 }
 
-func (h *TemplateHandler) profileSectionsForUser(user *models.User) models.PostSections {
+func (h *TemplateHandler) profileSectionsForUser(user *models.User, courseEntries []map[string]interface{}) (models.PostSections, *models.Page) {
 	if h == nil {
-		return applyProfileUserContext(defaultProfileSections(), user)
+		return applyProfileUserContext(defaultProfileSections(), user, courseEntries), nil
 	}
 
 	var sections models.PostSections
+	var page *models.Page
 	if h.pageService != nil {
-		if page, err := h.pageService.GetByPathAny("/profile"); err == nil && page != nil {
+		if loaded, err := h.pageService.GetByPathAny("/profile"); err == nil && loaded != nil {
+			page = loaded
 			sections = cloneSections(page.Sections)
 		}
 	}
@@ -936,7 +956,7 @@ func (h *TemplateHandler) profileSectionsForUser(user *models.User) models.PostS
 		sections = defaultProfileSections()
 	}
 
-	return applyProfileUserContext(sections, user)
+	return applyProfileUserContext(sections, user, courseEntries), page
 }
 
 func cloneSections(source models.PostSections) models.PostSections {
@@ -967,7 +987,7 @@ func cloneSections(source models.PostSections) models.PostSections {
 	return cloned
 }
 
-func applyProfileUserContext(sections models.PostSections, user *models.User) models.PostSections {
+func applyProfileUserContext(sections models.PostSections, user *models.User, courseEntries []map[string]interface{}) models.PostSections {
 	username := ""
 	email := ""
 	role := "user"
@@ -999,6 +1019,13 @@ func applyProfileUserContext(sections models.PostSections, user *models.User) mo
 				content := ensureContentMap(element)
 				content["action"] = "/api/v1/profile/password"
 				content["username"] = username
+			case "profile_courses":
+				content := ensureContentMap(element)
+				if len(courseEntries) > 0 {
+					content["courses"] = courseEntries
+				} else {
+					delete(content, "courses")
+				}
 			}
 		}
 		sections[i].Elements = elements
@@ -1023,7 +1050,7 @@ func defaultProfileSections() models.PostSections {
 	sections := models.PostSections{
 		{
 			ID:   "profile-settings",
-			Type: "standard",
+			Type: "grid",
 			Elements: []models.SectionElement{
 				{
 					ID:    "profile-account",
@@ -1043,6 +1070,22 @@ func defaultProfileSections() models.PostSections {
 						"title":        "Security",
 						"description":  "Change your password regularly and review connected devices.",
 						"button_label": "Update password",
+					},
+				},
+			},
+		},
+		{
+			ID:   "profile-courses",
+			Type: "standard",
+			Elements: []models.SectionElement{
+				{
+					ID:    "profile-courses-list",
+					Type:  "profile_courses",
+					Order: 3,
+					Content: map[string]interface{}{
+						"title":         "Courses",
+						"description":   "Review the learning packages currently available to your account.",
+						"empty_message": "You don't have any courses yet.",
 					},
 				},
 			},
@@ -1232,6 +1275,7 @@ func (h *TemplateHandler) builderScripts() []string {
 			"/static/js/admin/elements/search.js",
 			"/static/js/admin/elements/profile-account-details.js",
 			"/static/js/admin/elements/profile-security.js",
+			"/static/js/admin/elements/profile-courses.js",
 		)
 	}
 

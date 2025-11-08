@@ -1,21 +1,25 @@
 <section class="profile" role="region" aria-labelledby="profile-title" data-page="profile">
     <section class="profile__container" aria-labelledby="profile-title">
+        {{ $profileTitle := or .ProfileTitle "Personal profile" }}
+        {{ $profileSubtitle := or .ProfileSubtitle "Update your contact information and keep your account secure across every device." }}
         <header class="profile__header">
-            <h1 id="profile-title" class="profile__title">Personal profile</h1>
+            <h1 id="profile-title" class="profile__title">{{ $profileTitle }}</h1>
             <p class="profile__subtitle">
-                Update your contact information and keep your account secure across every device.
+                {{ $profileSubtitle }}
             </p>
         </header>
 
-        {{ template "components/profile-courses" . }}
-
-        <div class="profile__grid">
-            {{ if .ProfileSections }}
+        {{ if .ProfileSections }}
+            <div class="profile__sections">
                 {{ .ProfileSections }}
-            {{ else }}
+            </div>
+        {{ else }}
+            {{ template "components/profile-courses" . }}
+
+            <div class="profile__grid">
                 {{ template "components/profile-account-card" . }}
                 {{ template "components/profile-security-card" . }}
-            {{ end }}
-        </div>
+            </div>
+        {{ end }}
     </section>
 </section>

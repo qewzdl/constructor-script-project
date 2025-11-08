@@ -401,7 +401,9 @@
     };
 
     const renderUserCourses = (courses) => {
-        const container = document.getElementById("profile-courses");
+        const container =
+            document.getElementById("profile-courses") ||
+            document.querySelector('[data-role="profile-courses"]');
         if (!container) {
             return;
         }

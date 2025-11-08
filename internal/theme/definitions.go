@@ -515,6 +515,12 @@ func defaultElementDefinitions() map[string]ElementDefinition {
 			Order:       70,
 			Description: "Password update form for the profile page.",
 		},
+		"profile_courses": {
+			Type:        "profile_courses",
+			Label:       "Courses list",
+			Order:       80,
+			Description: "Displays the learner's current course access with enrollment details.",
+		},
 	}
 }
 

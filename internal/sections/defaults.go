@@ -20,4 +20,5 @@ func RegisterDefaults(reg *Registry) {
 	RegisterSearch(reg)
 	RegisterProfileAccount(reg)
 	RegisterProfileSecurity(reg)
+	RegisterProfileCourses(reg)
 }

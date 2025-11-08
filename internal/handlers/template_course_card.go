@@ -78,16 +78,74 @@ func formatCourseCardDate(t time.Time, format string) string {
 }
 
 func buildProfileCourseCards(courses []models.UserCoursePackage) []courseCardTemplateData {
+	entries := buildProfileCourseEntries(courses)
+	if len(entries) == 0 {
+		return nil
+	}
+
+	cards := make([]courseCardTemplateData, 0, len(entries))
+	for i := range entries {
+		entry := entries[i]
+		headingID := fmt.Sprintf("profile-course-%d-title", i+1)
+		descriptionID := ""
+		descriptionHTML := template.HTML("")
+		if entry.Description != "" {
+			descriptionID = fmt.Sprintf("profile-course-%d-description", i+1)
+			descriptionHTML = template.HTML(template.HTMLEscapeString(entry.Description))
+		}
+
+		card := courseCardTemplateData{
+			Element:          entry.Element,
+			Href:             entry.Href,
+			CardClass:        "profile-course post-card" + entry.CardModifier,
+			MediaClass:       "profile-course__media post-card__figure",
+			ImageClass:       "profile-course__image post-card__image",
+			ContentClass:     "profile-course__content post-card__content",
+			TitleClass:       "profile-course__title post-card__title",
+			MetaClass:        "profile-course__meta post-card__meta",
+			DescriptionClass: "profile-course__description post-card__description",
+			DescriptionTag:   "p",
+			HeadingID:        headingID,
+			DescriptionID:    descriptionID,
+			Title:            entry.Title,
+			MetaItems:        entry.MetaItems,
+			Description:      descriptionHTML,
+			Interactive:      false,
+			HasCourseID:      entry.HasCourseID,
+			CourseID:         entry.CourseID,
+		}
+
+		if entry.Image != nil {
+			card.Image = &courseCardImage{URL: entry.Image.URL, Alt: entry.Image.Alt}
+		}
+
+		cards = append(cards, card)
+	}
+
+	return cards
+}
+
+type profileCourseEntry struct {
+	Element      string
+	Href         string
+	CardModifier string
+	Title        string
+	Description  string
+	Image        *courseCardImage
+	MetaItems    []courseCardMetaItem
+	HasCourseID  bool
+	CourseID     string
+}
+
+func buildProfileCourseEntries(courses []models.UserCoursePackage) []profileCourseEntry {
 	if len(courses) == 0 {
 		return nil
 	}
 
-	cards := make([]courseCardTemplateData, 0, len(courses))
-
-	for i := range courses {
-		entry := courses[i]
-		pkg := entry.Package
-		access := entry.Access
+	entries := make([]profileCourseEntry, 0, len(courses))
+	for _, course := range courses {
+		pkg := course.Package
+		access := course.Access
 
 		title := strings.TrimSpace(pkg.Title)
 		if title == "" {
@@ -96,20 +154,15 @@ func buildProfileCourseCards(courses []models.UserCoursePackage) []courseCardTem
 
 		element := "article"
 		href := ""
-		cardClass := "profile-course post-card"
+		modifier := ""
+		hasCourseID := false
+		courseID := ""
 		if pkg.ID > 0 {
 			element = "a"
 			href = fmt.Sprintf("/courses/%d", pkg.ID)
-			cardClass += " profile-course--link"
-		}
-
-		headingID := fmt.Sprintf("profile-course-%d-title", i+1)
-		descriptionID := ""
-		descriptionHTML := template.HTML("")
-		description := strings.TrimSpace(pkg.Description)
-		if description != "" {
-			descriptionID = fmt.Sprintf("profile-course-%d-description", i+1)
-			descriptionHTML = template.HTML(template.HTMLEscapeString(description))
+			modifier = " profile-course--link"
+			hasCourseID = true
+			courseID = fmt.Sprintf("%d", pkg.ID)
 		}
 
 		metaItems := make([]courseCardMetaItem, 0, 2)
@@ -141,36 +194,80 @@ func buildProfileCourseCards(courses []models.UserCoursePackage) []courseCardTem
 			})
 		}
 
-		card := courseCardTemplateData{
-			Element:          element,
-			Href:             href,
-			CardClass:        cardClass,
-			MediaClass:       "profile-course__media post-card__figure",
-			ImageClass:       "profile-course__image post-card__image",
-			ContentClass:     "profile-course__content post-card__content",
-			TitleClass:       "profile-course__title post-card__title",
-			MetaClass:        "profile-course__meta post-card__meta",
-			DescriptionClass: "profile-course__description post-card__description",
-			DescriptionTag:   "p",
-			HeadingID:        headingID,
-			DescriptionID:    descriptionID,
-			Title:            title,
-			MetaItems:        metaItems,
-			Description:      descriptionHTML,
-			Interactive:      false,
-		}
-
-		imageURL := strings.TrimSpace(pkg.ImageURL)
-		if imageURL != "" {
+		var image *courseCardImage
+		if url := strings.TrimSpace(pkg.ImageURL); url != "" {
 			alt := "Course cover"
 			if title != "" {
 				alt = fmt.Sprintf("%s cover", title)
 			}
-			card.Image = &courseCardImage{URL: imageURL, Alt: alt}
+			image = &courseCardImage{URL: url, Alt: alt}
 		}
 
-		cards = append(cards, card)
+		entries = append(entries, profileCourseEntry{
+			Element:      element,
+			Href:         href,
+			CardModifier: modifier,
+			Title:        title,
+			Description:  strings.TrimSpace(pkg.Description),
+			Image:        image,
+			MetaItems:    metaItems,
+			HasCourseID:  hasCourseID,
+			CourseID:     courseID,
+		})
 	}
 
-	return cards
+	return entries
+}
+
+func buildProfileCourseSectionContent(courses []models.UserCoursePackage) []map[string]interface{} {
+	entries := buildProfileCourseEntries(courses)
+	if len(entries) == 0 {
+		return nil
+	}
+
+	result := make([]map[string]interface{}, 0, len(entries))
+	for _, entry := range entries {
+		data := map[string]interface{}{
+			"title": entry.Title,
+		}
+		if entry.Description != "" {
+			data["description"] = entry.Description
+		}
+		if entry.Href != "" {
+			data["url"] = entry.Href
+		}
+		if entry.Image != nil {
+			data["image_url"] = entry.Image.URL
+			data["image_alt"] = entry.Image.Alt
+		}
+		if entry.HasCourseID {
+			data["course_id"] = entry.CourseID
+		}
+
+		meta := make([]map[string]interface{}, 0, len(entry.MetaItems))
+		for _, item := range entry.MetaItems {
+			entryData := map[string]interface{}{}
+			if trimmed := strings.TrimSpace(item.Label); trimmed != "" {
+				entryData["label"] = trimmed
+			}
+			if item.Time != nil {
+				if dt := strings.TrimSpace(item.Time.DateTime); dt != "" {
+					entryData["datetime"] = dt
+				}
+				if disp := strings.TrimSpace(item.Time.Display); disp != "" {
+					entryData["display"] = disp
+				}
+			}
+			if len(entryData) > 0 {
+				meta = append(meta, entryData)
+			}
+		}
+		if len(meta) > 0 {
+			data["meta"] = meta
+		}
+
+		result = append(result, data)
+	}
+
+	return result
 }
