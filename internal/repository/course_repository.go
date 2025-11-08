@@ -525,7 +525,8 @@ func (r *courseTestRepository) Delete(id uint) error {
 		if err := tx.Where("test_id = ?", id).Delete(&models.CourseTestResult{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("test_id = ?", id).Delete(&models.CourseTestQuestionOption{}).Error; err != nil {
+		subQuery := tx.Model(&models.CourseTestQuestion{}).Select("id").Where("test_id = ?", id)
+		if err := tx.Where("question_id IN (?)", subQuery).Delete(&models.CourseTestQuestionOption{}).Error; err != nil {
 			return err
 		}
 		if err := tx.Where("test_id = ?", id).Delete(&models.CourseTestQuestion{}).Error; err != nil {
@@ -587,7 +588,8 @@ func (r *courseTestRepository) ReplaceStructure(testID uint, questions []models.
 		return errors.New("course test repository is not initialised")
 	}
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("test_id = ?", testID).Delete(&models.CourseTestQuestionOption{}).Error; err != nil {
+		subQuery := tx.Model(&models.CourseTestQuestion{}).Select("id").Where("test_id = ?", testID)
+		if err := tx.Where("question_id IN (?)", subQuery).Delete(&models.CourseTestQuestionOption{}).Error; err != nil {
 			return err
 		}
 		if err := tx.Where("test_id = ?", testID).Delete(&models.CourseTestQuestion{}).Error; err != nil {

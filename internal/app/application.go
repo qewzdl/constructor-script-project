@@ -331,9 +331,9 @@ func (a *Application) runMigrations() error {
 
 	migrator := a.db.Migrator()
 
-	if migrator.HasTable(&models.CourseTopicStep{}) && !migrator.HasColumn(&models.CourseTopicStep{}, "test_id") {
-		if err := a.db.Exec("ALTER TABLE course_topic_steps ADD COLUMN test_id bigint").Error; err != nil {
-			return fmt.Errorf("failed to add course topic step test reference: %w", err)
+	if migrator.HasTable(&models.CourseTopicStep{}) {
+		if err := a.db.Exec("ALTER TABLE course_topic_steps ADD COLUMN IF NOT EXISTS test_id bigint").Error; err != nil {
+			return fmt.Errorf("failed to ensure course topic step test reference: %w", err)
 		}
 	}
 
