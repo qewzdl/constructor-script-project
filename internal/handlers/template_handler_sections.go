@@ -45,6 +45,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 
 		baseClass := fmt.Sprintf("%s__section", prefix)
 		sectionClasses := []string{baseClass, fmt.Sprintf("%s__section--%s", prefix, sectionType)}
+		if paddingClass := buildSectionPaddingClass(prefix, section.PaddingVertical); paddingClass != "" {
+			sectionClasses = append(sectionClasses, paddingClass)
+		}
 		sectionTitleClass := fmt.Sprintf("%s__section-title", prefix)
 		sectionImageWrapperClass := fmt.Sprintf("%s__section-image", prefix)
 		sectionImageClass := fmt.Sprintf("%s__section-img", prefix)
@@ -124,6 +127,45 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 	}
 
 	return template.HTML(sb.String()), scripts
+}
+
+func buildSectionPaddingClass(prefix string, value *int) string {
+	if value == nil {
+		return ""
+	}
+	padding := clampSectionPaddingValue(*value)
+	return fmt.Sprintf("%s__section--pv-%d", prefix, padding)
+}
+
+func clampSectionPaddingValue(value int) int {
+	options := constants.SectionPaddingOptions()
+	if len(options) == 0 {
+		return 0
+	}
+	if value <= options[0] {
+		return options[0]
+	}
+	last := options[len(options)-1]
+	if value >= last {
+		return last
+	}
+	closest := options[0]
+	minDiff := absInt(value - closest)
+	for _, option := range options[1:] {
+		diff := absInt(value - option)
+		if diff < minDiff {
+			closest = option
+			minDiff = diff
+		}
+	}
+	return closest
+}
+
+func absInt(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
 }
 
 func (h *TemplateHandler) renderPostsListSection(prefix string, section models.Section) string {

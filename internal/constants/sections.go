@@ -15,4 +15,17 @@ const (
 	DefaultCourseListSectionLimit = 3
 	// MaxCourseListSectionLimit defines an upper bound for course list sections to keep layouts balanced.
 	MaxCourseListSectionLimit = 12
+
+	// DefaultSectionPadding defines the default vertical padding (in pixels) applied to newly created sections.
+	DefaultSectionPadding = 32
 )
+
+var sectionPaddingOptions = []int{0, 4, 8, 16, 32, 64, 128}
+
+// SectionPaddingOptions returns the allowed vertical padding options for sections in pixels.
+// A copy of the slice is returned to prevent external mutation of the internal list.
+func SectionPaddingOptions() []int {
+	options := make([]int, len(sectionPaddingOptions))
+	copy(options, sectionPaddingOptions)
+	return options
+}

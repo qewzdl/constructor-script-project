@@ -57,3 +57,42 @@ func clampSectionLimit(value int, setting theme.SectionSettingDefinition) int {
 func intPtr(value int) *int {
 	return &value
 }
+
+func clampSectionPaddingValue(value int) int {
+	options := constants.SectionPaddingOptions()
+	if len(options) == 0 {
+		return 0
+	}
+	if value <= options[0] {
+		return options[0]
+	}
+	last := options[len(options)-1]
+	if value >= last {
+		return last
+	}
+	closest := options[0]
+	minDiff := absInt(value - closest)
+	for _, option := range options[1:] {
+		diff := absInt(value - option)
+		if diff < minDiff {
+			closest = option
+			minDiff = diff
+		}
+	}
+	return closest
+}
+
+func normaliseSectionPadding(value *int) *int {
+	if value == nil {
+		return nil
+	}
+	normalised := clampSectionPaddingValue(*value)
+	return intPtr(normalised)
+}
+
+func absInt(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
+}

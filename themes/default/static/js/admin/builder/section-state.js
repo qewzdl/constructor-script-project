@@ -51,6 +51,52 @@
         return limit;
     };
 
+    const paddingOptions = [0, 4, 8, 16, 32, 64, 128];
+    const defaultPadding = paddingOptions[0];
+    const newSectionDefaultPadding = paddingOptions.includes(32)
+        ? 32
+        : paddingOptions[Math.min(2, paddingOptions.length - 1)];
+
+    const clampPaddingValue = (value) => {
+        if (!paddingOptions.length) {
+            return 0;
+        }
+        if (!Number.isFinite(value)) {
+            return defaultPadding;
+        }
+        if (value <= paddingOptions[0]) {
+            return paddingOptions[0];
+        }
+        const last = paddingOptions[paddingOptions.length - 1];
+        if (value >= last) {
+            return last;
+        }
+        let closest = paddingOptions[0];
+        let minDiff = Math.abs(value - closest);
+        for (let i = 1; i < paddingOptions.length; i += 1) {
+            const option = paddingOptions[i];
+            const diff = Math.abs(value - option);
+            if (diff < minDiff) {
+                closest = option;
+                minDiff = diff;
+            }
+        }
+        return closest;
+    };
+
+    const normalisePaddingValue = (value) => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return clampPaddingValue(value);
+        }
+        if (typeof value === 'string' && value.trim()) {
+            const parsed = Number.parseInt(value, 10);
+            if (Number.isFinite(parsed)) {
+                return clampPaddingValue(parsed);
+            }
+        }
+        return defaultPadding;
+    };
+
     const createElementState = (definitions, element = {}) => {
         const type =
             normaliseString(element.type ?? element.Type ?? '').toLowerCase() ||
@@ -111,6 +157,12 @@
                 styleGridItems = Boolean(styleGridItemsSource);
             }
         }
+        const paddingSource =
+            section.paddingVertical ??
+            section.PaddingVertical ??
+            section.padding_vertical ??
+            section.Padding_vertical;
+        const paddingVertical = normalisePaddingValue(paddingSource);
         return {
             clientId: randomId(),
             id: normaliseString(section.id ?? section.ID ?? ''),
@@ -124,6 +176,7 @@
                 : [],
             limit: limitValue,
             styleGridItems,
+            paddingVertical,
         };
     };
 
@@ -223,6 +276,10 @@
                         }
                     }
 
+                    payload.padding_vertical = clampPaddingValue(
+                        Number(section.paddingVertical)
+                    );
+
                     return payload;
                 })
                 .filter(Boolean);
@@ -263,6 +320,7 @@
                 { type }
             );
             section.elements = [];
+            section.paddingVertical = clampPaddingValue(newSectionDefaultPadding);
             sections.push(section);
             return section;
         };
@@ -353,6 +411,8 @@
                         limitDefinition
                     );
                 }
+            } else if (field === 'section-padding-vertical') {
+                section.paddingVertical = clampPaddingValue(Number(value));
             } else if (field === 'section-type') {
                 const nextType = normaliseString(value);
                 const ensuredType = sectionDefs[nextType]

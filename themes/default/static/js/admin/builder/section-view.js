@@ -8,6 +8,56 @@
 
     const { createElement } = utils;
 
+    const paddingOptions = [0, 4, 8, 16, 32, 64, 128];
+
+    const clampPaddingValue = (value) => {
+        if (!paddingOptions.length) {
+            return 0;
+        }
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+            return paddingOptions[0];
+        }
+        if (numeric <= paddingOptions[0]) {
+            return paddingOptions[0];
+        }
+        const last = paddingOptions[paddingOptions.length - 1];
+        if (numeric >= last) {
+            return last;
+        }
+        let closest = paddingOptions[0];
+        let minDiff = Math.abs(numeric - closest);
+        for (let i = 1; i < paddingOptions.length; i += 1) {
+            const option = paddingOptions[i];
+            const diff = Math.abs(numeric - option);
+            if (diff < minDiff) {
+                closest = option;
+                minDiff = diff;
+            }
+        }
+        return closest;
+    };
+
+    const paddingIndexForValue = (value) => {
+        const clamped = clampPaddingValue(value);
+        const index = paddingOptions.indexOf(clamped);
+        return index >= 0 ? index : 0;
+    };
+
+    const paddingValueForIndex = (index) => {
+        const numeric = Number.parseInt(index, 10);
+        if (Number.isNaN(numeric)) {
+            return paddingOptions[0];
+        }
+        if (numeric <= 0) {
+            return paddingOptions[0];
+        }
+        if (numeric >= paddingOptions.length) {
+            return paddingOptions[paddingOptions.length - 1];
+        }
+        return paddingOptions[numeric] ?? paddingOptions[0];
+    };
+
     const elementLabel = (definitions, type) => {
         const definition = definitions[type];
         if (definition && definition.label) {
@@ -237,6 +287,58 @@
                     limitField.append(limitInput);
                     sectionItem.append(limitField);
                 }
+
+                const paddingValue = clampPaddingValue(section.paddingVertical);
+                const paddingField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                paddingField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Vertical padding',
+                    })
+                );
+                const rangeWrapper = createElement('div', {
+                    className: 'admin-builder__range',
+                });
+                const rangeInput = createElement('input', {
+                    className: 'admin-builder__range-input',
+                });
+                rangeInput.type = 'range';
+                rangeInput.min = '0';
+                rangeInput.max = String(paddingOptions.length - 1);
+                rangeInput.step = '1';
+                rangeInput.dataset.field = 'section-padding-vertical';
+                rangeInput.dataset.options = paddingOptions.join(',');
+                const rangeIndex = paddingIndexForValue(paddingValue);
+                rangeInput.value = String(rangeIndex);
+                rangeInput.setAttribute('aria-valuemin', String(paddingOptions[0]));
+                rangeInput.setAttribute(
+                    'aria-valuemax',
+                    String(paddingOptions[paddingOptions.length - 1])
+                );
+                rangeInput.setAttribute('aria-valuenow', String(paddingValue));
+                rangeInput.setAttribute(
+                    'aria-valuetext',
+                    `${paddingValue} pixels`
+                );
+                const rangeValue = createElement('span', {
+                    className: 'admin-builder__range-value',
+                    textContent: `${paddingValue}px`,
+                });
+                rangeValue.dataset.role = 'section-padding-value';
+                rangeWrapper.append(rangeInput, rangeValue);
+                rangeInput.addEventListener('input', () => {
+                    const currentValue = paddingValueForIndex(rangeInput.value);
+                    rangeValue.textContent = `${currentValue}px`;
+                    rangeInput.setAttribute('aria-valuenow', String(currentValue));
+                    rangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${currentValue} pixels`
+                    );
+                });
+                paddingField.append(rangeWrapper);
+                sectionItem.append(paddingField);
 
                 const elementsContainer = createElement('div', {
                     className: 'admin-builder__section-elements',

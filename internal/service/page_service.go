@@ -650,6 +650,8 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 			section.Order = i + 1
 		}
 
+		section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical)
+
 		section.Type = sectionType
 
 		prepared = append(prepared, section)

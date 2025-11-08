@@ -439,14 +439,15 @@ type AuthResponse struct {
 type PostSections []Section
 
 type Section struct {
-	ID             string           `json:"id"`
-	Type           string           `json:"type"`
-	Title          string           `json:"title"`
-	Image          string           `json:"image"`
-	Limit          int              `json:"limit"`
-	Order          int              `json:"order"`
-	StyleGridItems *bool            `json:"style_grid_items,omitempty"`
-	Elements       []SectionElement `json:"elements"`
+	ID              string           `json:"id"`
+	Type            string           `json:"type"`
+	Title           string           `json:"title"`
+	Image           string           `json:"image"`
+	Limit           int              `json:"limit"`
+	Order           int              `json:"order"`
+	StyleGridItems  *bool            `json:"style_grid_items,omitempty"`
+	PaddingVertical *int             `json:"padding_vertical,omitempty"`
+	Elements        []SectionElement `json:"elements"`
 }
 
 type SectionElement struct {

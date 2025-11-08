@@ -92,6 +92,39 @@
         return Number.isFinite(parsed) ? parsed : 0;
     };
 
+    const SECTION_PADDING_OPTIONS = [0, 4, 8, 16, 32, 64, 128];
+    const DEFAULT_SECTION_PADDING = SECTION_PADDING_OPTIONS.includes(32)
+        ? 32
+        : SECTION_PADDING_OPTIONS[0];
+
+    const clampSectionPadding = (value) => {
+        if (!SECTION_PADDING_OPTIONS.length) {
+            return 0;
+        }
+        const numeric = Number.parseInt(value, 10);
+        if (!Number.isFinite(numeric)) {
+            return SECTION_PADDING_OPTIONS[0];
+        }
+        if (numeric <= SECTION_PADDING_OPTIONS[0]) {
+            return SECTION_PADDING_OPTIONS[0];
+        }
+        const last = SECTION_PADDING_OPTIONS[SECTION_PADDING_OPTIONS.length - 1];
+        if (numeric >= last) {
+            return last;
+        }
+        let closest = SECTION_PADDING_OPTIONS[0];
+        let minDiff = Math.abs(numeric - closest);
+        for (let i = 1; i < SECTION_PADDING_OPTIONS.length; i += 1) {
+            const option = SECTION_PADDING_OPTIONS[i];
+            const diff = Math.abs(numeric - option);
+            if (diff < minDiff) {
+                closest = option;
+                minDiff = diff;
+            }
+        }
+        return closest;
+    };
+
     const createSectionTypeRegistry = () => {
         const definitions = new Map();
         let defaultType = '';
@@ -435,6 +468,13 @@
             limit,
         };
 
+        normalised.paddingVertical = clampSectionPadding(
+            section.paddingVertical ??
+                section.PaddingVertical ??
+                section.padding_vertical ??
+                section.Padding_vertical
+        );
+
         if (type === 'grid') {
             const styleGridItemsSource =
                 section.styleGridItems ??
@@ -487,6 +527,7 @@
         if (ensuredType === 'grid') {
             section.styleGridItems = true;
         }
+        section.paddingVertical = DEFAULT_SECTION_PADDING;
         return section;
     };
 
@@ -725,6 +766,12 @@
                     section.limit ?? section.Limit ?? payload.limit
                 );
             }
+            payload.padding_vertical = clampSectionPadding(
+                section.paddingVertical ??
+                    section.PaddingVertical ??
+                    section.padding_vertical ??
+                    section.Padding_vertical
+            );
             return payload;
         });
     };

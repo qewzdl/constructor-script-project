@@ -1397,6 +1397,34 @@ body.post-image-modal-open .post-progress {
     margin-bottom: var(--size-base);
 }
 
+section[class*="__section--pv-0"] {
+    padding-block: 0;
+}
+
+section[class*="__section--pv-4"] {
+    padding-block: 4px;
+}
+
+section[class*="__section--pv-8"] {
+    padding-block: 8px;
+}
+
+section[class*="__section--pv-16"] {
+    padding-block: 16px;
+}
+
+section[class*="__section--pv-32"] {
+    padding-block: 32px;
+}
+
+section[class*="__section--pv-64"] {
+    padding-block: 64px;
+}
+
+section[class*="__section--pv-128"] {
+    padding-block: 128px;
+}
+
 .post__header {
     display: grid;
     padding: var(--size-mid);

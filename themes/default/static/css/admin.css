@@ -2833,6 +2833,25 @@
     margin-top: 0.5rem;
 }
 
+.admin-builder__range {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.admin-builder__range-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.admin-builder__range-value {
+    font-variant-numeric: tabular-nums;
+    min-width: 3ch;
+    text-align: right;
+    color: var(--color-secondary);
+}
+
 .admin-builder__media-button {
     padding: 0.35rem 0.75rem;
     border: 1px solid var(--color-border);

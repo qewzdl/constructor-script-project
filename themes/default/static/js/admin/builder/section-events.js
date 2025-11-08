@@ -95,7 +95,35 @@
                 return;
             }
 
-            const value = target.type === 'checkbox' ? target.checked : target.value;
+            let value = target.type === 'checkbox' ? target.checked : target.value;
+            if (field === 'section-padding-vertical') {
+                const options = target.dataset.options
+                    ? target.dataset.options
+                          .split(',')
+                          .map((option) => Number.parseInt(option.trim(), 10))
+                          .filter((option) => Number.isFinite(option))
+                    : [];
+                const rawIndex = Number.parseInt(String(value), 10);
+                const maxIndex = options.length - 1;
+                const clampedIndex = Number.isFinite(rawIndex)
+                    ? Math.min(Math.max(rawIndex, 0), maxIndex >= 0 ? maxIndex : 0)
+                    : 0;
+                if (Number.isFinite(rawIndex) && clampedIndex !== rawIndex) {
+                    target.value = String(clampedIndex);
+                }
+                const actualValue = options[clampedIndex] ?? 0;
+                value = actualValue;
+                if (options.length) {
+                    target.setAttribute('aria-valuenow', String(actualValue));
+                    target.setAttribute('aria-valuetext', `${actualValue} pixels`);
+                }
+                const displayNode = target.parentElement?.querySelector(
+                    '[data-role="section-padding-value"]'
+                );
+                if (displayNode) {
+                    displayNode.textContent = `${actualValue}px`;
+                }
+            }
             const elementNode = target.closest('[data-element-client]');
             if (elementNode) {
                 const elementClientId = elementNode.dataset.elementClient;

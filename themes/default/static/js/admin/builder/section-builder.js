@@ -26,11 +26,34 @@
             return null;
         }
 
-        const sectionList = builderRoot.querySelector('[data-section-list]');
-        const emptyState = builderRoot.querySelector('[data-section-empty]');
-        const addSectionButton = builderRoot.querySelector(
-            '[data-action="section-add"]'
-        );
+        const queryWithFallback = (root, selectors) => {
+            if (!root) {
+                return null;
+            }
+            for (const selector of selectors) {
+                if (!selector) {
+                    continue;
+                }
+                const node = root.querySelector(selector);
+                if (node) {
+                    return node;
+                }
+            }
+            return null;
+        };
+
+        const sectionList = queryWithFallback(builderRoot, [
+            '[data-section-list]',
+            '[data-role="section-list"]',
+        ]);
+        const emptyState = queryWithFallback(builderRoot, [
+            '[data-section-empty]',
+            '[data-role="section-empty"]',
+        ]);
+        const addSectionButton = queryWithFallback(builderRoot, [
+            '[data-action="section-add"]',
+            '[data-role="section-add"]',
+        ]);
 
         if (!sectionList || !addSectionButton) {
             return null;
