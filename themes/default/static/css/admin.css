@@ -1201,8 +1201,10 @@
 }
 
 .admin-form__checkbox {
+    display: flex;
     gap: var(--size-sm);
     color: var(--color-secondary);
+    align-items: center;
 }
 
 .admin-form__checkbox .checkbox__label {
@@ -2290,6 +2292,9 @@
 .section-elements {
     display: grid;
     gap: var(--size-sm);
+    border: 1px solid var(--color-border);
+    padding: var(--size-sm);
+    background-color: var(--color-bg-bottom);
 }
 
 .section-element-list {
@@ -3274,7 +3279,7 @@
 
 .admin-course-test-questions {
     display: grid;
-    gap: var(--size-mid);
+    gap: var(--size-sm);
 }
 
 .admin-course-test-questions__empty {
@@ -3286,10 +3291,26 @@
 .admin-course-test-question {
     display: grid;
     gap: var(--size-sm);
-    padding: var(--size-sm);
+    padding: var(--size-base);
     border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-primary);
     border-radius: var(--radius-sm);
     background: var(--color-bg-base);
+}
+
+.admin-course-test-question--collapsed {
+    padding-bottom: var(--size-base);
+}
+
+.admin-course-test-question__summary {
+    margin: 0;
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.admin-course-test-question:not(.admin-course-test-question--collapsed)
+    .admin-course-test-question__summary {
+    display: none;
 }
 
 .admin-course-test-question__header {
@@ -3319,17 +3340,20 @@
 
 .admin-course-test-question__options {
     display: grid;
-    gap: var(--size-xs);
-    margin-top: var(--size-xs);
+    gap: var(--size-sm);
+    margin-top: var(--size-sm);
+    padding: var(--size-sm);
+    background-color: var(--color-bg-bottom);
+    border: 1px solid var(--color-border);
 }
 
 .admin-course-test-option {
     display: grid;
-    gap: var(--size-xs);
-    padding: var(--size-xs);
-    border: 1px solid var(--color-border-muted, var(--color-border));
-    border-radius: var(--radius-xs);
-    background: var(--color-bg-subtle, rgba(0, 0, 0, 0.02));
+    gap: var(--size-sm);
+    padding: var(--size-base);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-primary);
+    background: var(--color-bg-top);
 }
 
 .admin-course-test-option__controls {

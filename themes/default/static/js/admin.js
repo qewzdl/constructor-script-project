@@ -982,6 +982,7 @@
                 topicSearchQuery: '',
                 testSearchQuery: '',
                 packageSearchQuery: '',
+                pendingQuestionFocusId: '',
                 grant: {
                     query: '',
                     results: [],
@@ -3629,14 +3630,20 @@
             const options = ensureArray(question?.options ?? question?.Options)
                 .map((option) => createTestOptionState(option))
                 .filter((option) => option.text || option.correct || option.id);
+            const prompt = normaliseString(question?.prompt ?? question?.Prompt ?? '');
+            const explanation = normaliseString(
+                question?.explanation ?? question?.Explanation ?? ''
+            );
+            const collapsed =
+                typeof question?.collapsed === 'boolean'
+                    ? question.collapsed
+                    : prompt !== '';
             return {
                 clientId: randomId(),
                 id: normaliseIdentifier(question?.id ?? question?.ID ?? ''),
-                prompt: normaliseString(question?.prompt ?? question?.Prompt ?? ''),
+                prompt,
                 type,
-                explanation: normaliseString(
-                    question?.explanation ?? question?.Explanation ?? ''
-                ),
+                explanation,
                 answerText: normaliseString(
                     question?.answer_text ??
                         question?.answerText ??
@@ -3644,7 +3651,50 @@
                         ''
                 ),
                 options: type === 'text' ? [] : options,
+                collapsed,
             };
+        };
+
+        const describeQuestionType = (type) => {
+            const questionType = normaliseQuestionType(type);
+            switch (questionType) {
+                case 'single_choice':
+                    return 'Single choice';
+                case 'multiple_choice':
+                    return 'Multiple choice';
+                default:
+                    return 'Free text';
+            }
+        };
+
+        const summariseCourseTestQuestion = (question) => {
+            const prompt = normaliseString(question?.prompt ?? '').trim();
+            const summaryPieces = [describeQuestionType(question?.type)];
+            if (prompt) {
+                const condensed = prompt.length > 120 ? `${prompt.slice(0, 117)}…` : prompt;
+                summaryPieces.push(condensed);
+            }
+            return summaryPieces.join(' · ');
+        };
+
+        const cloneCourseTestQuestion = (question) => {
+            if (!question) {
+                return createTestQuestionState();
+            }
+            const cloned = createTestQuestionState({
+                prompt: question.prompt,
+                type: question.type,
+                explanation: question.explanation,
+                answer_text: question.answerText,
+                options: Array.isArray(question.options)
+                    ? question.options.map((option) => ({
+                          text: option.text,
+                          correct: option.correct,
+                      }))
+                    : [],
+            });
+            cloned.collapsed = false;
+            return cloned;
         };
 
         const formatVideoDuration = (value) => {
@@ -4339,11 +4389,18 @@
                 }
                 question.type = normaliseQuestionType(question.type);
                 ensureChoiceOptions(question);
+                if (typeof question.collapsed !== 'boolean') {
+                    question.collapsed = false;
+                }
+                const collapsed = Boolean(question.collapsed);
 
                 const container = createElement('article', {
                     className: 'admin-course-test-question',
                     dataset: { questionId: question.clientId },
                 });
+                if (collapsed) {
+                    container.classList.add('admin-course-test-question--collapsed');
+                }
 
                 const header = createElement('div', {
                     className: 'admin-course-test-question__header',
@@ -4356,6 +4413,24 @@
                 );
                 const headerActions = createElement('div', {
                     className: 'admin-course-test-question__actions',
+                });
+                const toggleButton = createElement('button', {
+                    className: 'admin-navigation__button',
+                    textContent: collapsed ? 'Expand' : 'Collapse',
+                    type: 'button',
+                    dataset: {
+                        action: 'question-toggle',
+                        questionId: question.clientId,
+                    },
+                });
+                const duplicateButton = createElement('button', {
+                    className: 'admin-navigation__button',
+                    textContent: 'Duplicate',
+                    type: 'button',
+                    dataset: {
+                        action: 'question-duplicate',
+                        questionId: question.clientId,
+                    },
                 });
                 const upButton = createElement('button', {
                     className: 'admin-navigation__reorder-button',
@@ -4387,15 +4462,30 @@
                         questionId: question.clientId,
                     },
                 });
+                const fieldsId = `course-test-question-fields-${question.clientId}`;
+                toggleButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                toggleButton.setAttribute('aria-controls', fieldsId);
+                headerActions.appendChild(toggleButton);
+                headerActions.appendChild(duplicateButton);
                 headerActions.appendChild(upButton);
                 headerActions.appendChild(downButton);
                 headerActions.appendChild(removeButton);
                 header.appendChild(headerActions);
                 container.appendChild(header);
 
+                const summary = createElement('p', {
+                    className: 'admin-course-test-question__summary',
+                    textContent: summariseCourseTestQuestion(question),
+                    dataset: { questionSummary: question.clientId },
+                });
+                summary.hidden = !collapsed;
+                container.appendChild(summary);
+
                 const fields = createElement('div', {
                     className: 'admin-course-test-question__fields',
                 });
+                fields.id = fieldsId;
+                fields.hidden = collapsed;
 
                 const promptLabel = createElement('label', {
                     className: 'admin-form__label',
@@ -4577,6 +4667,18 @@
                 container.appendChild(fields);
                 courseTestQuestionList.appendChild(container);
             });
+
+            const focusId = state.courses.pendingQuestionFocusId;
+            if (focusId) {
+                const focusTarget = courseTestQuestionList.querySelector(
+                    `textarea[data-question-field="prompt"][data-question-id="${focusId}"]`
+                );
+                if (focusTarget instanceof HTMLTextAreaElement) {
+                    focusTarget.focus();
+                    focusTarget.select();
+                }
+                state.courses.pendingQuestionFocusId = '';
+            }
         };
 
         const populateCourseTestForm = (test, { scroll = true } = {}) => {
@@ -4601,9 +4703,13 @@
                     test?.description ?? test?.Description ?? ''
                 );
             }
+            state.courses.pendingQuestionFocusId = '';
             state.courses.testQuestions = getCourseTestQuestions(test)
                 .map((question) => createTestQuestionState(question))
                 .filter(Boolean);
+            if (state.courses.testQuestions.length > 0) {
+                state.courses.testQuestions[0].collapsed = false;
+            }
             if (courseTestSubmitButton) {
                 courseTestSubmitButton.textContent = 'Update test';
             }
@@ -4636,6 +4742,7 @@
             delete courseTestForm.dataset.id;
             state.courses.selectedTestId = '';
             state.courses.testQuestions = [];
+            state.courses.pendingQuestionFocusId = '';
             if (courseTestSubmitButton) {
                 courseTestSubmitButton.textContent = 'Create test';
             }
@@ -4648,7 +4755,10 @@
         };
 
         const handleCourseTestQuestionAdd = () => {
-            state.courses.testQuestions.push(createTestQuestionState());
+            const question = createTestQuestionState();
+            question.collapsed = false;
+            state.courses.testQuestions.push(question);
+            state.courses.pendingQuestionFocusId = question.clientId;
             renderCourseTestQuestionList();
         };
 
@@ -4675,6 +4785,12 @@
             const field = target.dataset.questionField;
             if (field === 'prompt') {
                 question.prompt = target.value;
+                const summary = courseTestQuestionList?.querySelector(
+                    `[data-question-summary="${question.clientId}"]`
+                );
+                if (summary) {
+                    summary.textContent = summariseCourseTestQuestion(question);
+                }
                 return;
             }
             if (field === 'explanation') {
@@ -4722,6 +4838,8 @@
             if (field === 'type') {
                 question.type = normaliseQuestionType(target.value);
                 ensureChoiceOptions(question);
+                question.collapsed = false;
+                state.courses.pendingQuestionFocusId = question.clientId;
                 renderCourseTestQuestionList();
                 return;
             }
@@ -4770,6 +4888,21 @@
             }
             const question = state.courses.testQuestions[questionIndex];
             if (!question) {
+                return;
+            }
+            if (action === 'question-toggle') {
+                question.collapsed = !question.collapsed;
+                state.courses.pendingQuestionFocusId = question.collapsed
+                    ? ''
+                    : question.clientId;
+                renderCourseTestQuestionList();
+                return;
+            }
+            if (action === 'question-duplicate') {
+                const duplicate = cloneCourseTestQuestion(question);
+                state.courses.testQuestions.splice(questionIndex + 1, 0, duplicate);
+                state.courses.pendingQuestionFocusId = duplicate.clientId;
+                renderCourseTestQuestionList();
                 return;
             }
             if (action === 'question-remove') {
