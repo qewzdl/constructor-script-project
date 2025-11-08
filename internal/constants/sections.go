@@ -18,14 +18,25 @@ const (
 
 	// DefaultSectionPadding defines the default vertical padding (in pixels) applied to newly created sections.
 	DefaultSectionPadding = 32
+	// DefaultSectionMargin defines the default vertical margin (in pixels) applied to newly created sections.
+	DefaultSectionMargin = 0
 )
 
 var sectionPaddingOptions = []int{0, 4, 8, 16, 32, 64, 128}
+var sectionMarginOptions = []int{0, 4, 8, 16, 32, 64, 128}
 
 // SectionPaddingOptions returns the allowed vertical padding options for sections in pixels.
 // A copy of the slice is returned to prevent external mutation of the internal list.
 func SectionPaddingOptions() []int {
 	options := make([]int, len(sectionPaddingOptions))
 	copy(options, sectionPaddingOptions)
+	return options
+}
+
+// SectionMarginOptions returns the allowed vertical margin options for sections in pixels.
+// A copy of the slice is returned to prevent external mutation of the internal list.
+func SectionMarginOptions() []int {
+	options := make([]int, len(sectionMarginOptions))
+	copy(options, sectionMarginOptions)
 	return options
 }

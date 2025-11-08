@@ -1425,6 +1425,34 @@ section[class*="__section--pv-128"] {
     padding-block: 128px;
 }
 
+section[class*="__section--mv-0"] {
+    margin-block: 0;
+}
+
+section[class*="__section--mv-4"] {
+    margin-block: 4px;
+}
+
+section[class*="__section--mv-8"] {
+    margin-block: 8px;
+}
+
+section[class*="__section--mv-16"] {
+    margin-block: 16px;
+}
+
+section[class*="__section--mv-32"] {
+    margin-block: 32px;
+}
+
+section[class*="__section--mv-64"] {
+    margin-block: 64px;
+}
+
+section[class*="__section--mv-128"] {
+    margin-block: 128px;
+}
+
 .post__header {
     display: grid;
     padding: var(--size-mid);

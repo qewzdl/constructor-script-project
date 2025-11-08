@@ -9,6 +9,7 @@
     const { createElement } = utils;
 
     const paddingOptions = [0, 4, 8, 16, 32, 64, 128];
+    const marginOptions = [0, 4, 8, 16, 32, 64, 128];
 
     const clampPaddingValue = (value) => {
         if (!paddingOptions.length) {
@@ -56,6 +57,54 @@
             return paddingOptions[paddingOptions.length - 1];
         }
         return paddingOptions[numeric] ?? paddingOptions[0];
+    };
+
+    const clampMarginValue = (value) => {
+        if (!marginOptions.length) {
+            return 0;
+        }
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+            return marginOptions[0];
+        }
+        if (numeric <= marginOptions[0]) {
+            return marginOptions[0];
+        }
+        const last = marginOptions[marginOptions.length - 1];
+        if (numeric >= last) {
+            return last;
+        }
+        let closest = marginOptions[0];
+        let minDiff = Math.abs(numeric - closest);
+        for (let i = 1; i < marginOptions.length; i += 1) {
+            const option = marginOptions[i];
+            const diff = Math.abs(numeric - option);
+            if (diff < minDiff) {
+                closest = option;
+                minDiff = diff;
+            }
+        }
+        return closest;
+    };
+
+    const marginIndexForValue = (value) => {
+        const clamped = clampMarginValue(value);
+        const index = marginOptions.indexOf(clamped);
+        return index >= 0 ? index : 0;
+    };
+
+    const marginValueForIndex = (index) => {
+        const numeric = Number.parseInt(index, 10);
+        if (Number.isNaN(numeric)) {
+            return marginOptions[0];
+        }
+        if (numeric <= 0) {
+            return marginOptions[0];
+        }
+        if (numeric >= marginOptions.length) {
+            return marginOptions[marginOptions.length - 1];
+        }
+        return marginOptions[numeric] ?? marginOptions[0];
     };
 
     const elementLabel = (definitions, type) => {
@@ -289,6 +338,7 @@
                 }
 
                 const paddingValue = clampPaddingValue(section.paddingVertical);
+                const marginValue = clampMarginValue(section.marginVertical);
                 const paddingField = createElement('label', {
                     className: 'admin-builder__field',
                 });
@@ -339,6 +389,57 @@
                 });
                 paddingField.append(rangeWrapper);
                 sectionItem.append(paddingField);
+
+                const marginField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                marginField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Vertical margin',
+                    })
+                );
+                const marginRangeWrapper = createElement('div', {
+                    className: 'admin-builder__range',
+                });
+                const marginRangeInput = createElement('input', {
+                    className: 'admin-builder__range-input',
+                });
+                marginRangeInput.type = 'range';
+                marginRangeInput.min = '0';
+                marginRangeInput.max = String(marginOptions.length - 1);
+                marginRangeInput.step = '1';
+                marginRangeInput.dataset.field = 'section-margin-vertical';
+                marginRangeInput.dataset.options = marginOptions.join(',');
+                const marginRangeIndex = marginIndexForValue(marginValue);
+                marginRangeInput.value = String(marginRangeIndex);
+                marginRangeInput.setAttribute('aria-valuemin', String(marginOptions[0]));
+                marginRangeInput.setAttribute(
+                    'aria-valuemax',
+                    String(marginOptions[marginOptions.length - 1])
+                );
+                marginRangeInput.setAttribute('aria-valuenow', String(marginValue));
+                marginRangeInput.setAttribute(
+                    'aria-valuetext',
+                    `${marginValue} pixels`
+                );
+                const marginRangeValue = createElement('span', {
+                    className: 'admin-builder__range-value',
+                    textContent: `${marginValue}px`,
+                });
+                marginRangeValue.dataset.role = 'section-margin-value';
+                marginRangeWrapper.append(marginRangeInput, marginRangeValue);
+                marginRangeInput.addEventListener('input', () => {
+                    const currentValue = marginValueForIndex(marginRangeInput.value);
+                    marginRangeValue.textContent = `${currentValue}px`;
+                    marginRangeInput.setAttribute('aria-valuenow', String(currentValue));
+                    marginRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${currentValue} pixels`
+                    );
+                });
+                marginField.append(marginRangeWrapper);
+                sectionItem.append(marginField);
 
                 const elementsContainer = createElement('div', {
                     className: 'admin-builder__section-elements',

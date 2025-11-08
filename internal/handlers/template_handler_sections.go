@@ -48,6 +48,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		if paddingClass := buildSectionPaddingClass(prefix, section.PaddingVertical); paddingClass != "" {
 			sectionClasses = append(sectionClasses, paddingClass)
 		}
+		if marginClass := buildSectionMarginClass(prefix, section.MarginVertical); marginClass != "" {
+			sectionClasses = append(sectionClasses, marginClass)
+		}
 		sectionTitleClass := fmt.Sprintf("%s__section-title", prefix)
 		sectionImageWrapperClass := fmt.Sprintf("%s__section-image", prefix)
 		sectionImageClass := fmt.Sprintf("%s__section-img", prefix)
@@ -166,6 +169,38 @@ func absInt(value int) int {
 		return -value
 	}
 	return value
+}
+
+func buildSectionMarginClass(prefix string, value *int) string {
+	if value == nil {
+		return ""
+	}
+	margin := clampSectionMarginValue(*value)
+	return fmt.Sprintf("%s__section--mv-%d", prefix, margin)
+}
+
+func clampSectionMarginValue(value int) int {
+	options := constants.SectionMarginOptions()
+	if len(options) == 0 {
+		return 0
+	}
+	if value <= options[0] {
+		return options[0]
+	}
+	last := options[len(options)-1]
+	if value >= last {
+		return last
+	}
+	closest := options[0]
+	minDiff := absInt(value - closest)
+	for _, option := range options[1:] {
+		diff := absInt(value - option)
+		if diff < minDiff {
+			closest = option
+			minDiff = diff
+		}
+	}
+	return closest
 }
 
 func (h *TemplateHandler) renderPostsListSection(prefix string, section models.Section) string {

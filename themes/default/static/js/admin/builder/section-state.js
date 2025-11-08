@@ -52,10 +52,13 @@
     };
 
     const paddingOptions = [0, 4, 8, 16, 32, 64, 128];
+    const marginOptions = [0, 4, 8, 16, 32, 64, 128];
     const defaultPadding = paddingOptions[0];
+    const defaultMargin = marginOptions[0];
     const newSectionDefaultPadding = paddingOptions.includes(32)
         ? 32
         : paddingOptions[Math.min(2, paddingOptions.length - 1)];
+    const newSectionDefaultMargin = defaultMargin;
 
     const clampPaddingValue = (value) => {
         if (!paddingOptions.length) {
@@ -95,6 +98,46 @@
             }
         }
         return defaultPadding;
+    };
+
+    const clampMarginValue = (value) => {
+        if (!marginOptions.length) {
+            return 0;
+        }
+        if (!Number.isFinite(value)) {
+            return defaultMargin;
+        }
+        if (value <= marginOptions[0]) {
+            return marginOptions[0];
+        }
+        const last = marginOptions[marginOptions.length - 1];
+        if (value >= last) {
+            return last;
+        }
+        let closest = marginOptions[0];
+        let minDiff = Math.abs(value - closest);
+        for (let i = 1; i < marginOptions.length; i += 1) {
+            const option = marginOptions[i];
+            const diff = Math.abs(value - option);
+            if (diff < minDiff) {
+                closest = option;
+                minDiff = diff;
+            }
+        }
+        return closest;
+    };
+
+    const normaliseMarginValue = (value) => {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return clampMarginValue(value);
+        }
+        if (typeof value === 'string' && value.trim()) {
+            const parsed = Number.parseInt(value, 10);
+            if (Number.isFinite(parsed)) {
+                return clampMarginValue(parsed);
+            }
+        }
+        return defaultMargin;
     };
 
     const createElementState = (definitions, element = {}) => {
@@ -163,6 +206,12 @@
             section.padding_vertical ??
             section.Padding_vertical;
         const paddingVertical = normalisePaddingValue(paddingSource);
+        const marginSource =
+            section.marginVertical ??
+            section.MarginVertical ??
+            section.margin_vertical ??
+            section.Margin_vertical;
+        const marginVertical = normaliseMarginValue(marginSource);
         return {
             clientId: randomId(),
             id: normaliseString(section.id ?? section.ID ?? ''),
@@ -177,6 +226,7 @@
             limit: limitValue,
             styleGridItems,
             paddingVertical,
+            marginVertical,
         };
     };
 
@@ -279,6 +329,9 @@
                     payload.padding_vertical = clampPaddingValue(
                         Number(section.paddingVertical)
                     );
+                    payload.margin_vertical = clampMarginValue(
+                        Number(section.marginVertical)
+                    );
 
                     return payload;
                 })
@@ -321,6 +374,7 @@
             );
             section.elements = [];
             section.paddingVertical = clampPaddingValue(newSectionDefaultPadding);
+            section.marginVertical = clampMarginValue(newSectionDefaultMargin);
             sections.push(section);
             return section;
         };
@@ -413,6 +467,8 @@
                 }
             } else if (field === 'section-padding-vertical') {
                 section.paddingVertical = clampPaddingValue(Number(value));
+            } else if (field === 'section-margin-vertical') {
+                section.marginVertical = clampMarginValue(Number(value));
             } else if (field === 'section-type') {
                 const nextType = normaliseString(value);
                 const ensuredType = sectionDefs[nextType]

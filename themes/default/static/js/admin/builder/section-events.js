@@ -96,7 +96,10 @@
             }
 
             let value = target.type === 'checkbox' ? target.checked : target.value;
-            if (field === 'section-padding-vertical') {
+            if (
+                field === 'section-padding-vertical' ||
+                field === 'section-margin-vertical'
+            ) {
                 const options = target.dataset.options
                     ? target.dataset.options
                           .split(',')
@@ -117,8 +120,12 @@
                     target.setAttribute('aria-valuenow', String(actualValue));
                     target.setAttribute('aria-valuetext', `${actualValue} pixels`);
                 }
+                const displayRole =
+                    field === 'section-padding-vertical'
+                        ? 'section-padding-value'
+                        : 'section-margin-value';
                 const displayNode = target.parentElement?.querySelector(
-                    '[data-role="section-padding-value"]'
+                    `[data-role="${displayRole}"]`
                 );
                 if (displayNode) {
                     displayNode.textContent = `${actualValue}px`;

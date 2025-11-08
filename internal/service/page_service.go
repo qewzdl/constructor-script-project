@@ -651,6 +651,7 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 		}
 
 		section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical)
+		section.MarginVertical = normaliseSectionMargin(section.MarginVertical)
 
 		section.Type = sectionType
 

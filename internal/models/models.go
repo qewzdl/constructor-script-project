@@ -447,6 +447,7 @@ type Section struct {
 	Order           int              `json:"order"`
 	StyleGridItems  *bool            `json:"style_grid_items,omitempty"`
 	PaddingVertical *int             `json:"padding_vertical,omitempty"`
+	MarginVertical  *int             `json:"margin_vertical,omitempty"`
 	Elements        []SectionElement `json:"elements"`
 }
 
