@@ -242,6 +242,56 @@ func (s *PackageService) GrantToUser(packageID uint, req models.GrantCoursePacka
 	return s.accessRepo.GetByUserAndPackage(req.UserID, packageID)
 }
 
+func (s *PackageService) ListForUser(userID uint) ([]models.UserCoursePackage, error) {
+	result := make([]models.UserCoursePackage, 0)
+	if s == nil || s.packageRepo == nil || s.accessRepo == nil {
+		return result, errors.New("course package service is not fully configured")
+	}
+	if userID == 0 {
+		return result, newValidationError("user id is required")
+	}
+
+	accesses, err := s.accessRepo.ListActiveByUser(userID)
+	if err != nil {
+		return nil, err
+	}
+	if len(accesses) == 0 {
+		return result, nil
+	}
+
+	packageIDs := make([]uint, 0, len(accesses))
+	for _, access := range accesses {
+		packageIDs = append(packageIDs, access.PackageID)
+	}
+
+	uniqueIDs := uniqueOrdered(packageIDs)
+	packages, err := s.packageRepo.GetByIDs(uniqueIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(packages) > 0 {
+		if err := s.populateTopics(packages); err != nil {
+			return nil, err
+		}
+	}
+
+	packageMap := make(map[uint]models.CoursePackage, len(packages))
+	for _, pkg := range packages {
+		packageMap[pkg.ID] = pkg
+	}
+
+	for _, access := range accesses {
+		if pkg, ok := packageMap[access.PackageID]; ok {
+			result = append(result, models.UserCoursePackage{
+				Package: pkg,
+				Access:  access,
+			})
+		}
+	}
+
+	return result, nil
+}
+
 func (s *PackageService) assignTopics(packageID uint, topicIDs []uint) error {
 	if s.topicRepo == nil {
 		return errors.New("course topic repository is not configured")

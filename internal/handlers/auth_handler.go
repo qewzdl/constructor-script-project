@@ -11,14 +11,24 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	courseservice "constructor-script-backend/plugins/courses/service"
 )
 
 type AuthHandler struct {
-	authService *service.AuthService
+	authService      *service.AuthService
+	coursePackageSvc *courseservice.PackageService
 }
 
 func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
+}
+
+func (h *AuthHandler) SetCoursePackageService(courseService *courseservice.PackageService) {
+	if h == nil {
+		return
+	}
+	h.coursePackageSvc = courseService
 }
 
 const (

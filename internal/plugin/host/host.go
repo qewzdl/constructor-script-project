@@ -31,6 +31,7 @@ type Host interface {
 	TemplateHandler() *handlers.TemplateHandler
 	SEOHandler() *handlers.SEOHandler
 	ThemeHandler() *handlers.ThemeHandler
+	AuthHandler() *handlers.AuthHandler
 }
 
 type RepositoryAccess interface {

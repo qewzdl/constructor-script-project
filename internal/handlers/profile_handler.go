@@ -17,7 +17,20 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	courses := make([]models.UserCoursePackage, 0)
+	if h.coursePackageSvc != nil {
+		userCourses, err := h.coursePackageSvc.ListForUser(userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		courses = userCourses
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user":    user,
+		"courses": courses,
+	})
 }
 
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {

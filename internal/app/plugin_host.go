@@ -113,6 +113,13 @@ func (a *Application) ThemeHandler() *handlers.ThemeHandler {
 	return a.handlers.Theme
 }
 
+func (a *Application) AuthHandler() *handlers.AuthHandler {
+	if a == nil {
+		return nil
+	}
+	return a.handlers.Auth
+}
+
 func (r applicationRepositoryAccess) Category() repository.CategoryRepository {
 	if r.app == nil {
 		return nil

@@ -136,5 +136,64 @@
                 </form>
             </section>
         </div>
+
+        <section class="profile-card profile-card--courses" aria-labelledby="profile-courses-title">
+            <header class="profile-card__header">
+                <h2 id="profile-courses-title" class="profile-card__title">Courses</h2>
+                <p class="profile-card__description">
+                    Review the learning packages currently available to your account.
+                </p>
+            </header>
+
+            <div class="profile-courses" id="profile-courses">
+                {{ $hasCourses := gt (len .UserCourses) 0 }}
+                <p class="profile-courses__empty" {{ if $hasCourses }}hidden{{ end }}>
+                    You don't have any courses yet.
+                </p>
+                <ul class="profile-courses__list" {{ if not $hasCourses }}hidden{{ end }}>
+                    {{ range .UserCourses }}
+                        {{ $pkg := .Package }}
+                        {{ $access := .Access }}
+                        <li class="profile-courses__item">
+                            <article class="profile-course">
+                                {{ with $pkg.ImageURL }}
+                                    <figure class="profile-course__media">
+                                        <img
+                                            src="{{ asset . }}"
+                                            alt="{{ default "Course cover" $pkg.Title }}"
+                                            loading="lazy"
+                                        />
+                                    </figure>
+                                {{ end }}
+                                <div class="profile-course__content">
+                                    <h3 class="profile-course__title">{{ default "Untitled course" $pkg.Title }}</h3>
+                                    {{ if $pkg.Description }}
+                                        <p class="profile-course__description">{{ $pkg.Description }}</p>
+                                    {{ end }}
+                                    <p class="profile-course__meta">
+                                        <span class="profile-course__meta-item">
+                                            Granted
+                                            <time datetime="{{ $access.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}">
+                                                {{ formatDate $access.CreatedAt "medium" }}
+                                            </time>
+                                        </span>
+                                        {{ with $access.ExpiresAt }}
+                                            <span class="profile-course__meta-item">
+                                                Expires
+                                                <time datetime="{{ .Format "2006-01-02T15:04:05Z07:00" }}">
+                                                    {{ formatDate . "medium" }}
+                                                </time>
+                                            </span>
+                                        {{ else }}
+                                            <span class="profile-course__meta-item">No expiration</span>
+                                        {{ end }}
+                                    </p>
+                                </div>
+                            </article>
+                        </li>
+                    {{ end }}
+                </ul>
+            </div>
+        </section>
     </section>
 </section>

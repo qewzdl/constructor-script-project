@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -46,6 +47,7 @@ type CoursePackageRepository interface {
 type CoursePackageAccessRepository interface {
 	Upsert(access *models.CoursePackageAccess) error
 	GetByUserAndPackage(userID, packageID uint) (*models.CoursePackageAccess, error)
+	ListActiveByUser(userID uint) ([]models.CoursePackageAccess, error)
 }
 
 type CourseTestRepository interface {
@@ -456,6 +458,23 @@ func (r *coursePackageAccessRepository) GetByUserAndPackage(userID, packageID ui
 		return nil, err
 	}
 	return &access, nil
+}
+
+func (r *coursePackageAccessRepository) ListActiveByUser(userID uint) ([]models.CoursePackageAccess, error) {
+	accesses := make([]models.CoursePackageAccess, 0)
+	if r == nil || r.db == nil {
+		return accesses, errors.New("course package access repository is not initialised")
+	}
+	if userID == 0 {
+		return accesses, nil
+	}
+
+	now := time.Now()
+	err := r.db.Where("user_id = ? AND (expires_at IS NULL OR expires_at > ?)", userID, now).
+		Order("created_at DESC").
+		Find(&accesses).Error
+
+	return accesses, err
 }
 
 func uniqueOrdered(values []uint) []uint {

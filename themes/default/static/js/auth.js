@@ -400,6 +400,123 @@
         }
     };
 
+    const renderUserCourses = (courses) => {
+        const container = document.getElementById("profile-courses");
+        if (!container) {
+            return;
+        }
+
+        const list = container.querySelector(".profile-courses__list");
+        const empty = container.querySelector(".profile-courses__empty");
+        const entries = Array.isArray(courses) ? courses : [];
+
+        if (empty) {
+            empty.hidden = entries.length > 0;
+        }
+
+        if (!list) {
+            return;
+        }
+
+        list.innerHTML = "";
+
+        if (entries.length === 0) {
+            list.hidden = true;
+            return;
+        }
+
+        list.hidden = false;
+
+        entries.forEach((entry) => {
+            if (!entry || typeof entry !== "object") {
+                return;
+            }
+            const pkg = entry.package || {};
+            const access = entry.access || {};
+
+            const item = document.createElement("li");
+            item.className = "profile-courses__item";
+
+            const article = document.createElement("article");
+            article.className = "profile-course";
+
+            if (pkg.image_url) {
+                const figure = document.createElement("figure");
+                figure.className = "profile-course__media";
+
+                const img = document.createElement("img");
+                img.src = pkg.image_url;
+                img.alt = pkg.title ? `${pkg.title} cover` : "Course cover";
+                img.loading = "lazy";
+
+                figure.appendChild(img);
+                article.appendChild(figure);
+            }
+
+            const content = document.createElement("div");
+            content.className = "profile-course__content";
+
+            const title = document.createElement("h3");
+            title.className = "profile-course__title";
+            title.textContent = pkg.title || "Untitled course";
+            content.appendChild(title);
+
+            if (pkg.description) {
+                const description = document.createElement("p");
+                description.className = "profile-course__description";
+                description.textContent = pkg.description;
+                content.appendChild(description);
+            }
+
+            const meta = document.createElement("p");
+            meta.className = "profile-course__meta";
+
+            const grantedItem = document.createElement("span");
+            grantedItem.className = "profile-course__meta-item";
+            grantedItem.append(document.createTextNode("Granted"));
+
+            if (access.created_at) {
+                grantedItem.append(" ");
+                const grantedDate = new Date(access.created_at);
+                const grantedTime = document.createElement("time");
+                if (!Number.isNaN(grantedDate.getTime())) {
+                    grantedTime.dateTime = grantedDate.toISOString();
+                    grantedTime.textContent = grantedDate.toLocaleDateString();
+                } else {
+                    grantedTime.textContent = access.created_at;
+                }
+                grantedItem.appendChild(grantedTime);
+            }
+
+            meta.appendChild(grantedItem);
+
+            const expiresItem = document.createElement("span");
+            expiresItem.className = "profile-course__meta-item";
+
+            if (access.expires_at) {
+                expiresItem.append(document.createTextNode("Expires"), " ");
+                const expiresDate = new Date(access.expires_at);
+                const expiresTime = document.createElement("time");
+                if (!Number.isNaN(expiresDate.getTime())) {
+                    expiresTime.dateTime = expiresDate.toISOString();
+                    expiresTime.textContent = expiresDate.toLocaleDateString();
+                } else {
+                    expiresTime.textContent = access.expires_at;
+                }
+                expiresItem.appendChild(expiresTime);
+            } else {
+                expiresItem.textContent = "No expiration";
+            }
+
+            meta.appendChild(expiresItem);
+            content.appendChild(meta);
+
+            article.appendChild(content);
+            item.appendChild(article);
+            list.appendChild(item);
+        });
+    };
+
     const populateProfileFromResponse = (user) => {
         const usernameField = document.getElementById("profile-username");
         const emailField = document.getElementById("profile-email");
@@ -425,6 +542,8 @@
             if (payload && payload.user) {
                 populateProfileFromResponse(payload.user);
             }
+
+            renderUserCourses(payload?.courses || []);
         } catch (error) {
             if (error.status === 401) {
                 Auth.clearToken();
@@ -441,6 +560,7 @@
         apiRequest,
         setAlert,
         toggleFormDisabled,
+        renderUserCourses,
     });
 
     document.addEventListener("DOMContentLoaded", () => {

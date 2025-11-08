@@ -184,6 +184,11 @@ type CoursePackageAccess struct {
 	ExpiresAt *time.Time `gorm:"index" json:"expires_at,omitempty"`
 }
 
+type UserCoursePackage struct {
+	Package CoursePackage       `json:"package"`
+	Access  CoursePackageAccess `json:"access"`
+}
+
 type CourseTopicVideo struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`

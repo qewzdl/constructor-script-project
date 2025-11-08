@@ -884,16 +884,26 @@ func (h *TemplateHandler) RenderSetup(c *gin.Context) {
 }
 
 func (h *TemplateHandler) RenderProfile(c *gin.Context) {
-	_, ok := h.currentUser(c)
+	user, ok := h.currentUser(c)
 	if !ok {
 		redirectTo := url.QueryEscape(c.Request.URL.RequestURI())
 		c.Redirect(http.StatusFound, "/login?redirect="+redirectTo)
 		return
 	}
 
+	courses := make([]models.UserCoursePackage, 0)
+	if h.coursePackageSvc != nil && user != nil {
+		if loaded, err := h.coursePackageSvc.ListForUser(user.ID); err != nil {
+			logger.Error(err, "Failed to load courses for profile", map[string]interface{}{"user_id": user.ID})
+		} else {
+			courses = loaded
+		}
+	}
+
 	h.renderTemplate(c, "profile", "Profile", "Manage personal details, account security, and connected devices.", gin.H{
 		"ProfileAction":        "/api/v1/profile",
 		"PasswordChangeAction": "/api/v1/profile/password",
+		"UserCourses":          courses,
 	})
 }
 

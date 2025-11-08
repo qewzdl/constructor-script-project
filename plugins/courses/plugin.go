@@ -214,6 +214,10 @@ func (f *Feature) Activate() error {
 		templateHandler.SetCourseCheckoutService(checkoutService)
 	}
 
+	if authHandler := f.host.AuthHandler(); authHandler != nil {
+		authHandler.SetCoursePackageService(packageService)
+	}
+
 	return nil
 }
 
@@ -249,6 +253,10 @@ func (f *Feature) Deactivate() error {
 	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
 		templateHandler.SetCoursePackageService(nil)
 		templateHandler.SetCourseCheckoutService(nil)
+	}
+
+	if authHandler := f.host.AuthHandler(); authHandler != nil {
+		authHandler.SetCoursePackageService(nil)
 	}
 
 	return nil
