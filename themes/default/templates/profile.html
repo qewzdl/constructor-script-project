@@ -189,6 +189,13 @@
                                             <span class="profile-course__meta-item">No expiration</span>
                                         {{ end }}
                                     </div>
+                                    {{ if $pkg.ID }}
+                                        <div class="profile-course__actions">
+                                            <a class="button button--primary profile-course__action" href="/courses/{{ $pkg.ID }}">
+                                                Open course
+                                            </a>
+                                        </div>
+                                    {{ end }}
                                 </div>
                             </article>
                         </li>

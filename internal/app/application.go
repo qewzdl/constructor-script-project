@@ -877,6 +877,7 @@ func (a *Application) initRouter() error {
 	router.GET("/register", a.templateHandler.RenderRegister)
 	router.GET("/setup", a.templateHandler.RenderSetup)
 	router.GET("/profile", a.templateHandler.RenderProfile)
+	router.GET("/courses/:id", a.templateHandler.RenderCourse)
 	router.GET("/admin", a.templateHandler.RenderAdmin)
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
 	router.GET("/page/:slug", a.templateHandler.RenderPage)
@@ -927,6 +928,7 @@ func (a *Application) initRouter() error {
 			protected.GET("/profile", a.handlers.Auth.GetProfile)
 			protected.PUT("/profile", a.handlers.Auth.UpdateProfile)
 			protected.PUT("/profile/password", a.handlers.Auth.ChangePassword)
+			protected.GET("/courses/packages/:id", a.handlers.CoursePackage.GetForUser)
 			protected.GET("/courses/tests/:id", a.handlers.CourseTest.Get)
 			protected.POST("/courses/tests/:id/submit", a.handlers.CourseTest.Submit)
 		}

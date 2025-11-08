@@ -1,0 +1,91 @@
+{{ $course := .Course }}
+{{ $package := $course.Package }}
+<section
+    class="course-player"
+    role="region"
+    aria-labelledby="course-title"
+    data-page="course"
+    data-course-player
+    data-course-id="{{ $package.ID }}"
+    data-course-endpoint="{{ .CourseEndpoint }}"
+    data-course-test-endpoint="{{ .CourseTestEndpoint }}"
+>
+    <header class="course-player__header">
+        {{ if $package.ImageURL }}
+            <figure class="course-player__figure">
+                <img
+                    src="{{ asset $package.ImageURL }}"
+                    alt="{{ default "Course cover" $package.Title }}"
+                    class="course-player__image"
+                    loading="lazy"
+                />
+            </figure>
+        {{ end }}
+
+        <div class="course-player__header-content">
+            <h1 id="course-title" class="course-player__title">{{ default "Untitled course" $package.Title }}</h1>
+            {{ if $package.Description }}
+                <p class="course-player__description">{{ $package.Description }}</p>
+            {{ end }}
+
+            <dl class="course-player__meta">
+                <div class="course-player__meta-item">
+                    <dt class="course-player__meta-label">Granted</dt>
+                    <dd class="course-player__meta-value">
+                        <time datetime="{{ $course.Access.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}">
+                            {{ formatDate $course.Access.CreatedAt "medium" }}
+                        </time>
+                    </dd>
+                </div>
+                <div class="course-player__meta-item">
+                    <dt class="course-player__meta-label">Access</dt>
+                    <dd class="course-player__meta-value">
+                        {{ with $course.Access.ExpiresAt }}
+                            <span>Expires</span>
+                            <time datetime="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ formatDate . "medium" }}</time>
+                        {{ else }}
+                            <span>No expiration</span>
+                        {{ end }}
+                    </dd>
+                </div>
+            </dl>
+
+            {{ $topicCount := .CourseTopicCount }}
+            {{ $lessonCount := .CourseLessonCount }}
+            <p
+                class="course-player__stats"
+                data-course-player-stats
+                {{ if not $topicCount }}hidden{{ end }}
+            >
+                {{ $topicCount }} {{ if eq $topicCount 1 }}topic{{ else }}topics{{ end }}
+                {{ if gt $lessonCount 0 }}
+                    • {{ $lessonCount }} {{ if eq $lessonCount 1 }}lesson{{ else }}lessons{{ end }}
+                {{ end }}
+            </p>
+        </div>
+    </header>
+
+    <div class="course-player__layout">
+        <nav class="course-player__sidebar" aria-label="Course contents">
+            <div class="course-player__sidebar-header">
+                <h2 class="course-player__sidebar-title">Course topics</h2>
+                <p class="course-player__sidebar-description">
+                    Choose a lesson to start learning or revisit completed material.
+                </p>
+            </div>
+            <ul class="course-player__topics" data-course-player-topic-list></ul>
+        </nav>
+
+        <section class="course-player__content" aria-live="polite">
+            <div class="course-player__placeholder" data-course-player-placeholder>
+                <p>Select a lesson to get started. Your progress is saved automatically.</p>
+            </div>
+            <div class="course-player__error" data-course-player-error hidden role="alert"></div>
+            <div class="course-player__body" data-course-player-content></div>
+        </section>
+    </div>
+
+    <script type="application/json" id="course-player-data">
+        {{- if .CourseJSON -}}{{ .CourseJSON }}{{- end -}}
+    </script>
+</section>

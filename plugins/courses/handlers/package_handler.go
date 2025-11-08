@@ -168,6 +168,31 @@ func (h *PackageHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"package": pkg})
 }
 
+func (h *PackageHandler) GetForUser(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
+	id, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	userID := c.GetUint("user_id")
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+
+	course, err := h.service.GetForUser(id, userID)
+	if err != nil {
+		h.writeError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"course": course})
+}
+
 func (h *PackageHandler) List(c *gin.Context) {
 	if !h.ensureService(c) {
 		return

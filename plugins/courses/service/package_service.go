@@ -292,6 +292,49 @@ func (s *PackageService) ListForUser(userID uint) ([]models.UserCoursePackage, e
 	return result, nil
 }
 
+func (s *PackageService) GetForUser(packageID, userID uint) (*models.UserCoursePackage, error) {
+	if s == nil || s.packageRepo == nil || s.accessRepo == nil {
+		return nil, errors.New("course package service is not fully configured")
+	}
+	if packageID == 0 {
+		return nil, newValidationError("package id is required")
+	}
+	if userID == 0 {
+		return nil, newValidationError("user id is required")
+	}
+
+	access, err := s.accessRepo.GetByUserAndPackage(userID, packageID)
+	if err != nil {
+		return nil, err
+	}
+	if access == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
+	if access.ExpiresAt != nil {
+		now := time.Now()
+		if access.ExpiresAt.Before(now) {
+			return nil, gorm.ErrRecordNotFound
+		}
+	}
+
+	pkg, err := s.packageRepo.GetByID(packageID)
+	if err != nil {
+		return nil, err
+	}
+
+	packages := []models.CoursePackage{*pkg}
+	if err := s.populateTopics(packages); err != nil {
+		return nil, err
+	}
+
+	result := models.UserCoursePackage{
+		Package: packages[0],
+		Access:  *access,
+	}
+
+	return &result, nil
+}
+
 func (s *PackageService) assignTopics(packageID uint, topicIDs []uint) error {
 	if s.topicRepo == nil {
 		return errors.New("course topic repository is not configured")

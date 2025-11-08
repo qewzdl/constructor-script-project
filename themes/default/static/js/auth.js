@@ -512,6 +512,19 @@
             meta.appendChild(expiresItem);
             content.appendChild(meta);
 
+            if (pkg.id) {
+                const actions = document.createElement("div");
+                actions.className = "profile-course__actions";
+
+                const openLink = document.createElement("a");
+                openLink.className = "button button--primary profile-course__action";
+                openLink.href = `/courses/${pkg.id}`;
+                openLink.textContent = "Open course";
+
+                actions.appendChild(openLink);
+                content.appendChild(actions);
+            }
+
             article.appendChild(content);
             item.appendChild(article);
             list.appendChild(item);

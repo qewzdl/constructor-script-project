@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	courseservice "constructor-script-backend/plugins/courses/service"
 )
 
 func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
@@ -905,6 +907,85 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		"PasswordChangeAction": "/api/v1/profile/password",
 		"UserCourses":          courses,
 	})
+}
+
+func (h *TemplateHandler) RenderCourse(c *gin.Context) {
+	user, ok := h.currentUser(c)
+	if !ok {
+		redirectTo := url.QueryEscape(c.Request.URL.RequestURI())
+		c.Redirect(http.StatusFound, "/login?redirect="+redirectTo)
+		return
+	}
+
+	if h.coursePackageSvc == nil {
+		h.renderError(c, http.StatusServiceUnavailable, "Courses unavailable", "Course access is not configured.")
+		return
+	}
+
+	idParam := strings.TrimSpace(c.Param("id"))
+	courseID, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil || courseID == 0 {
+		h.renderError(c, http.StatusNotFound, "Course not found", "Requested course could not be found.")
+		return
+	}
+
+	course, err := h.coursePackageSvc.GetForUser(uint(courseID), user.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			h.renderError(c, http.StatusNotFound, "Course not found", "The course is unavailable or your access has expired.")
+			return
+		case courseservice.IsValidationError(err):
+			h.renderError(c, http.StatusBadRequest, "Course unavailable", err.Error())
+			return
+		default:
+			logger.Error(err, "Failed to load course for user", map[string]interface{}{"course_id": courseID, "user_id": user.ID})
+			h.renderError(c, http.StatusInternalServerError, "Course unavailable", "We couldn't load this course right now.")
+			return
+		}
+	}
+	if course == nil {
+		h.renderError(c, http.StatusNotFound, "Course not found", "Requested course could not be found.")
+		return
+	}
+
+	payload, err := json.Marshal(course)
+	if err != nil {
+		logger.Error(err, "Failed to serialise course", map[string]interface{}{"course_id": courseID, "user_id": user.ID})
+		h.renderError(c, http.StatusInternalServerError, "Course unavailable", "We couldn't prepare this course for viewing.")
+		return
+	}
+	payload = bytes.ReplaceAll(payload, []byte("</"), []byte("<\\/"))
+
+	pkg := course.Package
+	title := strings.TrimSpace(pkg.Title)
+	if title == "" {
+		title = "Course"
+	}
+	description := strings.TrimSpace(pkg.Description)
+
+	canonicalPath := fmt.Sprintf("/courses/%d", pkg.ID)
+	canonical := h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath)
+
+	lessonCount := 0
+	for _, topic := range pkg.Topics {
+		lessonCount += len(topic.Steps)
+	}
+
+	data := gin.H{
+		"Course":              course,
+		"CourseJSON":          template.JS(string(payload)),
+		"CourseEndpoint":      fmt.Sprintf("/api/v1/courses/packages/%d", pkg.ID),
+		"CourseTestEndpoint":  "/api/v1/courses/tests",
+		"CourseTopicCount":    len(pkg.Topics),
+		"CourseLessonCount":   lessonCount,
+		"CourseCanonicalPath": canonicalPath,
+		"Scripts":             []string{"/static/js/course-player.js"},
+		"Canonical":           canonical,
+		"NoIndex":             true,
+	}
+
+	h.renderTemplate(c, "course", title, description, data)
 }
 
 func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
