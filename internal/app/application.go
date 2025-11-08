@@ -67,21 +67,22 @@ type Application struct {
 }
 
 type repositoryContainer struct {
-	User          repository.UserRepository
-	Category      repository.CategoryRepository
-	Post          repository.PostRepository
-	Tag           repository.TagRepository
-	Comment       repository.CommentRepository
-	Search        repository.SearchRepository
-	Page          repository.PageRepository
-	Setting       repository.SettingRepository
-	SocialLink    repository.SocialLinkRepository
-	Menu          repository.MenuRepository
-	Plugin        repository.PluginRepository
-	CourseVideo   repository.CourseVideoRepository
-	CourseTopic   repository.CourseTopicRepository
-	CoursePackage repository.CoursePackageRepository
-	CourseTest    repository.CourseTestRepository
+	User                repository.UserRepository
+	Category            repository.CategoryRepository
+	Post                repository.PostRepository
+	Tag                 repository.TagRepository
+	Comment             repository.CommentRepository
+	Search              repository.SearchRepository
+	Page                repository.PageRepository
+	Setting             repository.SettingRepository
+	SocialLink          repository.SocialLinkRepository
+	Menu                repository.MenuRepository
+	Plugin              repository.PluginRepository
+	CourseVideo         repository.CourseVideoRepository
+	CourseTopic         repository.CourseTopicRepository
+	CoursePackage       repository.CoursePackageRepository
+	CoursePackageAccess repository.CoursePackageAccessRepository
+	CourseTest          repository.CourseTestRepository
 }
 
 type serviceContainer struct {
@@ -349,6 +350,7 @@ func (a *Application) runMigrations() error {
 		&models.CoursePackage{},
 		&models.CourseTopicVideo{},
 		&models.CoursePackageTopic{},
+		&models.CoursePackageAccess{},
 		&models.CourseTest{},
 		&models.CourseTestQuestion{},
 		&models.CourseTestQuestionOption{},
@@ -551,21 +553,22 @@ func (a *Application) initCache() {
 
 func (a *Application) initRepositories() {
 	a.repositories = repositoryContainer{
-		User:          repository.NewUserRepository(a.db),
-		Category:      repository.NewCategoryRepository(a.db),
-		Post:          repository.NewPostRepository(a.db),
-		Tag:           repository.NewTagRepository(a.db),
-		Comment:       repository.NewCommentRepository(a.db),
-		Search:        repository.NewSearchRepository(a.db),
-		Page:          repository.NewPageRepository(a.db),
-		Setting:       repository.NewSettingRepository(a.db),
-		SocialLink:    repository.NewSocialLinkRepository(a.db),
-		Menu:          repository.NewMenuRepository(a.db),
-		Plugin:        repository.NewPluginRepository(a.db),
-		CourseVideo:   repository.NewCourseVideoRepository(a.db),
-		CourseTopic:   repository.NewCourseTopicRepository(a.db),
-		CoursePackage: repository.NewCoursePackageRepository(a.db),
-		CourseTest:    repository.NewCourseTestRepository(a.db),
+		User:                repository.NewUserRepository(a.db),
+		Category:            repository.NewCategoryRepository(a.db),
+		Post:                repository.NewPostRepository(a.db),
+		Tag:                 repository.NewTagRepository(a.db),
+		Comment:             repository.NewCommentRepository(a.db),
+		Search:              repository.NewSearchRepository(a.db),
+		Page:                repository.NewPageRepository(a.db),
+		Setting:             repository.NewSettingRepository(a.db),
+		SocialLink:          repository.NewSocialLinkRepository(a.db),
+		Menu:                repository.NewMenuRepository(a.db),
+		Plugin:              repository.NewPluginRepository(a.db),
+		CourseVideo:         repository.NewCourseVideoRepository(a.db),
+		CourseTopic:         repository.NewCourseTopicRepository(a.db),
+		CoursePackage:       repository.NewCoursePackageRepository(a.db),
+		CoursePackageAccess: repository.NewCoursePackageAccessRepository(a.db),
+		CourseTest:          repository.NewCourseTestRepository(a.db),
 	}
 }
 
@@ -976,6 +979,7 @@ func (a *Application) initRouter() error {
 			content.POST("/courses/packages", a.handlers.CoursePackage.Create)
 			content.PUT("/courses/packages/:id", a.handlers.CoursePackage.Update)
 			content.PUT("/courses/packages/:id/topics", a.handlers.CoursePackage.UpdateTopics)
+			content.POST("/courses/packages/:id/grants", a.handlers.CoursePackage.GrantToUser)
 			content.DELETE("/courses/packages/:id", a.handlers.CoursePackage.Delete)
 			content.GET("/courses/packages", a.handlers.CoursePackage.List)
 			content.GET("/courses/packages/:id", a.handlers.CoursePackage.Get)

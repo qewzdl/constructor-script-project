@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"constructor-script-backend/internal/models"
 )
@@ -42,6 +43,11 @@ type CoursePackageRepository interface {
 	ListTopicLinks(packageIDs []uint) (map[uint][]models.CoursePackageTopic, error)
 }
 
+type CoursePackageAccessRepository interface {
+	Upsert(access *models.CoursePackageAccess) error
+	GetByUserAndPackage(userID, packageID uint) (*models.CoursePackageAccess, error)
+}
+
 type CourseTestRepository interface {
 	Create(test *models.CourseTest) error
 	Update(test *models.CourseTest) error
@@ -67,6 +73,10 @@ type coursePackageRepository struct {
 	db *gorm.DB
 }
 
+type coursePackageAccessRepository struct {
+	db *gorm.DB
+}
+
 type courseTestRepository struct {
 	db *gorm.DB
 }
@@ -81,6 +91,10 @@ func NewCourseTopicRepository(db *gorm.DB) CourseTopicRepository {
 
 func NewCoursePackageRepository(db *gorm.DB) CoursePackageRepository {
 	return &coursePackageRepository{db: db}
+}
+
+func NewCoursePackageAccessRepository(db *gorm.DB) CoursePackageAccessRepository {
+	return &coursePackageAccessRepository{db: db}
 }
 
 func NewCourseTestRepository(db *gorm.DB) CourseTestRepository {
@@ -411,6 +425,37 @@ func (r *coursePackageRepository) ListTopicLinks(packageIDs []uint) (map[uint][]
 		result[link.PackageID] = append(result[link.PackageID], link)
 	}
 	return result, nil
+}
+
+func (r *coursePackageAccessRepository) Upsert(access *models.CoursePackageAccess) error {
+	if r == nil || r.db == nil {
+		return errors.New("course package access repository is not initialised")
+	}
+	if access == nil {
+		return errors.New("access is required")
+	}
+
+	assignments := clause.Assignments(map[string]interface{}{
+		"granted_by": access.GrantedBy,
+		"expires_at": access.ExpiresAt,
+		"updated_at": gorm.Expr("NOW()"),
+	})
+
+	return r.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}, {Name: "package_id"}},
+		DoUpdates: assignments,
+	}).Create(access).Error
+}
+
+func (r *coursePackageAccessRepository) GetByUserAndPackage(userID, packageID uint) (*models.CoursePackageAccess, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course package access repository is not initialised")
+	}
+	var access models.CoursePackageAccess
+	if err := r.db.Where("user_id = ? AND package_id = ?", userID, packageID).First(&access).Error; err != nil {
+		return nil, err
+	}
+	return &access, nil
 }
 
 func uniqueOrdered(values []uint) []uint {

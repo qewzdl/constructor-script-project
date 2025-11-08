@@ -46,9 +46,11 @@ func (f *Feature) Activate() error {
 	videoRepo := repos.CourseVideo()
 	topicRepo := repos.CourseTopic()
 	packageRepo := repos.CoursePackage()
+	accessRepo := repos.CoursePackageAccess()
+	userRepo := repos.User()
 	testRepo := repos.CourseTest()
 
-	if videoRepo == nil || topicRepo == nil || packageRepo == nil || testRepo == nil {
+	if videoRepo == nil || topicRepo == nil || packageRepo == nil || accessRepo == nil || userRepo == nil || testRepo == nil {
 		return fmt.Errorf("course repositories are not configured")
 	}
 
@@ -83,10 +85,10 @@ func (f *Feature) Activate() error {
 
 	packageService := courseServices.Package()
 	if packageService == nil {
-		packageService = courseservice.NewPackageService(packageRepo, topicRepo, videoRepo, testRepo)
+		packageService = courseservice.NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, accessRepo, userRepo)
 		courseServices.SetPackage(packageService)
 	} else {
-		packageService.SetRepositories(packageRepo, topicRepo, videoRepo, testRepo)
+		packageService.SetRepositories(packageRepo, topicRepo, videoRepo, testRepo, accessRepo, userRepo)
 	}
 
 	cfg := f.host.Config()

@@ -171,6 +171,19 @@ type CoursePackage struct {
 	Topics []CourseTopic `gorm:"-" json:"topics"`
 }
 
+type CoursePackageAccess struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	UserID    uint `gorm:"not null;index;uniqueIndex:idx_course_package_access_user_package,priority:1" json:"user_id"`
+	PackageID uint `gorm:"not null;index;uniqueIndex:idx_course_package_access_user_package,priority:2" json:"package_id"`
+
+	GrantedBy *uint      `gorm:"index" json:"granted_by,omitempty"`
+	ExpiresAt *time.Time `gorm:"index" json:"expires_at,omitempty"`
+}
+
 type CourseTopicVideo struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -349,6 +362,11 @@ type UpdateCoursePackageRequest struct {
 
 type ReorderCoursePackageTopicsRequest struct {
 	TopicIDs []uint `json:"topic_ids" binding:"required"`
+}
+
+type GrantCoursePackageRequest struct {
+	UserID    uint         `json:"user_id" binding:"required,gt=0"`
+	ExpiresAt OptionalTime `json:"expires_at"`
 }
 
 type CourseTopicStepReference struct {

@@ -104,6 +104,33 @@ func (h *PackageHandler) UpdateTopics(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"package": pkg})
 }
 
+func (h *PackageHandler) GrantToUser(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
+	packageID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req models.GrantCoursePackageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	adminID := c.GetUint("user_id")
+
+	access, err := h.service.GrantToUser(packageID, req, adminID)
+	if err != nil {
+		h.writeError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"access": access})
+}
+
 func (h *PackageHandler) Delete(c *gin.Context) {
 	if !h.ensureService(c) {
 		return

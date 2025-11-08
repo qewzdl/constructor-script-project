@@ -107,7 +107,16 @@ func (s *AuthService) ValidateToken(tokenString string) (*jwt.Token, error) {
 	})
 }
 
-func (s *AuthService) GetAllUsers() ([]models.User, error) {
+func (s *AuthService) GetAllUsers(query string, limit int) ([]models.User, error) {
+	trimmed := strings.TrimSpace(query)
+	if trimmed != "" {
+		max := limit
+		if max <= 0 || max > 100 {
+			max = 25
+		}
+		return s.userRepo.Search(trimmed, max)
+	}
+
 	return s.userRepo.GetAll()
 }
 

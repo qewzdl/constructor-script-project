@@ -764,6 +764,39 @@
         const coursePackageTopicEmpty = coursePackageForm?.querySelector('[data-role="course-package-topic-empty"]');
         const coursePackageSubmitButton = coursePackageForm?.querySelector('[data-role="course-package-submit"]');
         const coursePackageDeleteButton = coursePackageForm?.querySelector('[data-role="course-package-delete"]');
+        const coursePackageGrantUserInput = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-user"]'
+        );
+        const coursePackageGrantSearchInput = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-search"]'
+        );
+        const coursePackageGrantResults = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-results"]'
+        );
+        const coursePackageGrantResultsStatus = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-results-status"]'
+        );
+        const coursePackageGrantSelection = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-selection"]'
+        );
+        const coursePackageGrantSelectionLabel = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-selection-label"]'
+        );
+        const coursePackageGrantClearUserButton = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-clear-user"]'
+        );
+        const coursePackageGrantExpiresInput = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-expires"]'
+        );
+        const coursePackageGrantClearToggle = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-clear-expiration"]'
+        );
+        const coursePackageGrantButton = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-submit"]'
+        );
+        const coursePackageGrantStatus = coursePackageForm?.querySelector(
+            '[data-role="course-package-grant-status"]'
+        );
 
         const CUSTOM_FOOTER_OPTION = '__custom_footer__';
         const COMMON_LANGUAGE_CODES = [
@@ -949,6 +982,14 @@
                 topicSearchQuery: '',
                 testSearchQuery: '',
                 packageSearchQuery: '',
+                grant: {
+                    query: '',
+                    results: [],
+                    selectedUser: null,
+                    isLoading: false,
+                    activeRequestId: 0,
+                    error: '',
+                },
             },
         };
 
@@ -3497,6 +3538,8 @@
             normaliseIdentifier(test?.id ?? test?.ID ?? '');
         const extractCoursePackageId = (pkg) =>
             normaliseIdentifier(pkg?.id ?? pkg?.ID ?? '');
+        const extractCourseAccessUserId = (access) =>
+            normaliseIdentifier(access?.user_id ?? access?.UserID ?? '');
 
         const getCourseVideoTitle = (video) =>
             normaliseString(video?.title ?? video?.Title ?? 'Untitled video');
@@ -5077,6 +5120,408 @@
             });
         };
 
+        const setCoursePackageGrantStatus = (message = '') => {
+            if (!coursePackageGrantStatus) {
+                return;
+            }
+            const text = normaliseString(message).trim();
+            if (text) {
+                coursePackageGrantStatus.textContent = text;
+                coursePackageGrantStatus.hidden = false;
+            } else {
+                coursePackageGrantStatus.textContent = '';
+                coursePackageGrantStatus.hidden = true;
+            }
+        };
+
+        const getCoursePackageGrantState = () => state?.courses?.grant || null;
+
+        const COURSE_PACKAGE_GRANT_SEARCH_MIN_CHARS = 2;
+        const COURSE_PACKAGE_GRANT_SEARCH_LIMIT = 8;
+        const COURSE_PACKAGE_GRANT_SEARCH_DEBOUNCE_MS = 200;
+
+        let coursePackageGrantSearchTimeoutId = null;
+        let coursePackageGrantSearchAbortController = null;
+
+        const clearCoursePackageGrantSearchTimeout = () => {
+            if (coursePackageGrantSearchTimeoutId !== null) {
+                window.clearTimeout(coursePackageGrantSearchTimeoutId);
+                coursePackageGrantSearchTimeoutId = null;
+            }
+        };
+
+        const cancelCoursePackageGrantSearch = () => {
+            if (coursePackageGrantSearchAbortController) {
+                try {
+                    coursePackageGrantSearchAbortController.abort();
+                } catch (error) {
+                    /* no-op */
+                }
+                coursePackageGrantSearchAbortController = null;
+            }
+        };
+
+        const normaliseGrantUser = (user) => {
+            if (!user || typeof user !== 'object') {
+                return null;
+            }
+            const rawId = user.id ?? user.ID ?? user.user_id ?? user.UserID;
+            const id = Number.parseInt(rawId, 10);
+            if (!Number.isFinite(id) || id <= 0) {
+                return null;
+            }
+            const username = normaliseString(user.username ?? user.Username ?? '').trim();
+            const email = normaliseString(user.email ?? user.Email ?? '').trim();
+            return {
+                id,
+                username,
+                email,
+            };
+        };
+
+        const describeCourseGrantUser = (user) => {
+            if (!user) {
+                return '';
+            }
+            const parts = [];
+            if (user.username) {
+                parts.push(user.username);
+            }
+            if (user.email) {
+                parts.push(user.email);
+            }
+            if (!parts.length && Number.isFinite(Number(user.id))) {
+                parts.push(`#${user.id}`);
+            }
+            return parts.join(' · ');
+        };
+
+        const renderCoursePackageGrantSelection = () => {
+            if (!coursePackageGrantSelection) {
+                return;
+            }
+            const grantState = getCoursePackageGrantState();
+            const selection = grantState?.selectedUser || null;
+            if (selection) {
+                if (coursePackageGrantSelectionLabel) {
+                    const summary = describeCourseGrantUser(selection);
+                    if (summary && summary !== `#${selection.id}`) {
+                        coursePackageGrantSelectionLabel.textContent = `${summary} (ID ${selection.id})`;
+                    } else {
+                        coursePackageGrantSelectionLabel.textContent = `User #${selection.id}`;
+                    }
+                }
+                coursePackageGrantSelection.hidden = false;
+                if (coursePackageGrantClearUserButton) {
+                    coursePackageGrantClearUserButton.hidden = false;
+                }
+            } else {
+                if (coursePackageGrantSelectionLabel) {
+                    coursePackageGrantSelectionLabel.textContent = '';
+                }
+                coursePackageGrantSelection.hidden = true;
+                if (coursePackageGrantClearUserButton) {
+                    coursePackageGrantClearUserButton.hidden = true;
+                }
+            }
+        };
+
+        const renderCoursePackageGrantResults = () => {
+            const grantState = getCoursePackageGrantState();
+            if (!grantState) {
+                return;
+            }
+
+            const { query, results, isLoading, selectedUser, error } = grantState;
+            const hasPackageSelection = Boolean(coursePackageForm?.dataset?.id);
+            const canSearchUsers = Boolean(endpoints.users);
+
+            let message = '';
+            if (!canSearchUsers) {
+                message = 'User search is unavailable. Check your permissions or configuration.';
+            } else if (!hasPackageSelection) {
+                message = 'Select a package to search for users.';
+            } else if (error) {
+                message = error;
+            } else if (selectedUser) {
+                message = 'Ready to grant access to the selected user.';
+            } else if (!query) {
+                message = 'Start typing to find a user.';
+            } else if (query.length < COURSE_PACKAGE_GRANT_SEARCH_MIN_CHARS) {
+                message = `Enter at least ${COURSE_PACKAGE_GRANT_SEARCH_MIN_CHARS} characters to search.`;
+            } else if (isLoading) {
+                message = 'Searching…';
+            } else if (!results.length) {
+                message = `No users found for “${query}”.`;
+            } else {
+                message = 'Select a user from the results.';
+            }
+
+            if (coursePackageGrantResultsStatus) {
+                coursePackageGrantResultsStatus.textContent = message;
+                coursePackageGrantResultsStatus.hidden = !message;
+            }
+
+            if (!coursePackageGrantResults) {
+                return;
+            }
+
+            const shouldShowResults =
+                canSearchUsers &&
+                hasPackageSelection &&
+                !selectedUser &&
+                !error &&
+                query.length >= COURSE_PACKAGE_GRANT_SEARCH_MIN_CHARS &&
+                !isLoading &&
+                results.length > 0;
+
+            if (!shouldShowResults) {
+                coursePackageGrantResults.innerHTML = '';
+                coursePackageGrantResults.hidden = true;
+                return;
+            }
+
+            coursePackageGrantResults.innerHTML = '';
+            results.forEach((entry) => {
+                const user = normaliseGrantUser(entry);
+                if (!user) {
+                    return;
+                }
+                const item = document.createElement('li');
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'admin-courses__grant-result-button';
+                button.dataset.id = String(user.id);
+                button.dataset.role = 'course-package-grant-result';
+
+                const label = document.createElement('span');
+                label.className = 'admin-courses__grant-result-label';
+                label.textContent = describeCourseGrantUser(user) || `User #${user.id}`;
+
+                const meta = document.createElement('span');
+                meta.className = 'admin-courses__grant-result-meta';
+                const metaParts = [];
+                if (user.username) {
+                    metaParts.push(`Username: ${user.username}`);
+                }
+                if (user.email) {
+                    metaParts.push(`Email: ${user.email}`);
+                }
+                if (!metaParts.length) {
+                    metaParts.push(`ID: ${user.id}`);
+                }
+                meta.textContent = metaParts.join(' · ');
+
+                button.appendChild(label);
+                button.appendChild(meta);
+                item.appendChild(button);
+                coursePackageGrantResults.appendChild(item);
+            });
+
+            coursePackageGrantResults.hidden = coursePackageGrantResults.children.length === 0;
+        };
+
+        const updateCoursePackageGrantAvailability = () => {
+            const grantState = getCoursePackageGrantState();
+            const hasPackageSelection = Boolean(coursePackageForm?.dataset?.id);
+            const hasUserSelection = Boolean(grantState?.selectedUser?.id);
+            const canSearchUsers = Boolean(endpoints.users);
+            const canSearch = hasPackageSelection && canSearchUsers && !hasUserSelection;
+
+            renderCoursePackageGrantSelection();
+
+            if (coursePackageGrantButton) {
+                coursePackageGrantButton.disabled = !(hasPackageSelection && hasUserSelection);
+            }
+            if (coursePackageGrantSearchInput) {
+                coursePackageGrantSearchInput.disabled = !canSearch;
+            }
+            if (!hasPackageSelection) {
+                setCoursePackageGrantStatus('');
+            }
+
+            renderCoursePackageGrantResults();
+        };
+
+        const setCoursePackageGrantUser = (user) => {
+            const grantState = getCoursePackageGrantState();
+            if (!grantState) {
+                return;
+            }
+            const normalised = normaliseGrantUser(user);
+            grantState.selectedUser = normalised;
+            grantState.error = '';
+            if (coursePackageGrantUserInput) {
+                coursePackageGrantUserInput.value = normalised ? String(normalised.id) : '';
+            }
+            if (normalised) {
+                grantState.query = '';
+                grantState.results = [];
+                grantState.isLoading = false;
+                grantState.activeRequestId = 0;
+                clearCoursePackageGrantSearchTimeout();
+                cancelCoursePackageGrantSearch();
+                if (coursePackageGrantSearchInput) {
+                    coursePackageGrantSearchInput.value = '';
+                }
+            }
+            renderCoursePackageGrantSelection();
+            updateCoursePackageGrantAvailability();
+        };
+
+        const clearCoursePackageGrantUserSelection = ({ focus = true } = {}) => {
+            const grantState = getCoursePackageGrantState();
+            if (grantState) {
+                grantState.selectedUser = null;
+                grantState.error = '';
+                grantState.results = [];
+                grantState.isLoading = false;
+                grantState.activeRequestId = 0;
+                grantState.query = coursePackageGrantSearchInput
+                    ? normaliseString(coursePackageGrantSearchInput.value).trim()
+                    : '';
+            }
+            clearCoursePackageGrantSearchTimeout();
+            cancelCoursePackageGrantSearch();
+            if (coursePackageGrantUserInput) {
+                coursePackageGrantUserInput.value = '';
+            }
+            renderCoursePackageGrantSelection();
+            updateCoursePackageGrantAvailability();
+            if (focus && coursePackageGrantSearchInput) {
+                coursePackageGrantSearchInput.focus();
+            }
+        };
+
+        const requestCoursePackageGrantResults = async (query) => {
+            const grantState = getCoursePackageGrantState();
+            if (!grantState || !endpoints.users) {
+                return;
+            }
+            const trimmed = normaliseString(query).trim();
+            grantState.query = trimmed;
+            grantState.error = '';
+            if (trimmed.length < COURSE_PACKAGE_GRANT_SEARCH_MIN_CHARS) {
+                grantState.results = [];
+                grantState.isLoading = false;
+                renderCoursePackageGrantResults();
+                return;
+            }
+
+            clearCoursePackageGrantSearchTimeout();
+            cancelCoursePackageGrantSearch();
+
+            grantState.isLoading = true;
+            renderCoursePackageGrantResults();
+
+            const controller =
+                typeof AbortController === 'function' ? new AbortController() : null;
+            if (controller) {
+                coursePackageGrantSearchAbortController = controller;
+            }
+
+            const requestId = grantState.activeRequestId + 1;
+            grantState.activeRequestId = requestId;
+
+            try {
+                const url = new URL(endpoints.users, window.location.origin);
+                url.searchParams.set('q', trimmed);
+                url.searchParams.set('limit', String(COURSE_PACKAGE_GRANT_SEARCH_LIMIT));
+                const options = controller ? { signal: controller.signal } : {};
+                const response = await apiRequest(url.toString(), options);
+                if (grantState.activeRequestId !== requestId) {
+                    return;
+                }
+                const users = Array.isArray(response?.users) ? response.users : [];
+                grantState.results = users
+                    .map((entry) => normaliseGrantUser(entry))
+                    .filter(Boolean);
+            } catch (error) {
+                if (controller && error?.name === 'AbortError') {
+                    return;
+                }
+                grantState.results = [];
+                grantState.error = 'Unable to search for users right now. Try again in a moment.';
+                if (error) {
+                    handleRequestError(error);
+                }
+            } finally {
+                if (grantState.activeRequestId === requestId) {
+                    grantState.isLoading = false;
+                    if (coursePackageGrantSearchAbortController === controller) {
+                        coursePackageGrantSearchAbortController = null;
+                    }
+                    renderCoursePackageGrantResults();
+                }
+            }
+        };
+
+        const handleCoursePackageGrantSearchInput = () => {
+            const grantState = getCoursePackageGrantState();
+            if (!grantState || !coursePackageGrantSearchInput) {
+                return;
+            }
+            grantState.error = '';
+            clearCoursePackageGrantSearchTimeout();
+            const value = normaliseString(coursePackageGrantSearchInput.value).trim();
+            grantState.query = value;
+            grantState.results = [];
+            grantState.activeRequestId = 0;
+            if (!value) {
+                grantState.isLoading = false;
+                cancelCoursePackageGrantSearch();
+                renderCoursePackageGrantResults();
+                return;
+            }
+            renderCoursePackageGrantResults();
+            coursePackageGrantSearchTimeoutId = window.setTimeout(() => {
+                coursePackageGrantSearchTimeoutId = null;
+                requestCoursePackageGrantResults(value);
+            }, COURSE_PACKAGE_GRANT_SEARCH_DEBOUNCE_MS);
+        };
+
+        const handleCoursePackageGrantResultsClick = (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            const button = target.closest('[data-role="course-package-grant-result"]');
+            if (!button || !coursePackageGrantResults?.contains(button)) {
+                return;
+            }
+            event.preventDefault();
+            const id = Number.parseInt(button.dataset.id || '', 10);
+            if (!Number.isFinite(id) || id <= 0) {
+                return;
+            }
+            const grantState = getCoursePackageGrantState();
+            if (!grantState) {
+                return;
+            }
+            const match = grantState.results.find((entry) => Number(entry?.id) === id);
+            if (match) {
+                setCoursePackageGrantUser(match);
+            }
+        };
+
+        const handleCoursePackageGrantClearUser = (event) => {
+            event.preventDefault();
+            clearCoursePackageGrantUserSelection();
+        };
+
+        const updateCoursePackageGrantExpirationState = () => {
+            const shouldDisable = Boolean(coursePackageGrantClearToggle?.checked);
+            if (coursePackageGrantExpiresInput) {
+                if (shouldDisable) {
+                    coursePackageGrantExpiresInput.value = '';
+                }
+                coursePackageGrantExpiresInput.disabled = shouldDisable;
+            }
+        };
+
+        updateCoursePackageGrantAvailability();
+        updateCoursePackageGrantExpirationState();
+
         const resetCourseVideoForm = () => {
             if (!courseVideoForm) {
                 return;
@@ -5288,6 +5733,17 @@
                     pkg?.image_url ?? pkg?.imageUrl ?? pkg?.ImageURL ?? ''
                 );
             }
+            if (coursePackageGrantUserInput) {
+                coursePackageGrantUserInput.value = '';
+            }
+            if (coursePackageGrantExpiresInput) {
+                coursePackageGrantExpiresInput.value = '';
+            }
+            if (coursePackageGrantClearToggle) {
+                coursePackageGrantClearToggle.checked = false;
+            }
+            updateCoursePackageGrantExpirationState();
+            setCoursePackageGrantStatus('');
             state.courses.packageTopicIds = getCoursePackageTopics(pkg)
                 .map((topic) => extractCourseTopicId(topic))
                 .filter(Boolean);
@@ -5300,6 +5756,7 @@
             renderCoursePackageTopicOptions();
             renderCoursePackageTopicList();
             highlightRow(tables.coursePackages, id);
+            updateCoursePackageGrantAvailability();
             if (scroll) {
                 bringFormIntoView(coursePackageForm);
             }
@@ -5344,6 +5801,18 @@
             delete coursePackageForm.dataset.id;
             state.courses.selectedPackageId = '';
             state.courses.packageTopicIds = [];
+            if (coursePackageGrantSearchInput) {
+                coursePackageGrantSearchInput.value = '';
+            }
+            clearCoursePackageGrantUserSelection({ focus: false });
+            if (coursePackageGrantExpiresInput) {
+                coursePackageGrantExpiresInput.value = '';
+            }
+            if (coursePackageGrantClearToggle) {
+                coursePackageGrantClearToggle.checked = false;
+            }
+            updateCoursePackageGrantExpirationState();
+            setCoursePackageGrantStatus('');
             if (coursePackageSubmitButton) {
                 coursePackageSubmitButton.textContent = 'Create package';
             }
@@ -5353,6 +5822,7 @@
             renderCoursePackageTopicOptions();
             renderCoursePackageTopicList();
             highlightRow(tables.coursePackages);
+            updateCoursePackageGrantAvailability();
             bringFormIntoView(coursePackageForm);
         };
 
@@ -5880,6 +6350,100 @@
             }
         };
 
+        const handleCoursePackageGrant = async (event) => {
+            event.preventDefault();
+            if (!coursePackageForm) {
+                return;
+            }
+            const packageId = coursePackageForm.dataset.id;
+            if (!packageId) {
+                showAlert('Select a package to grant first.', 'info');
+                return;
+            }
+            if (!endpoints.coursesPackages) {
+                showAlert('Package management is not configured.', 'error');
+                return;
+            }
+            const grantState = getCoursePackageGrantState();
+            const selectedUser = grantState?.selectedUser;
+            const userId = Number(selectedUser?.id);
+            if (!Number.isFinite(userId) || userId <= 0) {
+                showAlert('Select a user to grant access.', 'error');
+                return;
+            }
+            const clearExpiration = Boolean(coursePackageGrantClearToggle?.checked);
+            const expiresValue = normaliseString(coursePackageGrantExpiresInput?.value).trim();
+            const parsedExpiration = expiresValue ? parseDateInput(expiresValue) : null;
+            if (expiresValue && !parsedExpiration && !clearExpiration) {
+                showAlert('Enter a valid expiration date and time or leave the field empty.', 'error');
+                return;
+            }
+            const payload = { user_id: userId };
+            if (clearExpiration) {
+                payload.expires_at = null;
+            } else if (parsedExpiration) {
+                payload.expires_at = parsedExpiration.toISOString();
+            }
+            try {
+                if (coursePackageGrantButton) {
+                    coursePackageGrantButton.disabled = true;
+                }
+                const response = await apiRequest(
+                    buildCourseEndpoint(endpoints.coursesPackages, packageId, 'grants'),
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                    }
+                );
+                const access = response?.access;
+                let expiresAt = extractDateValue(access, 'expires_at', 'ExpiresAt');
+                if (!expiresAt && clearExpiration) {
+                    expiresAt = null;
+                } else if (!expiresAt && parsedExpiration && !clearExpiration) {
+                    expiresAt = parsedExpiration;
+                }
+                if (coursePackageGrantClearToggle) {
+                    coursePackageGrantClearToggle.checked = false;
+                }
+                updateCoursePackageGrantExpirationState();
+                if (coursePackageGrantExpiresInput) {
+                    coursePackageGrantExpiresInput.value = expiresAt
+                        ? formatDateTimeInput(expiresAt)
+                        : '';
+                }
+                const resolvedUserId = extractCourseAccessUserId(access) || String(userId);
+                const descriptorParts = [];
+                if (selectedUser?.username) {
+                    descriptorParts.push(selectedUser.username);
+                }
+                if (selectedUser?.email) {
+                    descriptorParts.push(selectedUser.email);
+                }
+                let recipientDescription = descriptorParts.join(' · ');
+                if (recipientDescription) {
+                    recipientDescription = `${recipientDescription} (ID ${resolvedUserId})`;
+                } else {
+                    recipientDescription = `user #${resolvedUserId}`;
+                }
+                const messageParts = [`Access granted to ${recipientDescription}.`];
+                if (expiresAt) {
+                    messageParts.push(`Expires ${formatDate(expiresAt)}.`);
+                } else {
+                    messageParts.push('No expiration is set.');
+                }
+                const message = messageParts.join(' ');
+                showAlert(message, 'success');
+                setCoursePackageGrantStatus(message);
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                updateCoursePackageGrantAvailability();
+            }
+        };
+
         const buildCourseEndpoint = (base, id, suffix = '') => {
             if (!base) {
                 return '';
@@ -5962,6 +6526,7 @@
                 state.courses.packageTopicIds = [];
                 renderCoursePackageTopicOptions();
                 renderCoursePackageTopicList();
+                updateCoursePackageGrantAvailability();
                 return;
             }
             const pkg = findCoursePackage(state.courses.selectedPackageId);
@@ -11478,6 +12043,27 @@
         coursePackageDeleteButton?.addEventListener(
             'click',
             handleCoursePackageDelete
+        );
+        coursePackageGrantSearchInput?.addEventListener(
+            'input',
+            handleCoursePackageGrantSearchInput
+        );
+        coursePackageGrantSearchInput?.addEventListener(
+            'search',
+            handleCoursePackageGrantSearchInput
+        );
+        coursePackageGrantResults?.addEventListener(
+            'click',
+            handleCoursePackageGrantResultsClick
+        );
+        coursePackageGrantClearUserButton?.addEventListener(
+            'click',
+            handleCoursePackageGrantClearUser
+        );
+        coursePackageGrantButton?.addEventListener('click', handleCoursePackageGrant);
+        coursePackageGrantClearToggle?.addEventListener(
+            'change',
+            updateCoursePackageGrantExpirationState
         );
         coursePackageTopicAddButton?.addEventListener(
             'click',

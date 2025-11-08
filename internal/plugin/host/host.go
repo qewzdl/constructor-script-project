@@ -44,6 +44,7 @@ type RepositoryAccess interface {
 	CourseVideo() repository.CourseVideoRepository
 	CourseTopic() repository.CourseTopicRepository
 	CoursePackage() repository.CoursePackageRepository
+	CoursePackageAccess() repository.CoursePackageAccessRepository
 	CourseTest() repository.CourseTestRepository
 }
 

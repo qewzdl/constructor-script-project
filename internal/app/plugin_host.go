@@ -183,6 +183,13 @@ func (r applicationRepositoryAccess) CoursePackage() repository.CoursePackageRep
 	return r.app.repositories.CoursePackage
 }
 
+func (r applicationRepositoryAccess) CoursePackageAccess() repository.CoursePackageAccessRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.CoursePackageAccess
+}
+
 func (r applicationRepositoryAccess) CourseTest() repository.CourseTestRepository {
 	if r.app == nil {
 		return nil

@@ -1519,6 +1519,83 @@
                                     </li>
                                 </ul>
                             </fieldset>
+                            <fieldset class="admin-form__fieldset admin-courses__fieldset admin-courses__grant">
+                                <legend class="admin-form__legend">Grant access</legend>
+                                <p class="admin-card__description admin-form__hint">
+                                    Issue this package to a user immediately. Search by name or email and optionally set an
+                                    expiration date.
+                                </p>
+                                <div class="admin-courses__grant-search">
+                                    <label class="admin-form__label">
+                                        Search user
+                                        <input
+                                            type="search"
+                                            class="admin-form__input"
+                                            data-role="course-package-grant-search"
+                                            placeholder="Start typing a name or email…"
+                                            autocomplete="off"
+                                        />
+                                    </label>
+                                    <p
+                                        class="admin-card__description admin-form__hint"
+                                        data-role="course-package-grant-results-status"
+                                    >
+                                        Start typing to find a user.
+                                    </p>
+                                    <ul
+                                        class="admin-courses__grant-results"
+                                        data-role="course-package-grant-results"
+                                        hidden
+                                    ></ul>
+                                </div>
+                                <div
+                                    class="admin-courses__grant-selection"
+                                    data-role="course-package-grant-selection"
+                                    hidden
+                                >
+                                    <p class="admin-card__description admin-form__hint">
+                                        Granting access to
+                                        <span data-role="course-package-grant-selection-label"></span>.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        class="admin-navigation__button admin-navigation__button--ghost"
+                                        data-role="course-package-grant-clear-user"
+                                    >
+                                        Change user
+                                    </button>
+                                </div>
+                                <input type="hidden" data-role="course-package-grant-user" />
+                                <label class="admin-form__label">
+                                    Expiration
+                                    <input
+                                        type="datetime-local"
+                                        class="admin-form__input"
+                                        data-role="course-package-grant-expires"
+                                    />
+                                    <small class="admin-card__description admin-form__hint">
+                                        Leave blank to keep the current expiration.
+                                    </small>
+                                </label>
+                                <label class="admin-form__checkbox checkbox">
+                                    <input type="checkbox" data-role="course-package-grant-clear-expiration" />
+                                    <span class="checkbox__label">Clear any existing expiration</span>
+                                </label>
+                                <div class="admin-form__actions">
+                                    <button
+                                        type="button"
+                                        class="admin-form__submit admin-form__submit--secondary"
+                                        data-role="course-package-grant-submit"
+                                    >
+                                        Grant package to user
+                                    </button>
+                                </div>
+                                <p
+                                    class="admin-card__description admin-form__hint"
+                                    data-role="course-package-grant-status"
+                                    hidden
+                                ></p>
+                            </fieldset>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="course-package-submit">
                                     Save package

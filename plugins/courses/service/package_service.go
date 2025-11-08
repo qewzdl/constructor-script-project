@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -15,6 +16,8 @@ type PackageService struct {
 	topicRepo   repository.CourseTopicRepository
 	videoRepo   repository.CourseVideoRepository
 	testRepo    repository.CourseTestRepository
+	accessRepo  repository.CoursePackageAccessRepository
+	userRepo    repository.UserRepository
 }
 
 func NewPackageService(
@@ -22,12 +25,16 @@ func NewPackageService(
 	topicRepo repository.CourseTopicRepository,
 	videoRepo repository.CourseVideoRepository,
 	testRepo repository.CourseTestRepository,
+	accessRepo repository.CoursePackageAccessRepository,
+	userRepo repository.UserRepository,
 ) *PackageService {
 	return &PackageService{
 		packageRepo: packageRepo,
 		topicRepo:   topicRepo,
 		videoRepo:   videoRepo,
 		testRepo:    testRepo,
+		accessRepo:  accessRepo,
+		userRepo:    userRepo,
 	}
 }
 
@@ -36,6 +43,8 @@ func (s *PackageService) SetRepositories(
 	topicRepo repository.CourseTopicRepository,
 	videoRepo repository.CourseVideoRepository,
 	testRepo repository.CourseTestRepository,
+	accessRepo repository.CoursePackageAccessRepository,
+	userRepo repository.UserRepository,
 ) {
 	if s == nil {
 		return
@@ -44,6 +53,8 @@ func (s *PackageService) SetRepositories(
 	s.topicRepo = topicRepo
 	s.videoRepo = videoRepo
 	s.testRepo = testRepo
+	s.accessRepo = accessRepo
+	s.userRepo = userRepo
 }
 
 func (s *PackageService) Create(req models.CreateCoursePackageRequest) (*models.CoursePackage, error) {
@@ -170,6 +181,65 @@ func (s *PackageService) UpdateTopics(packageID uint, topicIDs []uint) (*models.
 	}
 
 	return s.GetByID(packageID)
+}
+
+func (s *PackageService) GrantToUser(packageID uint, req models.GrantCoursePackageRequest, grantedBy uint) (*models.CoursePackageAccess, error) {
+	if s == nil || s.packageRepo == nil || s.accessRepo == nil || s.userRepo == nil {
+		return nil, errors.New("course package service is not fully configured")
+	}
+	if packageID == 0 {
+		return nil, newValidationError("package id is required")
+	}
+	if req.UserID == 0 {
+		return nil, newValidationError("user id is required")
+	}
+
+	exists, err := s.packageRepo.Exists(packageID)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	if _, err := s.userRepo.GetByID(req.UserID); err != nil {
+		return nil, err
+	}
+
+	var current *models.CoursePackageAccess
+	if !req.ExpiresAt.Set || grantedBy == 0 {
+		existing, err := s.accessRepo.GetByUserAndPackage(req.UserID, packageID)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		if err == nil {
+			current = existing
+		}
+	}
+
+	access := models.CoursePackageAccess{
+		PackageID: packageID,
+		UserID:    req.UserID,
+	}
+
+	if req.ExpiresAt.Set {
+		access.ExpiresAt = normalizeTimePointer(req.ExpiresAt.Pointer())
+	} else if current != nil {
+		access.ExpiresAt = normalizeTimePointer(current.ExpiresAt)
+	}
+
+	if grantedBy > 0 {
+		id := grantedBy
+		access.GrantedBy = &id
+	} else if current != nil {
+		access.GrantedBy = cloneUintPointer(current.GrantedBy)
+	}
+
+	if err := s.accessRepo.Upsert(&access); err != nil {
+		return nil, err
+	}
+
+	return s.accessRepo.GetByUserAndPackage(req.UserID, packageID)
 }
 
 func (s *PackageService) assignTopics(packageID uint, topicIDs []uint) error {
@@ -396,4 +466,20 @@ func uniqueOrdered(values []uint) []uint {
 		ordered = append(ordered, value)
 	}
 	return ordered
+}
+
+func normalizeTimePointer(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	normalized := value.UTC().Truncate(time.Second)
+	return &normalized
+}
+
+func cloneUintPointer(value *uint) *uint {
+	if value == nil {
+		return nil
+	}
+	copy := *value
+	return &copy
 }
