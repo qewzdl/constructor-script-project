@@ -331,6 +331,7 @@
                 modal.classList.add("course-modal--active");
                 modal.setAttribute("aria-hidden", "false");
                 document.body.classList.add("course-modal-open");
+                document.documentElement.classList.add("course-modal-open");
                 dialog.focus();
             });
 
@@ -353,6 +354,7 @@
             modal.classList.remove("course-modal--active");
             modal.setAttribute("aria-hidden", "true");
             document.body.classList.remove("course-modal-open");
+            document.documentElement.classList.remove("course-modal-open");
             unbindEscape();
             document.removeEventListener("keydown", trapFocus);
 

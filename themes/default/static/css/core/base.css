@@ -1819,6 +1819,7 @@ body.post-image-modal-open .post-progress {
     display: none;
 }
 
+html.course-modal-open,
 body.course-modal-open {
     overflow: hidden;
 }
