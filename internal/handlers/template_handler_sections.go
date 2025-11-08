@@ -26,6 +26,8 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 	var sb strings.Builder
 	var scripts []string
 
+	wrapWithContainer := prefix == "page-view"
+
 	for _, section := range sections {
 		sectionType := strings.TrimSpace(strings.ToLower(section.Type))
 		if sectionType == "" {
@@ -56,6 +58,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		sectionImageClass := fmt.Sprintf("%s__section-img", prefix)
 
 		sb.WriteString(`<section class="` + strings.Join(sectionClasses, " ") + `" id="section-` + template.HTMLEscapeString(section.ID) + `">`)
+		if wrapWithContainer {
+			sb.WriteString(`<div class="page-view__section-container">`)
+		}
 		if title != "" {
 			sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
 		}
@@ -126,6 +131,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			}
 		}
 
+		if wrapWithContainer {
+			sb.WriteString(`</div>`)
+		}
 		sb.WriteString(`</section>`)
 	}
 
