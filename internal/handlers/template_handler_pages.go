@@ -902,40 +902,60 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		}
 	}
 
-	courseCards := buildProfileCourseCards(courses)
 	sections, page := h.profileSectionsForUser(user, buildProfileCourseSectionContent(courses))
 	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(sections, "profile")
 	scripts := appendScripts(nil, sectionScripts)
+	defaultTitle := "Profile"
+	defaultDescription := "Manage personal details, account security, and connected devices."
 
-	pageTitle := "Profile"
-	pageDescription := "Manage personal details, account security, and connected devices."
-	profileHeading := "Personal profile"
-	profileSubtitle := "Update your contact information and keep your account secure across every device."
-	if page != nil {
-		if trimmed := strings.TrimSpace(page.Title); trimmed != "" {
-			pageTitle = trimmed
-			profileHeading = trimmed
-		}
-		if trimmed := strings.TrimSpace(page.Description); trimmed != "" {
-			pageDescription = trimmed
-			profileSubtitle = trimmed
-		}
+	if page == nil {
+		page = &models.Page{}
+	}
+
+	pageTitle := strings.TrimSpace(page.Title)
+	if pageTitle == "" {
+		pageTitle = defaultTitle
+	}
+
+	pageDescription := strings.TrimSpace(page.Description)
+	if pageDescription == "" {
+		pageDescription = defaultDescription
+	}
+
+	if strings.TrimSpace(page.Path) == "" {
+		page.Path = "/profile"
+	}
+
+	templateName := strings.TrimSpace(page.Template)
+	if strings.EqualFold(templateName, "profile") || templateName == "" {
+		templateName = "page"
+	}
+
+	page.Title = pageTitle
+	page.Description = pageDescription
+	page.Template = templateName
+
+	var wrappedSections template.HTML
+	if sectionsHTML != "" {
+		wrappedSections = template.HTML(`<div class="profile__sections">` + string(sectionsHTML) + `</div>`)
 	}
 
 	data := gin.H{
-		"ProfileAction":        "/api/v1/profile",
-		"PasswordChangeAction": "/api/v1/profile/password",
-		"UserCourses":          courses,
-		"ProfileCourseCards":   courseCards,
-		"ProfileSections":      sectionsHTML,
-		"ProfileTitle":         profileHeading,
-		"ProfileSubtitle":      profileSubtitle,
+		"Page":               page,
+		"UserCourses":        courses,
+		"PageViewModifiers":  []string{"profile"},
+		"PageViewAttributes": template.HTMLAttr(`data-page="profile"`),
 	}
+
+	if wrappedSections != "" {
+		data["Sections"] = wrappedSections
+	}
+
 	if len(scripts) > 0 {
 		data["Scripts"] = scripts
 	}
 
-	h.renderTemplate(c, "profile", pageTitle, pageDescription, data)
+	h.renderTemplate(c, templateName, pageTitle, pageDescription, data)
 }
 
 func (h *TemplateHandler) profileSectionsForUser(user *models.User, courseEntries []map[string]interface{}) (models.PostSections, *models.Page) {

@@ -606,7 +606,7 @@
 
         const profileForm = document.getElementById("profile-form");
         const passwordForm = document.getElementById("password-form");
-        const profilePage = document.querySelector('[data-page="profile"]');
+        const profilePage = document.querySelector('[data-page="profile"], .page-view--profile');
 
         if (profilePage) {
             if (!Auth.getToken() && serverAuthenticated !== true) {

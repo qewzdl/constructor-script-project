@@ -4,7 +4,7 @@
     "path": "/profile",
     "description": "Manage personal details, account security, and connected devices.",
     "published": true,
-    "template": "profile",
+    "template": "page",
     "sections": [
         {
             "id": "profile-settings",

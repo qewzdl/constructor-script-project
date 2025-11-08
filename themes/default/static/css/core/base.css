@@ -546,31 +546,6 @@ textarea.form-field__input {
     color: var(--color-primary);
 }
 
-.profile {
-    display: grid;
-    justify-items: center;
-}
-
-.profile__container {
-    display: grid;
-    gap: var(--size-max);
-}
-
-.profile__header {
-    display: grid;
-    gap: var(--size-xs);
-}
-
-.profile__title {
-    font-size: clamp(2rem, 4vw, 2.5rem);
-    font-weight: 700;
-}
-
-.profile__subtitle {
-    font-size: var(--font-size-lg);
-    color: var(--color-secondary);
-}
-
 .profile__grid {
     display: grid;
     gap: var(--common-gap);
@@ -2606,7 +2581,7 @@ body.course-modal-open {
     .search__meta,
     .search__empty,
     .search__hint,
-    .profile__header,
+    .page-view__header,
     .page-view__sections > *,
     .page-view__header,
     .course-player__header-content,
