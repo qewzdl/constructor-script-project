@@ -1,0 +1,6 @@
+{
+    "type": "profile_security",
+    "label": "Security form",
+    "order": 70,
+    "description": "Password update form for the profile page."
+}

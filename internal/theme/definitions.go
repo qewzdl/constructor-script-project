@@ -503,6 +503,18 @@ func defaultElementDefinitions() map[string]ElementDefinition {
 			Order:       50,
 			Description: "Embeds a search form within the section.",
 		},
+		"profile_account_details": {
+			Type:        "profile_account_details",
+			Label:       "Account details form",
+			Order:       60,
+			Description: "Profile form for updating username, email, and role.",
+		},
+		"profile_security": {
+			Type:        "profile_security",
+			Label:       "Security form",
+			Order:       70,
+			Description: "Password update form for the profile page.",
+		},
 	}
 }
 

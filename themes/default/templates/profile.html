@@ -10,8 +10,12 @@
         {{ template "components/profile-courses" . }}
 
         <div class="profile__grid">
-            {{ template "components/profile-account-card" . }}
-            {{ template "components/profile-security-card" . }}
+            {{ if .ProfileSections }}
+                {{ .ProfileSections }}
+            {{ else }}
+                {{ template "components/profile-account-card" . }}
+                {{ template "components/profile-security-card" . }}
+            {{ end }}
         </div>
     </section>
 </section>

@@ -902,12 +902,154 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		}
 	}
 
-	h.renderTemplate(c, "profile", "Profile", "Manage personal details, account security, and connected devices.", gin.H{
+	sections := h.profileSectionsForUser(user)
+	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(sections, "profile")
+	scripts := appendScripts(nil, sectionScripts)
+
+	data := gin.H{
 		"ProfileAction":        "/api/v1/profile",
 		"PasswordChangeAction": "/api/v1/profile/password",
 		"UserCourses":          courses,
 		"ProfileCourseCards":   buildProfileCourseCards(courses),
-	})
+		"ProfileSections":      sectionsHTML,
+	}
+	if len(scripts) > 0 {
+		data["Scripts"] = scripts
+	}
+
+	h.renderTemplate(c, "profile", "Profile", "Manage personal details, account security, and connected devices.", data)
+}
+
+func (h *TemplateHandler) profileSectionsForUser(user *models.User) models.PostSections {
+	if h == nil {
+		return applyProfileUserContext(defaultProfileSections(), user)
+	}
+
+	var sections models.PostSections
+	if h.pageService != nil {
+		if page, err := h.pageService.GetByPathAny("/profile"); err == nil && page != nil {
+			sections = cloneSections(page.Sections)
+		}
+	}
+
+	if len(sections) == 0 {
+		sections = defaultProfileSections()
+	}
+
+	return applyProfileUserContext(sections, user)
+}
+
+func cloneSections(source models.PostSections) models.PostSections {
+	if len(source) == 0 {
+		return nil
+	}
+
+	cloned := make(models.PostSections, len(source))
+	for i := range source {
+		section := source[i]
+		if len(section.Elements) > 0 {
+			elements := make([]models.SectionElement, len(section.Elements))
+			for j := range section.Elements {
+				elem := section.Elements[j]
+				if content, ok := elem.Content.(map[string]interface{}); ok {
+					copied := make(map[string]interface{}, len(content))
+					for key, value := range content {
+						copied[key] = value
+					}
+					elem.Content = copied
+				}
+				elements[j] = elem
+			}
+			section.Elements = elements
+		}
+		cloned[i] = section
+	}
+	return cloned
+}
+
+func applyProfileUserContext(sections models.PostSections, user *models.User) models.PostSections {
+	username := ""
+	email := ""
+	role := "user"
+	if user != nil {
+		if trimmed := strings.TrimSpace(user.Username); trimmed != "" {
+			username = trimmed
+		}
+		if trimmed := strings.TrimSpace(user.Email); trimmed != "" {
+			email = trimmed
+		}
+		if trimmed := strings.TrimSpace(string(user.Role)); trimmed != "" {
+			role = trimmed
+		}
+	}
+
+	for i := range sections {
+		elements := sections[i].Elements
+		for j := range elements {
+			element := &elements[j]
+			typeKey := strings.TrimSpace(strings.ToLower(element.Type))
+			switch typeKey {
+			case "profile_account_details":
+				content := ensureContentMap(element)
+				content["action"] = "/api/v1/profile"
+				content["username"] = username
+				content["email"] = email
+				content["role"] = role
+			case "profile_security":
+				content := ensureContentMap(element)
+				content["action"] = "/api/v1/profile/password"
+				content["username"] = username
+			}
+		}
+		sections[i].Elements = elements
+	}
+
+	return sections
+}
+
+func ensureContentMap(element *models.SectionElement) map[string]interface{} {
+	if element == nil {
+		return map[string]interface{}{}
+	}
+	if content, ok := element.Content.(map[string]interface{}); ok && content != nil {
+		return content
+	}
+	content := map[string]interface{}{}
+	element.Content = content
+	return content
+}
+
+func defaultProfileSections() models.PostSections {
+	sections := models.PostSections{
+		{
+			ID:   "profile-settings",
+			Type: "standard",
+			Elements: []models.SectionElement{
+				{
+					ID:    "profile-account",
+					Type:  "profile_account_details",
+					Order: 1,
+					Content: map[string]interface{}{
+						"title":        "Account details",
+						"description":  "The information below appears in comments and author bylines.",
+						"button_label": "Save changes",
+					},
+				},
+				{
+					ID:    "profile-security",
+					Type:  "profile_security",
+					Order: 2,
+					Content: map[string]interface{}{
+						"title":        "Security",
+						"description":  "Change your password regularly and review connected devices.",
+						"button_label": "Update password",
+					},
+				},
+			},
+		},
+	}
+
+	return sections
 }
 
 func (h *TemplateHandler) RenderCourse(c *gin.Context) {
@@ -1088,6 +1230,8 @@ func (h *TemplateHandler) builderScripts() []string {
 			"/static/js/admin/elements/image-group.js",
 			"/static/js/admin/elements/list.js",
 			"/static/js/admin/elements/search.js",
+			"/static/js/admin/elements/profile-account-details.js",
+			"/static/js/admin/elements/profile-security.js",
 		)
 	}
 

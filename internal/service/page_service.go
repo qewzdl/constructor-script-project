@@ -486,6 +486,36 @@ func (s *PageService) GetByPath(requestedPath string) (*models.Page, error) {
 	return page, nil
 }
 
+func (s *PageService) GetByPathAny(requestedPath string) (*models.Page, error) {
+	normalizedPath, err := normalizePagePath(requestedPath)
+	if err != nil {
+		return nil, err
+	}
+	if normalizedPath == "" {
+		normalizedPath = "/"
+	}
+
+	if s.cache != nil {
+		var page models.Page
+		cacheKey := fmt.Sprintf("page:any:path:%s", normalizedPath)
+		if err := s.cache.Get(cacheKey, &page); err == nil {
+			return &page, nil
+		}
+	}
+
+	page, err := s.pageRepo.GetByPathAny(normalizedPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.cache != nil {
+		cacheKey := fmt.Sprintf("page:any:path:%s", normalizedPath)
+		s.cache.Set(cacheKey, page, 1*time.Hour)
+	}
+
+	return page, nil
+}
+
 func (s *PageService) GetAll() ([]models.Page, error) {
 	if s.cache != nil {
 		var pages []models.Page
