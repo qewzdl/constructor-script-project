@@ -1,0 +1,51 @@
+{{ define "components/tag" }}
+    <section class="tag-page" aria-labelledby="tag-title">
+        <header class="tag-page__header">
+            <h1 id="tag-title" class="tag-page__title">Posts tagged #{{ .Tag.Name }}</h1>
+            <p class="tag-page__description">
+                Explore articles related to <strong>{{ .Tag.Name }}</strong>.
+                {{ if eq .Total 1 }}
+                    We found one post.
+                {{ else if gt .Total 1 }}
+                    We found {{ .Total }} posts.
+                {{ else }}
+                    No posts have been published with this tag yet.
+                {{ end }}
+            </p>
+        </header>
+
+        {{ with .Tags }}
+        {{ $active := $.Tag.Slug }}
+        <nav class="blog__tags tag-page__tags" aria-label="Browse tags">
+            <ul class="tag-list">
+                {{ range . }}
+                {{ $isActive := eq .Slug $active }}
+                <li class="tag-list__item">
+                    <a
+                        href="/tag/{{ .Slug }}"
+                        class="tag-list__link{{ if $isActive }} tag-list__link--active{{ end }}"
+                        {{ if $isActive }}aria-current="page"{{ end }}
+                    >
+                        #{{ .Name }}
+                    </a>
+                </li>
+                {{ end }}
+            </ul>
+        </nav>
+        {{ end }}
+
+        <div class="blog__posts">
+            {{ if .Posts }}
+            {{ range .Posts }}
+            {{ template "components/post-card" (dict "Post" . "WrapperClass" "blog__post post-card") }}
+            {{ end }}
+            {{ else }}
+            <p class="blog__empty">No articles match this tag yet. Try another tag or check back later.</p>
+            {{ end }}
+        </div>
+
+        {{ with .Pagination }}
+            {{ template "components/pagination" . }}
+        {{ end }}
+    </section>
+{{ end }}
