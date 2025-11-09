@@ -260,6 +260,7 @@ textarea {
         var(--color-error) 12%,
         transparent 88%
     );
+    border: 1px solid var(--color-error);
 }
 
 .main {
