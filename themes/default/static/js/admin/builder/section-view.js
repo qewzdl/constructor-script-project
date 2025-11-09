@@ -302,7 +302,28 @@
                     imageInput.placeholder = 'https://example.com/cover.jpg';
                     imageInput.value = section.image;
                     imageInput.dataset.field = 'section-image';
+                    const imageInputId = `admin-builder-section-image-${section.id}`;
+                    imageInput.id = imageInputId;
                     imageField.append(imageInput);
+
+                    if (section.type === 'hero') {
+                        const imageActions = createElement('div', {
+                            className: 'admin-builder__field-actions',
+                        });
+                        const browseButton = createElement('button', {
+                            className: 'admin-builder__media-button',
+                            textContent: 'Browse uploads',
+                            type: 'button',
+                            dataset: {
+                                action: 'open-media-library',
+                                mediaTarget: `#${imageInputId}`,
+                                mediaAllowedTypes: 'image',
+                            },
+                        });
+                        imageActions.append(browseButton);
+                        imageField.append(imageActions);
+                    }
+
                     sectionItem.append(imageField);
                 }
 

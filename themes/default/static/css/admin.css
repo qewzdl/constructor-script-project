@@ -2105,10 +2105,12 @@
 
 .section-builder__list {
     display: grid;
-    gap: var(--size-base);
+    gap: var(--size-sm);
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: var(--size-sm);
+    background-color: var(--color-bg-bottom);
+    border: 1px solid var(--color-border);
 }
 
 .section-builder__list > * {
@@ -2281,6 +2283,7 @@
 .admin-navigation__button,
 .admin-navigation__reorder-button,
 .admin-form__upload-button,
+.admin-builder__media-button,
 .section-field__media-button,
 .admin-fonts__order-button,
 .admin-fonts__button,
@@ -2313,6 +2316,8 @@
 .admin-navigation__reorder-button:focus-visible,
 .admin-form__upload-button:hover,
 .admin-form__upload-button:focus-visible,
+.admin-builder__media-button:hover,
+.admin-builder__media-button:focus-visible,
 .section-field__media-button:hover,
 .section-field__media-button:focus-visible,
 .admin-fonts__order-button:hover,
@@ -2510,7 +2515,7 @@
 .section-field,
 .admin-builder__field {
     display: grid;
-    gap: var(--size-xs);
+    gap: var(--size-sm);
 }
 
 .section-field__actions,
@@ -2610,9 +2615,10 @@
 .admin-builder__element {
     border: 1px solid var(--color-border);
     background: var(--color-bg-top);
-    padding: var(--size-sm);
+    padding: var(--size-base);
     display: grid;
-    gap: var(--size-sm);
+    gap: var(--size-base);
+    border-left: 4px solid var(--color-primary);
 }
 
 .admin-builder__element-header {
@@ -2969,13 +2975,6 @@
     gap: 0.75rem;
 }
 
-.admin-builder__field-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
 .admin-builder__range {
     display: flex;
     align-items: center;
@@ -2993,22 +2992,6 @@
     min-width: 3ch;
     text-align: right;
     color: var(--color-secondary);
-}
-
-.admin-builder__media-button {
-    padding: 0.35rem 0.75rem;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-top);
-    color: inherit;
-    font: inherit;
-    cursor: pointer;
-}
-
-.admin-builder__media-button:hover,
-.admin-builder__media-button:focus-visible {
-    background: var(--color-bg-subtle);
-    border-color: var(--color-border-stronger);
-    outline: none;
 }
 
 .admin-builder__checkbox {
