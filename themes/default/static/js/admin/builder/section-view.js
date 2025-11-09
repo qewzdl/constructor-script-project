@@ -6,7 +6,249 @@
         return;
     }
 
-    const { createElement } = utils;
+    const { createElement, normaliseString, randomId } = utils;
+
+    const openSectionTypePicker = ({
+        orderedSectionTypes,
+        sectionDefinitions,
+        activeType,
+        onSelect,
+        title = 'Choose section type',
+        onClose,
+    } = {}) => {
+        const typeOrder = Array.isArray(orderedSectionTypes)
+            ? orderedSectionTypes.filter((type) => typeof type === 'string' && type.trim().length)
+            : Object.keys(sectionDefinitions || {}).filter(
+                  (type) => typeof type === 'string' && type.trim().length
+              );
+
+        if (!typeOrder.length) {
+            return () => {};
+        }
+
+        const previousFocus = document.activeElement;
+        const overlay = createElement('div', {
+            className: 'admin-type-picker',
+        });
+        const dialog = createElement('div', {
+            className: 'admin-type-picker__dialog',
+            attributes: {
+                role: 'dialog',
+                'aria-modal': 'true',
+            },
+        });
+        const titleId = `admin-type-picker-title-${randomId()}`;
+        dialog.setAttribute('aria-labelledby', titleId);
+
+        const header = createElement('header', {
+            className: 'admin-type-picker__header',
+        });
+        const titleNode = createElement('h2', {
+            className: 'admin-type-picker__title',
+            textContent: title,
+        });
+        titleNode.id = titleId;
+        const closeButton = createElement('button', {
+            className: 'admin-type-picker__close',
+            type: 'button',
+            textContent: 'Close',
+        });
+        closeButton.setAttribute('aria-label', 'Close section type picker');
+        header.append(titleNode, closeButton);
+
+        const searchWrapper = createElement('div', {
+            className: 'admin-type-picker__search',
+        });
+        const searchLabelId = `admin-type-picker-search-${randomId()}`;
+        const searchLabel = createElement('label', {
+            className: 'admin-type-picker__search-label',
+            textContent: 'Search section types',
+        });
+        searchLabel.htmlFor = searchLabelId;
+        const searchInput = createElement('input', {
+            className: 'admin-type-picker__search-input',
+            attributes: {
+                id: searchLabelId,
+                type: 'search',
+                placeholder: 'Search by name or identifier',
+                autocomplete: 'off',
+            },
+        });
+        searchWrapper.append(searchLabel, searchInput);
+
+        const body = createElement('div', {
+            className: 'admin-type-picker__body',
+        });
+        const optionsList = createElement('div', {
+            className: 'admin-type-picker__options',
+        });
+        const emptyState = createElement('p', {
+            className: 'admin-type-picker__empty',
+            textContent: 'No section types match your search.',
+        });
+        emptyState.hidden = true;
+        body.append(optionsList, emptyState);
+
+        const footer = createElement('div', {
+            className: 'admin-type-picker__footer',
+        });
+        const cancelButton = createElement('button', {
+            className: 'admin-builder__button admin-builder__button--ghost',
+            type: 'button',
+            textContent: 'Cancel',
+        });
+        footer.append(cancelButton);
+
+        dialog.append(header, searchWrapper, body, footer);
+        overlay.append(dialog);
+
+        const optionNodes = [];
+        const normaliseValue = (value) => normaliseString(value).trim().toLowerCase();
+        const updateActiveState = (nextActive) => {
+            optionNodes.forEach((node) => {
+                const isActive = node.dataset.type === nextActive;
+                node.classList.toggle('is-active', isActive);
+                if (isActive) {
+                    node.setAttribute('aria-current', 'true');
+                } else {
+                    node.removeAttribute('aria-current');
+                }
+            });
+        };
+
+        const closeModal = () => {
+            if (!overlay.isConnected) {
+                return;
+            }
+            document.removeEventListener('keydown', handleKeyDown);
+            overlay.remove();
+            if (typeof onClose === 'function') {
+                onClose();
+            }
+            if (previousFocus && typeof previousFocus.focus === 'function') {
+                previousFocus.focus();
+            }
+        };
+
+        const selectType = (type) => {
+            if (typeof onSelect === 'function') {
+                onSelect(type);
+            }
+            closeModal();
+        };
+
+        typeOrder.forEach((type) => {
+            const definition = sectionDefinitions?.[type] || {};
+            const optionButton = createElement('button', {
+                className: 'admin-type-picker__option',
+                type: 'button',
+                dataset: {
+                    type,
+                },
+            });
+            const optionHeader = createElement('div', {
+                className: 'admin-type-picker__option-header',
+            });
+            const optionLabel = createElement('span', {
+                className: 'admin-type-picker__option-label',
+                textContent: definition.label || type,
+            });
+            const optionCode = createElement('code', {
+                className: 'admin-type-picker__option-code',
+                textContent: type,
+            });
+            optionHeader.append(optionLabel, optionCode);
+            optionButton.append(optionHeader);
+            const description = normaliseString(definition.description);
+            if (description) {
+                optionButton.append(
+                    createElement('span', {
+                        className: 'admin-type-picker__option-description',
+                        textContent: description,
+                    })
+                );
+            }
+            optionButton.dataset.keywords = [type, optionLabel.textContent || '', description]
+                .map(normaliseValue)
+                .join(' ');
+            if (type === activeType) {
+                optionButton.classList.add('is-active');
+                optionButton.setAttribute('aria-current', 'true');
+            }
+            optionButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                selectType(type);
+            });
+            optionNodes.push(optionButton);
+            optionsList.append(optionButton);
+        });
+
+        const filterOptions = (term) => {
+            const query = normaliseValue(term);
+            let visibleCount = 0;
+            optionNodes.forEach((node) => {
+                const keywords = node.dataset.keywords || '';
+                const matches = !query || keywords.includes(query);
+                node.hidden = !matches;
+                if (matches) {
+                    visibleCount += 1;
+                }
+            });
+            emptyState.hidden = visibleCount > 0;
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeModal();
+                return;
+            }
+            if (event.key === 'Enter' && event.target === searchInput) {
+                const firstVisible = optionNodes.find((node) => !node.hidden);
+                if (firstVisible) {
+                    event.preventDefault();
+                    firstVisible.click();
+                }
+            }
+        };
+
+        searchInput.addEventListener('input', (event) => {
+            filterOptions(event.target.value || '');
+        });
+
+        closeButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeModal();
+        });
+        cancelButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeModal();
+        });
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        document.body.append(overlay);
+        filterOptions('');
+        updateActiveState(activeType);
+
+        if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(() => {
+                searchInput.focus();
+            });
+        } else {
+            searchInput.focus();
+        }
+
+        return closeModal;
+    };
+
+    window.AdminSectionTypePicker = window.AdminSectionTypePicker || {};
+    window.AdminSectionTypePicker.open = openSectionTypePicker;
 
     const paddingOptions = [0, 4, 8, 16, 32, 64, 128];
     const marginOptions = [0, 4, 8, 16, 32, 64, 128];
@@ -231,19 +473,27 @@
                 sectionHeader.append(sectionTitle, sectionActions);
                 sectionItem.append(sectionHeader);
 
-                const typeField = createElement('label', {
-                    className: 'admin-builder__field',
+                const typeField = createElement('div', {
+                    className: 'admin-builder__field admin-builder__field--type',
                 });
-                typeField.append(
-                    createElement('span', {
-                        className: 'admin-builder__label',
-                        textContent: 'Section type',
-                    })
-                );
+                const typeSelectId = `admin-builder-section-type-${section.id || section.clientId}`;
+                const typeLabel = createElement('label', {
+                    className: 'admin-builder__label',
+                    textContent: 'Section type',
+                });
+                typeLabel.htmlFor = typeSelectId;
+                typeField.append(typeLabel);
                 const typeSelect = createElement('select', {
-                    className: 'admin-builder__input',
+                    className: 'admin-builder__input admin-builder__input--hidden',
+                    attributes: {
+                        id: typeSelectId,
+                        'aria-hidden': 'true',
+                    },
+                    dataset: {
+                        field: 'section-type',
+                    },
+                    tabIndex: -1,
                 });
-                typeSelect.dataset.field = 'section-type';
                 sectionTypeOrder.forEach((type) => {
                     const definition = sectionDefinitions?.[type] || {};
                     const option = createElement('option', {
@@ -256,14 +506,84 @@
                     typeSelect.append(option);
                 });
                 typeField.append(typeSelect);
-                if (sectionDefinition.description) {
-                    typeField.append(
-                        createElement('span', {
-                            className: 'admin-builder__hint',
-                            textContent: sectionDefinition.description,
-                        })
-                    );
-                }
+                const typeControl = createElement('div', {
+                    className: 'admin-builder__type-control',
+                });
+                const typeSummary = createElement('div', {
+                    className: 'admin-builder__type-summary',
+                });
+                const typeSummaryLabel = createElement('span', {
+                    className: 'admin-builder__type-summary-label',
+                });
+                const typeSummaryCode = createElement('code', {
+                    className: 'admin-builder__type-summary-code',
+                });
+                typeSummary.append(typeSummaryLabel, typeSummaryCode);
+                const changeTypeButton = createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost admin-builder__type-button',
+                    type: 'button',
+                    textContent: 'Change type',
+                });
+                typeControl.append(typeSummary, changeTypeButton);
+                typeField.append(typeControl);
+                const typeHint = createElement('span', {
+                    className: 'admin-builder__hint',
+                });
+                typeHint.hidden = true;
+                typeField.append(typeHint);
+
+                const updateTypeMetadata = (nextType) => {
+                    const definition = sectionDefinitions?.[nextType] || {};
+                    const safeType = typeof nextType === 'string' ? nextType : '';
+                    const labelText = normaliseString(definition.label).trim();
+                    const typeValue = safeType || 'unknown';
+                    typeSummaryLabel.textContent = labelText || typeValue;
+                    typeSummaryCode.textContent = typeValue;
+                    const description = normaliseString(definition.description).trim();
+                    if (description) {
+                        typeHint.textContent = description;
+                        typeHint.hidden = false;
+                    } else {
+                        typeHint.textContent = '';
+                        typeHint.hidden = true;
+                    }
+                };
+
+                updateTypeMetadata(section.type);
+
+                typeSelect.addEventListener('change', () => {
+                    updateTypeMetadata(typeSelect.value);
+                });
+
+                const openTypePicker = () => {
+                    const typePickerModule = window.AdminSectionTypePicker;
+                    if (typePickerModule?.open) {
+                        typePickerModule.open({
+                            orderedSectionTypes: sectionTypeOrder,
+                            sectionDefinitions,
+                            activeType: typeSelect.value,
+                            onSelect: (nextType) => {
+                                if (!nextType || nextType === typeSelect.value) {
+                                    return;
+                                }
+                                typeSelect.value = nextType;
+                                updateTypeMetadata(nextType);
+                                typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                            },
+                        });
+                        return;
+                    }
+                    if (typeof typeSelect.focus === 'function') {
+                        typeSelect.focus();
+                    }
+                };
+
+                changeTypeButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    openTypePicker();
+                });
+
                 sectionItem.append(typeField);
 
                 const titleField = createElement('label', {

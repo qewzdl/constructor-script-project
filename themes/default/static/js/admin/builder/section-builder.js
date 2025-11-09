@@ -63,34 +63,108 @@
         const orderedTypes = registry.getOrderedTypes();
         const sectionDefinitions = sectionRegistry.getDefinitions();
         const orderedSectionTypes = sectionRegistry.getOrderedTypes();
+        const sectionTypeOrder = Array.isArray(orderedSectionTypes)
+            ? orderedSectionTypes
+            : Object.keys(sectionDefinitions || {});
         let selectedSectionType = sectionRegistry.getDefaultType?.()
-            || orderedSectionTypes?.[0]
+            || sectionTypeOrder?.[0]
             || 'standard';
         if (addSectionButton.parentElement) {
-            const typePicker = utils.createElement('select', {
-                className: 'admin-builder__type-picker',
-            });
-            typePicker.setAttribute('aria-label', 'Section type');
-            const sectionTypeOrder = Array.isArray(orderedSectionTypes)
-                ? orderedSectionTypes
-                : Object.keys(sectionDefinitions || {});
-            sectionTypeOrder.forEach((type) => {
-                const definition = sectionDefinitions?.[type] || {};
-                const option = utils.createElement('option', {
-                    textContent: definition.label || type,
+            const typePickerModule = window.AdminSectionTypePicker;
+            if (typePickerModule?.open && sectionTypeOrder.length) {
+                const typeSelector = utils.createElement('div', {
+                    className: 'section-builder__type-selector',
                 });
-                option.value = type;
-                if (type === selectedSectionType) {
-                    option.selected = true;
-                }
-                typePicker.append(option);
-            });
-            typePicker.addEventListener('change', (event) => {
-                if (event.target && event.target.value) {
-                    selectedSectionType = event.target.value;
-                }
-            });
-            addSectionButton.parentElement.insertBefore(typePicker, addSectionButton);
+                const typeControl = utils.createElement('div', {
+                    className: 'admin-builder__type-control',
+                });
+                const typeSummary = utils.createElement('div', {
+                    className: 'admin-builder__type-summary',
+                });
+                const typeSummaryLabel = utils.createElement('span', {
+                    className: 'admin-builder__type-summary-label',
+                });
+                const typeSummaryCode = utils.createElement('code', {
+                    className: 'admin-builder__type-summary-code',
+                });
+                typeSummary.append(typeSummaryLabel, typeSummaryCode);
+                const changeTypeButton = utils.createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost admin-builder__type-button',
+                    type: 'button',
+                    textContent: 'Change type',
+                });
+                typeControl.append(typeSummary, changeTypeButton);
+                typeSelector.append(typeControl);
+                const typeHint = utils.createElement('span', {
+                    className: 'admin-builder__hint section-builder__type-hint',
+                });
+                typeHint.hidden = true;
+                typeSelector.append(typeHint);
+
+                const updateSelector = () => {
+                    const definition = sectionDefinitions?.[selectedSectionType] || {};
+                    const safeType =
+                        typeof selectedSectionType === 'string' ? selectedSectionType : '';
+                    const typeValue = safeType || 'unknown';
+                    const labelText = utils.normaliseString(definition.label).trim();
+                    typeSummaryLabel.textContent = labelText || typeValue;
+                    typeSummaryCode.textContent = typeValue;
+                    const description = utils.normaliseString(definition.description).trim();
+                    if (description) {
+                        typeHint.textContent = description;
+                        typeHint.hidden = false;
+                    } else {
+                        typeHint.textContent = '';
+                        typeHint.hidden = true;
+                    }
+                };
+
+                updateSelector();
+
+                changeTypeButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    typePickerModule.open({
+                        orderedSectionTypes: sectionTypeOrder,
+                        sectionDefinitions,
+                        activeType: selectedSectionType,
+                        onSelect: (nextType) => {
+                            if (!nextType || nextType === selectedSectionType) {
+                                return;
+                            }
+                            selectedSectionType = nextType;
+                            updateSelector();
+                        },
+                    });
+                });
+
+                addSectionButton.parentElement.insertBefore(
+                    typeSelector,
+                    addSectionButton
+                );
+            } else {
+                const typePicker = utils.createElement('select', {
+                    className: 'admin-builder__type-picker',
+                });
+                typePicker.setAttribute('aria-label', 'Section type');
+                sectionTypeOrder.forEach((type) => {
+                    const definition = sectionDefinitions?.[type] || {};
+                    const option = utils.createElement('option', {
+                        textContent: definition.label || type,
+                    });
+                    option.value = type;
+                    if (type === selectedSectionType) {
+                        option.selected = true;
+                    }
+                    typePicker.append(option);
+                });
+                typePicker.addEventListener('change', (event) => {
+                    if (event.target && event.target.value) {
+                        selectedSectionType = event.target.value;
+                    }
+                });
+                addSectionButton.parentElement.insertBefore(typePicker, addSectionButton);
+            }
         }
         const state = stateModule.createManager(definitions, sectionDefinitions);
         const view = viewModule.createView({
