@@ -2432,7 +2432,8 @@
     gap: var(--size-base);
 }
 
-.section-field--list-items {
+.section-field--list-items,
+.admin-builder__field--list-items {
     gap: var(--size-sm);
 }
 
