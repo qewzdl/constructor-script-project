@@ -879,7 +879,6 @@
         const postSectionsManager = createSectionBuilder(postForm);
         const pageSectionsManager = createSectionBuilder(pageForm);
         const courseVideoSectionsManager = createSectionBuilder(courseVideoForm);
-        const pageContentField = pageForm?.querySelector('[name="content"]');
         const postContentField = postForm?.querySelector('[name="content"]');
         const pagePublishAtInput = pageForm?.querySelector(
             'input[name="publish_at"]'
@@ -901,12 +900,6 @@
         if (postSectionsManager && postContentField) {
             postSectionsManager.onChange((sections) => {
                 postContentField.value = generateContentPreview(sections);
-            });
-        }
-
-        if (pageSectionsManager && pageContentField) {
-            pageSectionsManager.onChange((sections) => {
-                pageContentField.value = generateContentPreview(sections);
             });
         }
 
@@ -7104,9 +7097,6 @@
                     'The slug is generated from the title when updating';
             }
             pageForm.description.value = page.description || '';
-            if (pageContentField) {
-                pageContentField.value = page.content || page.Content || '';
-            }
             const orderInput = pageForm.querySelector('input[name="order"]');
             if (orderInput) {
                 orderInput.value = page.order ?? 0;
@@ -7177,9 +7167,6 @@
             const orderInput = pageForm.querySelector('input[name="order"]');
             if (orderInput) {
                 orderInput.value = 0;
-            }
-            if (pageContentField) {
-                pageContentField.value = '';
             }
             if (pagePublishAtInput) {
                 pagePublishAtInput.value = '';
@@ -11423,9 +11410,6 @@
                 return;
             }
             const description = pageForm.description.value.trim();
-            const content = pageContentField
-                ? pageContentField.value.trim()
-                : '';
             const pathValue = pagePathInput
                 ? pagePathInput.value.trim()
                 : '';
@@ -11450,7 +11434,6 @@
             const payload = {
                 title,
                 description,
-                content,
                 order: Number.isNaN(orderValue) ? 0 : orderValue,
                 published,
                 hide_header: Boolean(hideHeaderField?.checked),

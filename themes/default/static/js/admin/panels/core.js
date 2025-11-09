@@ -502,23 +502,11 @@
                                 Description
                                 <textarea name="description" rows="3" class="admin-form__input"></textarea>
                             </label>
-                            <label class="admin-form__label">
-                                Page body (HTML)
-                                <textarea
-                                    name="content"
-                                    rows="8"
-                                    class="admin-form__input"
-                                    placeholder="Supports HTML snippets for flexible layouts"
-                                ></textarea>
-                                <small class="admin-card__description admin-form__hint">
-                                    Use this area for free-form content. Leave it blank to rely solely on structured sections.
-                                </small>
-                            </label>
                             <fieldset class="admin-card admin-form__fieldset admin-form__fieldset--sections">
                                 <legend class="admin-card__title admin-form__legend">Structured sections</legend>
                                 <p class="admin-card__description admin-form__hint">
-                                    Combine headings, paragraphs, lists, and media into reusable sections. Sections are rendered
-                                    after the free-form body content.
+                                    Combine headings, paragraphs, lists, and media into reusable sections. Sections render on the
+                                    published page in the order shown below.
                                 </p>
                                 <div class="section-builder" data-section-builder="page">
                                     <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
