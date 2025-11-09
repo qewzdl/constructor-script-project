@@ -75,6 +75,9 @@
                 const typeSelector = utils.createElement('div', {
                     className: 'section-builder__type-selector',
                 });
+                const typeMeta = utils.createElement('div', {
+                    className: 'admin-builder__type',
+                });
                 const typeControl = utils.createElement('div', {
                     className: 'admin-builder__type-control',
                 });
@@ -95,12 +98,13 @@
                     textContent: 'Change type',
                 });
                 typeControl.append(typeSummary, changeTypeButton);
-                typeSelector.append(typeControl);
+                typeMeta.append(typeControl);
                 const typeHint = utils.createElement('span', {
                     className: 'admin-builder__hint section-builder__type-hint',
                 });
                 typeHint.hidden = true;
-                typeSelector.append(typeHint);
+                typeMeta.append(typeHint);
+                typeSelector.append(typeMeta);
 
                 const updateSelector = () => {
                     const definition = sectionDefinitions?.[selectedSectionType] || {};

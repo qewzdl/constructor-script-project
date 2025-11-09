@@ -2996,6 +2996,10 @@
     height: 1.1rem;
 }
 
+.admin-builder__type {
+    display: grid;
+}
+
 .admin-builder__type-control {
     display: flex;
     flex-wrap: wrap;

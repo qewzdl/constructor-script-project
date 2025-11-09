@@ -506,6 +506,9 @@
                     typeSelect.append(option);
                 });
                 typeField.append(typeSelect);
+                const typeMeta = createElement('div', {
+                    className: 'admin-builder__type',
+                });
                 const typeControl = createElement('div', {
                     className: 'admin-builder__type-control',
                 });
@@ -526,12 +529,13 @@
                     textContent: 'Change type',
                 });
                 typeControl.append(typeSummary, changeTypeButton);
-                typeField.append(typeControl);
+                typeMeta.append(typeControl);
                 const typeHint = createElement('span', {
                     className: 'admin-builder__hint',
                 });
                 typeHint.hidden = true;
-                typeField.append(typeHint);
+                typeMeta.append(typeHint);
+                typeField.append(typeMeta);
 
                 const updateTypeMetadata = (nextType) => {
                     const definition = sectionDefinitions?.[nextType] || {};
