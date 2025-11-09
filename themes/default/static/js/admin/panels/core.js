@@ -265,6 +265,7 @@
                                         class="admin-form__upload-button"
                                         data-action="open-media-library"
                                         data-media-target="#admin-post-featured-image"
+                                        data-media-allowed-types="image"
                                     >
                                         Browse uploads
                                     </button>
@@ -894,6 +895,7 @@
                                     class="admin-form__upload-button"
                                     data-action="open-media-library"
                                     data-media-target="#admin-settings-favicon"
+                                    data-media-allowed-types="image"
                                 >
                                     Browse uploads
                                 </button>
@@ -936,6 +938,7 @@
                                     class="admin-form__upload-button"
                                     data-action="open-media-library"
                                     data-media-target="#admin-settings-logo"
+                                    data-media-allowed-types="image"
                                 >
                                     Browse uploads
                                 </button>
@@ -1501,6 +1504,7 @@
                                         class="admin-form__upload-button"
                                         data-action="open-media-library"
                                         data-media-target="#admin-course-package-image"
+                                        data-media-allowed-types="image"
                                     >
                                         Browse uploads
                                     </button>

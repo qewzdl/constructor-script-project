@@ -5,6 +5,7 @@
                 fetchUploads,
                 uploadFile,
                 renameUpload,
+                deleteUpload,
                 onOpen,
                 onClose,
                 texts = {},
@@ -13,6 +14,7 @@
             this.fetchUploads = typeof fetchUploads === 'function' ? fetchUploads : null;
             this.uploadFile = typeof uploadFile === 'function' ? uploadFile : null;
             this.renameUpload = typeof renameUpload === 'function' ? renameUpload : null;
+            this.deleteUpload = typeof deleteUpload === 'function' ? deleteUpload : null;
             this.onOpen = typeof onOpen === 'function' ? onOpen : null;
             this.onClose = typeof onClose === 'function' ? onClose : null;
             this.texts = {
@@ -20,6 +22,10 @@
                 upload: 'Upload file',
                 refresh: 'Refresh',
                 rename: 'Rename file',
+                delete: 'Delete file',
+                deleteConfirm: 'Are you sure you want to delete this file?',
+                deleteSuccess: 'Upload deleted successfully.',
+                deleteError: 'Failed to delete upload.',
                 renamePrompt: 'Enter a new name for the file',
                 renameSuccess: 'Upload renamed successfully.',
                 renameError: 'Failed to rename upload.',
@@ -41,6 +47,7 @@
             this.chooseButton = null;
             this.fileInput = null;
             this.renameButton = null;
+            this.deleteButton = null;
             this.searchInput = null;
             this.currentSelection = null;
             this.currentUploads = [];
@@ -49,8 +56,10 @@
             this.pendingFetch = null;
             this.pendingUpload = null;
             this.pendingRename = null;
+            this.pendingDelete = null;
             this.resolveClose = null;
             this.allowSelection = true;
+            this.allowedTypes = null;
         }
 
         ensureElements() {
@@ -118,6 +127,19 @@
             }
             actions.append(renameButton);
             this.renameButton = renameButton;
+
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'admin-media-library__action-button';
+            deleteButton.dataset.action = 'media-library-delete';
+            deleteButton.textContent = this.texts.delete;
+            if (!this.deleteUpload) {
+                deleteButton.hidden = true;
+            } else {
+                deleteButton.disabled = true;
+            }
+            actions.append(deleteButton);
+            this.deleteButton = deleteButton;
 
             const uploadLabel = document.createElement('label');
             uploadLabel.className = 'admin-media-library__upload-label';
@@ -211,6 +233,11 @@
                 if (target.dataset.action === 'media-library-rename') {
                     event.preventDefault();
                     this.handleRename();
+                    return;
+                }
+                if (target.dataset.action === 'media-library-delete') {
+                    event.preventDefault();
+                    this.handleDelete();
                     return;
                 }
                 if (target.dataset.action === 'media-library-cancel') {
@@ -425,6 +452,15 @@
                     return haystacks.some((value) => value.includes(query));
                 });
             }
+            if (Array.isArray(this.allowedTypes) && this.allowedTypes.length > 0) {
+                filteredUploads = filteredUploads.filter((upload) => {
+                    const type = this.getUploadType(upload);
+                    if (!type) {
+                        return false;
+                    }
+                    return this.allowedTypes.includes(type);
+                });
+            }
             this.currentUploads = filteredUploads;
             this.renderUploads();
             if (!filteredUploads.length) {
@@ -597,13 +633,28 @@
                     this.chooseButton.disabled = true;
                 } else {
                     this.chooseButton.hidden = false;
-                    this.chooseButton.disabled = !hasSelection;
+                    this.chooseButton.disabled =
+                        !hasSelection ||
+                        this.isUploading() ||
+                        this.isRenaming() ||
+                        this.isDeleting();
                 }
             }
             if (this.renameButton && this.renameUpload) {
                 const shouldDisable =
-                    !hasSelection || this.isUploading() || this.isRenaming();
+                    !hasSelection ||
+                    this.isUploading() ||
+                    this.isRenaming() ||
+                    this.isDeleting();
                 this.renameButton.disabled = shouldDisable;
+            }
+            if (this.deleteButton && this.deleteUpload) {
+                const shouldDisable =
+                    !hasSelection ||
+                    this.isUploading() ||
+                    this.isRenaming() ||
+                    this.isDeleting();
+                this.deleteButton.disabled = shouldDisable;
             }
         }
 
@@ -612,8 +663,35 @@
             this.updateChooseState();
         }
 
+        setAllowedTypes(types) {
+            if (!types) {
+                this.allowedTypes = null;
+                return;
+            }
+            const source = Array.isArray(types) ? types : String(types).split(',');
+            const allowed = source
+                .map((value) => (typeof value === 'string' ? value.trim().toLowerCase() : ''))
+                .map((value) => {
+                    if (!value) {
+                        return '';
+                    }
+                    const wildcardIndex = value.indexOf('/*');
+                    if (wildcardIndex > 0) {
+                        return value.slice(0, wildcardIndex);
+                    }
+                    return value;
+                })
+                .filter(Boolean);
+            this.allowedTypes = allowed.length ? Array.from(new Set(allowed)) : null;
+        }
+
         confirmSelection() {
-            if (!this.allowSelection || !this.currentSelection || !this.resolveClose) {
+            if (
+                !this.allowSelection ||
+                !this.currentSelection ||
+                !this.resolveClose ||
+                this.isDeleting()
+            ) {
                 return;
             }
             const payload = this.currentSelection;
@@ -621,7 +699,7 @@
         }
 
         async handleUpload(file) {
-            if (!this.uploadFile || this.pendingUpload) {
+            if (!this.uploadFile || this.pendingUpload || this.isDeleting()) {
                 return;
             }
 
@@ -670,7 +748,12 @@
         }
 
         async handleRename() {
-            if (!this.renameUpload || !this.currentSelection || this.isRenaming()) {
+            if (
+                !this.renameUpload ||
+                !this.currentSelection ||
+                this.isRenaming() ||
+                this.isDeleting()
+            ) {
                 return;
             }
 
@@ -748,6 +831,43 @@
             await this.pendingRename;
         }
 
+        async handleDelete() {
+            if (!this.deleteUpload || !this.currentSelection || this.isDeleting()) {
+                return;
+            }
+
+            let shouldDelete = true;
+            if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+                shouldDelete = window.confirm(this.texts.deleteConfirm);
+            }
+            if (!shouldDelete) {
+                return;
+            }
+
+            const current = this.currentSelection;
+
+            this.pendingDelete = this.deleteUpload(current)
+                .then(() => {
+                    this.currentSelection = null;
+                    this.updateChooseState();
+                    this.showStatus(this.texts.deleteSuccess, 'success');
+                    return this.refresh();
+                })
+                .catch((error) => {
+                    const message =
+                        error && typeof error.message === 'string'
+                            ? error.message
+                            : this.texts.deleteError;
+                    this.showStatus(message, 'error');
+                })
+                .finally(() => {
+                    this.pendingDelete = null;
+                    this.updateChooseState();
+                });
+            this.updateChooseState();
+            await this.pendingDelete;
+        }
+
         isUploading() {
             return Boolean(this.pendingUpload);
         }
@@ -756,8 +876,12 @@
             return Boolean(this.pendingRename);
         }
 
+        isDeleting() {
+            return Boolean(this.pendingDelete);
+        }
+
         async open(options = {}) {
-            const { currentUrl = '', onSelect, allowSelection = true } = options;
+            const { currentUrl = '', onSelect, allowSelection = true, allowedTypes } = options;
             if (!this.fetchUploads) {
                 throw new Error('Media library is not configured with fetchUploads');
             }
@@ -768,6 +892,7 @@
             this.root.hidden = false;
             document.body.style.overflow = 'hidden';
             this.setAllowSelection(allowSelection);
+            this.setAllowedTypes(allowedTypes);
             this.currentSelection = null;
             this.updateChooseState();
             this.showStatus('');

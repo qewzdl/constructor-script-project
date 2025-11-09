@@ -133,26 +133,58 @@ func (s *UploadService) UploadVideo(file *multipart.FileHeader, preferredName st
 
 func (s *UploadService) DeleteImage(url string) error {
 
-	filename := filepath.Base(url)
-	filePath := filepath.Join(s.uploadDir, filename)
+	if s == nil {
+		return errUploadServiceMissing
+	}
+
+	if err := s.DeleteUpload(url); err != nil {
+		if errors.Is(err, ErrUploadNotFound) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *UploadService) DeleteUpload(current string) error {
+	if s == nil {
+		return errUploadServiceMissing
+	}
+
+	trimmed := strings.TrimSpace(current)
+	if trimmed == "" {
+		return ErrUploadNotFound
+	}
+
+	filename := filepath.Base(trimmed)
+	if filename == "" || filename == "." || filename == string(filepath.Separator) {
+		return ErrUploadNotFound
+	}
+
+	ext := strings.ToLower(filepath.Ext(filename))
+	if _, ok := s.detectCategory(ext); !ok {
+		return ErrUploadNotFound
+	}
 
 	uploadDirAbs, err := filepath.Abs(s.uploadDir)
 	if err != nil {
 		return err
 	}
 
-	filePathAbs, err := filepath.Abs(filePath)
+	targetPath := filepath.Join(s.uploadDir, filename)
+	targetAbs, err := filepath.Abs(targetPath)
 	if err != nil {
 		return err
 	}
 
-	if !strings.HasPrefix(filePathAbs, uploadDirAbs) {
-		return errors.New("invalid file path")
+	if !strings.HasPrefix(targetAbs, uploadDirAbs) {
+		return ErrUploadNotFound
 	}
 
-	if err := os.Remove(filePathAbs); err != nil {
+	if err := os.Remove(targetAbs); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil
+			return ErrUploadNotFound
 		}
 		return err
 	}

@@ -110,6 +110,7 @@
                     browseButton.type = 'button';
                     browseButton.dataset.action = 'open-media-library';
                     browseButton.dataset.mediaTarget = `#${inputId}`;
+                    browseButton.dataset.mediaAllowedTypes = 'image';
                     groupUrlActions.append(browseButton);
                     groupUrlField.append(groupUrlActions);
                     groupItem.append(groupUrlField);

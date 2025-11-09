@@ -1252,6 +1252,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"LogoUpload":     "/api/v1/admin/settings/logo",
 		"Upload":         "/api/v1/admin/upload",
 		"Uploads":        "/api/v1/admin/uploads",
+		"UploadDelete":   "/api/v1/admin/uploads",
 		"UploadRename":   "/api/v1/admin/uploads/rename",
 		"Themes":         "/api/v1/admin/themes",
 		"Plugins":        "/api/v1/admin/plugins",

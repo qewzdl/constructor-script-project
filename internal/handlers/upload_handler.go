@@ -113,3 +113,32 @@ func (h *UploadHandler) Rename(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"upload": upload})
 }
+
+func (h *UploadHandler) Delete(c *gin.Context) {
+	var request struct {
+		Target string `json:"target"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		return
+	}
+
+	target := strings.TrimSpace(request.Target)
+	if target == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "target is required"})
+		return
+	}
+
+	if err := h.uploadService.DeleteUpload(target); err != nil {
+		switch {
+		case errors.Is(err, service.ErrUploadNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}

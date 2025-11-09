@@ -65,6 +65,7 @@
             browseButton.type = 'button';
             browseButton.dataset.action = 'open-media-library';
             browseButton.dataset.mediaTarget = `#${inputId}`;
+            browseButton.dataset.mediaAllowedTypes = 'image';
             urlActions.append(browseButton);
             urlField.append(urlActions);
             elementNode.append(urlField);

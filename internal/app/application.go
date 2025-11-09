@@ -964,6 +964,7 @@ func (a *Application) initRouter() error {
 
 			content.POST("/upload", a.handlers.Upload.Upload)
 			content.GET("/uploads", a.handlers.Upload.List)
+			content.DELETE("/uploads", a.handlers.Upload.Delete)
 			content.PUT("/uploads/rename", a.handlers.Upload.Rename)
 
 			content.POST("/categories", a.handlers.Category.Create)

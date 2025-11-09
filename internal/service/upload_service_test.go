@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"mime/multipart"
 	"net/http/httptest"
 	"os"
@@ -157,6 +158,30 @@ func TestRenameUploadKeepsType(t *testing.T) {
 
 	if !strings.HasSuffix(renamed.Filename, ".txt") {
 		t.Fatalf("expected filename to preserve extension, got %s", renamed.Filename)
+	}
+}
+
+func TestDeleteUploadRemovesFile(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+
+	document := createMultipartFile(t, "notes.txt", []byte("notes"))
+	info, err := svc.Upload(document, "Notes")
+	if err != nil {
+		t.Fatalf("unexpected error uploading file: %v", err)
+	}
+
+	if err := svc.DeleteUpload(info.URL); err != nil {
+		t.Fatalf("unexpected error deleting upload: %v", err)
+	}
+
+	stored := filepath.Join(uploadDir, info.Filename)
+	if _, err := os.Stat(stored); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected file to be removed, got %v", err)
+	}
+
+	if err := svc.DeleteUpload(info.URL); !errors.Is(err, ErrUploadNotFound) {
+		t.Fatalf("expected ErrUploadNotFound on subsequent delete, got %v", err)
 	}
 }
 

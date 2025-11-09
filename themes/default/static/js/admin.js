@@ -323,6 +323,7 @@
             logoUpload: root.dataset.endpointLogoUpload,
             upload: root.dataset.endpointUpload,
             uploadRename: root.dataset.endpointUploadRename,
+            uploadDelete: root.dataset.endpointUploadDelete,
             uploads: root.dataset.endpointUploads,
             themes: root.dataset.endpointThemes,
             plugins: root.dataset.endpointPlugins,
@@ -1022,6 +1023,31 @@
                     }
                 };
 
+                const resolveUploadContext = (upload) => {
+                    if (!upload || typeof upload !== 'object') {
+                        return { identifier: '', url: '', filename: '' };
+                    }
+
+                    const uploadUrl =
+                        (typeof upload.url === 'string' && upload.url) ||
+                        (typeof upload.URL === 'string' && upload.URL) ||
+                        '';
+                    const uploadFilename =
+                        (typeof upload.filename === 'string' && upload.filename) ||
+                        (typeof upload.Filename === 'string' && upload.Filename) ||
+                        '';
+
+                    let identifier = uploadUrl || uploadFilename;
+                    if (typeof identifier === 'string' && identifier.includes('/uploads/')) {
+                        const index = identifier.lastIndexOf('/uploads/');
+                        identifier = identifier.slice(index);
+                    }
+
+                    identifier = (identifier || '').trim();
+
+                    return { identifier, url: uploadUrl, filename: uploadFilename };
+                };
+
                 const uploadFile = endpoints.upload
                     ? async (file, options = {}) => {
                           if (!file) {
@@ -1066,25 +1092,12 @@
                               throw new Error('Rename endpoint is not configured.');
                           }
 
-                          const uploadUrl =
-                              (upload && typeof upload.url === 'string' && upload.url) ||
-                              (upload && typeof upload.URL === 'string' && upload.URL) ||
-                              '';
-                          const uploadFilename =
-                              (upload &&
-                                  typeof upload.filename === 'string' &&
-                                  upload.filename) ||
-                              (upload &&
-                                  typeof upload.Filename === 'string' &&
-                                  upload.Filename) ||
-                              '';
+                          const {
+                              identifier: currentValue,
+                              url: uploadUrl,
+                              filename: uploadFilename,
+                          } = resolveUploadContext(upload);
 
-                          let currentValue = uploadUrl || uploadFilename;
-                          if (currentValue.includes('/uploads/')) {
-                              const index = currentValue.lastIndexOf('/uploads/');
-                              currentValue = currentValue.slice(index);
-                          }
-                          currentValue = (currentValue || '').trim();
                           if (!currentValue) {
                               throw new Error('Unable to determine the current file name.');
                           }
@@ -1128,10 +1141,42 @@
                       }
                     : null;
 
+                const deleteUpload = endpoints.uploadDelete
+                    ? async (upload) => {
+                          if (!upload) {
+                              throw new Error('Select an upload to delete.');
+                          }
+                          if (!endpoints.uploadDelete) {
+                              throw new Error('Delete endpoint is not configured.');
+                          }
+
+                          const { identifier: currentValue } = resolveUploadContext(upload);
+                          if (!currentValue) {
+                              throw new Error('Unable to determine the file to delete.');
+                          }
+
+                          try {
+                              await apiRequest(endpoints.uploadDelete, {
+                                  method: 'DELETE',
+                                  headers: {
+                                      'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                      target: currentValue,
+                                  }),
+                              });
+                          } catch (error) {
+                              handleRequestError(error);
+                              throw error;
+                          }
+                      }
+                    : null;
+
                 return window.AdminMediaLibrary.create({
                     fetchUploads,
                     uploadFile,
                     renameUpload,
+                    deleteUpload,
                     onClose: () => {
                         if (document.activeElement) {
                             document.activeElement.blur?.();
@@ -1146,7 +1191,27 @@
 
         const mediaLibrary = createMediaLibrary();
 
-        const openMediaLibraryForInput = (input) => {
+        const parseAllowedTypes = (value) => {
+            if (!value) {
+                return [];
+            }
+            const source = Array.isArray(value) ? value : String(value).split(',');
+            return source
+                .map((item) => (typeof item === 'string' ? item.trim().toLowerCase() : ''))
+                .map((item) => {
+                    if (!item) {
+                        return '';
+                    }
+                    const wildcardIndex = item.indexOf('/*');
+                    if (wildcardIndex > 0) {
+                        return item.slice(0, wildcardIndex);
+                    }
+                    return item;
+                })
+                .filter(Boolean);
+        };
+
+        const openMediaLibraryForInput = (input, options = {}) => {
             if (!(input instanceof HTMLElement)) {
                 return;
             }
@@ -1157,18 +1222,25 @@
             }
 
             const currentValue = typeof input.value === 'string' ? input.value.trim() : '';
+            const allowedTypes = parseAllowedTypes(
+                options.allowedTypes || input.dataset.mediaAllowedTypes || ''
+            );
+            const openOptions = {
+                currentUrl: currentValue,
+                onSelect: (url) => {
+                    if (!url || typeof url !== 'string') {
+                        return;
+                    }
+                    input.value = url;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                },
+            };
+            if (allowedTypes.length) {
+                openOptions.allowedTypes = allowedTypes;
+            }
             mediaLibrary
-                .open({
-                    currentUrl: currentValue,
-                    onSelect: (url) => {
-                        if (!url || typeof url !== 'string') {
-                            return;
-                        }
-                        input.value = url;
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
-                    },
-                })
+                .open(openOptions)
                 .catch((error) => {
                     if (error) {
                         const message =
@@ -1288,7 +1360,10 @@
                 return;
             }
 
-            openMediaLibraryForInput(input);
+            const allowedTypes = parseAllowedTypes(
+                trigger.dataset.mediaAllowedTypes || trigger.getAttribute('data-media-allowed-types')
+            );
+            openMediaLibraryForInput(input, { allowedTypes });
         });
 
         const updateFaviconPreview = (url) => {

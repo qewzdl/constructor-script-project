@@ -369,7 +369,7 @@
         return element;
     };
 
-    const createMediaBrowseActions = (input) => {
+    const createMediaBrowseActions = (input, options = {}) => {
         if (!(input instanceof HTMLElement)) {
             return null;
         }
@@ -385,6 +385,14 @@
         button.dataset.action = 'open-media-library';
         if (input.id) {
             button.dataset.mediaTarget = `#${input.id}`;
+        }
+        const allowedTypes = Array.isArray(options.allowedTypes)
+            ? options.allowedTypes.filter((type) => typeof type === 'string' && type.trim())
+            : [];
+        if (allowedTypes.length) {
+            button.dataset.mediaAllowedTypes = allowedTypes
+                .map((type) => type.trim())
+                .join(',');
         }
         actions.appendChild(button);
         return actions;
@@ -1372,7 +1380,9 @@
             });
             imageField.appendChild(imageLabel);
             imageField.appendChild(imageInput);
-            const imageActions = createMediaBrowseActions(imageInput);
+            const imageActions = createMediaBrowseActions(imageInput, {
+                allowedTypes: ['image'],
+            });
             if (imageActions) {
                 imageField.appendChild(imageActions);
             }
@@ -1742,7 +1752,9 @@
                 });
                 urlField.appendChild(urlLabel);
                 urlField.appendChild(urlInput);
-                const urlActions = createMediaBrowseActions(urlInput);
+                const urlActions = createMediaBrowseActions(urlInput, {
+                    allowedTypes: ['image'],
+                });
                 if (urlActions) {
                     urlField.appendChild(urlActions);
                 }
@@ -2335,7 +2347,9 @@
                         });
                         urlField.appendChild(urlLabel);
                         urlField.appendChild(urlInput);
-                        const urlActions = createMediaBrowseActions(urlInput);
+                        const urlActions = createMediaBrowseActions(urlInput, {
+                            allowedTypes: ['image'],
+                        });
                         if (urlActions) {
                             urlField.appendChild(urlActions);
                         }
