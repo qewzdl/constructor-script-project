@@ -18,32 +18,36 @@ func NewUploadHandler(uploadService *service.UploadService) *UploadHandler {
 	return &UploadHandler{uploadService: uploadService}
 }
 
-func (h *UploadHandler) UploadImage(c *gin.Context) {
-	file, err := c.FormFile("image")
+func (h *UploadHandler) Upload(c *gin.Context) {
+	file, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "no file uploaded"})
-		return
+		file, err = c.FormFile("image")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "no file uploaded"})
+			return
+		}
 	}
 
 	preferredName := strings.TrimSpace(c.PostForm("name"))
 
-	// Validation
-	if err := h.uploadService.ValidateImage(file); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Upload
-	url, filename, err := h.uploadService.UploadImage(file, preferredName)
+	upload, err := h.uploadService.Upload(file, preferredName)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, service.ErrUnsupportedUpload),
+			errors.Is(err, service.ErrUploadTooLarge),
+			errors.Is(err, service.ErrUploadMissing):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"url":      url,
-		"filename": filename,
-		"size":     file.Size,
+		"upload":   upload,
+		"url":      upload.URL,
+		"filename": upload.Filename,
+		"size":     upload.Size,
 	})
 }
 
@@ -74,7 +78,7 @@ func (h *UploadHandler) UploadMultiple(c *gin.Context) {
 
 func (h *UploadHandler) List(c *gin.Context) {
 
-	uploads, err := h.uploadService.ListImages()
+	uploads, err := h.uploadService.ListUploads()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -94,7 +98,7 @@ func (h *UploadHandler) Rename(c *gin.Context) {
 		return
 	}
 
-	upload, err := h.uploadService.RenameImage(request.Current, request.Name)
+	upload, err := h.uploadService.RenameUpload(request.Current, request.Name)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrInvalidUploadName):

@@ -16,21 +16,21 @@
             this.onOpen = typeof onOpen === 'function' ? onOpen : null;
             this.onClose = typeof onClose === 'function' ? onClose : null;
             this.texts = {
-                title: 'Select image',
-                upload: 'Upload image',
+                title: 'Select file',
+                upload: 'Upload file',
                 refresh: 'Refresh',
-                rename: 'Rename image',
-                renamePrompt: 'Enter a new name for the image',
-                renameSuccess: 'Image renamed successfully.',
-                renameError: 'Failed to rename image.',
-                renameEmpty: 'Image name cannot be empty.',
+                rename: 'Rename file',
+                renamePrompt: 'Enter a new name for the file',
+                renameSuccess: 'Upload renamed successfully.',
+                renameError: 'Failed to rename upload.',
+                renameEmpty: 'File name cannot be empty.',
                 searchPlaceholder: 'Search uploads…',
                 emptySearch: 'No uploads match your search.',
                 empty: 'No uploads found yet.',
                 error: 'Failed to load uploads. Try again shortly.',
                 close: 'Close',
                 cancel: 'Cancel',
-                choose: 'Use image',
+                choose: 'Use file',
                 uploading: 'Uploading…',
                 ...texts,
             };
@@ -127,7 +127,28 @@
             if (this.uploadFile) {
                 const fileInput = document.createElement('input');
                 fileInput.type = 'file';
-                fileInput.accept = 'image/*';
+                fileInput.accept = [
+                    'image/*',
+                    'video/*',
+                    '.pdf',
+                    '.txt',
+                    '.csv',
+                    '.json',
+                    '.xml',
+                    '.md',
+                    '.doc',
+                    '.docx',
+                    '.xls',
+                    '.xlsx',
+                    '.ppt',
+                    '.pptx',
+                    '.zip',
+                    '.tar',
+                    '.gz',
+                    '.tgz',
+                    '.rar',
+                    '.7z',
+                ].join(',');
                 fileInput.hidden = true;
                 uploadLabel.append(fileInput);
                 this.fileInput = fileInput;
@@ -347,25 +368,23 @@
                 item.className = 'admin-media-library__item';
                 item.dataset.mediaIndex = String(index);
 
-                const image = document.createElement('img');
-                image.className = 'admin-media-library__thumb';
-                image.alt = upload.filename || 'Uploaded image';
-                image.src = upload.url || '';
-                item.append(image);
+                const thumb = this.buildThumbnail(upload);
+                item.append(thumb);
 
                 const meta = document.createElement('div');
                 meta.className = 'admin-media-library__meta';
 
                 const name = document.createElement('p');
                 name.className = 'admin-media-library__name';
-                name.textContent = upload.filename || 'Image';
+                name.textContent = this.getUploadFilename(upload) || 'File';
                 meta.append(name);
 
                 const details = document.createElement('p');
                 details.className = 'admin-media-library__details';
+                const typeLabel = this.formatTypeLabel(upload);
                 const sizeLabel = this.formatSize(upload.size);
                 const dateLabel = this.formatDate(upload.mod_time || upload.modTime);
-                details.textContent = [sizeLabel, dateLabel].filter(Boolean).join(' • ');
+                details.textContent = [typeLabel, sizeLabel, dateLabel].filter(Boolean).join(' • ');
                 meta.append(details);
 
                 item.append(meta);
@@ -456,6 +475,98 @@
             }
         }
 
+        getUploadFilename(upload) {
+            if (!upload || typeof upload !== 'object') {
+                return '';
+            }
+            if (typeof upload.filename === 'string' && upload.filename) {
+                return upload.filename;
+            }
+            if (typeof upload.Filename === 'string' && upload.Filename) {
+                return upload.Filename;
+            }
+            return '';
+        }
+
+        getUploadUrl(upload) {
+            if (!upload || typeof upload !== 'object') {
+                return '';
+            }
+            if (typeof upload.url === 'string' && upload.url) {
+                return upload.url;
+            }
+            if (typeof upload.URL === 'string' && upload.URL) {
+                return upload.URL;
+            }
+            return '';
+        }
+
+        getUploadType(upload) {
+            if (!upload || typeof upload !== 'object') {
+                return '';
+            }
+            const rawType =
+                (typeof upload.type === 'string' && upload.type) ||
+                (typeof upload.Type === 'string' && upload.Type) ||
+                '';
+            if (rawType.trim()) {
+                return rawType.trim().toLowerCase();
+            }
+            const filename = this.getUploadFilename(upload).toLowerCase();
+            if (filename.match(/\.(jpe?g|png|gif|webp|ico|svg)$/)) {
+                return 'image';
+            }
+            if (filename.match(/\.(mp4|m4v|mov)$/)) {
+                return 'video';
+            }
+            return 'file';
+        }
+
+        getUploadExtension(upload) {
+            const filename = this.getUploadFilename(upload);
+            const index = filename.lastIndexOf('.');
+            if (index >= 0 && index < filename.length - 1) {
+                return filename.slice(index + 1).toUpperCase();
+            }
+            return '';
+        }
+
+        formatTypeLabel(upload) {
+            const type = this.getUploadType(upload);
+            if (!type) {
+                return '';
+            }
+            if (type === 'file') {
+                const extension = this.getUploadExtension(upload);
+                return extension || 'File';
+            }
+            return type.charAt(0).toUpperCase() + type.slice(1);
+        }
+
+        buildThumbnail(upload) {
+            const type = this.getUploadType(upload);
+            if (type === 'image') {
+                const image = document.createElement('img');
+                image.className = 'admin-media-library__thumb';
+                image.alt = this.getUploadFilename(upload) || 'Uploaded file';
+                image.src = this.getUploadUrl(upload) || '';
+                return image;
+            }
+
+            const placeholder = document.createElement('div');
+            placeholder.className = 'admin-media-library__thumb admin-media-library__thumb--file';
+            if (type === 'video') {
+                placeholder.classList.add('admin-media-library__thumb--video');
+            }
+
+            const label = document.createElement('span');
+            label.className = 'admin-media-library__thumb-label';
+            label.textContent = this.getUploadExtension(upload) || type.toUpperCase() || 'FILE';
+            placeholder.append(label);
+
+            return placeholder;
+        }
+
         setSelection(index) {
             if (!this.grid) {
                 return;
@@ -519,7 +630,7 @@
                 preferredName = file.name.replace(/\.[^/.]+$/, '').trim();
             }
             if (typeof window !== 'undefined' && typeof window.prompt === 'function') {
-                const promptValue = window.prompt('Enter image name (optional)', preferredName);
+                const promptValue = window.prompt('Enter file name (optional)', preferredName);
                 if (typeof promptValue === 'string') {
                     preferredName = promptValue.trim();
                 }
@@ -534,7 +645,7 @@
                         url = result.url || result.URL || '';
                     }
                     if (url) {
-                        this.showStatus('Image uploaded successfully.', 'success');
+                        this.showStatus('File uploaded successfully.', 'success');
                     }
                     return this.refresh().then(() => url);
                 })
@@ -547,7 +658,7 @@
                     const message =
                         error && typeof error.message === 'string'
                             ? error.message
-                            : 'Failed to upload image.';
+                            : 'Failed to upload file.';
                     this.showStatus(message, 'error');
                 })
                 .finally(() => {

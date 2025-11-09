@@ -1031,7 +1031,7 @@
                               throw new Error('Upload endpoint is not configured.');
                           }
                           const formData = new FormData();
-                          formData.append('image', file);
+                          formData.append('file', file);
                           const preferredName =
                               options && typeof options.name === 'string'
                                   ? options.name.trim()
@@ -1055,12 +1055,12 @@
                 const renameUpload = endpoints.uploadRename
                     ? async (upload, newName) => {
                           if (!upload) {
-                              throw new Error('Select an image to rename.');
+                              throw new Error('Select an upload to rename.');
                           }
                           const desiredName =
                               typeof newName === 'string' ? newName.trim() : '';
                           if (!desiredName) {
-                              throw new Error('Image name cannot be empty.');
+                              throw new Error('File name cannot be empty.');
                           }
                           if (!endpoints.uploadRename) {
                               throw new Error('Rename endpoint is not configured.');

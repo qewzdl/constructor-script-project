@@ -962,7 +962,7 @@ func (a *Application) initRouter() error {
 			content.DELETE("/pages/:id", a.handlers.Page.Delete)
 			content.GET("/pages", a.handlers.Page.GetAllAdmin)
 
-			content.POST("/upload", a.handlers.Upload.UploadImage)
+			content.POST("/upload", a.handlers.Upload.Upload)
 			content.GET("/uploads", a.handlers.Upload.List)
 			content.PUT("/uploads/rename", a.handlers.Upload.Rename)
 

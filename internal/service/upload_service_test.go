@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -70,6 +71,92 @@ func TestUploadVideoInvalidMediaRemoved(t *testing.T) {
 	}
 	if len(entries) != 0 {
 		t.Fatalf("expected upload directory to be empty, found %d entries", len(entries))
+	}
+}
+
+func TestUploadFileSuccess(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+
+	content := []byte("project plan")
+	file := createMultipartFile(t, "plan.pdf", content)
+
+	info, err := svc.Upload(file, "Project Plan")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if info.Type != string(UploadCategoryFile) {
+		t.Fatalf("unexpected type: %s", info.Type)
+	}
+
+	if info.Filename != "project-plan.pdf" {
+		t.Fatalf("unexpected filename: %s", info.Filename)
+	}
+
+	stored := filepath.Join(uploadDir, info.Filename)
+	if _, err := os.Stat(stored); err != nil {
+		t.Fatalf("expected file to exist: %v", err)
+	}
+}
+
+func TestListUploadsIncludesTypes(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+
+	image := createMultipartFile(t, "cover.jpg", []byte("image"))
+	if _, err := svc.Upload(image, "Cover"); err != nil {
+		t.Fatalf("unexpected error uploading image: %v", err)
+	}
+
+	document := createMultipartFile(t, "notes.txt", []byte("notes"))
+	if _, err := svc.Upload(document, "Meeting Notes"); err != nil {
+		t.Fatalf("unexpected error uploading document: %v", err)
+	}
+
+	uploads, err := svc.ListUploads()
+	if err != nil {
+		t.Fatalf("unexpected error listing uploads: %v", err)
+	}
+
+	if len(uploads) != 2 {
+		t.Fatalf("expected 2 uploads, got %d", len(uploads))
+	}
+
+	types := map[string]bool{}
+	for _, upload := range uploads {
+		types[upload.Type] = true
+	}
+
+	if !types[string(UploadCategoryImage)] {
+		t.Fatalf("expected image upload to be present")
+	}
+	if !types[string(UploadCategoryFile)] {
+		t.Fatalf("expected file upload to be present")
+	}
+}
+
+func TestRenameUploadKeepsType(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+
+	document := createMultipartFile(t, "notes.txt", []byte("notes"))
+	info, err := svc.Upload(document, "Notes")
+	if err != nil {
+		t.Fatalf("unexpected error uploading file: %v", err)
+	}
+
+	renamed, err := svc.RenameUpload(info.URL, "Project Notes")
+	if err != nil {
+		t.Fatalf("unexpected error renaming upload: %v", err)
+	}
+
+	if renamed.Type != string(UploadCategoryFile) {
+		t.Fatalf("unexpected type after rename: %s", renamed.Type)
+	}
+
+	if !strings.HasSuffix(renamed.Filename, ".txt") {
+		t.Fatalf("expected filename to preserve extension, got %s", renamed.Filename)
 	}
 }
 
