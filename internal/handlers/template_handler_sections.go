@@ -65,7 +65,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
 		}
 
-		if section.Image != "" {
+		if section.Image != "" && strings.EqualFold(sectionType, "hero") {
 			sb.WriteString(`<figure class="` + sectionImageWrapperClass + `">`)
 			sb.WriteString(`<img class="` + sectionImageClass + `" src="` + template.HTMLEscapeString(section.Image) + `" alt="` + escapedTitle + `" />`)
 			sb.WriteString(`</figure>`)

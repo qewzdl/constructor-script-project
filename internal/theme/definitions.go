@@ -15,12 +15,13 @@ import (
 // SectionDefinition describes a section type that can be used by the content builder
 // and validated by the backend.
 type SectionDefinition struct {
-	Type             string                              `json:"type"`
-	Label            string                              `json:"label,omitempty"`
-	Order            int                                 `json:"order,omitempty"`
-	Description      string                              `json:"description,omitempty"`
-	SupportsElements *bool                               `json:"supports_elements,omitempty"`
-	Settings         map[string]SectionSettingDefinition `json:"settings,omitempty"`
+	Type                string                              `json:"type"`
+	Label               string                              `json:"label,omitempty"`
+	Order               int                                 `json:"order,omitempty"`
+	Description         string                              `json:"description,omitempty"`
+	SupportsElements    *bool                               `json:"supports_elements,omitempty"`
+	SupportsHeaderImage *bool                               `json:"supports_header_image,omitempty"`
+	Settings            map[string]SectionSettingDefinition `json:"settings,omitempty"`
 }
 
 // SectionSettingDefinition describes additional configuration for a section type.
@@ -116,6 +117,9 @@ func mergeSectionDefinition(base, override SectionDefinition) SectionDefinition 
 	}
 	if override.SupportsElements != nil {
 		result.SupportsElements = override.SupportsElements
+	}
+	if override.SupportsHeaderImage != nil {
+		result.SupportsHeaderImage = override.SupportsHeaderImage
 	}
 
 	if len(override.Settings) > 0 {
@@ -385,6 +389,7 @@ func mergeElementDefinition(base, override ElementDefinition) ElementDefinition 
 func defaultSectionDefinitions() map[string]SectionDefinition {
 	standardSupports := true
 	heroSupports := false
+	heroHeaderImage := true
 	postsSupports := false
 	categoriesSupports := false
 	coursesSupports := false
@@ -410,11 +415,12 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			SupportsElements: &standardSupports,
 		},
 		"hero": {
-			Type:             "hero",
-			Label:            "Hero section",
-			Order:            10,
-			Description:      "Prominent introduction block without additional content elements.",
-			SupportsElements: &heroSupports,
+			Type:                "hero",
+			Label:               "Hero section",
+			Order:               10,
+			Description:         "Prominent introduction block without additional content elements.",
+			SupportsElements:    &heroSupports,
+			SupportsHeaderImage: &heroHeaderImage,
 		},
 		"grid": {
 			Type:             "grid",

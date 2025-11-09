@@ -25,6 +25,10 @@
             definition.supportsElements !== undefined
                 ? definition.supportsElements
                 : definition.supports_elements;
+        const supportsHeaderImageSource =
+            definition.supportsHeaderImage !== undefined
+                ? definition.supportsHeaderImage
+                : definition.supports_header_image;
 
         const entry = {
             type: normalised,
@@ -44,6 +48,14 @@
                           typeof supportsElementsSource === 'string'
                               ? supportsElementsSource.toLowerCase() !== 'false'
                               : supportsElementsSource
+                      ),
+            supportsHeaderImage:
+                supportsHeaderImageSource === undefined
+                    ? false
+                    : Boolean(
+                          typeof supportsHeaderImageSource === 'string'
+                              ? supportsHeaderImageSource.toLowerCase() !== 'false'
+                              : supportsHeaderImageSource
                       ),
             settings:
                 definition.settings && typeof definition.settings === 'object'
@@ -121,6 +133,7 @@
         supportsElements: false,
         description:
             'Prominent introduction block without additional content elements.',
+        supportsHeaderImage: true,
     });
 
     ensureRegistered('grid', {

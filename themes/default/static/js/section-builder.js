@@ -172,6 +172,10 @@
                 definition.supportsElements !== undefined
                     ? definition.supportsElements
                     : definition.supports_elements;
+            const supportsHeaderImageSource =
+                definition.supportsHeaderImage !== undefined
+                    ? definition.supportsHeaderImage
+                    : definition.supports_header_image;
 
             const entry = {
                 type: normalised,
@@ -191,6 +195,14 @@
                               typeof supportsElementsSource === 'string'
                                   ? supportsElementsSource.toLowerCase() !== 'false'
                                   : supportsElementsSource
+                          ),
+                supportsHeaderImage:
+                    supportsHeaderImageSource === undefined
+                        ? false
+                        : Boolean(
+                              typeof supportsHeaderImageSource === 'string'
+                                  ? supportsHeaderImageSource.toLowerCase() !== 'false'
+                                  : supportsHeaderImageSource
                           ),
                 validate:
                     typeof definition.validate === 'function'
@@ -284,6 +296,7 @@
         supportsElements: false,
         description:
             'Large introductory section with a headline and optional image. Does not allow additional content blocks.',
+        supportsHeaderImage: true,
     });
 
     sectionTypeRegistry.register('grid', {
@@ -482,6 +495,7 @@
         const definition = sectionTypeRegistry.get(type);
         const elementsSource = section.elements || section.Elements || [];
         const allowElements = definition?.supportsElements !== false;
+        const headerImageSupported = definition?.supportsHeaderImage === true;
         const elements = allowElements && Array.isArray(elementsSource)
             ? elementsSource.map((item) => normaliseElement(item))
             : [];
@@ -497,11 +511,12 @@
               ? limitSource
               : 0;
 
+        const imageSource = section.image || section.Image || '';
         const normalised = {
             id: section.id || section.ID || generateId(),
             type,
             title: section.title || section.Title || '',
-            image: section.image || section.Image || '',
+            image: headerImageSupported ? imageSource : '',
             elements,
             limit,
         };
@@ -565,10 +580,12 @@
             id: generateId(),
             type: ensuredType,
             title: '',
-            image: '',
             elements: [],
             limit,
         };
+        if (definition?.supportsHeaderImage === true) {
+            section.image = '';
+        }
         if (ensuredType === 'grid') {
             section.styleGridItems = true;
         }
@@ -775,6 +792,7 @@
             const type = sectionTypeRegistry.ensure(section.type);
             const definition = sectionTypeRegistry.get(type);
             const allowElements = definition?.supportsElements !== false;
+            const headerImageSupported = definition?.supportsHeaderImage === true;
             const elements = allowElements && Array.isArray(section.elements)
                 ? section.elements
                       .map((element, elementIndex) => {
@@ -795,10 +813,15 @@
                 id: section.id || generateId(),
                 type,
                 title: (section.title || '').trim(),
-                image: (section.image || '').trim(),
                 order: index + 1,
                 elements,
             };
+            if (headerImageSupported) {
+                const image = (section.image || '').trim();
+                if (image) {
+                    payload.image = image;
+                }
+            }
             if (type === 'grid') {
                 payload.style_grid_items = section.styleGridItems !== false;
             }
@@ -1331,6 +1354,11 @@
             if (nextDefinition?.supportsElements === false) {
                 section.elements = [];
             }
+            if (nextDefinition?.supportsHeaderImage === true) {
+                section.image = section.image || '';
+            } else if (section.image) {
+                section.image = '';
+            }
             render();
         });
         typeField.appendChild(typeLabel);
@@ -1363,6 +1391,7 @@
             titleField.appendChild(titleInput);
             body.appendChild(titleField);
 
+        if (definition?.supportsHeaderImage === true) {
             const imageId = `${section.id}-image`;
             const imageField = createElement('div', {
                 className: 'section-field',
@@ -1387,6 +1416,9 @@
                 imageField.appendChild(imageActions);
             }
             body.appendChild(imageField);
+        } else if (section.image) {
+            section.image = '';
+        }
 
             if (section.type === 'grid') {
                 const styleId = `${section.id}-style-grid-items`;

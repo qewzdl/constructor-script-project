@@ -212,12 +212,16 @@
             section.margin_vertical ??
             section.Margin_vertical;
         const marginVertical = normaliseMarginValue(marginSource);
+        const headerImageSupported =
+            sectionDefinitions[type]?.supportsHeaderImage === true;
         return {
             clientId: randomId(),
             id: normaliseString(section.id ?? section.ID ?? ''),
             type,
             title: normaliseString(section.title ?? section.Title ?? ''),
-            image: normaliseString(section.image ?? section.Image ?? ''),
+            image: headerImageSupported
+                ? normaliseString(section.image ?? section.Image ?? '')
+                : '',
             elements: supportsElements
                 ? elementsSource.map((element) =>
                       createElementState(elementDefinitions, element)
@@ -271,6 +275,8 @@
 
         const supportsElements = (type) =>
             sectionDefs[type]?.supportsElements !== false;
+        const supportsHeaderImage = (type) =>
+            sectionDefs[type]?.supportsHeaderImage === true;
 
         const findElement = (section, elementClientId) =>
             section?.elements?.find((element) => element.clientId === elementClientId) ||
@@ -287,7 +293,10 @@
                         )
                         .filter(Boolean);
 
-                    const image = section.image.trim();
+                    const headerImageSupported = supportsHeaderImage(section.type);
+                    const image = headerImageSupported
+                        ? section.image.trim()
+                        : '';
                     const title = section.title.trim();
                     const hasContent = supportsElements(section.type)
                         ? Boolean(title || image || elements.length > 0)
@@ -305,7 +314,7 @@
                         elements: supportsElements(section.type) ? elements : nilSlice,
                     };
 
-                    if (image) {
+                    if (headerImageSupported && image) {
                         payload.image = image;
                     }
 
@@ -492,7 +501,11 @@
             if (field === 'section-title') {
                 section.title = value;
             } else if (field === 'section-image') {
-                section.image = value;
+                if (supportsHeaderImage(section.type)) {
+                    section.image = value;
+                } else {
+                    section.image = '';
+                }
             } else if (field === 'section-grid-style') {
                 section.styleGridItems = Boolean(value);
             } else if (field === 'section-limit') {
@@ -518,6 +531,9 @@
                 section.type = ensuredType;
                 if (section.type === 'grid' && section.styleGridItems === undefined) {
                     section.styleGridItems = true;
+                }
+                if (!supportsHeaderImage(section.type)) {
+                    section.image = '';
                 }
                 if (!supportsElements(section.type)) {
                     section.elements = [];

@@ -188,6 +188,8 @@
 
                 const sectionDefinition = sectionDefinitions?.[section.type] || {};
                 const allowElements = sectionDefinition.supportsElements !== false;
+                const supportsHeaderImage =
+                    sectionDefinition.supportsHeaderImage === true;
                 const isFirstSection = index === 0;
                 const isLastSection = index === totalSections - 1;
 
@@ -283,24 +285,26 @@
                 titleField.append(titleInput);
                 sectionItem.append(titleField);
 
-                const imageField = createElement('label', {
-                    className: 'admin-builder__field',
-                });
-                imageField.append(
-                    createElement('span', {
-                        className: 'admin-builder__label',
-                        textContent: 'Optional header image URL',
-                    })
-                );
-                const imageInput = createElement('input', {
-                    className: 'admin-builder__input',
-                });
-                imageInput.type = 'url';
-                imageInput.placeholder = 'https://example.com/cover.jpg';
-                imageInput.value = section.image;
-                imageInput.dataset.field = 'section-image';
-                imageField.append(imageInput);
-                sectionItem.append(imageField);
+                if (supportsHeaderImage) {
+                    const imageField = createElement('label', {
+                        className: 'admin-builder__field',
+                    });
+                    imageField.append(
+                        createElement('span', {
+                            className: 'admin-builder__label',
+                            textContent: 'Optional header image URL',
+                        })
+                    );
+                    const imageInput = createElement('input', {
+                        className: 'admin-builder__input',
+                    });
+                    imageInput.type = 'url';
+                    imageInput.placeholder = 'https://example.com/cover.jpg';
+                    imageInput.value = section.image;
+                    imageInput.dataset.field = 'section-image';
+                    imageField.append(imageInput);
+                    sectionItem.append(imageField);
+                }
 
                 if (section.type === 'grid') {
                     const styleField = createElement('label', {
