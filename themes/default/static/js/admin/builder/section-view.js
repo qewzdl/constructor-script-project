@@ -391,6 +391,412 @@
             }
         };
 
+        const formatSettingsSummary = (section, sectionDefinition) => {
+            if (!section) {
+                return '';
+            }
+            const parts = [];
+            parts.push(
+                `Vertical padding: ${clampPaddingValue(section.paddingVertical)}px`
+            );
+            parts.push(
+                `Vertical margin: ${clampMarginValue(section.marginVertical)}px`
+            );
+            if (sectionDefinition?.supportsHeaderImage === true) {
+                parts.push(section.image ? 'Header image: added' : 'Header image: none');
+            }
+            if (section?.type === 'grid') {
+                parts.push(
+                    section.styleGridItems !== false
+                        ? 'Grid styling: on'
+                        : 'Grid styling: off'
+                );
+            }
+            const limitDefinition = sectionDefinition?.settings?.limit;
+            if (limitDefinition) {
+                const limitValue = Number.isFinite(section.limit) && section.limit > 0
+                    ? section.limit
+                    : 'Automatic';
+                parts.push(`Items limit: ${limitValue}`);
+            }
+            return parts.join(' · ');
+        };
+
+        const createSectionSettingsModal = ({
+            sectionItem,
+            section,
+            sectionDefinition,
+            onChange,
+            onClose,
+        }) => {
+            if (!sectionItem || !section) {
+                return () => {};
+            }
+
+            const existingModal = sectionItem.querySelector(
+                '[data-role="section-settings"]'
+            );
+            if (existingModal) {
+                const focusTarget = existingModal.querySelector('[data-field]');
+                if (focusTarget && typeof focusTarget.focus === 'function') {
+                    focusTarget.focus();
+                }
+                return () => {};
+            }
+
+            const scheduleChange = (() => {
+                let pending = false;
+                const notify = () => {
+                    pending = false;
+                    if (typeof onChange === 'function') {
+                        onChange();
+                    }
+                };
+                return () => {
+                    if (pending) {
+                        return;
+                    }
+                    pending = true;
+                    if (typeof window.requestAnimationFrame === 'function') {
+                        window.requestAnimationFrame(notify);
+                    } else {
+                        window.setTimeout(notify, 0);
+                    }
+                };
+            })();
+
+            const overlay = createElement('div', {
+                className: 'admin-builder__settings-overlay',
+                dataset: {
+                    role: 'section-settings',
+                },
+            });
+            const dialog = createElement('div', {
+                className: 'admin-builder__settings-dialog',
+                attributes: {
+                    role: 'dialog',
+                    'aria-modal': 'true',
+                },
+            });
+            dialog.setAttribute('tabindex', '-1');
+            const titleId = `admin-builder-section-settings-${
+                section.id || section.clientId
+            }`;
+            dialog.setAttribute('aria-labelledby', titleId);
+
+            const header = createElement('header', {
+                className: 'admin-builder__settings-header',
+            });
+            const titleNode = createElement('h2', {
+                className: 'admin-builder__settings-title',
+                textContent: 'Additional settings',
+            });
+            titleNode.id = titleId;
+            const closeButton = createElement('button', {
+                className:
+                    'admin-builder__button admin-builder__button--ghost admin-builder__settings-close',
+                type: 'button',
+                textContent: 'Close',
+            });
+            header.append(titleNode);
+
+            const body = createElement('div', {
+                className: 'admin-builder__settings-body',
+            });
+
+            const appendField = (field) => {
+                if (field) {
+                    body.append(field);
+                }
+            };
+
+            if (sectionDefinition?.supportsHeaderImage === true) {
+                const imageField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                imageField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Optional header image URL',
+                    })
+                );
+                const imageInput = createElement('input', {
+                    className: 'admin-builder__input',
+                });
+                imageInput.type = 'url';
+                imageInput.placeholder = 'https://example.com/cover.jpg';
+                imageInput.value = section.image || '';
+                imageInput.dataset.field = 'section-image';
+                const imageInputId = `admin-builder-section-image-${
+                    section.id || section.clientId
+                }`;
+                imageInput.id = imageInputId;
+                imageInput.addEventListener('input', scheduleChange);
+                imageField.append(imageInput);
+
+                if (section.type === 'hero') {
+                    const imageActions = createElement('div', {
+                        className: 'admin-builder__field-actions',
+                    });
+                    const browseButton = createElement('button', {
+                        className: 'admin-builder__media-button',
+                        textContent: 'Browse uploads',
+                        type: 'button',
+                        dataset: {
+                            action: 'open-media-library',
+                            mediaTarget: `#${imageInputId}`,
+                            mediaAllowedTypes: 'image',
+                        },
+                    });
+                    imageActions.append(browseButton);
+                    imageField.append(imageActions);
+                }
+
+                appendField(imageField);
+            }
+
+            if (section.type === 'grid') {
+                const styleField = createElement('label', {
+                    className: 'admin-builder__field admin-builder__field--checkbox',
+                });
+                const styleInput = createElement('input', {
+                    className: 'admin-builder__checkbox checkbox__input',
+                });
+                styleInput.type = 'checkbox';
+                styleInput.dataset.field = 'section-grid-style';
+                styleInput.checked = section.styleGridItems !== false;
+                styleInput.addEventListener('change', scheduleChange);
+                const styleLabel = createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Apply border, background, and padding to grid items',
+                });
+                styleField.append(styleInput, styleLabel);
+                appendField(styleField);
+            }
+
+            const limitDefinition = sectionDefinition?.settings?.limit;
+            if (limitDefinition) {
+                const limitField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                limitField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent:
+                            limitDefinition.label || 'Number of posts to display',
+                    })
+                );
+                const limitInput = createElement('input', {
+                    className: 'admin-builder__input',
+                });
+                limitInput.type = 'number';
+                if (Number.isFinite(limitDefinition.min)) {
+                    limitInput.min = String(limitDefinition.min);
+                }
+                if (Number.isFinite(limitDefinition.max)) {
+                    limitInput.max = String(limitDefinition.max);
+                }
+                limitInput.step = '1';
+                const defaultLimit = Number.isFinite(limitDefinition.default)
+                    ? limitDefinition.default
+                    : Number.parseInt(limitDefinition.default, 10);
+                const limitValue =
+                    Number.isFinite(section.limit) && section.limit > 0
+                        ? section.limit
+                        : Number.isFinite(defaultLimit) && defaultLimit > 0
+                          ? defaultLimit
+                          : NaN;
+                limitInput.value = Number.isFinite(limitValue)
+                    ? String(Math.round(limitValue))
+                    : '';
+                limitInput.dataset.field = 'section-limit';
+                limitInput.addEventListener('input', scheduleChange);
+                limitField.append(limitInput);
+                appendField(limitField);
+            }
+
+            const paddingValue = clampPaddingValue(section.paddingVertical);
+            const paddingField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            paddingField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Vertical padding',
+                })
+            );
+            const paddingRangeWrapper = createElement('div', {
+                className: 'admin-builder__range',
+            });
+            const paddingRangeInput = createElement('input', {
+                className: 'admin-builder__range-input',
+            });
+            paddingRangeInput.type = 'range';
+            paddingRangeInput.min = '0';
+            paddingRangeInput.max = String(paddingOptions.length - 1);
+            paddingRangeInput.step = '1';
+            paddingRangeInput.dataset.field = 'section-padding-vertical';
+            paddingRangeInput.dataset.options = paddingOptions.join(',');
+            const paddingRangeIndex = paddingIndexForValue(paddingValue);
+            paddingRangeInput.value = String(paddingRangeIndex);
+            paddingRangeInput.setAttribute(
+                'aria-valuemin',
+                String(paddingOptions[0])
+            );
+            paddingRangeInput.setAttribute(
+                'aria-valuemax',
+                String(paddingOptions[paddingOptions.length - 1])
+            );
+            paddingRangeInput.setAttribute('aria-valuenow', String(paddingValue));
+            paddingRangeInput.setAttribute(
+                'aria-valuetext',
+                `${paddingValue} pixels`
+            );
+            const paddingRangeValue = createElement('span', {
+                className: 'admin-builder__range-value',
+                textContent: `${paddingValue}px`,
+            });
+            paddingRangeValue.dataset.role = 'section-padding-value';
+            paddingRangeWrapper.append(paddingRangeInput, paddingRangeValue);
+            paddingRangeInput.addEventListener('input', () => {
+                const currentValue = paddingValueForIndex(paddingRangeInput.value);
+                paddingRangeValue.textContent = `${currentValue}px`;
+                paddingRangeInput.setAttribute('aria-valuenow', String(currentValue));
+                paddingRangeInput.setAttribute(
+                    'aria-valuetext',
+                    `${currentValue} pixels`
+                );
+                scheduleChange();
+            });
+            paddingField.append(paddingRangeWrapper);
+            appendField(paddingField);
+
+            const marginValue = clampMarginValue(section.marginVertical);
+            const marginField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            marginField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Vertical margin',
+                })
+            );
+            const marginRangeWrapper = createElement('div', {
+                className: 'admin-builder__range',
+            });
+            const marginRangeInput = createElement('input', {
+                className: 'admin-builder__range-input',
+            });
+            marginRangeInput.type = 'range';
+            marginRangeInput.min = '0';
+            marginRangeInput.max = String(marginOptions.length - 1);
+            marginRangeInput.step = '1';
+            marginRangeInput.dataset.field = 'section-margin-vertical';
+            marginRangeInput.dataset.options = marginOptions.join(',');
+            const marginRangeIndex = marginIndexForValue(marginValue);
+            marginRangeInput.value = String(marginRangeIndex);
+            marginRangeInput.setAttribute(
+                'aria-valuemin',
+                String(marginOptions[0])
+            );
+            marginRangeInput.setAttribute(
+                'aria-valuemax',
+                String(marginOptions[marginOptions.length - 1])
+            );
+            marginRangeInput.setAttribute('aria-valuenow', String(marginValue));
+            marginRangeInput.setAttribute(
+                'aria-valuetext',
+                `${marginValue} pixels`
+            );
+            const marginRangeValue = createElement('span', {
+                className: 'admin-builder__range-value',
+                textContent: `${marginValue}px`,
+            });
+            marginRangeValue.dataset.role = 'section-margin-value';
+            marginRangeWrapper.append(marginRangeInput, marginRangeValue);
+            marginRangeInput.addEventListener('input', () => {
+                const currentValue = marginValueForIndex(marginRangeInput.value);
+                marginRangeValue.textContent = `${currentValue}px`;
+                marginRangeInput.setAttribute('aria-valuenow', String(currentValue));
+                marginRangeInput.setAttribute(
+                    'aria-valuetext',
+                    `${currentValue} pixels`
+                );
+                scheduleChange();
+            });
+            marginField.append(marginRangeWrapper);
+            appendField(marginField);
+
+            const footer = createElement('div', {
+                className: 'admin-builder__settings-footer',
+            });
+            const doneButton = createElement('button', {
+                className: 'admin-builder__button',
+                type: 'button',
+                textContent: 'Done',
+            });
+            footer.append(doneButton);
+
+            dialog.append(header, body, footer);
+            overlay.append(dialog);
+            sectionItem.append(overlay);
+
+            const previousFocus = document.activeElement;
+
+            const closeModal = () => {
+                document.removeEventListener('keydown', handleKeyDown);
+                overlay.remove();
+                if (typeof onClose === 'function') {
+                    onClose();
+                }
+                if (previousFocus && typeof previousFocus.focus === 'function') {
+                    previousFocus.focus();
+                }
+            };
+
+            const handleKeyDown = (event) => {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closeModal();
+                }
+            };
+
+            closeButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                closeModal();
+            });
+            doneButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                closeModal();
+            });
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', handleKeyDown);
+
+            const focusInitialField = () => {
+                const focusTarget = dialog.querySelector('[data-field]');
+                if (focusTarget && typeof focusTarget.focus === 'function') {
+                    focusTarget.focus();
+                    return;
+                }
+                if (typeof dialog.focus === 'function') {
+                    dialog.focus();
+                }
+            };
+
+            if (typeof window.requestAnimationFrame === 'function') {
+                window.requestAnimationFrame(focusInitialField);
+            } else {
+                focusInitialField();
+            }
+
+            return closeModal;
+        };
+
         const render = (sections) => {
             listElement.innerHTML = '';
 
@@ -600,212 +1006,39 @@
                 titleField.append(titleInput);
                 sectionItem.append(titleField);
 
-                if (supportsHeaderImage) {
-                    const imageField = createElement('label', {
-                        className: 'admin-builder__field',
-                    });
-                    imageField.append(
-                        createElement('span', {
-                            className: 'admin-builder__label',
-                            textContent: 'Optional header image URL',
-                        })
+                const settingsContainer = createElement('div', {
+                    className: 'admin-builder__section-settings',
+                });
+                const settingsSummary = createElement('p', {
+                    className: 'admin-builder__settings-summary',
+                });
+                const updateSettingsSummary = () => {
+                    settingsSummary.textContent = formatSettingsSummary(
+                        section,
+                        sectionDefinition
                     );
-                    const imageInput = createElement('input', {
-                        className: 'admin-builder__input',
-                    });
-                    imageInput.type = 'url';
-                    imageInput.placeholder = 'https://example.com/cover.jpg';
-                    imageInput.value = section.image;
-                    imageInput.dataset.field = 'section-image';
-                    const imageInputId = `admin-builder-section-image-${section.id}`;
-                    imageInput.id = imageInputId;
-                    imageField.append(imageInput);
+                };
+                updateSettingsSummary();
 
-                    if (section.type === 'hero') {
-                        const imageActions = createElement('div', {
-                            className: 'admin-builder__field-actions',
-                        });
-                        const browseButton = createElement('button', {
-                            className: 'admin-builder__media-button',
-                            textContent: 'Browse uploads',
-                            type: 'button',
-                            dataset: {
-                                action: 'open-media-library',
-                                mediaTarget: `#${imageInputId}`,
-                                mediaAllowedTypes: 'image',
-                            },
-                        });
-                        imageActions.append(browseButton);
-                        imageField.append(imageActions);
-                    }
-
-                    sectionItem.append(imageField);
-                }
-
-                if (section.type === 'grid') {
-                    const styleField = createElement('label', {
-                        className:
-                            'admin-builder__field admin-builder__field--checkbox',
+                const settingsButton = createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost admin-builder__settings-button',
+                    type: 'button',
+                    textContent: 'Additional settings',
+                });
+                settingsButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    createSectionSettingsModal({
+                        sectionItem,
+                        section,
+                        sectionDefinition,
+                        onChange: updateSettingsSummary,
+                        onClose: updateSettingsSummary,
                     });
-                    const styleInput = createElement('input', {
-                        className: 'admin-builder__checkbox checkbox__input',
-                    });
-                    styleInput.type = 'checkbox';
-                    styleInput.dataset.field = 'section-grid-style';
-                    styleInput.checked = section.styleGridItems !== false;
-                    const styleLabel = createElement('span', {
-                        className: 'admin-builder__label',
-                        textContent:
-                            'Apply border, background, and padding to grid items',
-                    });
-                    styleField.append(styleInput, styleLabel);
-                    sectionItem.append(styleField);
-                }
+                });
 
-                const limitDefinition = sectionDefinition.settings?.limit;
-                if (limitDefinition) {
-                    const limitField = createElement('label', {
-                        className: 'admin-builder__field',
-                    });
-                    limitField.append(
-                        createElement('span', {
-                            className: 'admin-builder__label',
-                            textContent:
-                                limitDefinition.label ||
-                                'Number of posts to display',
-                        })
-                    );
-                    const limitInput = createElement('input', {
-                        className: 'admin-builder__input',
-                    });
-                    limitInput.type = 'number';
-                    if (Number.isFinite(limitDefinition.min)) {
-                        limitInput.min = String(limitDefinition.min);
-                    }
-                    if (Number.isFinite(limitDefinition.max)) {
-                        limitInput.max = String(limitDefinition.max);
-                    }
-                    limitInput.step = '1';
-                    const defaultLimit = Number.isFinite(limitDefinition.default)
-                        ? limitDefinition.default
-                        : Number.parseInt(limitDefinition.default, 10);
-                    const limitValue =
-                        Number.isFinite(section.limit) && section.limit > 0
-                            ? section.limit
-                            : Number.isFinite(defaultLimit) && defaultLimit > 0
-                              ? defaultLimit
-                              : NaN;
-                    limitInput.value = Number.isFinite(limitValue)
-                        ? String(Math.round(limitValue))
-                        : '';
-                    limitInput.dataset.field = 'section-limit';
-                    limitField.append(limitInput);
-                    sectionItem.append(limitField);
-                }
-
-                const paddingValue = clampPaddingValue(section.paddingVertical);
-                const marginValue = clampMarginValue(section.marginVertical);
-                const paddingField = createElement('label', {
-                    className: 'admin-builder__field',
-                });
-                paddingField.append(
-                    createElement('span', {
-                        className: 'admin-builder__label',
-                        textContent: 'Vertical padding',
-                    })
-                );
-                const rangeWrapper = createElement('div', {
-                    className: 'admin-builder__range',
-                });
-                const rangeInput = createElement('input', {
-                    className: 'admin-builder__range-input',
-                });
-                rangeInput.type = 'range';
-                rangeInput.min = '0';
-                rangeInput.max = String(paddingOptions.length - 1);
-                rangeInput.step = '1';
-                rangeInput.dataset.field = 'section-padding-vertical';
-                rangeInput.dataset.options = paddingOptions.join(',');
-                const rangeIndex = paddingIndexForValue(paddingValue);
-                rangeInput.value = String(rangeIndex);
-                rangeInput.setAttribute('aria-valuemin', String(paddingOptions[0]));
-                rangeInput.setAttribute(
-                    'aria-valuemax',
-                    String(paddingOptions[paddingOptions.length - 1])
-                );
-                rangeInput.setAttribute('aria-valuenow', String(paddingValue));
-                rangeInput.setAttribute(
-                    'aria-valuetext',
-                    `${paddingValue} pixels`
-                );
-                const rangeValue = createElement('span', {
-                    className: 'admin-builder__range-value',
-                    textContent: `${paddingValue}px`,
-                });
-                rangeValue.dataset.role = 'section-padding-value';
-                rangeWrapper.append(rangeInput, rangeValue);
-                rangeInput.addEventListener('input', () => {
-                    const currentValue = paddingValueForIndex(rangeInput.value);
-                    rangeValue.textContent = `${currentValue}px`;
-                    rangeInput.setAttribute('aria-valuenow', String(currentValue));
-                    rangeInput.setAttribute(
-                        'aria-valuetext',
-                        `${currentValue} pixels`
-                    );
-                });
-                paddingField.append(rangeWrapper);
-                sectionItem.append(paddingField);
-
-                const marginField = createElement('label', {
-                    className: 'admin-builder__field',
-                });
-                marginField.append(
-                    createElement('span', {
-                        className: 'admin-builder__label',
-                        textContent: 'Vertical margin',
-                    })
-                );
-                const marginRangeWrapper = createElement('div', {
-                    className: 'admin-builder__range',
-                });
-                const marginRangeInput = createElement('input', {
-                    className: 'admin-builder__range-input',
-                });
-                marginRangeInput.type = 'range';
-                marginRangeInput.min = '0';
-                marginRangeInput.max = String(marginOptions.length - 1);
-                marginRangeInput.step = '1';
-                marginRangeInput.dataset.field = 'section-margin-vertical';
-                marginRangeInput.dataset.options = marginOptions.join(',');
-                const marginRangeIndex = marginIndexForValue(marginValue);
-                marginRangeInput.value = String(marginRangeIndex);
-                marginRangeInput.setAttribute('aria-valuemin', String(marginOptions[0]));
-                marginRangeInput.setAttribute(
-                    'aria-valuemax',
-                    String(marginOptions[marginOptions.length - 1])
-                );
-                marginRangeInput.setAttribute('aria-valuenow', String(marginValue));
-                marginRangeInput.setAttribute(
-                    'aria-valuetext',
-                    `${marginValue} pixels`
-                );
-                const marginRangeValue = createElement('span', {
-                    className: 'admin-builder__range-value',
-                    textContent: `${marginValue}px`,
-                });
-                marginRangeValue.dataset.role = 'section-margin-value';
-                marginRangeWrapper.append(marginRangeInput, marginRangeValue);
-                marginRangeInput.addEventListener('input', () => {
-                    const currentValue = marginValueForIndex(marginRangeInput.value);
-                    marginRangeValue.textContent = `${currentValue}px`;
-                    marginRangeInput.setAttribute('aria-valuenow', String(currentValue));
-                    marginRangeInput.setAttribute(
-                        'aria-valuetext',
-                        `${currentValue} pixels`
-                    );
-                });
-                marginField.append(marginRangeWrapper);
-                sectionItem.append(marginField);
+                settingsContainer.append(settingsSummary, settingsButton);
+                sectionItem.append(settingsContainer);
 
                 const elementsContainer = createElement('div', {
                     className: 'admin-builder__section-elements',
