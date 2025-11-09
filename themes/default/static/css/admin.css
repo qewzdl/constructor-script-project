@@ -2589,14 +2589,6 @@
     color: var(--color-secondary);
 }
 
-.admin-builder__element-empty {
-    margin: 0;
-    padding: var(--size-xs) 0;
-    color: var(--color-secondary);
-    font-size: var(--font-size-sm);
-    text-align: center;
-}
-
 .admin-builder__section-elements {
     display: grid;
     gap: var(--size-sm);
@@ -3687,11 +3679,13 @@
 }
 
 .section-builder__empty,
-.admin-courses__selection-empty {
+.admin-courses__selection-empty,
+.admin-builder__element-empty {
     padding: var(--size-base);
     color: var(--color-secondary);
     text-align: center;
     border: 1px dashed var(--color-border);
+    font-size: var(--font-size-sm);
 }
 
 .admin-courses__meta {
