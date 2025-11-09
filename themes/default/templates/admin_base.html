@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {{- $lang := or .Language "en" -}}
-<html lang="{{ $lang }}" data-theme="light" style="overflow: hidden;">
+<html lang="{{ $lang }}" data-theme="light">
     {{ template "components/document-head" (dict "Context" . "Lang" $lang) }}
 
     <body

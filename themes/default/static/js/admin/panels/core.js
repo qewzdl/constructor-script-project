@@ -1152,6 +1152,33 @@
                                     </div>
                                 </div>
                             </fieldset>
+                            <fieldset class="admin-form__fieldset admin-courses__fieldset">
+                                <legend class="admin-form__legend">Downloadable files</legend>
+                                <p class="admin-card__description admin-form__hint">
+                                    Attach supporting documents that learners can download alongside this lesson.
+                                </p>
+                                <div class="admin-courses__picker">
+                                    <button
+                                        type="button"
+                                        class="admin-navigation__button"
+                                        data-role="course-video-attachment-add"
+                                    >
+                                        Attach file
+                                    </button>
+                                </div>
+                                <ul
+                                    class="admin-courses__selection-list"
+                                    data-role="course-video-attachment-list"
+                                    aria-live="polite"
+                                >
+                                    <li
+                                        class="admin-courses__selection-empty"
+                                        data-role="course-video-attachment-empty"
+                                    >
+                                        No files attached yet.
+                                    </li>
+                                </ul>
+                            </fieldset>
                             <div class="admin-form__group" data-role="course-video-upload-group">
                                 <label class="admin-form__label">
                                     Video file

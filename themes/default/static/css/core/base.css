@@ -974,6 +974,59 @@ textarea.form-field__input {
     gap: var(--size-xs);
 }
 
+.course-player__resources {
+    display: grid;
+    gap: var(--size-sm);
+    padding: var(--size-base);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-top);
+}
+
+.course-player__resources-title {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+}
+
+.course-player__resources-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--size-xs);
+}
+
+.course-player__resource-item {
+    display: flex;
+}
+
+.course-player__resource-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-xs);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
+}
+
+.course-player__resource-link:hover,
+.course-player__resource-link:focus-visible {
+    text-decoration: underline;
+}
+
+.course-player__resource-extension {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    padding: var(--size-xs);
+    border-radius: var(--size-xs);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    background-color: var(--color-primary-transparent);
+    color: var(--color-primary);
+}
+
 .course-player__video {
     width: 100%;
     max-height: 560px;

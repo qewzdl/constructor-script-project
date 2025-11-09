@@ -4,8 +4,11 @@ import (
 	"errors"
 	"math"
 	"mime/multipart"
+	"net/url"
 	"os"
+	"path"
 	"strings"
+	"unicode/utf8"
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
@@ -18,6 +21,11 @@ type VideoService struct {
 	uploadService *service.UploadService
 	themes        *theme.Manager
 }
+
+const (
+	defaultCourseVideoAttachmentTitle   = "Download"
+	maxCourseVideoAttachmentTitleLength = 200
+)
 
 func NewVideoService(videoRepo repository.CourseVideoRepository, uploadService *service.UploadService, themes *theme.Manager) *VideoService {
 	return &VideoService{
@@ -72,6 +80,8 @@ func (s *VideoService) Create(req models.CreateCourseVideoRequest, file *multipa
 		return nil, err
 	}
 
+	attachments := sanitizeCourseVideoAttachments(req.Attachments)
+
 	video := models.CourseVideo{
 		Title:           title,
 		Description:     strings.TrimSpace(req.Description),
@@ -79,6 +89,7 @@ func (s *VideoService) Create(req models.CreateCourseVideoRequest, file *multipa
 		Filename:        filename,
 		DurationSeconds: seconds,
 		Sections:        sections,
+		Attachments:     attachments,
 	}
 
 	if err := s.videoRepo.Create(&video); err != nil {
@@ -113,6 +124,10 @@ func (s *VideoService) Update(id uint, req models.UpdateCourseVideoRequest) (*mo
 			return nil, err
 		}
 		video.Sections = sections
+	}
+
+	if req.Attachments != nil {
+		video.Attachments = sanitizeCourseVideoAttachments(*req.Attachments)
 	}
 
 	if err := s.videoRepo.Update(video); err != nil {
@@ -164,4 +179,107 @@ func (s *VideoService) Exists(id uint) (bool, error) {
 		return false, errors.New("course video repository is not configured")
 	}
 	return s.videoRepo.Exists(id)
+}
+
+func sanitizeCourseVideoAttachments(input []models.CourseVideoAttachment) models.CourseVideoAttachments {
+	if len(input) == 0 {
+		return models.CourseVideoAttachments{}
+	}
+
+	attachments := make(models.CourseVideoAttachments, 0, len(input))
+	seen := make(map[string]struct{}, len(input))
+
+	for _, attachment := range input {
+		normalizedURL := normalizeAttachmentURL(attachment.URL)
+		if normalizedURL == "" {
+			continue
+		}
+		if _, exists := seen[normalizedURL]; exists {
+			continue
+		}
+
+		title := strings.TrimSpace(attachment.Title)
+		if title == "" {
+			title = deriveAttachmentTitle(normalizedURL)
+		}
+		if title == "" {
+			title = defaultCourseVideoAttachmentTitle
+		}
+		title = clampAttachmentTitle(title)
+
+		attachments = append(attachments, models.CourseVideoAttachment{
+			Title: title,
+			URL:   normalizedURL,
+		})
+		seen[normalizedURL] = struct{}{}
+	}
+
+	return attachments
+}
+
+func clampAttachmentTitle(title string) string {
+	if utf8.RuneCountInString(title) <= maxCourseVideoAttachmentTitleLength {
+		return title
+	}
+	runes := []rune(title)
+	return string(runes[:maxCourseVideoAttachmentTitleLength])
+}
+
+func deriveAttachmentTitle(source string) string {
+	if strings.TrimSpace(source) == "" {
+		return ""
+	}
+	parsed, err := url.Parse(source)
+	var candidate string
+	if err == nil {
+		candidate = parsed.Path
+	} else {
+		candidate = source
+	}
+	base := path.Base(candidate)
+	if base == "." || base == "/" {
+		base = ""
+	}
+	if base == "" {
+		return ""
+	}
+	decoded, err := url.PathUnescape(base)
+	if err == nil {
+		base = decoded
+	}
+	return strings.TrimSpace(base)
+}
+
+func normalizeAttachmentURL(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(trimmed)
+	if err != nil {
+		parsed, err = url.Parse("/" + strings.TrimLeft(trimmed, "/"))
+		if err != nil {
+			return ""
+		}
+	}
+
+	if parsed.Scheme == "" && parsed.Host == "" {
+		pathValue := parsed.Path
+		if !strings.HasPrefix(pathValue, "/") {
+			pathValue = "/" + strings.TrimLeft(pathValue, "/")
+		}
+		if strings.Contains(pathValue, "..") {
+			return ""
+		}
+		parsed.Path = pathValue
+		return parsed.String()
+	}
+
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "" && scheme != "http" && scheme != "https" {
+		return ""
+	}
+
+	return parsed.String()
 }

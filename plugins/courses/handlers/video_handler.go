@@ -53,6 +53,13 @@ func (h *VideoHandler) Create(c *gin.Context) {
 		}
 	}
 
+	if rawAttachments := c.PostForm("attachments"); rawAttachments != "" {
+		if err := json.Unmarshal([]byte(rawAttachments), &req.Attachments); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid attachments payload"})
+			return
+		}
+	}
+
 	file, err := c.FormFile("video")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "video file is required"})

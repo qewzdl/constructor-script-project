@@ -734,6 +734,15 @@
         const courseVideoFileInput = courseVideoForm?.querySelector('input[name="video"]');
         const courseVideoSubmitButton = courseVideoForm?.querySelector('[data-role="course-video-submit"]');
         const courseVideoDeleteButton = courseVideoForm?.querySelector('[data-role="course-video-delete"]');
+        const courseVideoAttachmentList = courseVideoForm?.querySelector(
+            '[data-role="course-video-attachment-list"]'
+        );
+        const courseVideoAttachmentEmpty = courseVideoForm?.querySelector(
+            '[data-role="course-video-attachment-empty"]'
+        );
+        const courseVideoAttachmentAddButton = courseVideoForm?.querySelector(
+            '[data-role="course-video-attachment-add"]'
+        );
 
         const courseTopicForm = root.querySelector('#admin-course-topic-form');
         const courseTopicTitleInput = courseTopicForm?.querySelector('input[name="title"]');
@@ -972,6 +981,7 @@
                 testSearchQuery: '',
                 packageSearchQuery: '',
                 pendingQuestionFocusId: '',
+                videoAttachments: [],
                 grant: {
                     query: '',
                     results: [],
@@ -5788,6 +5798,291 @@
         updateCoursePackageGrantAvailability();
         updateCoursePackageGrantExpirationState();
 
+        const normaliseCourseVideoAttachment = (attachment) => {
+            if (!attachment || typeof attachment !== 'object') {
+                return null;
+            }
+            const url = normaliseString(attachment?.url ?? attachment?.URL ?? '').trim();
+            if (!url) {
+                return null;
+            }
+            const title = normaliseString(
+                attachment?.title ??
+                    attachment?.Title ??
+                    attachment?.label ??
+                    attachment?.Label ??
+                    attachment?.name ??
+                    attachment?.Name ??
+                    ''
+            );
+            return {
+                url,
+                title,
+            };
+        };
+
+        const deriveCourseVideoAttachmentName = (attachment) => {
+            if (!attachment) {
+                return 'Download';
+            }
+            const rawTitle = normaliseString(attachment.title).trim();
+            if (rawTitle) {
+                return rawTitle;
+            }
+            const url = normaliseString(attachment.url).trim();
+            if (!url) {
+                return 'Download';
+            }
+            let candidate = url;
+            try {
+                const parsed = new URL(url, window.location?.origin || 'http://localhost');
+                if (parsed.pathname) {
+                    candidate = parsed.pathname;
+                }
+            } catch (error) {
+                // fallback to original url
+            }
+            const segments = candidate.split('/').filter(Boolean);
+            const lastSegment = segments.length ? segments[segments.length - 1] : candidate;
+            try {
+                const decoded = decodeURIComponent(lastSegment);
+                if (decoded.trim()) {
+                    return decoded.trim();
+                }
+            } catch (error) {
+                // ignore decoding failure
+            }
+            return lastSegment || 'Download';
+        };
+
+        const renderCourseVideoAttachments = () => {
+            if (!courseVideoAttachmentList || !courseVideoAttachmentEmpty) {
+                return;
+            }
+            courseVideoAttachmentList.innerHTML = '';
+            const attachments = Array.isArray(state.courses.videoAttachments)
+                ? state.courses.videoAttachments
+                : [];
+            if (!attachments.length) {
+                courseVideoAttachmentEmpty.hidden = false;
+                courseVideoAttachmentList.appendChild(courseVideoAttachmentEmpty);
+                return;
+            }
+            courseVideoAttachmentEmpty.hidden = true;
+            attachments.forEach((attachment, index) => {
+                const item = createElement('li', {
+                    className: 'admin-courses__selection-item',
+                    dataset: { index: String(index) },
+                });
+                const info = createElement('div', {
+                    className: 'admin-courses__selection-info',
+                });
+                const titleInput = createElement('input', {
+                    className: 'admin-form__input admin-courses__attachment-input',
+                    type: 'text',
+                    value: normaliseString(attachment.title),
+                    placeholder: deriveCourseVideoAttachmentName(attachment),
+                    dataset: { role: 'course-video-attachment-title' },
+                    attributes: {
+                        'aria-label': 'Attachment name',
+                    },
+                });
+                info.appendChild(titleInput);
+                info.appendChild(
+                    createElement('span', {
+                        className: 'admin-card__description admin-form__hint',
+                        textContent: attachment.url,
+                    })
+                );
+                const actions = createElement('div', {
+                    className: 'admin-courses__selection-actions',
+                });
+                actions.appendChild(
+                    createElement('button', {
+                        type: 'button',
+                        className: 'admin-navigation__button',
+                        textContent: 'Replace',
+                        dataset: { action: 'course-video-attachment-replace' },
+                    })
+                );
+                actions.appendChild(
+                    createElement('button', {
+                        type: 'button',
+                        className: 'admin-navigation__button admin-navigation__button--danger',
+                        textContent: 'Remove',
+                        dataset: { action: 'course-video-attachment-remove' },
+                    })
+                );
+                item.appendChild(info);
+                item.appendChild(actions);
+                courseVideoAttachmentList.appendChild(item);
+            });
+        };
+
+        const setCourseVideoAttachments = (attachments) => {
+            const next = [];
+            const seen = new Set();
+            const source = Array.isArray(attachments) ? attachments : [];
+            source.forEach((entry) => {
+                const normalized = normaliseCourseVideoAttachment(entry);
+                if (!normalized || seen.has(normalized.url)) {
+                    return;
+                }
+                seen.add(normalized.url);
+                next.push({
+                    url: normalized.url,
+                    title: normaliseString(normalized.title),
+                });
+            });
+            state.courses.videoAttachments = next;
+            renderCourseVideoAttachments();
+        };
+
+        const buildCourseVideoAttachmentsPayload = () =>
+            (Array.isArray(state.courses.videoAttachments)
+                ? state.courses.videoAttachments
+                : []
+            )
+                .map((attachment) => ({
+                    url: normaliseString(attachment?.url ?? '').trim(),
+                    title: normaliseString(attachment?.title ?? ''),
+                }))
+                .filter((attachment) => attachment.url);
+
+        const getCourseVideoAttachments = (video) => {
+            if (!video) {
+                return [];
+            }
+            if (Array.isArray(video?.attachments)) {
+                return video.attachments;
+            }
+            if (Array.isArray(video?.Attachments)) {
+                return video.Attachments;
+            }
+            return [];
+        };
+
+        const openCourseAttachmentPicker = async (options = {}) => {
+            if (!mediaLibrary) {
+                showAlert('Media library is not available in this environment.', 'error');
+                return null;
+            }
+            const allowedTypes = Array.isArray(options.allowedTypes)
+                ? options.allowedTypes
+                : ['file', 'image', 'video'];
+            try {
+                const selection = await mediaLibrary.open({
+                    allowedTypes,
+                });
+                if (!selection) {
+                    return null;
+                }
+                return normaliseCourseVideoAttachment({
+                    url: selection.url ?? selection.URL ?? '',
+                    title: selection.filename ?? selection.Filename ?? '',
+                });
+            } catch (error) {
+                if (!error) {
+                    return null;
+                }
+                const message =
+                    typeof error.message === 'string'
+                        ? error.message
+                        : 'Failed to open media library.';
+                showAlert(message, 'error');
+                return null;
+            }
+        };
+
+        const handleCourseVideoAttachmentAdd = async (event) => {
+            event.preventDefault();
+            const candidate = await openCourseAttachmentPicker();
+            if (!candidate) {
+                return;
+            }
+            const exists = state.courses.videoAttachments.some(
+                (attachment) => attachment.url === candidate.url
+            );
+            if (exists) {
+                showAlert('This file is already attached to the lesson.', 'info');
+                return;
+            }
+            state.courses.videoAttachments.push({
+                url: candidate.url,
+                title: normaliseString(candidate.title),
+            });
+            renderCourseVideoAttachments();
+        };
+
+        const handleCourseVideoAttachmentListClick = async (event) => {
+            const target = event.target instanceof HTMLElement ? event.target : null;
+            if (!target) {
+                return;
+            }
+            const action = target.dataset.action;
+            if (action !== 'course-video-attachment-remove' && action !== 'course-video-attachment-replace') {
+                return;
+            }
+            event.preventDefault();
+            const item = target.closest('[data-index]');
+            if (!item) {
+                return;
+            }
+            const index = Number.parseInt(item.dataset.index || '', 10);
+            if (!Number.isFinite(index)) {
+                return;
+            }
+            const attachments = state.courses.videoAttachments;
+            if (!Array.isArray(attachments) || index < 0 || index >= attachments.length) {
+                return;
+            }
+            if (action === 'course-video-attachment-remove') {
+                attachments.splice(index, 1);
+                renderCourseVideoAttachments();
+                return;
+            }
+            const current = attachments[index];
+            const candidate = await openCourseAttachmentPicker();
+            if (!candidate) {
+                return;
+            }
+            const exists = attachments.some((attachment, attachmentIndex) => {
+                if (attachmentIndex === index) {
+                    return false;
+                }
+                return attachment.url === candidate.url;
+            });
+            if (exists) {
+                showAlert('This file is already attached to the lesson.', 'info');
+                return;
+            }
+            attachments[index] = {
+                url: candidate.url,
+                title: normaliseString(current?.title ?? '') || normaliseString(candidate.title),
+            };
+            renderCourseVideoAttachments();
+        };
+
+        const handleCourseVideoAttachmentListInput = (event) => {
+            const target = event.target instanceof HTMLInputElement ? event.target : null;
+            if (!target || target.dataset.role !== 'course-video-attachment-title') {
+                return;
+            }
+            const item = target.closest('[data-index]');
+            if (!item) {
+                return;
+            }
+            const index = Number.parseInt(item.dataset.index || '', 10);
+            if (!Number.isFinite(index)) {
+                return;
+            }
+            const attachments = state.courses.videoAttachments;
+            if (!Array.isArray(attachments) || index < 0 || index >= attachments.length) {
+                return;
+            }
+            attachments[index].title = target.value;
+        };
+
         const resetCourseVideoForm = () => {
             if (!courseVideoForm) {
                 return;
@@ -5795,6 +6090,7 @@
             courseVideoForm.reset();
             delete courseVideoForm.dataset.id;
             state.courses.selectedVideoId = '';
+            setCourseVideoAttachments([]);
             if (courseVideoSectionsManager) {
                 courseVideoSectionsManager.reset();
             }
@@ -5865,6 +6161,7 @@
                     : [];
                 courseVideoSectionsManager.setSections(rawSections);
             }
+            setCourseVideoAttachments(getCourseVideoAttachments(video));
             if (courseVideoUploadGroup) {
                 courseVideoUploadGroup.hidden = true;
             }
@@ -6115,6 +6412,7 @@
             const sections = courseVideoSectionsManager
                 ? courseVideoSectionsManager.getSections()
                 : [];
+            const attachments = buildCourseVideoAttachmentsPayload();
             if (!title) {
                 showAlert('Please provide a video title.', 'error');
                 return;
@@ -6137,6 +6435,7 @@
                                 title,
                                 description,
                                 sections,
+                                attachments,
                             }),
                         }
                     );
@@ -6153,6 +6452,7 @@
                         formData.append('description', description);
                     }
                     formData.append('sections', JSON.stringify(sections));
+                    formData.append('attachments', JSON.stringify(attachments));
                     const preferred = slugifyPreferredName(title);
                     if (preferred) {
                         formData.append('preferred_name', preferred);
@@ -12277,6 +12577,18 @@
         userDeleteButton?.addEventListener('click', handleUserDelete);
         courseVideoForm?.addEventListener('submit', handleCourseVideoSubmit);
         courseVideoDeleteButton?.addEventListener('click', handleCourseVideoDelete);
+        courseVideoAttachmentAddButton?.addEventListener(
+            'click',
+            handleCourseVideoAttachmentAdd
+        );
+        courseVideoAttachmentList?.addEventListener(
+            'click',
+            handleCourseVideoAttachmentListClick
+        );
+        courseVideoAttachmentList?.addEventListener(
+            'input',
+            handleCourseVideoAttachmentListInput
+        );
         courseTopicForm?.addEventListener('submit', handleCourseTopicSubmit);
         courseTopicDeleteButton?.addEventListener('click', handleCourseTopicDelete);
         courseTopicStepAddButton?.addEventListener(

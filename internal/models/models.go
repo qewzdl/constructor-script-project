@@ -143,8 +143,9 @@ type CourseVideo struct {
 	Filename        string `gorm:"not null" json:"filename"`
 	DurationSeconds int    `gorm:"not null" json:"duration_seconds"`
 
-	Sections     PostSections `gorm:"type:jsonb" json:"sections"`
-	SectionsHTML string       `gorm:"-" json:"sections_html,omitempty"`
+	Sections     PostSections           `gorm:"type:jsonb" json:"sections"`
+	Attachments  CourseVideoAttachments `gorm:"type:jsonb" json:"attachments"`
+	SectionsHTML string                 `gorm:"-" json:"sections_html,omitempty"`
 }
 
 type CourseTopic struct {
@@ -328,16 +329,18 @@ type UpdateCommentRequest struct {
 }
 
 type CreateCourseVideoRequest struct {
-	Title       string `form:"title" binding:"required"`
-	Description string `form:"description"`
-	Preferred   string `form:"preferred_name"`
-	Sections    []Section
+	Title       string                  `form:"title" binding:"required"`
+	Description string                  `form:"description"`
+	Preferred   string                  `form:"preferred_name"`
+	Sections    []Section               `form:"-" json:"sections"`
+	Attachments []CourseVideoAttachment `form:"-" json:"attachments"`
 }
 
 type UpdateCourseVideoRequest struct {
-	Title       string     `json:"title" binding:"required"`
-	Description string     `json:"description"`
-	Sections    *[]Section `json:"sections"`
+	Title       string                   `json:"title" binding:"required"`
+	Description string                   `json:"description"`
+	Sections    *[]Section               `json:"sections"`
+	Attachments *[]CourseVideoAttachment `json:"attachments"`
 }
 
 type CreateCourseTopicRequest struct {
@@ -516,6 +519,13 @@ type ListContent struct {
 	Ordered bool     `json:"ordered"`
 }
 
+type CourseVideoAttachment struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+
+type CourseVideoAttachments []CourseVideoAttachment
+
 func (ps *PostSections) Scan(value interface{}) error {
 	if value == nil {
 		*ps = PostSections{}
@@ -535,6 +545,32 @@ func (ps PostSections) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return json.Marshal(ps)
+}
+
+func (a *CourseVideoAttachments) Scan(value interface{}) error {
+	if value == nil {
+		*a = CourseVideoAttachments{}
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("failed to scan CourseVideoAttachments")
+	}
+
+	if len(bytes) == 0 {
+		*a = CourseVideoAttachments{}
+		return nil
+	}
+
+	return json.Unmarshal(bytes, a)
+}
+
+func (a CourseVideoAttachments) Value() (driver.Value, error) {
+	if len(a) == 0 {
+		return nil, nil
+	}
+	return json.Marshal(a)
 }
 
 type CreatePostRequest struct {

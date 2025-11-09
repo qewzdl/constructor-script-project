@@ -2178,7 +2178,7 @@
 .section-builder__actions {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-start;
     justify-content: flex-end;
     gap: var(--size-sm);
 }
@@ -3633,7 +3633,6 @@
     gap: var(--size-xs);
     padding: var(--size-sm);
     border: 1px dashed var(--color-border);
-    background: var(--color-bg-subtle);
 }
 
 .admin-courses__grant-selection [data-role='course-package-grant-selection-label'] {
@@ -3649,27 +3648,38 @@
 .admin-courses__selection-list {
     list-style: none;
     display: grid;
-    gap: var(--size-xs);
+    gap: var(--size-sm);
     margin: 0;
     padding: 0;
+    border: 1px solid var(--color-border);
+    padding: var(--size-sm);
+    background-color: var(--color-bg-bottom);
 }
 
 .admin-courses__selection-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: var(--size-sm);
     padding: var(--size-base);
     border: 1px solid var(--color-border);
-    background: var(--color-bg-base);
+    border-left: 4px solid var(--color-primary);
+    background-color: var(--color-bg-top);
+    flex-wrap: wrap;
 }
 
 .admin-courses__selection-info {
     display: grid;
+    gap: var(--size-xs);
+    flex: 1;
+    min-width: 200px;
 }
 
 .admin-courses__selection-label {
     font-weight: 600;
+}
+
+.admin-courses__attachment-input {
+    text-overflow: ellipsis;
 }
 
 .admin-courses__selection-meta {
@@ -3678,8 +3688,9 @@
 }
 
 .admin-courses__selection-actions {
+    height: 100%;
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--size-xs);
 }
 

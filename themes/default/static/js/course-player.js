@@ -41,6 +41,107 @@
         return Number.isFinite(parsed) ? parsed : undefined;
     };
 
+    const normaliseAttachment = (attachment) => {
+        if (!attachment || typeof attachment !== "object") {
+            return null;
+        }
+        const rawUrl =
+            (typeof attachment.url === "string" && attachment.url) ||
+            (typeof attachment.URL === "string" && attachment.URL) ||
+            "";
+        const url = rawUrl.trim();
+        if (!url) {
+            return null;
+        }
+        const title =
+            (typeof attachment.title === "string" && attachment.title) ||
+            (typeof attachment.Title === "string" && attachment.Title) ||
+            "";
+        return {
+            url,
+            title,
+        };
+    };
+
+    const deriveAttachmentLabel = (attachment) => {
+        if (!attachment) {
+            return "Download";
+        }
+        const rawTitle = typeof attachment.title === "string" ? attachment.title.trim() : "";
+        if (rawTitle) {
+            return rawTitle;
+        }
+        const url = typeof attachment.url === "string" ? attachment.url.trim() : "";
+        if (!url) {
+            return "Download";
+        }
+        let candidate = url;
+        try {
+            const parsed = new URL(url, window.location?.origin || "http://localhost");
+            if (parsed.pathname) {
+                candidate = parsed.pathname;
+            }
+        } catch (error) {
+            // fall back to the raw URL
+        }
+        const segments = candidate.split("/").filter(Boolean);
+        const lastSegment = segments.length ? segments[segments.length - 1] : candidate;
+        try {
+            const decoded = decodeURIComponent(lastSegment);
+            if (decoded.trim()) {
+                return decoded.trim();
+            }
+        } catch (error) {
+            // ignore decoding failure
+        }
+        return lastSegment || "Download";
+    };
+
+    const deriveAttachmentFileName = (attachment, fallbackLabel = "") => {
+        const label = fallbackLabel.trim();
+        if (label) {
+            return label;
+        }
+        const url = typeof attachment?.url === "string" ? attachment.url : "";
+        if (!url) {
+            return "";
+        }
+        const segments = url.split("/").filter(Boolean);
+        const lastSegment = segments.length ? segments[segments.length - 1] : url;
+        try {
+            return decodeURIComponent(lastSegment);
+        } catch (error) {
+            return lastSegment;
+        }
+    };
+
+    const getAttachmentExtension = (url) => {
+        if (typeof url !== "string") {
+            return "";
+        }
+        const match = url.match(/\.([a-z0-9]{2,8})(?:$|[?#])/i);
+        return match ? match[1].toUpperCase() : "";
+    };
+
+    const normaliseVideoAttachments = (video) => {
+        const source = Array.isArray(video?.attachments)
+            ? video.attachments
+            : Array.isArray(video?.Attachments)
+            ? video.Attachments
+            : [];
+        const seen = new Set();
+        const attachments = [];
+        source.forEach((entry) => {
+            const normalised = normaliseAttachment(entry);
+            if (!normalised || seen.has(normalised.url)) {
+                return;
+            }
+            seen.add(normalised.url);
+            attachments.push(normalised);
+        });
+        return attachments;
+    };
+
     const createOptionInput = (question, option, type) => {
         const item = document.createElement("li");
         item.className = "course-player__option";
@@ -332,6 +433,55 @@
                 }
                 wrapper.appendChild(videoEl);
                 container.appendChild(wrapper);
+            }
+
+            const attachments = normaliseVideoAttachments(video);
+            if (attachments.length > 0) {
+                const resources = document.createElement("section");
+                resources.className = "course-player__resources";
+
+                const heading = document.createElement("h4");
+                heading.className = "course-player__resources-title";
+                heading.textContent = "Downloadable files";
+                resources.appendChild(heading);
+
+                const list = document.createElement("ul");
+                list.className = "course-player__resources-list";
+
+                attachments.forEach((attachment) => {
+                    const label = deriveAttachmentLabel(attachment);
+                    const item = document.createElement("li");
+                    item.className = "course-player__resource-item";
+
+                    const link = document.createElement("a");
+                    link.className = "course-player__resource-link";
+                    link.href = attachment.url;
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+
+                    const fileName = deriveAttachmentFileName(attachment, label);
+                    if (fileName) {
+                        link.download = fileName;
+                    }
+
+                    const extension = getAttachmentExtension(attachment.url);
+                    if (extension) {
+                        const badge = document.createElement("span");
+                        badge.className = "course-player__resource-extension";
+                        badge.textContent = extension;
+                        link.appendChild(badge);
+                    }
+
+                    const text = document.createElement("span");
+                    text.textContent = label;
+                    link.appendChild(text);
+
+                    item.appendChild(link);
+                    list.appendChild(item);
+                });
+
+                resources.appendChild(list);
+                container.appendChild(resources);
             }
 
             const fragment = document.createDocumentFragment();
