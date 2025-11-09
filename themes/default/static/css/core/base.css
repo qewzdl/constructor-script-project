@@ -194,7 +194,7 @@ textarea {
 }
 
 .header__nav-link--active {
-    border-color: transparent;
+    border-color: var(--color-primary);
     color: var(--color-primary);
     background-color: var(--color-primary-transparent);
     font-weight: 600;
@@ -246,7 +246,6 @@ textarea {
 }
 
 .header__nav-link:hover {
-    background-color: var(--color-bg-bottom);
     color: var(--color-primary);
 }
 
