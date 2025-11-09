@@ -492,12 +492,6 @@
                 textContent: 'Additional settings',
             });
             titleNode.id = titleId;
-            const closeButton = createElement('button', {
-                className:
-                    'admin-builder__button admin-builder__button--ghost admin-builder__settings-close',
-                type: 'button',
-                textContent: 'Close',
-            });
             header.append(titleNode);
 
             const body = createElement('div', {
@@ -761,10 +755,6 @@
                 }
             };
 
-            closeButton.addEventListener('click', (event) => {
-                event.preventDefault();
-                closeModal();
-            });
             doneButton.addEventListener('click', (event) => {
                 event.preventDefault();
                 closeModal();
