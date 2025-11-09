@@ -2092,13 +2092,6 @@
     gap: var(--size-sm);
 }
 
-.section-builder__empty {
-    padding: var(--size-base);
-    border: 1px dashed var(--color-border);
-    color: var(--color-secondary);
-    text-align: center;
-}
-
 .section-builder__list {
     display: grid;
     gap: var(--size-sm);
@@ -2199,11 +2192,10 @@
 }
 
 .section-builder__add {
-    border: 1px dashed var(--color-secondary);
+    border: 1px solid var(--color-border);
     padding: var(--size-xs) var(--size-mid);
     background: var(--color-bg-top);
     color: var(--color-secondary);
-    font-weight: 600;
     font-size: var(--font-size-sm);
 }
 
@@ -3694,10 +3686,12 @@
     gap: var(--size-xs);
 }
 
+.section-builder__empty,
 .admin-courses__selection-empty {
-    padding: var(--size-xs) var(--size-sm);
+    padding: var(--size-base);
     color: var(--color-secondary);
-    font-style: italic;
+    text-align: center;
+    border: 1px dashed var(--color-border);
 }
 
 .admin-courses__meta {

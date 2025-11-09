@@ -407,6 +407,7 @@
             if (!sections.length) {
                 if (emptyState) {
                     emptyState.hidden = false;
+                    listElement.append(emptyState);
                 }
                 return;
             }

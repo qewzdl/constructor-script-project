@@ -2536,6 +2536,7 @@
             list.innerHTML = '';
             if (!state.sections.length) {
                 empty.hidden = false;
+                list.appendChild(empty);
                 return;
             }
             empty.hidden = true;

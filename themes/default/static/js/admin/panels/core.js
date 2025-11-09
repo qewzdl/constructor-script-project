@@ -282,8 +282,11 @@
                                     adjust their content before publishing.
                                 </p>
                                 <div class="section-builder" data-section-builder="post">
-                                    <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
-                                    <ol class="section-builder__list" data-role="section-list"></ol>
+                                    <ol class="section-builder__list" data-role="section-list">
+                                        <li class="section-builder__empty" data-role="section-empty">
+                                            No sections added yet.
+                                        </li>
+                                    </ol>
                                     <div class="section-builder__actions">
                                         <button type="button" class="section-builder__add" data-role="section-add">
                                             Add section
@@ -509,8 +512,11 @@
                                     published page in the order shown below.
                                 </p>
                                 <div class="section-builder" data-section-builder="page">
-                                    <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
-                                    <ol class="section-builder__list" data-role="section-list"></ol>
+                                    <ol class="section-builder__list" data-role="section-list">
+                                        <li class="section-builder__empty" data-role="section-empty">
+                                            No sections added yet.
+                                        </li>
+                                    </ol>
                                     <div class="section-builder__actions">
                                         <button type="button" class="section-builder__add" data-role="section-add">
                                             Add section
@@ -1143,8 +1149,11 @@
                                     text, images, and other elements to introduce each lesson.
                                 </p>
                                 <div class="section-builder" data-section-builder="course-video">
-                                    <p class="section-builder__empty" data-role="section-empty">No sections added yet.</p>
-                                    <ol class="section-builder__list" data-role="section-list"></ol>
+                                    <ol class="section-builder__list" data-role="section-list">
+                                        <li class="section-builder__empty" data-role="section-empty">
+                                            No sections added yet.
+                                        </li>
+                                    </ol>
                                     <div class="section-builder__actions">
                                         <button type="button" class="section-builder__add" data-role="section-add">
                                             Add section
