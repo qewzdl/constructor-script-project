@@ -3112,22 +3112,6 @@
     font-weight: 600;
 }
 
-.admin-type-picker__close {
-    border: none;
-    background: none;
-    color: var(--color-secondary);
-    font: inherit;
-    cursor: pointer;
-    padding: 0.35rem;
-    line-height: 1;
-}
-
-.admin-type-picker__close:hover,
-.admin-type-picker__close:focus-visible {
-    color: var(--color-text);
-    outline: none;
-}
-
 .admin-type-picker__search {
     display: grid;
     gap: var(--size-sm);

@@ -48,13 +48,7 @@
             textContent: title,
         });
         titleNode.id = titleId;
-        const closeButton = createElement('button', {
-            className: 'admin-type-picker__close',
-            type: 'button',
-            textContent: 'Close',
-        });
-        closeButton.setAttribute('aria-label', 'Close section type picker');
-        header.append(titleNode, closeButton);
+        header.append(titleNode);
 
         const searchWrapper = createElement('div', {
             className: 'admin-type-picker__search',
@@ -216,10 +210,6 @@
             filterOptions(event.target.value || '');
         });
 
-        closeButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            closeModal();
-        });
         cancelButton.addEventListener('click', (event) => {
             event.preventDefault();
             closeModal();
