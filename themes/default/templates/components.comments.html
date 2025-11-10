@@ -78,58 +78,60 @@
         data-current-user-id="{{ with .CurrentUser }}{{ .ID }}{{ end }}"
         data-is-admin="{{ if .IsAdmin }}true{{ else }}false{{ end }}"
     >
-        <div class="comments__header-row">
-            <h2 class="comments__title">Comments</h2>
-            <span class="comments__count" data-comment-count>{{ .CommentCount }}</span>
-        </div>
-
-        <div id="comment-alert" class="comments__alert" role="status" hidden></div>
-
-        {{ if .IsAuthenticated }}
-        <form
-            id="comment-form"
-            class="comments__form"
-            method="post"
-            novalidate
-            data-action="/api/v1/posts/{{ .Post.ID }}/comments"
-        >
-            <div class="comments__reply-context" data-reply-context hidden>
-                Replying to <span class="comments__reply-target" data-reply-to></span>
-                <button type="button" class="comments__cancel-reply" data-action="cancel-reply">
-                    Cancel
-                </button>
+        <div class="comments__container">
+            <div class="comments__header-row">
+                <h2 class="comments__title">Comments</h2>
+                <span class="comments__count" data-comment-count>{{ .CommentCount }}</span>
             </div>
-            <label class="comments__label" for="comment-content">Join the discussion</label>
-            <textarea
-                id="comment-content"
-                name="content"
-                class="comments__textarea"
-                placeholder="Share your thoughts..."
-                rows="5"
-                maxlength="2000"
-                required
-            ></textarea>
-            <input type="hidden" name="parent_id" value="" />
-            <button type="submit" class="comments__submit">Post comment</button>
-        </form>
-        {{ else }}
-        <p class="comments__sign-in">
-            Want to join the conversation?
-            <a href="/login?redirect={{ $encodedPostPath }}">Sign in</a>
-            or
-            <a href="/register?redirect={{ $encodedPostPath }}">create an account</a>
-            to share your thoughts.
-        </p>
-        {{ end }}
 
-        <p class="comments__empty" data-comments-empty {{ if .Comments }}hidden{{ end }}>
-            Be the first to share your thoughts.
-        </p>
+            <div id="comment-alert" class="comments__alert" role="status" hidden></div>
 
-        <ol class="comments__list" data-comments-list>
-            {{ range .Comments }}
-            {{ template "components/comments/item" (dict "Comment" . "Root" $root) }}
+            {{ if .IsAuthenticated }}
+            <form
+                id="comment-form"
+                class="comments__form"
+                method="post"
+                novalidate
+                data-action="/api/v1/posts/{{ .Post.ID }}/comments"
+            >
+                <div class="comments__reply-context" data-reply-context hidden>
+                    Replying to <span class="comments__reply-target" data-reply-to></span>
+                    <button type="button" class="comments__cancel-reply" data-action="cancel-reply">
+                        Cancel
+                    </button>
+                </div>
+                <label class="comments__label" for="comment-content">Join the discussion</label>
+                <textarea
+                    id="comment-content"
+                    name="content"
+                    class="comments__textarea"
+                    placeholder="Share your thoughts..."
+                    rows="5"
+                    maxlength="2000"
+                    required
+                ></textarea>
+                <input type="hidden" name="parent_id" value="" />
+                <button type="submit" class="comments__submit">Post comment</button>
+            </form>
+            {{ else }}
+            <p class="comments__sign-in">
+                Want to join the conversation?
+                <a href="/login?redirect={{ $encodedPostPath }}">Sign in</a>
+                or
+                <a href="/register?redirect={{ $encodedPostPath }}">create an account</a>
+                to share your thoughts.
+            </p>
             {{ end }}
-        </ol>
+
+            <p class="comments__empty" data-comments-empty {{ if .Comments }}hidden{{ end }}>
+                Be the first to share your thoughts.
+            </p>
+
+            <ol class="comments__list" data-comments-list>
+                {{ range .Comments }}
+                {{ template "components/comments/item" (dict "Comment" . "Root" $root) }}
+                {{ end }}
+            </ol>
+        </div>
     </section>
 {{ end }}

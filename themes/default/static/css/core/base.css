@@ -1361,11 +1361,6 @@ textarea.form-field__input {
     color: var(--color-accent);
 }
 
-.post {
-    display: grid;
-    gap: var(--common-gap);
-}
-
 .post__layout {
     display: grid;
     gap: var(--common-gap);
@@ -1798,7 +1793,7 @@ section[class*="__section--mv-128"] {
     }
 }
 
-.comments {
+.comments__container {
     display: grid;
     gap: var(--common-gap);
     padding: var(--size-mid);
@@ -2020,7 +2015,7 @@ section[class*="__section--mv-128"] {
 }
 
 @media (max-width: 640px) {
-    .comments {
+    .comments__container {
         padding: var(--size-base);
     }
 
@@ -2628,10 +2623,15 @@ body.course-modal-open {
     background-color: var(--color-page-view-header);
 }
 
+.comments {
+    margin-top: var(--common-gap);
+}
+
 .page-view__header > *,
 .page-view__section-container,
 .footer > *,
-.post > *:not(.post-progress) {
+.post > *:not(.post-progress),
+.comments {
     max-width: var(--page-max-width);
     padding-inline: var(--page-side-padding);
     margin-inline: auto;
