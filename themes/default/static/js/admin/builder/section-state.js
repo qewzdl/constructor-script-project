@@ -55,8 +55,8 @@
     const marginOptions = [0, 4, 8, 16, 32, 64, 128];
     const defaultPadding = paddingOptions[0];
     const defaultMargin = marginOptions[0];
-    const newSectionDefaultPadding = paddingOptions.includes(32)
-        ? 32
+    const newSectionDefaultPadding = paddingOptions.includes(64)
+        ? 64
         : paddingOptions[Math.min(2, paddingOptions.length - 1)];
     const newSectionDefaultMargin = defaultMargin;
 
