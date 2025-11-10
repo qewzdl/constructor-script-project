@@ -945,6 +945,13 @@
                     const summary = document.createElement("p");
                     summary.className = "course-player__test-summary";
                     const summaryParts = [`Score: ${payload.result.score} / ${payload.result.max_score}`];
+                    const record = payload.result.record;
+                    if (record && Number.isFinite(record.score) && Number.isFinite(record.max_score)) {
+                        summaryParts.push(`Record: ${record.score} / ${record.max_score}`);
+                    }
+                    if (record && Number.isFinite(record.attempts) && record.attempts > 0) {
+                        summaryParts.push(`Attempts: ${record.attempts}`);
+                    }
                     if (Number.isFinite(testState.elapsedSeconds)) {
                         summaryParts.push(`Time: ${formatTimerDisplay(testState.elapsedSeconds)}`);
                     }

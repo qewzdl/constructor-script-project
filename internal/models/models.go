@@ -432,10 +432,18 @@ type CourseTestAnswerResult struct {
 	Explanation string `json:"explanation"`
 }
 
+type CourseTestRecord struct {
+	Score      int        `json:"score"`
+	MaxScore   int        `json:"max_score"`
+	Attempts   int        `json:"attempts"`
+	AchievedAt *time.Time `json:"achieved_at,omitempty"`
+}
+
 type CourseTestSubmissionResult struct {
 	Score    int                      `json:"score"`
 	MaxScore int                      `json:"max_score"`
 	Answers  []CourseTestAnswerResult `json:"answers"`
+	Record   *CourseTestRecord        `json:"record,omitempty"`
 }
 
 type AuthResponse struct {

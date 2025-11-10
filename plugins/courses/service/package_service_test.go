@@ -215,6 +215,9 @@ func (m *mockTestRepo) ListStructure(testIDs []uint) (map[uint][]models.CourseTe
 	return result, nil
 }
 func (m *mockTestRepo) SaveResult(result *models.CourseTestResult) error { return nil }
+func (m *mockTestRepo) GetBestResult(testID, userID uint) (*models.CourseTestResult, int64, error) {
+	return nil, 0, nil
+}
 
 func (m *mockAccessRepo) Upsert(access *models.CoursePackageAccess) error { return nil }
 
@@ -348,12 +351,12 @@ func TestPackageServiceListForUserPopulatesContent(t *testing.T) {
 		topics: map[uint]models.CourseTopic{
 			topicID: {ID: topicID, Title: "Concurrency", Description: "Manage goroutines"},
 		},
-                steps: map[uint][]models.CourseTopicStep{
-                        topicID: {
-                                {ID: 100, TopicID: topicID, StepType: models.CourseTopicStepTypeVideo, Position: 1, VideoID: &videoID},
-                                {ID: 101, TopicID: topicID, StepType: models.CourseTopicStepTypeTest, Position: 2, TestID: &testID},
-                        },
-                },
+		steps: map[uint][]models.CourseTopicStep{
+			topicID: {
+				{ID: 100, TopicID: topicID, StepType: models.CourseTopicStepTypeVideo, Position: 1, VideoID: &videoID},
+				{ID: 101, TopicID: topicID, StepType: models.CourseTopicStepTypeTest, Position: 2, TestID: &testID},
+			},
+		},
 	}
 
 	videoRepo := &mockVideoRepo{

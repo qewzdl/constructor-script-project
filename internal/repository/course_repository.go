@@ -61,6 +61,7 @@ type CourseTestRepository interface {
 	ReplaceStructure(testID uint, questions []models.CourseTestQuestion) error
 	ListStructure(testIDs []uint) (map[uint][]models.CourseTestQuestion, error)
 	SaveResult(result *models.CourseTestResult) error
+	GetBestResult(testID, userID uint) (*models.CourseTestResult, int64, error)
 }
 
 type courseVideoRepository struct {
@@ -659,4 +660,39 @@ func (r *courseTestRepository) SaveResult(result *models.CourseTestResult) error
 		return errors.New("result is required")
 	}
 	return r.db.Create(result).Error
+}
+
+func (r *courseTestRepository) GetBestResult(testID, userID uint) (*models.CourseTestResult, int64, error) {
+	if r == nil || r.db == nil {
+		return nil, 0, errors.New("course test repository is not initialised")
+	}
+	if testID == 0 {
+		return nil, 0, errors.New("test id is required")
+	}
+	if userID == 0 {
+		return nil, 0, errors.New("user id is required")
+	}
+
+	var attempts int64
+	query := r.db.Model(&models.CourseTestResult{}).Where("test_id = ? AND user_id = ?", testID, userID)
+	if err := query.Count(&attempts).Error; err != nil {
+		return nil, 0, err
+	}
+	if attempts == 0 {
+		return nil, 0, nil
+	}
+
+	var record models.CourseTestResult
+	err := r.db.
+		Where("test_id = ? AND user_id = ?", testID, userID).
+		Order("score DESC, max_score DESC, created_at ASC, id ASC").
+		First(&record).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, attempts, nil
+		}
+		return nil, 0, err
+	}
+
+	return &record, attempts, nil
 }

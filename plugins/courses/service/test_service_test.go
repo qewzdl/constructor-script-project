@@ -41,6 +41,22 @@ func (m *mockCourseTestRepository) SaveResult(result *models.CourseTestResult) e
 	return nil
 }
 
+func (m *mockCourseTestRepository) GetBestResult(testID, userID uint) (*models.CourseTestResult, int64, error) {
+	var attempts int64
+	var best *models.CourseTestResult
+	for _, result := range m.saved {
+		if result == nil || result.TestID != testID || result.UserID != userID {
+			continue
+		}
+		attempts++
+		if best == nil || result.Score > best.Score || (result.Score == best.Score && result.MaxScore > best.MaxScore) {
+			copy := *result
+			best = &copy
+		}
+	}
+	return best, attempts, nil
+}
+
 func TestTestServiceBuildQuestionModels(t *testing.T) {
 	svc := &TestService{}
 
@@ -183,6 +199,16 @@ func TestTestServiceSubmit(t *testing.T) {
 
 	if len(repo.saved) != 1 {
 		t.Fatalf("expected saved result, got %d", len(repo.saved))
+	}
+
+	if result.Record == nil {
+		t.Fatalf("expected record to be returned")
+	}
+	if result.Record.Score != 3 || result.Record.MaxScore != 3 {
+		t.Fatalf("unexpected record: %+v", result.Record)
+	}
+	if result.Record.Attempts != 1 {
+		t.Fatalf("expected record attempts to equal 1, got %d", result.Record.Attempts)
 	}
 
 	var stored []struct {

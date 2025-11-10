@@ -190,10 +190,29 @@ func (s *TestService) Submit(testID uint, userID uint, req models.SubmitCourseTe
 		return nil, err
 	}
 
+	best, attempts, err := s.testRepo.GetBestResult(test.ID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var submissionRecord *models.CourseTestRecord
+	if best != nil {
+		submissionRecord = &models.CourseTestRecord{
+			Score:    best.Score,
+			MaxScore: best.MaxScore,
+			Attempts: int(attempts),
+		}
+		if !best.CreatedAt.IsZero() {
+			achievedAt := best.CreatedAt.UTC()
+			submissionRecord.AchievedAt = &achievedAt
+		}
+	}
+
 	return &models.CourseTestSubmissionResult{
 		Score:    score,
 		MaxScore: maxScore,
 		Answers:  results,
+		Record:   submissionRecord,
 	}, nil
 }
 
