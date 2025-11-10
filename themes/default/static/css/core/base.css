@@ -66,7 +66,6 @@ textarea {
 }
 
 .header__nav {
-    width: 100%;
     display: flex;
     align-items: center;
     gap: var(--common-gap);
@@ -2634,10 +2633,12 @@ body.course-modal-open {
 .page-view__section-container,
 .footer > *,
 .post > *:not(.post-progress),
-.comments {
+.comments,
+.search > * {
     max-width: var(--page-max-width);
     padding-inline: var(--page-side-padding);
     margin-inline: auto;
+    width: 100%;
 }
 
 .page-view__title, .page-view__description {
@@ -2684,17 +2685,22 @@ body.course-modal-open {
     .post__layout > *,
     .post__content > *, 
     .blog__posts > *, 
-    .search > *, 
     .search__posts > *,
     .profile__grid > *,
     .post__sidebar > *,
     .post__content,
-    .auth__container {
+    .auth__container,
+    .search__container {
         border-inline: none !important;
     }
 
+    .search__results > *:first-child {
+        padding-inline: var(--page-side-padding);
+    }
+
     .post__layout,
-    .comments {
+    .comments,
+    .search > * {
         padding-inline: 0 !important;
     }
 

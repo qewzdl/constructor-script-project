@@ -13,114 +13,116 @@
     {{ $hint := default "Use the search form above to explore the knowledge base." .Hint }}
     {{ $result := .Result }}
     <section class="search">
-        <form class="search__form" action="{{ $action }}" method="{{ $method }}" role="search" aria-label="Site search">
-            <div class="search__fields">
-                <div class="search__input-group">
-                    <label class="search__label" for="{{ $id }}-query">Search query</label>
-                    <input
-                        id="{{ $id }}-query"
-                        class="search__input"
-                        type="search"
-                        name="q"
-                        value="{{ $query }}"
-                        placeholder="{{ $placeholder }}"
-                        required
-                    />
-                </div>
-
-                {{ if $showFilters }}
-                <div class="search__input-group">
-                    <label class="search__label" id="{{ $id }}-type-label" for="{{ $id }}-type-trigger">{{ $filterLabel }}</label>
-                    <div class="search__custom-select" data-custom-select>
+        <div class="search__container">
+            <form class="search__form" action="{{ $action }}" method="{{ $method }}" role="search" aria-label="Site search">
+                <div class="search__fields">
+                    <div class="search__input-group">
+                        <label class="search__label" for="{{ $id }}-query">Search query</label>
                         <input
-                            type="hidden"
-                            name="type"
-                            value="{{ $searchType }}"
-                            data-custom-select-input
+                            id="{{ $id }}-query"
+                            class="search__input"
+                            type="search"
+                            name="q"
+                            value="{{ $query }}"
+                            placeholder="{{ $placeholder }}"
+                            required
                         />
-                        <button
-                            id="{{ $id }}-type-trigger"
-                            class="search__custom-trigger"
-                            type="button"
-                            aria-haspopup="listbox"
-                            aria-expanded="false"
-                            aria-labelledby="{{ $id }}-type-label {{ $id }}-type-trigger"
-                            aria-controls="{{ $id }}-type-options"
-                            data-custom-select-trigger
-                        >
-                            <span data-custom-select-label>
-                                {{- if eq $searchType "title" -}}Title{{- else if eq $searchType "content" -}}Content{{- else if eq $searchType "tag" -}}Tag{{- else if eq $searchType "author" -}}Author{{- else -}}Title &amp; content{{- end -}}
-                            </span>
-                            <span class="search__custom-icon" aria-hidden="true"></span>
-                        </button>
-                        <ul
-                            id="{{ $id }}-type-options"
-                            class="search__custom-options"
-                            role="listbox"
-                            aria-labelledby="{{ $id }}-type-label"
-                            tabindex="-1"
-                            hidden
-                            data-custom-select-list
-                        >
-                            <li
-                                id="{{ $id }}-type-option-all"
-                                class="search__custom-option{{ if or (eq $searchType "") (eq $searchType "all") }} search__custom-option--selected{{ end }}"
-                                role="option"
-                                data-value="all"
-                                aria-selected="{{ if or (eq $searchType "") (eq $searchType "all") }}true{{ else }}false{{ end }}"
-                                data-custom-select-option
-                            >
-                                Title &amp; content
-                            </li>
-                            <li
-                                id="{{ $id }}-type-option-title"
-                                class="search__custom-option{{ if eq $searchType "title" }} search__custom-option--selected{{ end }}"
-                                role="option"
-                                data-value="title"
-                                aria-selected="{{ if eq $searchType "title" }}true{{ else }}false{{ end }}"
-                                data-custom-select-option
-                            >
-                                Title
-                            </li>
-                            <li
-                                id="{{ $id }}-type-option-content"
-                                class="search__custom-option{{ if eq $searchType "content" }} search__custom-option--selected{{ end }}"
-                                role="option"
-                                data-value="content"
-                                aria-selected="{{ if eq $searchType "content" }}true{{ else }}false{{ end }}"
-                                data-custom-select-option
-                            >
-                                Content
-                            </li>
-                            <li
-                                id="{{ $id }}-type-option-tag"
-                                class="search__custom-option{{ if eq $searchType "tag" }} search__custom-option--selected{{ end }}"
-                                role="option"
-                                data-value="tag"
-                                aria-selected="{{ if eq $searchType "tag" }}true{{ else }}false{{ end }}"
-                                data-custom-select-option
-                            >
-                                Tag
-                            </li>
-                            <li
-                                id="{{ $id }}-type-option-author"
-                                class="search__custom-option{{ if eq $searchType "author" }} search__custom-option--selected{{ end }}"
-                                role="option"
-                                data-value="author"
-                                aria-selected="{{ if eq $searchType "author" }}true{{ else }}false{{ end }}"
-                                data-custom-select-option
-                            >
-                                Author
-                            </li>
-                        </ul>
                     </div>
-                </div>
-                {{ else }}
-                <input type="hidden" name="type" value="{{ $searchType }}" />
-                {{ end }}
-            </div>
 
-            <button type="submit" class="search__submit">{{ $submitLabel }}</button>
+                    {{ if $showFilters }}
+                    <div class="search__input-group">
+                        <label class="search__label" id="{{ $id }}-type-label" for="{{ $id }}-type-trigger">{{ $filterLabel }}</label>
+                        <div class="search__custom-select" data-custom-select>
+                            <input
+                                type="hidden"
+                                name="type"
+                                value="{{ $searchType }}"
+                                data-custom-select-input
+                            />
+                            <button
+                                id="{{ $id }}-type-trigger"
+                                class="search__custom-trigger"
+                                type="button"
+                                aria-haspopup="listbox"
+                                aria-expanded="false"
+                                aria-labelledby="{{ $id }}-type-label {{ $id }}-type-trigger"
+                                aria-controls="{{ $id }}-type-options"
+                                data-custom-select-trigger
+                            >
+                                <span data-custom-select-label>
+                                    {{- if eq $searchType "title" -}}Title{{- else if eq $searchType "content" -}}Content{{- else if eq $searchType "tag" -}}Tag{{- else if eq $searchType "author" -}}Author{{- else -}}Title &amp; content{{- end -}}
+                                </span>
+                                <span class="search__custom-icon" aria-hidden="true"></span>
+                            </button>
+                            <ul
+                                id="{{ $id }}-type-options"
+                                class="search__custom-options"
+                                role="listbox"
+                                aria-labelledby="{{ $id }}-type-label"
+                                tabindex="-1"
+                                hidden
+                                data-custom-select-list
+                            >
+                                <li
+                                    id="{{ $id }}-type-option-all"
+                                    class="search__custom-option{{ if or (eq $searchType "") (eq $searchType "all") }} search__custom-option--selected{{ end }}"
+                                    role="option"
+                                    data-value="all"
+                                    aria-selected="{{ if or (eq $searchType "") (eq $searchType "all") }}true{{ else }}false{{ end }}"
+                                    data-custom-select-option
+                                >
+                                    Title &amp; content
+                                </li>
+                                <li
+                                    id="{{ $id }}-type-option-title"
+                                    class="search__custom-option{{ if eq $searchType "title" }} search__custom-option--selected{{ end }}"
+                                    role="option"
+                                    data-value="title"
+                                    aria-selected="{{ if eq $searchType "title" }}true{{ else }}false{{ end }}"
+                                    data-custom-select-option
+                                >
+                                    Title
+                                </li>
+                                <li
+                                    id="{{ $id }}-type-option-content"
+                                    class="search__custom-option{{ if eq $searchType "content" }} search__custom-option--selected{{ end }}"
+                                    role="option"
+                                    data-value="content"
+                                    aria-selected="{{ if eq $searchType "content" }}true{{ else }}false{{ end }}"
+                                    data-custom-select-option
+                                >
+                                    Content
+                                </li>
+                                <li
+                                    id="{{ $id }}-type-option-tag"
+                                    class="search__custom-option{{ if eq $searchType "tag" }} search__custom-option--selected{{ end }}"
+                                    role="option"
+                                    data-value="tag"
+                                    aria-selected="{{ if eq $searchType "tag" }}true{{ else }}false{{ end }}"
+                                    data-custom-select-option
+                                >
+                                    Tag
+                                </li>
+                                <li
+                                    id="{{ $id }}-type-option-author"
+                                    class="search__custom-option{{ if eq $searchType "author" }} search__custom-option--selected{{ end }}"
+                                    role="option"
+                                    data-value="author"
+                                    aria-selected="{{ if eq $searchType "author" }}true{{ else }}false{{ end }}"
+                                    data-custom-select-option
+                                >
+                                    Author
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    {{ else }}
+                    <input type="hidden" name="type" value="{{ $searchType }}" />
+                    {{ end }}
+                </div>
+
+                <button type="submit" class="search__submit">{{ $submitLabel }}</button>
+            </div>
         </form>
 
         {{ if and $showResults $hasQuery }}
