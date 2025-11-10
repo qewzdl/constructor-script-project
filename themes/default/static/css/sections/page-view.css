@@ -4,6 +4,10 @@
     flex-direction: column;
 }
 
+.page-view__section:nth-child(2n) {
+    background-color: var(--color-bg-top);
+}
+
 .page-view__header-container {
     display: grid;
     gap: var(--size-xs);

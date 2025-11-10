@@ -2064,7 +2064,6 @@ section[class*="__section--mv-128"] {
 }
 
 .footer__container {
-    width: 100%;
     display: grid;
     gap: var(--size-mid);
 }
@@ -2186,8 +2185,8 @@ section[class*="__section--mv-128"] {
 }
 
 .footer__bottom {
-    width: 100%;
-    margin: 0 auto;
+    margin-top: var(--size-mid);
+    padding-top: var(--size-sm);
     border-top: 1px solid var(--color-border-darker);
     display: flex;
     justify-content: space-between;
@@ -2616,13 +2615,14 @@ body.course-modal-open {
     display: grid;
 }
 
-.page-view__header {
+.page-view__header, .footer {
     padding-block: var(--size-lg);
     background-color: var(--color-page-view-header);
 }
 
 .page-view__header > *,
-.page-view__section-container {
+.page-view__section-container,
+.footer > * {
     max-width: var(--page-max-width);
     padding-inline: var(--page-side-padding);
     margin-inline: auto;
