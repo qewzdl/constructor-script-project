@@ -165,6 +165,213 @@
         return item;
     };
 
+    const FEEDBACK_DURATION_MS = 3000;
+
+    const normaliseTextAnswer = (value) => {
+        return typeof value === "string" ? value.trim() : "";
+    };
+
+    const formatTimerDisplay = (elapsedSeconds) => {
+        if (!Number.isFinite(elapsedSeconds) || elapsedSeconds < 0) {
+            return "00:00";
+        }
+        const totalSeconds = Math.floor(elapsedSeconds);
+        const minutes = Math.floor(totalSeconds / 60)
+            .toString()
+            .padStart(2, "0");
+        const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+        return `${minutes}:${seconds}`;
+    };
+
+    const evaluateAnswerCorrectness = (question, submission) => {
+        if (!question || !submission) {
+            return false;
+        }
+        const type = question.type;
+        if (type === "text") {
+            const expected = normaliseTextAnswer(question.answer_text).toLowerCase();
+            if (!expected) {
+                return false;
+            }
+            const provided = normaliseTextAnswer(submission.text).toLowerCase();
+            return provided !== "" && provided === expected;
+        }
+        if (type === "single_choice") {
+            const options = Array.isArray(question.options) ? question.options : [];
+            if (!options.length) {
+                return false;
+            }
+            const correctOption = options.find((option) => option && option.correct);
+            if (!correctOption) {
+                return false;
+            }
+            const choice = Array.isArray(submission.option_ids) ? submission.option_ids[0] : undefined;
+            return choice != null && Number(choice) === Number(correctOption.id);
+        }
+        if (type === "multiple_choice") {
+            const options = Array.isArray(question.options) ? question.options : [];
+            const correctOptions = options.filter((option) => option && option.correct);
+            if (!correctOptions.length) {
+                return false;
+            }
+            const expectedSet = new Set(correctOptions.map((option) => Number(option.id)));
+            const provided = Array.isArray(submission.option_ids)
+                ? submission.option_ids.map((value) => Number(value))
+                : [];
+            if (provided.length !== expectedSet.size) {
+                return false;
+            }
+            for (const id of provided) {
+                if (!expectedSet.has(Number(id))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    };
+
+    const deriveSubmissionText = (question, submission) => {
+        if (!question) {
+            return "";
+        }
+        if (question.type === "text") {
+            return normaliseTextAnswer(submission?.text || "");
+        }
+        const options = Array.isArray(question.options) ? question.options : [];
+        const optionMap = new Map(options.map((option) => [Number(option?.id), option?.text || ""]));
+        const optionIds = Array.isArray(submission?.option_ids) ? submission.option_ids : [];
+        const labels = optionIds
+            .map((id) => {
+                const label = optionMap.get(Number(id));
+                return typeof label === "string" ? label : "";
+            })
+            .filter((label) => label.trim() !== "");
+        return labels.join(", ");
+    };
+
+    const deriveCorrectAnswerText = (question) => {
+        if (!question) {
+            return "";
+        }
+        if (question.type === "text") {
+            return normaliseTextAnswer(question.answer_text || "");
+        }
+        const options = Array.isArray(question.options) ? question.options : [];
+        const correct = options
+            .filter((option) => option && option.correct)
+            .map((option) => option.text || "")
+            .filter((text) => text.trim() !== "");
+        return correct.join(", ");
+    };
+
+    const createQuestionElement = (question, index) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "course-player__question course-player__question--active";
+
+        const title = document.createElement("h3");
+        title.className = "course-player__question-title";
+        title.textContent = `${index + 1}. ${question?.prompt || "Question"}`;
+        wrapper.appendChild(title);
+
+        const type = question?.type || "text";
+        let textarea = null;
+        let optionInputs = [];
+
+        if (type === "text") {
+            textarea = document.createElement("textarea");
+            textarea.className = "course-player__answer course-player__answer--text";
+            textarea.rows = 4;
+            textarea.dataset.questionId = question?.id != null ? question.id : "";
+            textarea.dataset.questionType = "text";
+            textarea.placeholder = "Type your answer";
+            wrapper.appendChild(textarea);
+        } else {
+            const options = Array.isArray(question?.options) ? question.options : [];
+            const optionsList = document.createElement("ul");
+            optionsList.className = "course-player__options";
+            options.forEach((option) => {
+                const optionItem = createOptionInput(question, option, type);
+                const input = optionItem.querySelector("input");
+                if (input) {
+                    optionInputs.push(input);
+                }
+                optionsList.appendChild(optionItem);
+            });
+            wrapper.appendChild(optionsList);
+        }
+
+        return {
+            element: wrapper,
+            focus: () => {
+                if (textarea) {
+                    textarea.focus();
+                    return;
+                }
+                if (optionInputs.length > 0) {
+                    optionInputs[0].focus();
+                }
+            },
+            validate: () => {
+                if (type === "text") {
+                    const value = normaliseTextAnswer(textarea?.value || "");
+                    if (!value) {
+                        return {
+                            valid: false,
+                            message: "Please enter an answer before continuing.",
+                        };
+                    }
+                } else if (type === "single_choice") {
+                    const checked = optionInputs.some((input) => input.checked);
+                    if (!checked) {
+                        return {
+                            valid: false,
+                            message: "Select one option to continue.",
+                        };
+                    }
+                } else if (type === "multiple_choice") {
+                    const checkedCount = optionInputs.filter((input) => input.checked).length;
+                    if (checkedCount === 0) {
+                        return {
+                            valid: false,
+                            message: "Select at least one option to continue.",
+                        };
+                    }
+                }
+                return { valid: true };
+            },
+            getSubmission: () => {
+                const submission = {
+                    question_id: question?.id != null ? question.id : null,
+                    text: "",
+                    option_ids: [],
+                };
+                if (type === "text") {
+                    submission.text = normaliseTextAnswer(textarea?.value || "");
+                } else if (type === "single_choice") {
+                    const checked = optionInputs.find((input) => input.checked);
+                    if (checked) {
+                        submission.option_ids = [Number(checked.value)];
+                    }
+                } else if (type === "multiple_choice") {
+                    const selected = optionInputs
+                        .filter((input) => input.checked)
+                        .map((input) => Number(input.value));
+                    submission.option_ids = selected;
+                }
+                return submission;
+            },
+            setDisabled: (disabled) => {
+                if (textarea) {
+                    textarea.disabled = disabled;
+                }
+                optionInputs.forEach((input) => {
+                    input.disabled = disabled;
+                });
+            },
+        };
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
         const root = document.querySelector("[data-course-player]");
         if (!root) {
@@ -489,12 +696,28 @@
             return fragment;
         };
 
+
+
         const renderTest = (topicIndex, stepIndex) => {
             const topic = state.course?.package?.topics?.[topicIndex];
             const step = topic?.steps?.[stepIndex];
             const test = step?.test;
             const container = document.createElement("div");
             container.className = "course-player__test";
+            container.dataset.courseTestCleanup = "";
+
+            let timerInterval = null;
+
+            const stopTimer = () => {
+                if (timerInterval) {
+                    window.clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+            };
+
+            container.__cleanup = () => {
+                stopTimer();
+            };
 
             if (test?.description) {
                 const intro = document.createElement("p");
@@ -509,194 +732,365 @@
             form.dataset.topicIndex = topicIndex;
             form.dataset.stepIndex = stepIndex;
 
-            const questionsList = document.createElement("ol");
-            questionsList.className = "course-player__questions";
             const questions = Array.isArray(test?.questions) ? test.questions : [];
+            if (questions.length === 0) {
+                const empty = document.createElement("p");
+                empty.className = "course-player__empty";
+                empty.textContent = "This test doesn't have any questions yet.";
+                form.appendChild(empty);
+                container.appendChild(form);
+                return container;
+            }
 
+            const questionIndexMap = new Map();
             questions.forEach((question, index) => {
-                const item = document.createElement("li");
-                item.className = "course-player__question";
-
-                const title = document.createElement("h3");
-                title.className = "course-player__question-title";
-                title.textContent = `${index + 1}. ${question?.prompt || "Question"}`;
-                item.appendChild(title);
-
-                const type = question?.type || "text";
-                if (type === "text") {
-                    const textarea = document.createElement("textarea");
-                    textarea.className = "course-player__answer course-player__answer--text";
-                    textarea.rows = 4;
-                    textarea.dataset.questionId = question.id;
-                    textarea.dataset.questionType = "text";
-                    textarea.placeholder = "Type your answer";
-                    item.appendChild(textarea);
-                } else {
-                    const options = Array.isArray(question?.options) ? question.options : [];
-                    const optionsList = document.createElement("ul");
-                    optionsList.className = "course-player__options";
-                    options.forEach((option) => {
-                        optionsList.appendChild(createOptionInput(question, option, type));
-                    });
-                    item.appendChild(optionsList);
+                if (question?.id != null) {
+                    questionIndexMap.set(Number(question.id), index);
                 }
-
-                questionsList.appendChild(item);
             });
 
-            form.appendChild(questionsList);
+            const testState = {
+                started: false,
+                currentIndex: 0,
+                answers: new Array(questions.length).fill(null),
+                awaitingFeedback: false,
+                startedAt: null,
+                elapsedSeconds: 0,
+            };
+
+            const timer = document.createElement("p");
+            timer.className = "course-player__test-timer";
+            timer.textContent = "Time: 00:00";
+            timer.hidden = true;
+
+            const progress = document.createElement("p");
+            progress.className = "course-player__question-counter";
+            progress.hidden = true;
+
+            const startBlock = document.createElement("div");
+            startBlock.className = "course-player__test-start";
+            const startButton = document.createElement("button");
+            startButton.type = "button";
+            startButton.className = "button button--primary";
+            startButton.textContent = "Start test";
+            startBlock.appendChild(startButton);
+
+            const removeStartBlock = () => {
+                if (!startBlock.isConnected) {
+                    return;
+                }
+                startBlock.remove();
+            };
+
+            const questionContainer = document.createElement("div");
+            questionContainer.className = "course-player__question-step";
+            questionContainer.hidden = true;
+
+            const feedback = document.createElement("div");
+            feedback.className = "course-player__feedback";
+            feedback.hidden = true;
+            feedback.setAttribute("role", "status");
 
             const actions = document.createElement("div");
             actions.className = "course-player__actions";
+            actions.hidden = true;
 
-            const submit = document.createElement("button");
-            submit.type = "submit";
-            submit.className = "button button--primary course-player__submit";
-            submit.textContent = "Submit answers";
-            submit.dataset.loadingLabel = "Submitting...";
-            actions.appendChild(submit);
-            form.appendChild(actions);
+            const answerButton = document.createElement("button");
+            answerButton.type = "button";
+            answerButton.className = "button button--primary course-player__submit";
+            answerButton.textContent = "Submit answer";
+            actions.appendChild(answerButton);
 
             const error = document.createElement("p");
             error.className = "course-player__test-error";
             error.hidden = true;
-            form.appendChild(error);
 
             const result = document.createElement("div");
             result.className = "course-player__test-result";
             result.hidden = true;
             result.setAttribute("aria-live", "polite");
+
+            const attachActions = () => {
+                if (!actions.isConnected) {
+                    form.insertBefore(actions, error);
+                }
+            };
+
+            form.appendChild(timer);
+            form.appendChild(progress);
+            form.appendChild(startBlock);
+            form.appendChild(questionContainer);
+            form.appendChild(feedback);
+            form.appendChild(error);
             form.appendChild(result);
 
-            form.__resultContainer = result;
-            form.__errorElement = error;
-            form.__submitButton = submit;
-            form.addEventListener("submit", async (event) => {
-                event.preventDefault();
+            let currentQuestionUI = null;
+
+            const updateProgress = (index) => {
+                progress.textContent = `Question ${index + 1} of ${questions.length}`;
+            };
+
+            const showFeedbackMessage = (message, status) => {
+                feedback.textContent = message;
+                feedback.hidden = false;
+                feedback.classList.remove(
+                    "course-player__feedback--correct",
+                    "course-player__feedback--incorrect",
+                    "course-player__feedback--info"
+                );
+                if (status) {
+                    feedback.classList.add(`course-player__feedback--${status}`);
+                }
+            };
+
+            const clearFeedback = () => {
+                feedback.hidden = true;
+                feedback.textContent = "";
+                feedback.classList.remove(
+                    "course-player__feedback--correct",
+                    "course-player__feedback--incorrect",
+                    "course-player__feedback--info"
+                );
+            };
+
+            const startTimer = () => {
+                testState.startedAt = Date.now();
+                testState.elapsedSeconds = 0;
+                timer.hidden = false;
+                timer.textContent = `Time: ${formatTimerDisplay(0)}`;
+                stopTimer();
+                timerInterval = window.setInterval(() => {
+                    if (!testState.startedAt) {
+                        return;
+                    }
+                    const elapsed = Math.floor((Date.now() - testState.startedAt) / 1000);
+                    testState.elapsedSeconds = elapsed;
+                    timer.textContent = `Time: ${formatTimerDisplay(elapsed)}`;
+                }, 1000);
+            };
+
+            const finalizeTimer = () => {
+                if (testState.startedAt) {
+                    const elapsed = Math.floor((Date.now() - testState.startedAt) / 1000);
+                    testState.elapsedSeconds = elapsed;
+                    timer.textContent = `Time: ${formatTimerDisplay(elapsed)}`;
+                }
+                stopTimer();
+            };
+
+            const showQuestion = (index) => {
+                const question = questions[index];
+                if (!question) {
+                    return;
+                }
+                attachActions();
+                questionContainer.innerHTML = "";
+                currentQuestionUI = createQuestionElement(question, index);
+                questionContainer.appendChild(currentQuestionUI.element);
+                questionContainer.hidden = false;
+                actions.hidden = false;
+                progress.hidden = false;
+                updateProgress(index);
+                clearFeedback();
+                window.requestAnimationFrame(() => {
+                    currentQuestionUI?.focus();
+                });
+            };
+
+            const buildAnswerPayload = () => {
+                return questions.map((question, index) => {
+                    const stored = testState.answers[index];
+                    const payload = {
+                        question_id: question?.id,
+                        text: "",
+                        option_ids: [],
+                    };
+                    if (stored) {
+                        if (typeof stored.text === "string") {
+                            payload.text = stored.text;
+                        }
+                        if (Array.isArray(stored.option_ids)) {
+                            payload.option_ids = stored.option_ids.map((value) => Number(value));
+                        }
+                    }
+                    return payload;
+                });
+            };
+
+            const submitTest = async () => {
                 if (!test?.id) {
                     return;
                 }
+                error.hidden = true;
+                error.textContent = "";
+                result.hidden = true;
+                result.innerHTML = "";
 
-                const answers = [];
-                questions.forEach((question) => {
-                    const submission = { question_id: question.id };
-                    if (question?.type === "text") {
-                        const field = form.querySelector(
-                            `[data-question-id="${question.id}"][data-question-type="text"]`
-                        );
-                        submission.text = field ? field.value.trim() : "";
-                    } else if (question?.type === "single_choice") {
-                        const selected = form.querySelector(
-                            `input[name="question-${question.id}"]:checked`
-                        );
-                        const selectedId = normalizeNumber(selected?.value);
-                        submission.option_ids = selectedId != null ? [selectedId] : [];
-                    } else if (question?.type === "multiple_choice") {
-                        const selected = Array.from(
-                            form.querySelectorAll(`input[name="question-${question.id}"]:checked`)
-                        )
-                            .map((input) => normalizeNumber(input.value))
-                            .filter((value) => value != null);
-                        submission.option_ids = selected;
-                    } else {
-                        submission.text = "";
-                    }
-                    answers.push(submission);
-                });
-
-                if (form.__errorElement) {
-                    form.__errorElement.hidden = true;
-                    form.__errorElement.textContent = "";
-                }
-                if (form.__resultContainer) {
-                    form.__resultContainer.hidden = true;
-                    form.__resultContainer.innerHTML = "";
-                }
-
-                const submitButton = form.__submitButton;
-                const originalLabel = submitButton ? submitButton.textContent : "";
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.textContent = submitButton.dataset.loadingLabel || "Submitting...";
-                }
+                const answers = buildAnswerPayload();
 
                 try {
                     const payload = await apiRequest(`${testEndpointBase}/${test.id}/submit`, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
                         body: JSON.stringify({ answers }),
                     });
-                    const resultPayload = payload?.result;
-                    if (!resultPayload) {
-                        throw new Error("Unexpected server response");
+
+                    if (!payload?.result) {
+                        throw new Error("Unexpected response from server.");
                     }
 
-                    if (form.__resultContainer) {
-                        form.__resultContainer.innerHTML = "";
-                        const summary = document.createElement("p");
-                        summary.className = "course-player__test-summary";
-                        summary.textContent = `Score: ${resultPayload.score} / ${resultPayload.max_score}`;
-                        form.__resultContainer.appendChild(summary);
+                    const fragment = document.createDocumentFragment();
+                    const summary = document.createElement("p");
+                    summary.className = "course-player__test-summary";
+                    const summaryParts = [`Score: ${payload.result.score} / ${payload.result.max_score}`];
+                    if (Number.isFinite(testState.elapsedSeconds)) {
+                        summaryParts.push(`Time: ${formatTimerDisplay(testState.elapsedSeconds)}`);
+                    }
+                    summary.textContent = summaryParts.join(" • ");
+                    fragment.appendChild(summary);
 
-                        const answersList = document.createElement("ul");
-                        answersList.className = "course-player__test-answers";
-                        resultPayload.answers?.forEach((answer) => {
-                            const question = questions.find((q) => q.id === answer.question_id) || {};
-                            const item = document.createElement("li");
-                            item.className = "course-player__test-answer";
-                            item.classList.add(
-                                answer.correct
-                                    ? "course-player__test-answer--correct"
-                                    : "course-player__test-answer--incorrect"
-                            );
+                    const answersList = document.createElement("ul");
+                    answersList.className = "course-player__test-answers";
 
-                            const titleEl = document.createElement("h4");
-                            titleEl.className = "course-player__test-answer-title";
-                            titleEl.textContent = question.prompt || "Question";
-                            item.appendChild(titleEl);
+                    payload.result.answers?.forEach((answerResult) => {
+                        const questionIndex = questionIndexMap.get(Number(answerResult.question_id));
+                        const question = questionIndex != null ? questions[questionIndex] : {};
+                        const stored = questionIndex != null ? testState.answers[questionIndex] : null;
 
-                            const status = document.createElement("p");
-                            status.className = "course-player__test-answer-status";
-                            status.textContent = answer.correct ? "Correct" : "Incorrect";
-                            item.appendChild(status);
+                        const item = document.createElement("li");
+                        item.className = "course-player__test-answer";
+                        item.classList.add(
+                            answerResult.correct
+                                ? "course-player__test-answer--correct"
+                                : "course-player__test-answer--incorrect"
+                        );
 
-                            if (answer.explanation) {
-                                const explanation = document.createElement("p");
-                                explanation.className = "course-player__test-answer-explanation";
-                                explanation.textContent = answer.explanation;
-                                item.appendChild(explanation);
-                            }
+                        const titleEl = document.createElement("h4");
+                        titleEl.className = "course-player__test-answer-title";
+                        const prompt = question?.prompt || "Question";
+                        if (questionIndex != null) {
+                            titleEl.textContent = `${questionIndex + 1}. ${prompt}`;
+                        } else {
+                            titleEl.textContent = prompt;
+                        }
+                        item.appendChild(titleEl);
 
-                            answersList.appendChild(item);
-                        });
+                        const status = document.createElement("p");
+                        status.className = "course-player__test-answer-status";
+                        status.textContent = answerResult.correct ? "Correct" : "Incorrect";
+                        item.appendChild(status);
 
-                        if (answersList.childElementCount > 0) {
-                            form.__resultContainer.appendChild(answersList);
+                        const submittedText = deriveSubmissionText(question, stored);
+                        const correctText = deriveCorrectAnswerText(question);
+
+                        const yourAnswer = document.createElement("p");
+                        yourAnswer.className = "course-player__test-answer-detail";
+                        yourAnswer.textContent = `Your answer: ${submittedText || "—"}`;
+                        item.appendChild(yourAnswer);
+
+                        if (!answerResult.correct && correctText) {
+                            const correctAnswer = document.createElement("p");
+                            correctAnswer.className = "course-player__test-answer-detail";
+                            correctAnswer.textContent = `Correct answer: ${correctText}`;
+                            item.appendChild(correctAnswer);
                         }
 
-                        form.__resultContainer.hidden = false;
+                        if (answerResult.explanation) {
+                            const explanation = document.createElement("p");
+                            explanation.className = "course-player__test-answer-explanation";
+                            explanation.textContent = answerResult.explanation;
+                            item.appendChild(explanation);
+                        }
+
+                        answersList.appendChild(item);
+                    });
+
+                    if (answersList.childElementCount > 0) {
+                        fragment.appendChild(answersList);
                     }
-                } catch (error) {
-                    if (error && error.status === 401) {
+
+                    result.appendChild(fragment);
+                    result.hidden = false;
+                } catch (requestError) {
+                    if (requestError && requestError.status === 401) {
                         redirectToLogin();
                         return;
                     }
-                    if (form.__errorElement) {
-                        form.__errorElement.textContent = error?.message || "Unable to submit answers.";
-                        form.__errorElement.hidden = false;
-                    }
-                } finally {
-                    if (submitButton) {
-                        submitButton.disabled = false;
-                        submitButton.textContent = originalLabel || "Submit answers";
-                    }
+                    error.textContent = requestError?.message || "Unable to submit answers.";
+                    error.hidden = false;
                 }
+            };
+
+            const completeTest = async () => {
+                finalizeTimer();
+                timer.hidden = true;
+                questionContainer.hidden = true;
+                actions.hidden = true;
+                progress.hidden = true;
+                startBlock.hidden = true;
+                clearFeedback();
+                await submitTest();
+            };
+
+            answerButton.addEventListener("click", () => {
+                if (!testState.started || testState.awaitingFeedback || !currentQuestionUI) {
+                    return;
+                }
+
+                const validation = currentQuestionUI.validate();
+                if (!validation.valid) {
+                    showFeedbackMessage(validation.message, "info");
+                    return;
+                }
+
+                const submission = currentQuestionUI.getSubmission();
+                if (!submission || submission.question_id == null) {
+                    showFeedbackMessage("Answer could not be recorded.", "info");
+                    return;
+                }
+
+                testState.answers[testState.currentIndex] = submission;
+                const question = questions[testState.currentIndex];
+                const correct = evaluateAnswerCorrectness(question, submission);
+                showFeedbackMessage(
+                    correct ? "Correct answer!" : "Incorrect answer.",
+                    correct ? "correct" : "incorrect"
+                );
+
+                currentQuestionUI.setDisabled(true);
+                answerButton.disabled = true;
+                testState.awaitingFeedback = true;
+
+                window.setTimeout(() => {
+                    clearFeedback();
+                    testState.awaitingFeedback = false;
+                    testState.currentIndex += 1;
+
+                    if (testState.currentIndex < questions.length) {
+                        answerButton.disabled = false;
+                        showQuestion(testState.currentIndex);
+                    } else {
+                        completeTest().catch(() => {});
+                    }
+                }, FEEDBACK_DURATION_MS);
+            });
+
+            startButton.addEventListener("click", () => {
+                if (testState.started) {
+                    return;
+                }
+                testState.started = true;
+                removeStartBlock();
+                attachActions();
+                startTimer();
+                showQuestion(0);
             });
 
             container.appendChild(form);
             return container;
         };
-
         const renderStep = (topicIndex, stepIndex) => {
             if (!elements.content || !state.course || !state.course.package) {
                 return;
@@ -706,6 +1100,17 @@
                 : [];
             const topic = topics[topicIndex];
             const step = topic?.steps?.[stepIndex];
+
+            const cleanupNodes = elements.content.querySelectorAll("[data-course-test-cleanup]");
+            cleanupNodes.forEach((node) => {
+                if (typeof node.__cleanup === "function") {
+                    try {
+                        node.__cleanup();
+                    } catch (cleanupError) {
+                        console.error("Failed to cleanup test state", cleanupError);
+                    }
+                }
+            });
 
             elements.content.innerHTML = "";
 
