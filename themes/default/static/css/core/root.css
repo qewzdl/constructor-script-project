@@ -23,7 +23,9 @@
     --color-text-darker: #ffffff;
     --color-secondary-darker: #94a3b8;
     --color-border-darker: #374151;
-    ----hero-image-brightness: 1.0;
+    --color-page-view-header: #000000;
+    --color-page-view-header-opposite: #ffffff;
+    --hero-image-brightness: 1.0;
 
     /* Light mode */
     --color-bg-bottom-light: #f2f2f2ff;
@@ -111,9 +113,9 @@
 
     /* Layout */
     --header-height: var(--size-max);
-    --side-padding: 8%;
-    --side-padding-after: var(--size-base);
     --common-gap: 8px;
+    --page-max-width: 800px;
+    --page-side-padding: 16px;
 }
 
 /* Light theme override */
@@ -160,25 +162,6 @@
     --color-secondary-darker: var(--color-secondary-darker-dark);
     --color-border-darker: var(--color-border-darker-dark);
     --hero-image-brightness: var(--hero-image-brightness-dark);
-}
-
-/* Responsive */
-@media (max-width: 900px) {
-    :root {
-        --side-padding: 4%;
-    }
-}
-
-@media (max-width: 600px) {
-    :root {
-        --side-padding: 2%;
-    }
-}
-
-@media (max-width: 520px) {
-    :root {
-        --side-padding: 0;
-    }
 }
 
 :root.theme-transition,

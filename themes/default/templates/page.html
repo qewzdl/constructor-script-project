@@ -11,10 +11,12 @@
 <article class="{{ $classes }}" role="article"{{ $attributes }}>
     {{ if not .Page.HideHeader }}
     <header class="page-view__header">
-        <h1 class="page-view__title">{{ .Page.Title }}</h1>
-        {{ if .Page.Description }}
-        <p class="page-view__description">{{ .Page.Description }}</p>
-        {{ end }}
+        <div class="page-view__header-container">
+            <h1 class="page-view__title">{{ .Page.Title }}</h1>
+            {{ if .Page.Description }}
+            <p class="page-view__description">{{ .Page.Description }}</p>
+            {{ end }}
+        </div>
     </header>
     {{ end }}
 

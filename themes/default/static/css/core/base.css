@@ -59,7 +59,6 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--size-sm) var(--side-padding);
     position: sticky;
     top: 0;
     background-color: var(--color-bg-top);
@@ -70,9 +69,10 @@ textarea {
     display: flex;
     align-items: center;
     gap: var(--common-gap);
-    width: 100%;
+    width: var(--page-max-width);
     justify-content: space-between;
     position: relative;
+    padding-inline: var(--page-side-padding);
 }
 
 .header__logo {
@@ -213,8 +213,6 @@ textarea {
         display: grid;
         position: absolute;
         top: calc(100% + var(--size-xs));
-        right: var(--side-padding);
-        left: var(--side-padding);
         background-color: var(--color-bg-top);
         border: 1px solid var(--color-border);
     }
@@ -267,7 +265,6 @@ textarea {
     grid-area: main;
     display: grid;
     gap: var(--size-max);
-    padding: var(--size-max) var(--side-padding);
 }
 
 .button {
@@ -460,7 +457,6 @@ textarea.form-field__input {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 var(--side-padding);
 }
 
 .auth__container {
@@ -1174,7 +1170,6 @@ textarea.form-field__input {
     display: grid;
     justify-items: center;
     gap: var(--common-gap);
-    padding: var(--size-max) var(--side-padding);
     text-align: center;
 }
 
@@ -2072,7 +2067,6 @@ section[class*="__section--mv-128"] {
     width: 100%;
     display: grid;
     gap: var(--size-mid);
-    padding: var(--size-lg) var(--side-padding);
 }
 
 .footer__info {
@@ -2199,7 +2193,6 @@ section[class*="__section--mv-128"] {
     justify-content: space-between;
     align-items: center;
     gap: var(--common-gap);
-    padding: var(--size-sm) var(--side-padding);
     font-size: var(--font-size-sm);
 }
 
@@ -2621,7 +2614,22 @@ body.course-modal-open {
 
 .page-view {
     display: grid;
-    gap: var(--size-max);
+}
+
+.page-view__header {
+    padding-block: var(--size-lg);
+    background-color: var(--color-page-view-header);
+}
+
+.page-view__header > *,
+.page-view__section-container {
+    max-width: var(--page-max-width);
+    padding-inline: var(--page-side-padding);
+    margin-inline: auto;
+}
+
+.page-view__title, .page-view__description {
+    color: var(--color-page-view-header-opposite);
 }
 
 @media (min-width: 768px) {
@@ -2659,41 +2667,15 @@ body.course-modal-open {
 }
 
 @media (max-width: 520px) {
-    .header, 
-    .footer {
-        padding: var(--side-padding-after);
-    }
-
-    .home__header,
-    .blog__header,
-    .blog__categories,
-    .blog__tags,
-    .search__meta,
-    .search__meta,
-    .search__empty,
-    .search__hint,
-    .page-view__header,
-    .page-view__sections > *,
-    .page-view__header,
-    .course-player__header-content,
-    .course-player__content,
-    .profile-card {
-        padding-inline: var(--side-padding-after);
-    }
-
     .main-content > *, 
     .post > *, 
     .blog__posts > *, 
     .search > *, 
     .search__posts > *,
     .profile__grid > *,
-    .post__sidebar > * {
-        border-inline: none;
-    }
-
+    .post__sidebar > *,
     .auth__container {
-        padding: var(--size-base) var(--side-padding-after);
-        border: none;
+        border-inline: none;
     }
 
     img.page-view__section-img {
