@@ -114,7 +114,7 @@
     /* Layout */
     --header-height: var(--size-max);
     --common-gap: 8px;
-    --page-max-width: 800px;
+    --page-max-width: 1000px;
     --page-side-padding: 16px;
 }
 

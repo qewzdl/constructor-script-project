@@ -264,7 +264,6 @@ textarea {
 .main {
     grid-area: main;
     display: grid;
-    gap: var(--size-max);
 }
 
 .button {
@@ -1367,6 +1366,11 @@ textarea.form-field__input {
     gap: var(--common-gap);
 }
 
+.post__layout {
+    display: grid;
+    gap: var(--common-gap);
+}
+
 .post-progress {
     position: fixed;
     top: var(--post-progress-offset, 0px);
@@ -1762,7 +1766,7 @@ section[class*="__section--mv-128"] {
 }
 
 @media (min-width: 1024px) {
-    .post {
+    .post__layout {
         grid-template-columns: 1fr 2fr;
         align-items: start;
     }
@@ -2615,14 +2619,15 @@ body.course-modal-open {
     display: grid;
 }
 
-.page-view__header, .footer {
+.page-view__header, .footer, .post {
     padding-block: var(--size-lg);
     background-color: var(--color-page-view-header);
 }
 
 .page-view__header > *,
 .page-view__section-container,
-.footer > * {
+.footer > *,
+.post > *:not(.post-progress) {
     max-width: var(--page-max-width);
     padding-inline: var(--page-side-padding);
     margin-inline: auto;
