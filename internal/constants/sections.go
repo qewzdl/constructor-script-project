@@ -16,6 +16,11 @@ const (
 	// MaxCourseListSectionLimit defines an upper bound for course list sections to keep layouts balanced.
 	MaxCourseListSectionLimit = 12
 
+	// CourseListModeCatalog renders publicly available course packages that can be purchased or enrolled in.
+	CourseListModeCatalog = "catalog"
+	// CourseListModeOwned renders the courses currently granted to the authenticated user.
+	CourseListModeOwned = "owned"
+
 	// DefaultSectionPadding defines the default vertical padding (in pixels) applied to newly created sections.
 	DefaultSectionPadding = 32
 	// DefaultSectionMargin defines the default vertical margin (in pixels) applied to newly created sections.

@@ -642,6 +642,12 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 			})
 		}
 
+		if modeSetting, ok := definition.Settings["mode"]; ok {
+			section.Mode = normaliseSectionMode(section.Mode, modeSetting)
+		} else {
+			section.Mode = strings.TrimSpace(strings.ToLower(section.Mode))
+		}
+
 		if section.ID == "" {
 			section.ID = uuid.New().String()
 		}

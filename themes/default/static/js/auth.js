@@ -411,9 +411,17 @@
         const list = container.querySelector(".profile-courses__list");
         const empty = container.querySelector(".profile-courses__empty");
         const entries = Array.isArray(courses) ? courses : [];
+        const limitValue = Number.parseInt(
+            container.dataset.courseLimit,
+            10
+        );
+        const maxEntries = Number.isFinite(limitValue) && limitValue > 0
+            ? limitValue
+            : entries.length;
+        const limitedEntries = entries.slice(0, maxEntries);
 
         if (empty) {
-            empty.hidden = entries.length > 0;
+            empty.hidden = limitedEntries.length > 0;
         }
 
         if (!list) {
@@ -422,14 +430,14 @@
 
         list.innerHTML = "";
 
-        if (entries.length === 0) {
+        if (limitedEntries.length === 0) {
             list.hidden = true;
             return;
         }
 
         list.hidden = false;
 
-        entries.forEach((entry, index) => {
+        limitedEntries.forEach((entry, index) => {
             if (!entry || typeof entry !== "object") {
                 return;
             }

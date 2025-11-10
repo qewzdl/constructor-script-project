@@ -8,6 +8,43 @@
 
     const { createElement, normaliseString, randomId } = utils;
 
+    const normaliseModeValue = (definition, value) => {
+        const normalisedValue = normaliseString(value).toLowerCase();
+        const options = Array.isArray(definition?.options)
+            ? definition.options
+                  .map((option) => normaliseString(option?.value).toLowerCase())
+                  .filter(Boolean)
+            : [];
+        if (!options.length) {
+            return normalisedValue;
+        }
+        if (normalisedValue && options.includes(normalisedValue)) {
+            return normalisedValue;
+        }
+        const defaultValue = normaliseString(
+            definition?.defaultValue ?? definition?.default_value ?? ''
+        ).toLowerCase();
+        if (defaultValue && options.includes(defaultValue)) {
+            return defaultValue;
+        }
+        return options[0];
+    };
+
+    const describeModeValue = (definition, value) => {
+        const normalised = normaliseModeValue(definition, value);
+        if (!normalised) {
+            return '';
+        }
+        const option = Array.isArray(definition?.options)
+            ? definition.options.find(
+                  (item) =>
+                      normaliseString(item?.value).toLowerCase() === normalised
+              )
+            : null;
+        const label = option && normaliseString(option.label);
+        return label || normalised;
+    };
+
     const openSectionTypePicker = ({
         orderedSectionTypes,
         sectionDefinitions,
@@ -419,6 +456,13 @@
                     : 'Automatic';
                 parts.push(`Items limit: ${limitValue}`);
             }
+            const modeDefinition = sectionDefinition?.settings?.mode;
+            if (modeDefinition?.options?.length) {
+                const modeLabel = describeModeValue(modeDefinition, section.mode);
+                if (modeLabel) {
+                    parts.push(`Mode: ${modeLabel}`);
+                }
+            }
             return parts.join(' · ');
         };
 
@@ -607,6 +651,49 @@
                 limitInput.addEventListener('input', scheduleChange);
                 limitField.append(limitInput);
                 appendField(limitField);
+            }
+
+            const modeDefinition = sectionDefinition?.settings?.mode;
+            if (modeDefinition?.options?.length) {
+                const modeField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                modeField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: modeDefinition.label || 'Courses to show',
+                    })
+                );
+                const modeSelect = createElement('select', {
+                    className: 'admin-builder__select',
+                });
+                modeSelect.dataset.field = 'section-mode';
+                const currentMode = normaliseModeValue(
+                    modeDefinition,
+                    section.mode
+                );
+                modeDefinition.options.forEach((option) => {
+                    const value = normaliseString(option?.value).toLowerCase();
+                    if (!value) {
+                        return;
+                    }
+                    const optionNode = createElement('option', {
+                        value,
+                        textContent:
+                            normaliseString(option?.label) ||
+                            normaliseString(option?.value),
+                    });
+                    if (value === currentMode) {
+                        optionNode.selected = true;
+                    }
+                    modeSelect.append(optionNode);
+                });
+                modeSelect.addEventListener('change', () => {
+                    section.mode = normaliseString(modeSelect.value).toLowerCase();
+                    scheduleChange();
+                });
+                modeField.append(modeSelect);
+                appendField(modeField);
             }
 
             const paddingValue = clampPaddingValue(section.paddingVertical);

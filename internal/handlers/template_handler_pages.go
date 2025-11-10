@@ -16,6 +16,7 @@ import (
 	"gorm.io/gorm"
 
 	"constructor-script-backend/internal/authorization"
+	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
@@ -902,7 +903,7 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		}
 	}
 
-	sections, page := h.profileSectionsForUser(user, buildProfileCourseSectionContent(courses))
+	sections, page := h.profileSectionsForUser(user, courses)
 	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(sections, "profile")
 	scripts := appendScripts(nil, sectionScripts)
 	defaultTitle := "Profile"
@@ -958,9 +959,9 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 	h.renderTemplate(c, templateName, pageTitle, pageDescription, data)
 }
 
-func (h *TemplateHandler) profileSectionsForUser(user *models.User, courseEntries []map[string]interface{}) (models.PostSections, *models.Page) {
+func (h *TemplateHandler) profileSectionsForUser(user *models.User, courses []models.UserCoursePackage) (models.PostSections, *models.Page) {
 	if h == nil {
-		return applyProfileUserContext(defaultProfileSections(), user, courseEntries), nil
+		return applyProfileUserContext(defaultProfileSections(), user, courses), nil
 	}
 
 	var sections models.PostSections
@@ -976,7 +977,9 @@ func (h *TemplateHandler) profileSectionsForUser(user *models.User, courseEntrie
 		sections = defaultProfileSections()
 	}
 
-	return applyProfileUserContext(sections, user, courseEntries), page
+	sections = upgradeProfileCourseSections(sections)
+
+	return applyProfileUserContext(sections, user, courses), page
 }
 
 func cloneSections(source models.PostSections) models.PostSections {
@@ -1007,7 +1010,61 @@ func cloneSections(source models.PostSections) models.PostSections {
 	return cloned
 }
 
-func applyProfileUserContext(sections models.PostSections, user *models.User, courseEntries []map[string]interface{}) models.PostSections {
+func upgradeProfileCourseSections(sections models.PostSections) models.PostSections {
+	if len(sections) == 0 {
+		return sections
+	}
+
+	upgraded := make(models.PostSections, len(sections))
+	for i := range sections {
+		section := sections[i]
+		sectionType := strings.TrimSpace(strings.ToLower(section.Type))
+
+		if sectionType == "courses_list" {
+			if strings.TrimSpace(section.Mode) == "" {
+				section.Mode = constants.CourseListModeCatalog
+			}
+			upgraded[i] = section
+			continue
+		}
+
+		legacyIndex := -1
+		legacyEmpty := ""
+		for idx, elem := range section.Elements {
+			elemType := strings.TrimSpace(strings.ToLower(elem.Type))
+			if elemType == "profile_courses" {
+				legacyIndex = idx
+				if content, ok := elem.Content.(map[string]interface{}); ok {
+					if msg, ok := content["empty_message"].(string); ok {
+						legacyEmpty = strings.TrimSpace(msg)
+					}
+				}
+				break
+			}
+		}
+
+		if legacyIndex >= 0 {
+			section.Type = "courses_list"
+			section.Mode = constants.CourseListModeOwned
+			section.Elements = []models.SectionElement{
+				{
+					ID:      section.ID + "-courses",
+					Type:    "courses_list:owned",
+					Order:   1,
+					Content: ownedCourseSectionData{EmptyMessage: legacyEmpty},
+				},
+			}
+			upgraded[i] = section
+			continue
+		}
+
+		upgraded[i] = section
+	}
+
+	return upgraded
+}
+
+func applyProfileUserContext(sections models.PostSections, user *models.User, courses []models.UserCoursePackage) models.PostSections {
 	username := ""
 	email := ""
 	role := "user"
@@ -1024,7 +1081,24 @@ func applyProfileUserContext(sections models.PostSections, user *models.User, co
 	}
 
 	for i := range sections {
-		elements := sections[i].Elements
+		section := &sections[i]
+		sectionType := strings.TrimSpace(strings.ToLower(section.Type))
+
+		if sectionType == "courses_list" && strings.EqualFold(strings.TrimSpace(strings.ToLower(section.Mode)), constants.CourseListModeOwned) {
+			data := extractOwnedCourseSectionData(*section)
+			data.Courses = cloneUserCoursePackages(courses)
+			section.Elements = []models.SectionElement{
+				{
+					ID:      section.ID + "-courses",
+					Type:    "courses_list:owned",
+					Order:   1,
+					Content: data,
+				},
+			}
+			continue
+		}
+
+		elements := section.Elements
 		for j := range elements {
 			element := &elements[j]
 			typeKey := strings.TrimSpace(strings.ToLower(element.Type))
@@ -1039,16 +1113,9 @@ func applyProfileUserContext(sections models.PostSections, user *models.User, co
 				content := ensureContentMap(element)
 				content["action"] = "/api/v1/profile/password"
 				content["username"] = username
-			case "profile_courses":
-				content := ensureContentMap(element)
-				if len(courseEntries) > 0 {
-					content["courses"] = courseEntries
-				} else {
-					delete(content, "courses")
-				}
 			}
 		}
-		sections[i].Elements = elements
+		section.Elements = elements
 	}
 
 	return sections
@@ -1095,20 +1162,10 @@ func defaultProfileSections() models.PostSections {
 			},
 		},
 		{
-			ID:   "profile-courses",
-			Type: "standard",
-			Elements: []models.SectionElement{
-				{
-					ID:    "profile-courses-list",
-					Type:  "profile_courses",
-					Order: 3,
-					Content: map[string]interface{}{
-						"title":         "Courses",
-						"description":   "Review the learning packages currently available to your account.",
-						"empty_message": "You don't have any courses yet.",
-					},
-				},
-			},
+			ID:    "profile-courses",
+			Type:  "courses_list",
+			Title: "Courses",
+			Mode:  constants.CourseListModeOwned,
 		},
 	}
 
@@ -1320,7 +1377,6 @@ func (h *TemplateHandler) builderScripts() []string {
 			"/static/js/admin/elements/search.js",
 			"/static/js/admin/elements/profile-account-details.js",
 			"/static/js/admin/elements/profile-security.js",
-			"/static/js/admin/elements/profile-courses.js",
 		)
 	}
 

@@ -83,8 +83,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sb.WriteString(h.renderCategoriesListSection(prefix, section))
 		case "courses_list":
 			skipElements = true
+			mode := strings.TrimSpace(strings.ToLower(section.Mode))
 			scripts = appendScripts(scripts, []string{"/static/js/courses-modal.js"})
-			if h.courseCheckoutEnabled() {
+			if mode != constants.CourseListModeOwned && h.courseCheckoutEnabled() {
 				scripts = appendScripts(scripts, []string{"/static/js/courses-checkout.js"})
 			}
 			sb.WriteString(h.renderCoursesListSection(prefix, section))
@@ -332,7 +333,32 @@ type coursesListTemplateData struct {
 	Cards     []courseCardTemplateData
 }
 
+type profileCoursesTemplateData struct {
+	ContainerID  string
+	EmptyMessage string
+	ListClass    string
+	EmptyClass   string
+	Cards        []courseCardTemplateData
+	Limit        int
+}
+
+const defaultOwnedCoursesEmptyMessage = "You don't have any courses yet."
+
 func (h *TemplateHandler) renderCoursesListSection(prefix string, section models.Section) string {
+	mode := strings.TrimSpace(strings.ToLower(section.Mode))
+	if mode == "" {
+		mode = constants.CourseListModeCatalog
+	}
+
+	switch mode {
+	case constants.CourseListModeOwned:
+		return h.renderOwnedCoursesList(prefix, section)
+	default:
+		return h.renderCatalogCoursesList(prefix, section)
+	}
+}
+
+func (h *TemplateHandler) renderCatalogCoursesList(prefix string, section models.Section) string {
 	const maxTopicsPerCourse = 6
 
 	listClass := fmt.Sprintf("%s__course-list courses-list", prefix)
@@ -518,6 +544,105 @@ func (h *TemplateHandler) renderCoursesListSection(prefix string, section models
 	if err := tmpl.ExecuteTemplate(&buf, "components/courses-list", data); err != nil {
 		logger.Error(err, "Failed to render courses list template", map[string]interface{}{"section_id": section.ID})
 		return `<p class="` + emptyClass + `">Unable to display courses at the moment.</p>`
+	}
+
+	return buf.String()
+}
+
+func (h *TemplateHandler) renderOwnedCoursesList(prefix string, section models.Section) string {
+	data := extractOwnedCourseSectionData(section)
+
+	emptyMessage := strings.TrimSpace(data.EmptyMessage)
+	if emptyMessage == "" {
+		emptyMessage = defaultOwnedCoursesEmptyMessage
+	}
+
+	courses := data.Courses
+	limit := section.Limit
+	if limit > 0 && limit < len(courses) {
+		courses = courses[:limit]
+	}
+
+	entries := buildProfileCourseEntries(courses)
+	cards := make([]courseCardTemplateData, 0, len(entries))
+
+	for i := range entries {
+		entry := entries[i]
+		pkg := courses[i].Package
+
+		headingID := fmt.Sprintf("%s-course-%d-title", prefix, i+1)
+		description := strings.TrimSpace(pkg.Description)
+		sanitizedDescription := strings.TrimSpace(h.SanitizeHTML(description))
+		descriptionHTML := template.HTML("")
+		descriptionID := ""
+		if sanitizedDescription != "" {
+			descriptionID = fmt.Sprintf("%s-course-%d-description", prefix, i+1)
+			descriptionHTML = template.HTML(sanitizedDescription)
+		}
+
+		metaItems := make([]courseCardMetaItem, 0, len(entry.MetaItems))
+		for _, item := range entry.MetaItems {
+			metaClass := strings.TrimSpace(item.Class)
+			if metaClass == "" {
+				metaClass = "profile-course__meta-item"
+			} else if !strings.Contains(metaClass, "profile-course__meta-item") {
+				metaClass = strings.TrimSpace(metaClass + " profile-course__meta-item")
+			}
+			metaItems = append(metaItems, courseCardMetaItem{
+				Class: metaClass,
+				Label: item.Label,
+				Time:  item.Time,
+			})
+		}
+
+		card := courseCardTemplateData{
+			Element:          entry.Element,
+			Href:             entry.Href,
+			CardClass:        strings.TrimSpace("profile-course post-card" + entry.CardModifier),
+			MediaClass:       "profile-course__media post-card__figure",
+			ImageClass:       "profile-course__image post-card__image",
+			ContentClass:     "profile-course__content post-card__content",
+			TitleClass:       "profile-course__title post-card__title",
+			MetaClass:        "profile-course__meta post-card__meta",
+			DescriptionClass: "profile-course__description post-card__description",
+			DescriptionTag:   "p",
+			HeadingID:        headingID,
+			DescriptionID:    descriptionID,
+			HasCourseID:      entry.HasCourseID,
+			CourseID:         entry.CourseID,
+			Description:      descriptionHTML,
+			MetaItems:        metaItems,
+			Image:            entry.Image,
+			Interactive:      false,
+		}
+
+		cards = append(cards, card)
+	}
+
+	containerID := strings.TrimSpace(section.ID)
+	if containerID == "" {
+		containerID = fmt.Sprintf("%s-courses", prefix)
+	}
+
+	tmpl, err := h.templateClone()
+	if err != nil {
+		logger.Error(err, "Failed to clone templates for owned course list", map[string]interface{}{"section_id": section.ID})
+		return `<p class="profile-courses__empty courses-list__empty">` + template.HTMLEscapeString(emptyMessage) + `</p>`
+	}
+
+	dataTemplate := profileCoursesTemplateData{
+		ContainerID:  containerID,
+		EmptyMessage: emptyMessage,
+		ListClass:    "profile-courses__list courses-list",
+		EmptyClass:   "profile-courses__empty courses-list__empty",
+		Cards:        cards,
+		Limit:        limit,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, "components/profile-courses", dataTemplate); err != nil {
+		logger.Error(err, "Failed to render owned courses list template", map[string]interface{}{"section_id": section.ID})
+		return `<p class="profile-courses__empty courses-list__empty">` + template.HTMLEscapeString(emptyMessage) + `</p>`
 	}
 
 	return buf.String()
@@ -921,6 +1046,35 @@ func asScriptSlice(value interface{}) []string {
 	return nil
 }
 
+func extractOwnedCourseSectionData(section models.Section) ownedCourseSectionData {
+	var result ownedCourseSectionData
+
+	for _, elem := range section.Elements {
+		switch data := elem.Content.(type) {
+		case ownedCourseSectionData:
+			return data
+		case *ownedCourseSectionData:
+			if data != nil {
+				return *data
+			}
+		case []models.UserCoursePackage:
+			result.Courses = cloneUserCoursePackages(data)
+		case *[]models.UserCoursePackage:
+			if data != nil {
+				result.Courses = cloneUserCoursePackages(*data)
+			}
+		case map[string]interface{}:
+			if message, ok := data["empty_message"].(string); ok {
+				trimmed := strings.TrimSpace(message)
+				if trimmed != "" {
+					result.EmptyMessage = trimmed
+				}
+			}
+		}
+	}
+
+	return result
+}
 func (h *TemplateHandler) generateTOC(sections models.PostSections) template.HTML {
 	if len(sections) == 0 {
 		return ""

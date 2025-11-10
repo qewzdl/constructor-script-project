@@ -68,6 +68,12 @@ func PrepareSections(sections []models.Section, manager *theme.Manager, opts Pre
 			})
 		}
 
+		if modeSetting, ok := definition.Settings["mode"]; ok {
+			section.Mode = normaliseSectionMode(section.Mode, modeSetting)
+		} else {
+			section.Mode = strings.TrimSpace(strings.ToLower(section.Mode))
+		}
+
 		if section.ID == "" {
 			section.ID = uuid.New().String()
 		}
@@ -167,6 +173,45 @@ func clampSectionLimit(value int, setting theme.SectionSettingDefinition) int {
 		result = 1
 	}
 	return result
+}
+
+func normaliseSectionMode(value string, setting theme.SectionSettingDefinition) string {
+	trimmed := strings.TrimSpace(strings.ToLower(value))
+	if len(setting.Options) == 0 {
+		return trimmed
+	}
+
+	allowed := make(map[string]struct{}, len(setting.Options))
+	first := ""
+	for _, option := range setting.Options {
+		optionValue := strings.TrimSpace(strings.ToLower(option.Value))
+		if optionValue == "" {
+			continue
+		}
+		if first == "" {
+			first = optionValue
+		}
+		allowed[optionValue] = struct{}{}
+	}
+
+	if trimmed != "" {
+		if _, ok := allowed[trimmed]; ok {
+			return trimmed
+		}
+	}
+
+	fallback := strings.TrimSpace(strings.ToLower(setting.DefaultValue))
+	if fallback != "" {
+		if _, ok := allowed[fallback]; ok {
+			return fallback
+		}
+	}
+
+	if first != "" {
+		return first
+	}
+
+	return trimmed
 }
 
 func intPtr(value int) *int {

@@ -26,10 +26,18 @@ type SectionDefinition struct {
 
 // SectionSettingDefinition describes additional configuration for a section type.
 type SectionSettingDefinition struct {
-	Label   string `json:"label,omitempty"`
-	Min     *int   `json:"min,omitempty"`
-	Max     *int   `json:"max,omitempty"`
-	Default *int   `json:"default,omitempty"`
+	Label        string                 `json:"label,omitempty"`
+	Min          *int                   `json:"min,omitempty"`
+	Max          *int                   `json:"max,omitempty"`
+	Default      *int                   `json:"default,omitempty"`
+	Options      []SectionSettingOption `json:"options,omitempty"`
+	DefaultValue string                 `json:"default_value,omitempty"`
+}
+
+// SectionSettingOption represents a selectable option for a section setting.
+type SectionSettingOption struct {
+	Value string `json:"value"`
+	Label string `json:"label,omitempty"`
 }
 
 // ElementDefinition represents a single element type definition that can be
@@ -148,6 +156,14 @@ func mergeSectionSetting(base, override SectionSettingDefinition) SectionSetting
 	}
 	if override.Default != nil {
 		result.Default = override.Default
+	}
+	if len(override.Options) > 0 {
+		copied := make([]SectionSettingOption, len(override.Options))
+		copy(copied, override.Options)
+		result.Options = copied
+	}
+	if override.DefaultValue != "" {
+		result.DefaultValue = override.DefaultValue
 	}
 
 	return result
@@ -472,6 +488,11 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 					Min:     &courseLimitMin,
 					Max:     &courseLimitMax,
 				},
+				"mode": {
+					Label:        "Courses to show",
+					Options:      []SectionSettingOption{{Value: constants.CourseListModeCatalog, Label: "Available for purchase"}, {Value: constants.CourseListModeOwned, Label: "Assigned to the current user"}},
+					DefaultValue: constants.CourseListModeCatalog,
+				},
 			},
 		},
 	}
@@ -520,12 +541,6 @@ func defaultElementDefinitions() map[string]ElementDefinition {
 			Label:       "Security form",
 			Order:       70,
 			Description: "Password update form for the profile page.",
-		},
-		"profile_courses": {
-			Type:        "profile_courses",
-			Label:       "Courses list",
-			Order:       80,
-			Description: "Displays the learner's current course access with enrollment details.",
 		},
 	}
 }

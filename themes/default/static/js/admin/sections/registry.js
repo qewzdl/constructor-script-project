@@ -189,6 +189,20 @@
                     max: 12,
                     default: 3,
                 },
+                mode: {
+                    label: 'Courses to show',
+                    options: [
+                        {
+                            value: 'catalog',
+                            label: 'Available for purchase',
+                        },
+                        {
+                            value: 'owned',
+                            label: 'Assigned to the current user',
+                        },
+                    ],
+                    defaultValue: 'catalog',
+                },
             },
         });
     }

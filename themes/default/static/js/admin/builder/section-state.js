@@ -161,6 +161,28 @@
         };
     };
 
+    const normaliseModeValue = (definition, value) => {
+        const normalisedValue = normaliseString(value).toLowerCase();
+        const options = Array.isArray(definition?.options)
+            ? definition.options
+                  .map((option) => normaliseString(option?.value).toLowerCase())
+                  .filter(Boolean)
+            : [];
+        if (!options.length) {
+            return normalisedValue;
+        }
+        if (normalisedValue && options.includes(normalisedValue)) {
+            return normalisedValue;
+        }
+        const defaultValue = normaliseString(
+            definition?.defaultValue ?? definition?.default_value ?? ''
+        ).toLowerCase();
+        if (defaultValue && options.includes(defaultValue)) {
+            return defaultValue;
+        }
+        return options[0];
+    };
+
     const createSectionState = (
         elementDefinitions,
         sectionDefinitions,
@@ -183,6 +205,9 @@
         const limitValue = limitDefinition
             ? clampLimit(parseInteger(rawLimit), limitDefinition)
             : 0;
+        const modeDefinition = sectionDefinitions[type]?.settings?.mode;
+        const rawMode = section.mode ?? section.Mode ?? '';
+        const modeValue = normaliseModeValue(modeDefinition, rawMode);
         let styleGridItems = true;
         const styleGridItemsSource =
             section.styleGridItems ??
@@ -228,6 +253,7 @@
                   )
                 : [],
             limit: limitValue,
+            mode: modeValue,
             styleGridItems,
             paddingVertical,
             marginVertical,
@@ -333,6 +359,21 @@
                         if (limit > 0) {
                             payload.limit = limit;
                         }
+                    }
+
+                    const modeDefinition =
+                        sectionDefs[section.type]?.settings?.mode;
+                    if (modeDefinition) {
+                        const modeValue = normaliseModeValue(
+                            modeDefinition,
+                            section.mode
+                        );
+                        section.mode = modeValue;
+                        if (modeValue) {
+                            payload.mode = modeValue;
+                        }
+                    } else if (section.mode) {
+                        payload.mode = normaliseString(section.mode).toLowerCase();
                     }
 
                     payload.padding_vertical = clampPaddingValue(

@@ -1,36 +1,22 @@
 {{ define "components/profile-courses" }}
-<section
-    class="profile-card profile-card--courses"
-    aria-labelledby="profile-courses-title"
->
-    <header class="profile-card__header">
-        <h2 id="profile-courses-title" class="profile-card__title">Courses</h2>
-        <p class="profile-card__description">
-            Review the learning packages currently available to your account.
-        </p>
-    </header>
-
-    <div class="profile-courses" id="profile-courses">
-        {{ $hasCourses := gt (len .ProfileCourseCards) 0 }}
-        <p class="profile-courses__empty" {{ if $hasCourses }}hidden{{ end }}>
-            You don't have any courses yet.
-        </p>
-        <ul
-            class="profile-courses__list courses-list"
-            {{
-            if
-            not
-            $hasCourses
-            }}hidden{{
-            end
-            }}
+    {{- $hasCards := gt (len .Cards) 0 -}}
+    <div class="profile-card profile-card--courses">
+        <div
+            class="profile-courses"
+            id="{{ default "profile-courses" .ContainerID }}"
+            data-role="profile-courses"
+            {{- if gt .Limit 0 }} data-course-limit="{{ .Limit }}"{{ end -}}
         >
-            {{- range $index, $card := .ProfileCourseCards }}
-            <li class="profile-courses__item">
-                {{- template "components/course-card" $card }}
-            </li>
-            {{- end }}
-        </ul>
+            <p class="{{ .EmptyClass }}" {{ if $hasCards }}hidden{{ end }}>
+                {{ .EmptyMessage }}
+            </p>
+            <ul class="{{ .ListClass }}" {{ if not $hasCards }}hidden{{ end }}>
+                {{- range .Cards }}
+                    <li class="profile-courses__item">
+                        {{- template "components/course-card" . -}}
+                    </li>
+                {{- end }}
+            </ul>
+        </div>
     </div>
-</section>
 {{ end }}

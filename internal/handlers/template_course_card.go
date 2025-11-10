@@ -89,6 +89,20 @@ type profileCourseEntry struct {
 	CourseID     string
 }
 
+type ownedCourseSectionData struct {
+	Courses      []models.UserCoursePackage
+	EmptyMessage string
+}
+
+func cloneUserCoursePackages(source []models.UserCoursePackage) []models.UserCoursePackage {
+	if len(source) == 0 {
+		return nil
+	}
+	cloned := make([]models.UserCoursePackage, len(source))
+	copy(cloned, source)
+	return cloned
+}
+
 func buildProfileCourseEntries(courses []models.UserCoursePackage) []profileCourseEntry {
 	if len(courses) == 0 {
 		return nil
@@ -169,57 +183,4 @@ func buildProfileCourseEntries(courses []models.UserCoursePackage) []profileCour
 	}
 
 	return entries
-}
-
-func buildProfileCourseSectionContent(courses []models.UserCoursePackage) []map[string]interface{} {
-	entries := buildProfileCourseEntries(courses)
-	if len(entries) == 0 {
-		return nil
-	}
-
-	result := make([]map[string]interface{}, 0, len(entries))
-	for _, entry := range entries {
-		data := map[string]interface{}{
-			"title": entry.Title,
-		}
-		if entry.Description != "" {
-			data["description"] = entry.Description
-		}
-		if entry.Href != "" {
-			data["url"] = entry.Href
-		}
-		if entry.Image != nil {
-			data["image_url"] = entry.Image.URL
-			data["image_alt"] = entry.Image.Alt
-		}
-		if entry.HasCourseID {
-			data["course_id"] = entry.CourseID
-		}
-
-		meta := make([]map[string]interface{}, 0, len(entry.MetaItems))
-		for _, item := range entry.MetaItems {
-			entryData := map[string]interface{}{}
-			if trimmed := strings.TrimSpace(item.Label); trimmed != "" {
-				entryData["label"] = trimmed
-			}
-			if item.Time != nil {
-				if dt := strings.TrimSpace(item.Time.DateTime); dt != "" {
-					entryData["datetime"] = dt
-				}
-				if disp := strings.TrimSpace(item.Time.Display); disp != "" {
-					entryData["display"] = disp
-				}
-			}
-			if len(entryData) > 0 {
-				meta = append(meta, entryData)
-			}
-		}
-		if len(meta) > 0 {
-			data["meta"] = meta
-		}
-
-		result = append(result, data)
-	}
-
-	return result
 }

@@ -10,6 +10,20 @@
             "default": 3,
             "min": 1,
             "max": 12
+        },
+        "mode": {
+            "label": "Courses to show",
+            "options": [
+                {
+                    "value": "catalog",
+                    "label": "Available for purchase"
+                },
+                {
+                    "value": "owned",
+                    "label": "Assigned to the current user"
+                }
+            ],
+            "default_value": "catalog"
         }
     }
 }

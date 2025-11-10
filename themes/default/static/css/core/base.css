@@ -591,8 +591,6 @@ textarea.form-field__input {
 .profile-card {
     display: grid;
     gap: var(--common-gap);
-    padding: var(--size-mid);
-    border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
 }
 

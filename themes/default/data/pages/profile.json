@@ -32,18 +32,9 @@
         },
         {
             "id": "profile-courses",
-            "type": "standard",
-            "elements": [
-                {
-                    "id": "profile-courses",
-                    "type": "profile_courses",
-                    "content": {
-                        "title": "Courses",
-                        "description": "Review the learning packages currently available to your account.",
-                        "empty_message": "You don't have any courses yet."
-                    }
-                }
-            ]
+            "type": "courses_list",
+            "title": "Courses",
+            "mode": "owned"
         }
     ]
 }
