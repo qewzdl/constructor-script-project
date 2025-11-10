@@ -791,7 +791,7 @@ textarea.form-field__input {
 .course-player__sidebar-header {
     display: grid;
     gap: var(--size-xs);
-    padding: var(--size-base);
+    padding: var(--size-mid);
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -1081,6 +1081,7 @@ textarea.form-field__input {
     margin: 0;
     font-weight: 600;
     text-align: center;
+    padding-block: var(--size-base);
 }
 
 .course-player__feedback--correct {
@@ -1103,6 +1104,12 @@ textarea.form-field__input {
     list-style: none;
     margin: 0;
     padding: 0;
+}
+
+.course-player__question-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-base);
 }
 
 .course-player__question {

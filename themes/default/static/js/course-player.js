@@ -782,6 +782,10 @@
                 startBlock.remove();
             };
 
+            const questionSection = document.createElement("div");
+            questionSection.className = "course-player__question-section";
+            questionSection.hidden = true;
+
             const questionContainer = document.createElement("div");
             questionContainer.className = "course-player__question-step";
             questionContainer.hidden = true;
@@ -810,17 +814,13 @@
             result.hidden = true;
             result.setAttribute("aria-live", "polite");
 
-            const attachActions = () => {
-                if (!actions.isConnected) {
-                    form.insertBefore(actions, error);
-                }
-            };
-
             form.appendChild(timer);
             form.appendChild(progress);
             form.appendChild(startBlock);
-            form.appendChild(questionContainer);
-            form.appendChild(feedback);
+            questionSection.appendChild(questionContainer);
+            questionSection.appendChild(feedback);
+            questionSection.appendChild(actions);
+            form.appendChild(questionSection);
             form.appendChild(error);
             form.appendChild(result);
 
@@ -883,12 +883,12 @@
                 if (!question) {
                     return;
                 }
-                attachActions();
                 questionContainer.innerHTML = "";
                 currentQuestionUI = createQuestionElement(question, index);
                 questionContainer.appendChild(currentQuestionUI.element);
                 questionContainer.hidden = false;
                 actions.hidden = false;
+                questionSection.hidden = false;
                 progress.hidden = false;
                 updateProgress(index);
                 clearFeedback();
@@ -1035,6 +1035,7 @@
                 timer.hidden = true;
                 questionContainer.hidden = true;
                 actions.hidden = true;
+                questionSection.hidden = true;
                 progress.hidden = true;
                 startBlock.hidden = true;
                 clearFeedback();
@@ -1090,7 +1091,6 @@
                 }
                 testState.started = true;
                 removeStartBlock();
-                attachActions();
                 startTimer();
                 showQuestion(0);
             });
