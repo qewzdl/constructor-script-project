@@ -1804,6 +1804,7 @@ section[class*="__section--mv-128"] {
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
+    width: 100%;
 }
 
 .comments__header-row {
@@ -2621,6 +2622,9 @@ body.course-modal-open {
 
 .page-view__header, .footer, .post {
     padding-block: var(--size-lg);
+}
+
+.page-view__header, .footer {
     background-color: var(--color-page-view-header);
 }
 
