@@ -904,7 +904,7 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 	}
 
 	sections, page := h.profileSectionsForUser(user, courses)
-	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(sections, "profile")
+	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(sections, "page-view")
 	scripts := appendScripts(nil, sectionScripts)
 	defaultTitle := "Profile"
 	defaultDescription := "Manage personal details, account security, and connected devices."
@@ -936,11 +936,6 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 	page.Description = pageDescription
 	page.Template = templateName
 
-	var wrappedSections template.HTML
-	if sectionsHTML != "" {
-		wrappedSections = template.HTML(`<div class="profile__sections">` + string(sectionsHTML) + `</div>`)
-	}
-
 	data := gin.H{
 		"Page":               page,
 		"UserCourses":        courses,
@@ -948,8 +943,8 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		"PageViewAttributes": template.HTMLAttr(`data-page="profile"`),
 	}
 
-	if wrappedSections != "" {
-		data["Sections"] = wrappedSections
+	if sectionsHTML != "" {
+		data["Sections"] = sectionsHTML
 	}
 
 	if len(scripts) > 0 {
