@@ -647,27 +647,65 @@ textarea.form-field__input {
     gap: var(--size-max);
 }
 
-.course-player__header {
+.course-player__container {
     display: grid;
-    gap: var(--size-mid);
-    align-items: start;
+    gap: var(--size-lg);
+    padding-bottom: var(--size-max);
+}
+
+.course-player__header {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.course-player__header::before {
+    position: absolute;
+    content: '';
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(90deg, var(--color-page-view-header), var(--color-page-view-header), transparent);
+    z-index: 10;
+}
+
+.course-player__image-container {
+    display: flex;
+    justify-content: flex-end;
 }
 
 .course-player__figure {
-    margin: 0;
+    position: relative;
+    right: 0;
+    height: 200px;
+    width: 200px;
+    display: flex;
+    align-items: center;
+    z-index: 15;
+    margin: var(--size-sm) 0;
 }
 
 .course-player__image {
     width: 100%;
-    max-height: 320px;
+    height: 100%;
     object-fit: cover;
-    border-radius: var(--size-sm);
+    user-select: none;
+    pointer-events: none;
+    border-radius: var(--size-xs);
 }
 
 .course-player__header-content {
+    position: absolute;
     display: grid;
     gap: var(--size-sm);
-    max-width: 820px;
+    z-index: 20;
+}
+
+.course-player__header-content * {
+    color: var(--color-page-view-header-opposite) !important;
 }
 
 .course-player__title {
@@ -681,6 +719,23 @@ textarea.form-field__input {
     font-size: var(--font-size-lg);
     color: var(--color-secondary);
     line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+    .course-player__header {
+        flex-direction: column;
+        padding-block: var(--page-side-padding);
+        gap: var(--size-base);
+    }
+
+    .course-player__figure {
+        width: 100%; 
+        margin: 0;
+    }
+
+    .course-player__header-content {
+        position: relative;
+    }
 }
 
 .course-player__meta {
@@ -736,7 +791,7 @@ textarea.form-field__input {
 .course-player__sidebar-header {
     display: grid;
     gap: var(--size-xs);
-    padding: var(--size-mid);
+    padding: var(--size-base);
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -1130,7 +1185,7 @@ textarea.form-field__input {
 @media (max-width: 1024px) {
     .course-player__layout {
         grid-template-columns: 1fr;
-        gap: var(--size-mid);
+        gap: var(--common-gap);
     }
 
     .course-player__sidebar {
@@ -1295,7 +1350,6 @@ textarea.form-field__input {
 
 .post-card__figure {
     margin: 0;
-    height: auto;
     height: 200px;
 }
 
@@ -2634,7 +2688,10 @@ body.course-modal-open {
 .footer > *,
 .post > *:not(.post-progress),
 .comments,
-.search > * {
+.search > *,
+.course-player__header > *:not(.course-player__figure),
+.course-player__layout,
+.course-player__header-content {
     max-width: var(--page-max-width);
     padding-inline: var(--page-side-padding);
     margin-inline: auto;
