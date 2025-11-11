@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -18,9 +19,17 @@ func Init() {
 
 	sanitizer = bluemonday.UGCPolicy()
 
-	validate.RegisterValidation("username", validateUsername)
-	validate.RegisterValidation("slug", validateSlug)
-	validate.RegisterValidation("no_html", validateNoHTML)
+	registerCustomValidations(validate)
+
+	if engine, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		registerCustomValidations(engine)
+	}
+}
+
+func registerCustomValidations(v *validator.Validate) {
+	v.RegisterValidation("username", validateUsername)
+	v.RegisterValidation("slug", validateSlug)
+	v.RegisterValidation("no_html", validateNoHTML)
 }
 
 func Validate(s interface{}) error {
