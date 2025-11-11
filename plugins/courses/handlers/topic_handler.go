@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -60,7 +61,7 @@ func (h *TopicHandler) Update(c *gin.Context) {
 		return
 	}
 
-	id, ok := parseUintParam(c, "id")
+	id, ok := h.resolveTopicID(c, "id")
 	if !ok {
 		return
 	}
@@ -85,7 +86,7 @@ func (h *TopicHandler) UpdateVideos(c *gin.Context) {
 		return
 	}
 
-	id, ok := parseUintParam(c, "id")
+	id, ok := h.resolveTopicID(c, "id")
 	if !ok {
 		return
 	}
@@ -110,7 +111,7 @@ func (h *TopicHandler) UpdateSteps(c *gin.Context) {
 		return
 	}
 
-	id, ok := parseUintParam(c, "id")
+	id, ok := h.resolveTopicID(c, "id")
 	if !ok {
 		return
 	}
@@ -135,7 +136,7 @@ func (h *TopicHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	id, ok := parseUintParam(c, "id")
+	id, ok := h.resolveTopicID(c, "id")
 	if !ok {
 		return
 	}
@@ -193,4 +194,33 @@ func (h *TopicHandler) writeError(c *gin.Context, err error) {
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
+}
+
+func (h *TopicHandler) resolveTopicID(c *gin.Context, param string) (uint, bool) {
+	identifier := strings.TrimSpace(c.Param(param))
+	if identifier == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid identifier"})
+		return 0, false
+	}
+
+	if id, err := strconv.ParseUint(identifier, 10, 64); err == nil {
+		return uint(id), true
+	}
+
+	topic, err := h.service.GetBySlug(identifier)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "record not found"})
+			return 0, false
+		}
+		h.writeError(c, err)
+		return 0, false
+	}
+
+	if topic == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "record not found"})
+		return 0, false
+	}
+
+	return topic.ID, true
 }
