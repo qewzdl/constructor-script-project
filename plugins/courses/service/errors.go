@@ -48,8 +48,22 @@ func isDuplicateKeyError(err error) bool {
 
 	var sqlState interface{ SQLState() string }
 	if errors.As(err, &sqlState) {
-		return sqlState.SQLState() == "23505"
+		if state := sqlState.SQLState(); state == "23505" {
+			return true
+		}
 	}
 
-	return false
+	message := strings.ToLower(strings.TrimSpace(err.Error()))
+	switch {
+	case message == "":
+		return false
+	case strings.Contains(message, "duplicate key value violates unique constraint"):
+		return true
+	case strings.Contains(message, "unique constraint failed"):
+		return true
+	case strings.Contains(message, "duplicate entry"):
+		return true
+	default:
+		return false
+	}
 }
