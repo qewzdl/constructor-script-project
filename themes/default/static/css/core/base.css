@@ -809,21 +809,21 @@ textarea.form-field__input {
 
 .course-player__topics {
     display: grid;
-    gap: var(--size-sm);
+    gap: var(--size-base);
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: var(--size-mid) 0;
 }
 
 .course-player__topic {
     display: grid;
     gap: var(--size-base);
-    padding: var(--size-base);
 }
 
 .course-player__topic-title {
     margin: 0;
     font-size: var(--font-size-lg);
+    padding: 0 var(--size-mid);
     font-weight: 600;
 }
 
@@ -854,17 +854,18 @@ textarea.form-field__input {
     align-items: center;
     gap: var(--size-sm);
     width: 100%;
-    border: 1px solid transparent;
+    border-block: 1px solid transparent;
+    border-inline: none;
     background-color: transparent;
     color: inherit;
     text-align: left;
     cursor: pointer;
-    padding: var(--size-sm);
+    padding: var(--size-sm) var(--size-mid);
 }
 
 .course-player__step-button:hover,
 .course-player__step-button:focus-visible {
-    border-color: var(--color-border);
+    color: var(--color-primary);
     outline: none;
 }
 
