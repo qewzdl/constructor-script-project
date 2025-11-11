@@ -96,6 +96,9 @@ func (s *PackageService) Create(req models.CreateCoursePackageRequest) (*models.
 	}
 
 	if err := s.packageRepo.Create(&pkg); err != nil {
+		if isDuplicateKeyError(err) {
+			return nil, newValidationError("package slug is already in use")
+		}
 		return nil, err
 	}
 
@@ -149,6 +152,9 @@ func (s *PackageService) Update(id uint, req models.UpdateCoursePackageRequest) 
 	pkg.ImageURL = strings.TrimSpace(req.ImageURL)
 
 	if err := s.packageRepo.Update(pkg); err != nil {
+		if isDuplicateKeyError(err) {
+			return nil, newValidationError("package slug is already in use")
+		}
 		return nil, err
 	}
 

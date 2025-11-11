@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 var errValidation = errors.New("courseservice: validation error")
@@ -34,4 +36,20 @@ func IsValidationError(err error) bool {
 		return false
 	}
 	return errors.Is(err, errValidation)
+}
+
+func isDuplicateKeyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, gorm.ErrDuplicatedKey) {
+		return true
+	}
+
+	var sqlState interface{ SQLState() string }
+	if errors.As(err, &sqlState) {
+		return sqlState.SQLState() == "23505"
+	}
+
+	return false
 }

@@ -76,6 +76,9 @@ func (s *TopicService) Create(req models.CreateCourseTopicRequest) (*models.Cour
 	}
 
 	if err := s.topicRepo.Create(&topic); err != nil {
+		if isDuplicateKeyError(err) {
+			return nil, newValidationError("topic slug is already in use")
+		}
 		return nil, err
 	}
 
@@ -124,6 +127,9 @@ func (s *TopicService) Update(id uint, req models.UpdateCourseTopicRequest) (*mo
 	topic.MetaDescription = strings.TrimSpace(req.MetaDescription)
 
 	if err := s.topicRepo.Update(topic); err != nil {
+		if isDuplicateKeyError(err) {
+			return nil, newValidationError("topic slug is already in use")
+		}
 		return nil, err
 	}
 

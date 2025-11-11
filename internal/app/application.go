@@ -502,19 +502,20 @@ func (a *Application) ensureCoursePackageSlugs(migrator gorm.Migrator) error {
 func (a *Application) ensureSlugsForTable(tableName, fallbackPrefix, indexName string) error {
 	return a.db.Transaction(func(tx *gorm.DB) error {
 		type slugRow struct {
-			ID    uint
-			Title string
-			Slug  sql.NullString
+			ID        uint
+			Title     string
+			Slug      sql.NullString
+			DeletedAt gorm.DeletedAt
 		}
 
 		var rows []slugRow
-		if err := tx.Table(tableName).Select("id, title, slug").Order("id ASC").Find(&rows).Error; err != nil {
+		if err := tx.Table(tableName).Select("id, title, slug, deleted_at").Order("id ASC").Find(&rows).Error; err != nil {
 			return fmt.Errorf("failed to load %s rows for slug backfill: %w", tableName, err)
 		}
 
 		existing := make(map[string]struct{}, len(rows))
 
-		for _, row := range rows {
+		ensureSlug := func(row slugRow, enforceUnique bool) error {
 			base := strings.TrimSpace(strings.ToLower(row.Slug.String))
 			if base == "" {
 				generated := utils.GenerateSlug(row.Title)
@@ -526,27 +527,27 @@ func (a *Application) ensureSlugsForTable(tableName, fallbackPrefix, indexName s
 			}
 
 			candidate := base
-			suffix := 0
-			for {
-				var attempt string
-				switch suffix {
-				case 0:
-					attempt = base
-				case 1:
-					attempt = fmt.Sprintf("%s-%d", base, row.ID)
-				default:
-					attempt = fmt.Sprintf("%s-%d-%d", base, row.ID, suffix)
-				}
+			if enforceUnique {
+				suffix := 0
+				for {
+					var attempt string
+					switch suffix {
+					case 0:
+						attempt = base
+					case 1:
+						attempt = fmt.Sprintf("%s-%d", base, row.ID)
+					default:
+						attempt = fmt.Sprintf("%s-%d-%d", base, row.ID, suffix)
+					}
 
-				if _, exists := existing[attempt]; !exists {
-					candidate = attempt
-					break
-				}
+					if _, exists := existing[attempt]; !exists {
+						candidate = attempt
+						break
+					}
 
-				suffix++
+					suffix++
+				}
 			}
-
-			existing[candidate] = struct{}{}
 
 			current := strings.TrimSpace(row.Slug.String)
 			currentLower := strings.TrimSpace(strings.ToLower(row.Slug.String))
@@ -554,6 +555,31 @@ func (a *Application) ensureSlugsForTable(tableName, fallbackPrefix, indexName s
 				if err := tx.Exec(fmt.Sprintf("UPDATE %s SET slug = ? WHERE id = ?", tableName), candidate, row.ID).Error; err != nil {
 					return fmt.Errorf("failed to update %s slug for id %d: %w", tableName, row.ID, err)
 				}
+				current = candidate
+			}
+
+			if enforceUnique {
+				existing[current] = struct{}{}
+			}
+
+			return nil
+		}
+
+		for _, row := range rows {
+			if row.DeletedAt.Valid {
+				continue
+			}
+			if err := ensureSlug(row, true); err != nil {
+				return err
+			}
+		}
+
+		for _, row := range rows {
+			if !row.DeletedAt.Valid {
+				continue
+			}
+			if err := ensureSlug(row, false); err != nil {
+				return err
 			}
 		}
 
@@ -561,7 +587,12 @@ func (a *Application) ensureSlugsForTable(tableName, fallbackPrefix, indexName s
 			return fmt.Errorf("failed to enforce NOT NULL on %s slug column: %w", tableName, err)
 		}
 
-		if err := tx.Exec(fmt.Sprintf("CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s (slug)", indexName, tableName)).Error; err != nil {
+		if err := tx.Exec(fmt.Sprintf("DROP INDEX IF EXISTS %s", indexName)).Error; err != nil {
+			return fmt.Errorf("failed to drop legacy %s slug index: %w", tableName, err)
+		}
+
+		createStmt := fmt.Sprintf("CREATE UNIQUE INDEX %s ON %s (slug) WHERE deleted_at IS NULL", indexName, tableName)
+		if err := tx.Exec(createStmt).Error; err != nil {
 			return fmt.Errorf("failed to ensure unique index for %s slug column: %w", tableName, err)
 		}
 
