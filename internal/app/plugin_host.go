@@ -1,6 +1,9 @@
 package app
 
 import (
+	"strings"
+	"sync"
+
 	"constructor-script-backend/internal/background"
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/handlers"
@@ -9,8 +12,10 @@ import (
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/cache"
+	blogapi "constructor-script-backend/plugins/blog/api"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogservice "constructor-script-backend/plugins/blog/service"
+	courseapi "constructor-script-backend/plugins/courses/api"
 	coursehandlers "constructor-script-backend/plugins/courses/handlers"
 	courseservice "constructor-script-backend/plugins/courses/service"
 	languageservice "constructor-script-backend/plugins/language/service"
@@ -24,20 +29,144 @@ type applicationCoreServices struct {
 	app *Application
 }
 
-type applicationBlogServices struct {
-	app *Application
+type registryKind uint8
+
+const (
+	registryKindServices registryKind = iota
+	registryKindHandlers
+)
+
+type applicationRegistry struct {
+	app       *Application
+	namespace string
+	kind      registryKind
 }
 
-type applicationBlogHandlers struct {
-	app *Application
+type pluginBindingContainer struct {
+	mu      sync.RWMutex
+	values  map[registryKind]map[string]map[string]any
+	getters map[registryKind]map[string]map[string]func() any
+	setters map[registryKind]map[string]map[string]func(any)
 }
 
-type applicationCourseServices struct {
-	app *Application
+func (c *pluginBindingContainer) register(kind registryKind, namespace, key string, getter func() any, setter func(any)) {
+	ns := normalize(namespace)
+	k := normalize(key)
+
+	c.mu.Lock()
+	if getter != nil {
+		if c.getters == nil {
+			c.getters = make(map[registryKind]map[string]map[string]func() any)
+		}
+		if c.getters[kind] == nil {
+			c.getters[kind] = make(map[string]map[string]func() any)
+		}
+		if c.getters[kind][ns] == nil {
+			c.getters[kind][ns] = make(map[string]func() any)
+		}
+		c.getters[kind][ns][k] = getter
+	}
+
+	if setter != nil {
+		if c.setters == nil {
+			c.setters = make(map[registryKind]map[string]map[string]func(any))
+		}
+		if c.setters[kind] == nil {
+			c.setters[kind] = make(map[string]map[string]func(any))
+		}
+		if c.setters[kind][ns] == nil {
+			c.setters[kind][ns] = make(map[string]func(any))
+		}
+		c.setters[kind][ns][k] = setter
+	}
+	c.mu.Unlock()
 }
 
-type applicationCourseHandlers struct {
-	app *Application
+func (c *pluginBindingContainer) get(kind registryKind, namespace, key string) any {
+	ns := normalize(namespace)
+	k := normalize(key)
+
+	c.mu.RLock()
+	if c.getters != nil {
+		if nsGetters := c.getters[kind]; nsGetters != nil {
+			if getter := nsGetters[ns][k]; getter != nil {
+				c.mu.RUnlock()
+				return getter()
+			}
+		}
+	}
+
+	var value any
+	if c.values != nil {
+		if nsValues := c.values[kind]; nsValues != nil {
+			value = nsValues[ns][k]
+		}
+	}
+	c.mu.RUnlock()
+	return value
+}
+
+func (c *pluginBindingContainer) set(kind registryKind, namespace, key string, value any) {
+	ns := normalize(namespace)
+	k := normalize(key)
+
+	var setter func(any)
+
+	c.mu.Lock()
+	if c.values == nil {
+		c.values = make(map[registryKind]map[string]map[string]any)
+	}
+	if c.values[kind] == nil {
+		c.values[kind] = make(map[string]map[string]any)
+	}
+	if c.values[kind][ns] == nil {
+		c.values[kind][ns] = make(map[string]any)
+	}
+	if value == nil {
+		delete(c.values[kind][ns], k)
+	} else {
+		c.values[kind][ns][k] = value
+	}
+
+	if c.setters != nil {
+		if nsSetters := c.setters[kind]; nsSetters != nil {
+			setter = nsSetters[ns][k]
+		}
+	}
+	c.mu.Unlock()
+
+	if setter != nil {
+		setter(value)
+	}
+}
+
+func (c *pluginBindingContainer) delete(kind registryKind, namespace, key string) {
+	c.set(kind, namespace, key, nil)
+}
+
+func normalize(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
+}
+
+func (r applicationRegistry) Get(key string) any {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.pluginBindings.get(r.kind, r.namespace, key)
+}
+
+func (r applicationRegistry) Set(key string, value any) {
+	if r.app == nil {
+		return
+	}
+	r.app.pluginBindings.set(r.kind, r.namespace, key, value)
+}
+
+func (r applicationRegistry) Delete(key string) {
+	if r.app == nil {
+		return
+	}
+	r.app.pluginBindings.delete(r.kind, r.namespace, key)
 }
 
 func (a *Application) Config() *config.Config {
@@ -76,20 +205,12 @@ func (a *Application) CoreServices() host.CoreServiceAccess {
 	return applicationCoreServices{app: a}
 }
 
-func (a *Application) BlogServices() host.BlogServiceAccess {
-	return applicationBlogServices{app: a}
+func (a *Application) Services(namespace string) host.Registry {
+	return applicationRegistry{app: a, namespace: namespace, kind: registryKindServices}
 }
 
-func (a *Application) BlogHandlers() host.BlogHandlerAccess {
-	return applicationBlogHandlers{app: a}
-}
-
-func (a *Application) CourseServices() host.CourseServiceAccess {
-	return applicationCourseServices{app: a}
-}
-
-func (a *Application) CourseHandlers() host.CourseHandlerAccess {
-	return applicationCourseHandlers{app: a}
+func (a *Application) Handlers(namespace string) host.Registry {
+	return applicationRegistry{app: a, namespace: namespace, kind: registryKindHandlers}
 }
 
 func (a *Application) TemplateHandler() *handlers.TemplateHandler {
@@ -267,254 +388,440 @@ func (s applicationCoreServices) SetLanguage(language *languageservice.LanguageS
 	s.app.services.Language = language
 }
 
-func (s applicationBlogServices) Category() *blogservice.CategoryService {
-	if s.app == nil {
-		return nil
-	}
-	return s.app.services.Category
+// registerPluginServiceBindings configures the service registry adapters for built-in plugins.
+func (a *Application) registerPluginServiceBindings() {
+	a.pluginBindings.register(
+		registryKindServices,
+		blogapi.Namespace,
+		blogapi.ServiceCategory,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.Category
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.Category = nil
+				return
+			}
+			if svc, ok := value.(*blogservice.CategoryService); ok {
+				a.services.Category = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		blogapi.Namespace,
+		blogapi.ServicePost,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.Post
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.Post = nil
+				return
+			}
+			if svc, ok := value.(*blogservice.PostService); ok {
+				a.services.Post = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		blogapi.Namespace,
+		blogapi.ServiceComment,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.Comment
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.Comment = nil
+				return
+			}
+			if svc, ok := value.(*blogservice.CommentService); ok {
+				a.services.Comment = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		blogapi.Namespace,
+		blogapi.ServiceSearch,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.Search
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.Search = nil
+				return
+			}
+			if svc, ok := value.(*blogservice.SearchService); ok {
+				a.services.Search = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		courseapi.Namespace,
+		courseapi.ServiceVideo,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.CourseVideo
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.CourseVideo = nil
+				return
+			}
+			if svc, ok := value.(*courseservice.VideoService); ok {
+				a.services.CourseVideo = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		courseapi.Namespace,
+		courseapi.ServiceTopic,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.CourseTopic
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.CourseTopic = nil
+				return
+			}
+			if svc, ok := value.(*courseservice.TopicService); ok {
+				a.services.CourseTopic = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		courseapi.Namespace,
+		courseapi.ServicePackage,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.CoursePackage
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.CoursePackage = nil
+				return
+			}
+			if svc, ok := value.(*courseservice.PackageService); ok {
+				a.services.CoursePackage = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		courseapi.Namespace,
+		courseapi.ServiceTest,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.CourseTest
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.CourseTest = nil
+				return
+			}
+			if svc, ok := value.(*courseservice.TestService); ok {
+				a.services.CourseTest = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		courseapi.Namespace,
+		courseapi.ServiceCheckout,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.CourseCheckout
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.CourseCheckout = nil
+				return
+			}
+			if svc, ok := value.(*courseservice.CheckoutService); ok {
+				a.services.CourseCheckout = svc
+			}
+		},
+	)
 }
 
-func (s applicationBlogServices) SetCategory(category *blogservice.CategoryService) {
-	if s.app == nil {
-		return
-	}
-	s.app.services.Category = category
-}
+// registerPluginHandlerBindings configures handler registry adapters for built-in plugins.
+func (a *Application) registerPluginHandlerBindings() {
+	a.pluginBindings.register(
+		registryKindHandlers,
+		blogapi.Namespace,
+		blogapi.HandlerPost,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.Post
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.Post = nil
+				return
+			}
+			if handler, ok := value.(*bloghandlers.PostHandler); ok {
+				a.handlers.Post = handler
+			}
+		},
+	)
 
-func (s applicationBlogServices) Post() *blogservice.PostService {
-	if s.app == nil {
-		return nil
-	}
-	return s.app.services.Post
-}
+	a.pluginBindings.register(
+		registryKindHandlers,
+		blogapi.Namespace,
+		blogapi.HandlerCategory,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.Category
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.Category = nil
+				return
+			}
+			if handler, ok := value.(*bloghandlers.CategoryHandler); ok {
+				a.handlers.Category = handler
+			}
+		},
+	)
 
-func (s applicationBlogServices) SetPost(post *blogservice.PostService) {
-	if s.app == nil {
-		return
-	}
-	s.app.services.Post = post
-}
+	a.pluginBindings.register(
+		registryKindHandlers,
+		blogapi.Namespace,
+		blogapi.HandlerComment,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.Comment
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.Comment = nil
+				return
+			}
+			if handler, ok := value.(*bloghandlers.CommentHandler); ok {
+				a.handlers.Comment = handler
+			}
+		},
+	)
 
-func (s applicationBlogServices) Comment() *blogservice.CommentService {
-	if s.app == nil {
-		return nil
-	}
-	return s.app.services.Comment
-}
+	a.pluginBindings.register(
+		registryKindHandlers,
+		blogapi.Namespace,
+		blogapi.HandlerSearch,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.Search
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.Search = nil
+				return
+			}
+			if handler, ok := value.(*bloghandlers.SearchHandler); ok {
+				a.handlers.Search = handler
+			}
+		},
+	)
 
-func (s applicationBlogServices) SetComment(comment *blogservice.CommentService) {
-	if s.app == nil {
-		return
-	}
-	s.app.services.Comment = comment
-}
+	a.pluginBindings.register(
+		registryKindHandlers,
+		courseapi.Namespace,
+		courseapi.HandlerVideo,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.CourseVideo
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.CourseVideo = nil
+				return
+			}
+			if handler, ok := value.(*coursehandlers.VideoHandler); ok {
+				a.handlers.CourseVideo = handler
+			}
+		},
+	)
 
-func (s applicationBlogServices) Search() *blogservice.SearchService {
-	if s.app == nil {
-		return nil
-	}
-	return s.app.services.Search
-}
+	a.pluginBindings.register(
+		registryKindHandlers,
+		courseapi.Namespace,
+		courseapi.HandlerTopic,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.CourseTopic
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.CourseTopic = nil
+				return
+			}
+			if handler, ok := value.(*coursehandlers.TopicHandler); ok {
+				a.handlers.CourseTopic = handler
+			}
+		},
+	)
 
-func (s applicationBlogServices) SetSearch(search *blogservice.SearchService) {
-	if s.app == nil {
-		return
-	}
-	s.app.services.Search = search
-}
+	a.pluginBindings.register(
+		registryKindHandlers,
+		courseapi.Namespace,
+		courseapi.HandlerTest,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.CourseTest
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.CourseTest = nil
+				return
+			}
+			if handler, ok := value.(*coursehandlers.TestHandler); ok {
+				a.handlers.CourseTest = handler
+			}
+		},
+	)
 
-func (s applicationCourseServices) Video() *courseservice.VideoService {
-	if s.app == nil {
-		return nil
-	}
-	return s.app.services.CourseVideo
-}
+	a.pluginBindings.register(
+		registryKindHandlers,
+		courseapi.Namespace,
+		courseapi.HandlerPackage,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.CoursePackage
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.CoursePackage = nil
+				return
+			}
+			if handler, ok := value.(*coursehandlers.PackageHandler); ok {
+				a.handlers.CoursePackage = handler
+			}
+		},
+	)
 
-func (s applicationCourseServices) SetVideo(video *courseservice.VideoService) {
-	if s.app == nil {
-		return
-	}
-	s.app.services.CourseVideo = video
-}
-
-func (s applicationCourseServices) Topic() *courseservice.TopicService {
-	if s.app == nil {
-		return nil
-	}
-	return s.app.services.CourseTopic
-}
-
-func (s applicationCourseServices) SetTopic(topic *courseservice.TopicService) {
-	if s.app == nil {
-		return
-	}
-	s.app.services.CourseTopic = topic
-}
-
-func (s applicationCourseServices) Package() *courseservice.PackageService {
-	if s.app == nil {
-		return nil
-	}
-	return s.app.services.CoursePackage
-}
-
-func (s applicationCourseServices) SetPackage(pkg *courseservice.PackageService) {
-	if s.app == nil {
-		return
-	}
-	s.app.services.CoursePackage = pkg
-}
-
-func (s applicationCourseServices) Test() *courseservice.TestService {
-	if s.app == nil {
-		return nil
-	}
-	return s.app.services.CourseTest
-}
-
-func (s applicationCourseServices) SetTest(test *courseservice.TestService) {
-	if s.app == nil {
-		return
-	}
-	s.app.services.CourseTest = test
-}
-
-func (s applicationCourseServices) Checkout() *courseservice.CheckoutService {
-	if s.app == nil {
-		return nil
-	}
-	return s.app.services.CourseCheckout
-}
-
-func (s applicationCourseServices) SetCheckout(checkout *courseservice.CheckoutService) {
-	if s.app == nil {
-		return
-	}
-	s.app.services.CourseCheckout = checkout
-}
-
-func (h applicationBlogHandlers) Post() *bloghandlers.PostHandler {
-	if h.app == nil {
-		return nil
-	}
-	return h.app.handlers.Post
-}
-
-func (h applicationBlogHandlers) SetPost(handler *bloghandlers.PostHandler) {
-	if h.app == nil {
-		return
-	}
-	h.app.handlers.Post = handler
-}
-
-func (h applicationBlogHandlers) Category() *bloghandlers.CategoryHandler {
-	if h.app == nil {
-		return nil
-	}
-	return h.app.handlers.Category
-}
-
-func (h applicationBlogHandlers) SetCategory(handler *bloghandlers.CategoryHandler) {
-	if h.app == nil {
-		return
-	}
-	h.app.handlers.Category = handler
-}
-
-func (h applicationBlogHandlers) Comment() *bloghandlers.CommentHandler {
-	if h.app == nil {
-		return nil
-	}
-	return h.app.handlers.Comment
-}
-
-func (h applicationBlogHandlers) SetComment(handler *bloghandlers.CommentHandler) {
-	if h.app == nil {
-		return
-	}
-	h.app.handlers.Comment = handler
-}
-
-func (h applicationBlogHandlers) Search() *bloghandlers.SearchHandler {
-	if h.app == nil {
-		return nil
-	}
-	return h.app.handlers.Search
-}
-
-func (h applicationBlogHandlers) SetSearch(handler *bloghandlers.SearchHandler) {
-	if h.app == nil {
-		return
-	}
-	h.app.handlers.Search = handler
-}
-
-func (h applicationCourseHandlers) Video() *coursehandlers.VideoHandler {
-	if h.app == nil {
-		return nil
-	}
-	return h.app.handlers.CourseVideo
-}
-
-func (h applicationCourseHandlers) SetVideo(handler *coursehandlers.VideoHandler) {
-	if h.app == nil {
-		return
-	}
-	h.app.handlers.CourseVideo = handler
-}
-
-func (h applicationCourseHandlers) Topic() *coursehandlers.TopicHandler {
-	if h.app == nil {
-		return nil
-	}
-	return h.app.handlers.CourseTopic
-}
-
-func (h applicationCourseHandlers) SetTopic(handler *coursehandlers.TopicHandler) {
-	if h.app == nil {
-		return
-	}
-	h.app.handlers.CourseTopic = handler
-}
-
-func (h applicationCourseHandlers) Test() *coursehandlers.TestHandler {
-	if h.app == nil {
-		return nil
-	}
-	return h.app.handlers.CourseTest
-}
-
-func (h applicationCourseHandlers) SetTest(handler *coursehandlers.TestHandler) {
-	if h.app == nil {
-		return
-	}
-	h.app.handlers.CourseTest = handler
-}
-
-func (h applicationCourseHandlers) Package() *coursehandlers.PackageHandler {
-	if h.app == nil {
-		return nil
-	}
-	return h.app.handlers.CoursePackage
-}
-
-func (h applicationCourseHandlers) SetPackage(handler *coursehandlers.PackageHandler) {
-	if h.app == nil {
-		return
-	}
-	h.app.handlers.CoursePackage = handler
-}
-
-func (h applicationCourseHandlers) Checkout() *coursehandlers.CheckoutHandler {
-	if h.app == nil {
-		return nil
-	}
-	return h.app.handlers.CourseCheckout
-}
-
-func (h applicationCourseHandlers) SetCheckout(handler *coursehandlers.CheckoutHandler) {
-	if h.app == nil {
-		return
-	}
-	h.app.handlers.CourseCheckout = handler
+	a.pluginBindings.register(
+		registryKindHandlers,
+		courseapi.Namespace,
+		courseapi.HandlerCheckout,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.CourseCheckout
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.CourseCheckout = nil
+				return
+			}
+			if handler, ok := value.(*coursehandlers.CheckoutHandler); ok {
+				a.handlers.CourseCheckout = handler
+			}
+		},
+	)
 }

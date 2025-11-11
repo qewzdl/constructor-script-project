@@ -6,6 +6,7 @@ import (
 	"constructor-script-backend/internal/plugin/host"
 	"constructor-script-backend/internal/plugin/registry"
 	pluginruntime "constructor-script-backend/internal/plugin/runtime"
+	blogapi "constructor-script-backend/plugins/blog/api"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogseed "constructor-script-backend/plugins/blog/seed"
 	blogservice "constructor-script-backend/plugins/blog/service"
@@ -32,15 +33,21 @@ func (f *Feature) Activate() error {
 	}
 
 	repos := f.host.Repositories()
-	services := f.host.BlogServices()
+	services := f.host.Services(blogapi.Namespace)
 
-	categorySvc := services.Category()
+	var categorySvc *blogservice.CategoryService
+	if value, ok := services.Get(blogapi.ServiceCategory).(*blogservice.CategoryService); ok {
+		categorySvc = value
+	}
 	if categorySvc == nil {
 		categorySvc = blogservice.NewCategoryService(repos.Category(), repos.Post(), f.host.Cache())
-		services.SetCategory(categorySvc)
+		services.Set(blogapi.ServiceCategory, categorySvc)
 	}
 
-	postSvc := services.Post()
+	var postSvc *blogservice.PostService
+	if value, ok := services.Get(blogapi.ServicePost).(*blogservice.PostService); ok {
+		postSvc = value
+	}
 	if postSvc == nil {
 		postSvc = blogservice.NewPostService(
 			repos.Post(),
@@ -52,52 +59,70 @@ func (f *Feature) Activate() error {
 			f.host.Scheduler(),
 			f.host.ThemeManager(),
 		)
-		services.SetPost(postSvc)
+		services.Set(blogapi.ServicePost, postSvc)
 	}
 
-	commentSvc := services.Comment()
+	var commentSvc *blogservice.CommentService
+	if value, ok := services.Get(blogapi.ServiceComment).(*blogservice.CommentService); ok {
+		commentSvc = value
+	}
 	if commentSvc == nil {
 		commentSvc = blogservice.NewCommentService(repos.Comment())
-		services.SetComment(commentSvc)
+		services.Set(blogapi.ServiceComment, commentSvc)
 	}
 
-	searchSvc := services.Search()
+	var searchSvc *blogservice.SearchService
+	if value, ok := services.Get(blogapi.ServiceSearch).(*blogservice.SearchService); ok {
+		searchSvc = value
+	}
 	if searchSvc == nil {
 		searchSvc = blogservice.NewSearchService(repos.Search())
-		services.SetSearch(searchSvc)
+		services.Set(blogapi.ServiceSearch, searchSvc)
 	}
 
-	handlers := f.host.BlogHandlers()
+	handlers := f.host.Handlers(blogapi.Namespace)
 
-	postHandler := handlers.Post()
+	var postHandler *bloghandlers.PostHandler
+	if value, ok := handlers.Get(blogapi.HandlerPost).(*bloghandlers.PostHandler); ok {
+		postHandler = value
+	}
 	if postHandler == nil {
 		postHandler = bloghandlers.NewPostHandler(postSvc)
-		handlers.SetPost(postHandler)
+		handlers.Set(blogapi.HandlerPost, postHandler)
 	} else {
 		postHandler.SetService(postSvc)
 	}
 
-	categoryHandler := handlers.Category()
+	var categoryHandler *bloghandlers.CategoryHandler
+	if value, ok := handlers.Get(blogapi.HandlerCategory).(*bloghandlers.CategoryHandler); ok {
+		categoryHandler = value
+	}
 	if categoryHandler == nil {
 		categoryHandler = bloghandlers.NewCategoryHandler(categorySvc)
-		handlers.SetCategory(categoryHandler)
+		handlers.Set(blogapi.HandlerCategory, categoryHandler)
 	} else {
 		categoryHandler.SetService(categorySvc)
 	}
 
-	commentHandler := handlers.Comment()
+	var commentHandler *bloghandlers.CommentHandler
+	if value, ok := handlers.Get(blogapi.HandlerComment).(*bloghandlers.CommentHandler); ok {
+		commentHandler = value
+	}
 	guard := bloghandlers.NewCommentGuard(f.host.Config())
 	if commentHandler == nil {
 		commentHandler = bloghandlers.NewCommentHandler(commentSvc, f.host.CoreServices().Auth(), guard)
-		handlers.SetComment(commentHandler)
+		handlers.Set(blogapi.HandlerComment, commentHandler)
 	} else {
 		commentHandler.SetService(commentSvc)
 	}
 
-	searchHandler := handlers.Search()
+	var searchHandler *bloghandlers.SearchHandler
+	if value, ok := handlers.Get(blogapi.HandlerSearch).(*bloghandlers.SearchHandler); ok {
+		searchHandler = value
+	}
 	if searchHandler == nil {
 		searchHandler = bloghandlers.NewSearchHandler(searchSvc)
-		handlers.SetSearch(searchHandler)
+		handlers.Set(blogapi.HandlerSearch, searchHandler)
 	} else {
 		searchHandler.SetService(searchSvc)
 	}
@@ -131,17 +156,17 @@ func (f *Feature) Deactivate() error {
 		return nil
 	}
 
-	handlers := f.host.BlogHandlers()
-	if postHandler := handlers.Post(); postHandler != nil {
+	handlers := f.host.Handlers(blogapi.Namespace)
+	if postHandler, _ := handlers.Get(blogapi.HandlerPost).(*bloghandlers.PostHandler); postHandler != nil {
 		postHandler.SetService(nil)
 	}
-	if categoryHandler := handlers.Category(); categoryHandler != nil {
+	if categoryHandler, _ := handlers.Get(blogapi.HandlerCategory).(*bloghandlers.CategoryHandler); categoryHandler != nil {
 		categoryHandler.SetService(nil)
 	}
-	if commentHandler := handlers.Comment(); commentHandler != nil {
+	if commentHandler, _ := handlers.Get(blogapi.HandlerComment).(*bloghandlers.CommentHandler); commentHandler != nil {
 		commentHandler.SetService(nil)
 	}
-	if searchHandler := handlers.Search(); searchHandler != nil {
+	if searchHandler, _ := handlers.Get(blogapi.HandlerSearch).(*bloghandlers.SearchHandler); searchHandler != nil {
 		searchHandler.SetService(nil)
 	}
 
@@ -155,11 +180,11 @@ func (f *Feature) Deactivate() error {
 		themeHandler.SetPostService(nil)
 	}
 
-	services := f.host.BlogServices()
-	services.SetPost(nil)
-	services.SetCategory(nil)
-	services.SetComment(nil)
-	services.SetSearch(nil)
+	services := f.host.Services(blogapi.Namespace)
+	services.Set(blogapi.ServicePost, nil)
+	services.Set(blogapi.ServiceCategory, nil)
+	services.Set(blogapi.ServiceComment, nil)
+	services.Set(blogapi.ServiceSearch, nil)
 
 	return nil
 }

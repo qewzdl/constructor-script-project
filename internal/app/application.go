@@ -56,9 +56,10 @@ type Application struct {
 	cache     *cache.Cache
 	scheduler *background.Scheduler
 
-	repositories repositoryContainer
-	services     serviceContainer
-	handlers     handlerContainer
+	repositories   repositoryContainer
+	services       serviceContainer
+	handlers       handlerContainer
+	pluginBindings pluginBindingContainer
 
 	themeManager    *theme.Manager
 	pluginManager   *plugin.Manager
@@ -904,6 +905,8 @@ func (a *Application) initServices() {
 		CourseCheckout: nil,
 	}
 
+	a.registerPluginServiceBindings()
+
 	backupService.InitializeAutoBackups()
 }
 
@@ -968,6 +971,7 @@ func (a *Application) initHandlers() error {
 		a.repositories.User,
 		a.templateHandler,
 	)
+	a.registerPluginHandlerBindings()
 	return nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"constructor-script-backend/internal/plugin/registry"
 	pluginruntime "constructor-script-backend/internal/plugin/runtime"
 	"constructor-script-backend/pkg/logger"
+	courseapi "constructor-script-backend/plugins/courses/api"
 	coursehandlers "constructor-script-backend/plugins/courses/handlers"
 	courseservice "constructor-script-backend/plugins/courses/service"
 )
@@ -40,8 +41,8 @@ func (f *Feature) Activate() error {
 	}
 
 	coreServices := f.host.CoreServices()
-	courseServices := f.host.CourseServices()
-	courseHandlers := f.host.CourseHandlers()
+	services := f.host.Services(courseapi.Namespace)
+	handlers := f.host.Handlers(courseapi.Namespace)
 
 	videoRepo := repos.CourseVideo()
 	topicRepo := repos.CourseTopic()
@@ -59,35 +60,47 @@ func (f *Feature) Activate() error {
 		return fmt.Errorf("upload service is not configured")
 	}
 
-	videoService := courseServices.Video()
+	var videoService *courseservice.VideoService
+	if value, ok := services.Get(courseapi.ServiceVideo).(*courseservice.VideoService); ok {
+		videoService = value
+	}
 	if videoService == nil {
 		videoService = courseservice.NewVideoService(videoRepo, uploadService, f.host.ThemeManager())
-		courseServices.SetVideo(videoService)
+		services.Set(courseapi.ServiceVideo, videoService)
 	} else {
 		videoService.SetUploadService(uploadService)
 		videoService.SetThemeManager(f.host.ThemeManager())
 	}
 
-	testService := courseServices.Test()
+	var testService *courseservice.TestService
+	if value, ok := services.Get(courseapi.ServiceTest).(*courseservice.TestService); ok {
+		testService = value
+	}
 	if testService == nil {
 		testService = courseservice.NewTestService(testRepo)
-		courseServices.SetTest(testService)
+		services.Set(courseapi.ServiceTest, testService)
 	} else {
 		testService.SetRepository(testRepo)
 	}
 
-	topicService := courseServices.Topic()
+	var topicService *courseservice.TopicService
+	if value, ok := services.Get(courseapi.ServiceTopic).(*courseservice.TopicService); ok {
+		topicService = value
+	}
 	if topicService == nil {
 		topicService = courseservice.NewTopicService(topicRepo, videoRepo, testRepo)
-		courseServices.SetTopic(topicService)
+		services.Set(courseapi.ServiceTopic, topicService)
 	} else {
 		topicService.SetRepositories(topicRepo, videoRepo, testRepo)
 	}
 
-	packageService := courseServices.Package()
+	var packageService *courseservice.PackageService
+	if value, ok := services.Get(courseapi.ServicePackage).(*courseservice.PackageService); ok {
+		packageService = value
+	}
 	if packageService == nil {
 		packageService = courseservice.NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, accessRepo, userRepo)
-		courseServices.SetPackage(packageService)
+		services.Set(courseapi.ServicePackage, packageService)
 	} else {
 		packageService.SetRepositories(packageRepo, topicRepo, videoRepo, testRepo, accessRepo, userRepo)
 	}
@@ -170,44 +183,46 @@ func (f *Feature) Activate() error {
 		logger.Debug("Stripe secret key not provided; course checkout remains disabled", map[string]interface{}{"feature": "courses"})
 	}
 
-	checkoutService := courseServices.Checkout()
+	var checkoutService *courseservice.CheckoutService
+	if value, ok := services.Get(courseapi.ServiceCheckout).(*courseservice.CheckoutService); ok {
+		checkoutService = value
+	}
 	if checkoutService == nil {
 		checkoutService = courseservice.NewCheckoutService(packageRepo, checkoutProvider, checkoutConfig)
-		courseServices.SetCheckout(checkoutService)
+		services.Set(courseapi.ServiceCheckout, checkoutService)
 	} else {
 		checkoutService.SetDependencies(packageRepo, checkoutProvider)
 		checkoutService.SetConfig(checkoutConfig)
 	}
 
-	if courseHandlers != nil {
-		if handler := courseHandlers.Video(); handler == nil {
-			courseHandlers.SetVideo(coursehandlers.NewVideoHandler(videoService))
-		} else {
-			handler.SetService(videoService)
-		}
+	if handler, ok := handlers.Get(courseapi.HandlerVideo).(*coursehandlers.VideoHandler); handler == nil || !ok {
+		handlers.Set(courseapi.HandlerVideo, coursehandlers.NewVideoHandler(videoService))
+	} else {
+		handler.SetService(videoService)
+	}
 
-		if handler := courseHandlers.Topic(); handler == nil {
-			courseHandlers.SetTopic(coursehandlers.NewTopicHandler(topicService))
-		} else {
-			handler.SetService(topicService)
-		}
+	if handler, ok := handlers.Get(courseapi.HandlerTopic).(*coursehandlers.TopicHandler); handler == nil || !ok {
+		handlers.Set(courseapi.HandlerTopic, coursehandlers.NewTopicHandler(topicService))
+	} else {
+		handler.SetService(topicService)
+	}
 
-		if handler := courseHandlers.Test(); handler == nil {
-			courseHandlers.SetTest(coursehandlers.NewTestHandler(testService))
-		} else {
-			handler.SetService(testService)
-		}
+	if handler, ok := handlers.Get(courseapi.HandlerTest).(*coursehandlers.TestHandler); handler == nil || !ok {
+		handlers.Set(courseapi.HandlerTest, coursehandlers.NewTestHandler(testService))
+	} else {
+		handler.SetService(testService)
+	}
 
-		if handler := courseHandlers.Package(); handler == nil {
-			courseHandlers.SetPackage(coursehandlers.NewPackageHandler(packageService))
-		} else {
-			handler.SetService(packageService)
-		}
-		if handler := courseHandlers.Checkout(); handler == nil {
-			courseHandlers.SetCheckout(coursehandlers.NewCheckoutHandler(checkoutService))
-		} else {
-			handler.SetService(checkoutService)
-		}
+	if handler, ok := handlers.Get(courseapi.HandlerPackage).(*coursehandlers.PackageHandler); handler == nil || !ok {
+		handlers.Set(courseapi.HandlerPackage, coursehandlers.NewPackageHandler(packageService))
+	} else {
+		handler.SetService(packageService)
+	}
+
+	if handler, ok := handlers.Get(courseapi.HandlerCheckout).(*coursehandlers.CheckoutHandler); handler == nil || !ok {
+		handlers.Set(courseapi.HandlerCheckout, coursehandlers.NewCheckoutHandler(checkoutService))
+	} else {
+		handler.SetService(checkoutService)
 	}
 
 	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
@@ -227,29 +242,29 @@ func (f *Feature) Deactivate() error {
 		return nil
 	}
 
-	courseHandlers := f.host.CourseHandlers()
-	if courseHandlers != nil {
-		if handler := courseHandlers.Video(); handler != nil {
-			handler.SetService(nil)
-		}
-		if handler := courseHandlers.Topic(); handler != nil {
-			handler.SetService(nil)
-		}
-		if handler := courseHandlers.Package(); handler != nil {
-			handler.SetService(nil)
-		}
-		if handler := courseHandlers.Checkout(); handler != nil {
-			handler.SetService(nil)
-		}
+	handlers := f.host.Handlers(courseapi.Namespace)
+	if handler, _ := handlers.Get(courseapi.HandlerVideo).(*coursehandlers.VideoHandler); handler != nil {
+		handler.SetService(nil)
+	}
+	if handler, _ := handlers.Get(courseapi.HandlerTopic).(*coursehandlers.TopicHandler); handler != nil {
+		handler.SetService(nil)
+	}
+	if handler, _ := handlers.Get(courseapi.HandlerPackage).(*coursehandlers.PackageHandler); handler != nil {
+		handler.SetService(nil)
+	}
+	if handler, _ := handlers.Get(courseapi.HandlerTest).(*coursehandlers.TestHandler); handler != nil {
+		handler.SetService(nil)
+	}
+	if handler, _ := handlers.Get(courseapi.HandlerCheckout).(*coursehandlers.CheckoutHandler); handler != nil {
+		handler.SetService(nil)
 	}
 
-	courseServices := f.host.CourseServices()
-	if courseServices != nil {
-		courseServices.SetVideo(nil)
-		courseServices.SetTopic(nil)
-		courseServices.SetPackage(nil)
-		courseServices.SetCheckout(nil)
-	}
+	services := f.host.Services(courseapi.Namespace)
+	services.Set(courseapi.ServiceVideo, nil)
+	services.Set(courseapi.ServiceTopic, nil)
+	services.Set(courseapi.ServicePackage, nil)
+	services.Set(courseapi.ServiceCheckout, nil)
+	services.Set(courseapi.ServiceTest, nil)
 
 	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
 		templateHandler.SetCoursePackageService(nil)
