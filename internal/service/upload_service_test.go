@@ -84,9 +84,10 @@ func TestUploadVideoWithSubtitles(t *testing.T) {
 	svc := NewUploadService(uploadDir)
 
 	subtitleData := []byte("WEBVTT\n\n00:00:00.000 --> 00:00:05.000\nHello world\n")
-	svc.SetSubtitleGenerator(&stubSubtitleGenerator{
+	generator := &stubSubtitleGenerator{
 		result: &SubtitleResult{Data: subtitleData, Format: SubtitleFormatVTT},
-	})
+	}
+	svc.SetSubtitleGenerator(generator)
 
 	content := buildTestMP4(t, buildMvhdVersion0Payload(1000, 45*1000))
 	file := createMultipartFile(t, "intro.mp4", content)
@@ -113,6 +114,71 @@ func TestUploadVideoWithSubtitles(t *testing.T) {
 	}
 	if !bytes.Equal(data, subtitleData) {
 		t.Fatalf("unexpected subtitle content: %q", string(data))
+	}
+
+	if len(generator.requests) != 1 {
+		t.Fatalf("expected subtitle generator to be called once, got %d", len(generator.requests))
+	}
+	if generator.requests[0].SourcePath == "" {
+		t.Fatal("expected subtitle source path to be provided")
+	}
+}
+
+func TestUploadVideoRespectsSubtitleConfiguration(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+
+	generator := &stubSubtitleGenerator{result: &SubtitleResult{Data: []byte("WEBVTT\n\n00:00:00.000 --> 00:00:03.000\nConfigured\n"), Format: SubtitleFormatVTT}}
+	manager := NewSubtitleManager("openai")
+	if err := manager.Register("openai", generator); err != nil {
+		t.Fatalf("failed to register subtitle generator: %v", err)
+	}
+	svc.UseSubtitleManager(manager)
+
+	temperature := float32(0.25)
+	svc.ConfigureSubtitleGeneration(SubtitleGenerationConfig{
+		Provider:      "openai",
+		PreferredName: "Lesson transcript",
+		Language:      "en",
+		Prompt:        "Course context",
+		Temperature:   &temperature,
+	})
+
+	content := buildTestMP4(t, buildMvhdVersion0Payload(1000, 30*1000))
+	file := createMultipartFile(t, "lesson.mp4", content)
+
+	result, err := svc.UploadVideo(context.Background(), file, "Lesson")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Subtitle == nil {
+		t.Fatal("expected subtitle metadata")
+	}
+
+	if len(generator.requests) != 1 {
+		t.Fatalf("expected single subtitle generation request, got %d", len(generator.requests))
+	}
+
+	request := generator.requests[0]
+	if request.Provider != "openai" {
+		t.Fatalf("unexpected provider: %q", request.Provider)
+	}
+	if request.Language != "en" {
+		t.Fatalf("unexpected language: %q", request.Language)
+	}
+	if request.Prompt != "Course context" {
+		t.Fatalf("unexpected prompt: %q", request.Prompt)
+	}
+	if request.Temperature == nil || *request.Temperature != temperature {
+		t.Fatalf("unexpected temperature: %v", request.Temperature)
+	}
+	if request.PreferredName != "Lesson transcript" {
+		t.Fatalf("unexpected preferred name: %q", request.PreferredName)
+	}
+
+	if !strings.Contains(result.Subtitle.Filename, "lesson-transcript") {
+		t.Fatalf("expected subtitle filename to include preferred name, got %q", result.Subtitle.Filename)
 	}
 }
 
@@ -282,11 +348,13 @@ func TestDeleteUploadRemovesFile(t *testing.T) {
 }
 
 type stubSubtitleGenerator struct {
-	result *SubtitleResult
-	err    error
+	result   *SubtitleResult
+	err      error
+	requests []SubtitleGenerationRequest
 }
 
-func (s *stubSubtitleGenerator) Generate(ctx context.Context, sourcePath string) (*SubtitleResult, error) {
+func (s *stubSubtitleGenerator) Generate(ctx context.Context, request SubtitleGenerationRequest) (*SubtitleResult, error) {
+	s.requests = append(s.requests, request)
 	if s.err != nil {
 		return nil, s.err
 	}

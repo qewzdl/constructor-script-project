@@ -28,7 +28,8 @@ type UploadService struct {
 	videoAllowedTypes []string
 	fileMaxSize       int64
 	fileAllowedTypes  []string
-	subtitleGenerator SubtitleGenerator
+	subtitleManager   *SubtitleManager
+	subtitleConfig    SubtitleGenerationConfig
 }
 
 type UploadInfo struct {
@@ -37,6 +38,16 @@ type UploadInfo struct {
 	Size     int64     `json:"size"`
 	ModTime  time.Time `json:"mod_time"`
 	Type     string    `json:"type"`
+}
+
+// SubtitleGenerationConfig captures the defaults applied when the upload service
+// requests subtitles from the configured manager.
+type SubtitleGenerationConfig struct {
+	Provider      string
+	PreferredName string
+	Language      string
+	Prompt        string
+	Temperature   *float32
 }
 
 // VideoUploadResult captures metadata for an uploaded video and its derived assets.
@@ -90,7 +101,35 @@ func (s *UploadService) SetSubtitleGenerator(generator SubtitleGenerator) {
 	if s == nil {
 		return
 	}
-	s.subtitleGenerator = generator
+
+	if generator == nil {
+		s.subtitleManager = nil
+		return
+	}
+
+	manager := NewSubtitleManager("default")
+	if err := manager.Register("default", generator); err != nil {
+		return
+	}
+	s.subtitleManager = manager
+	s.subtitleConfig.Provider = "default"
+}
+
+// UseSubtitleManager configures a shared subtitle manager instance for uploads.
+func (s *UploadService) UseSubtitleManager(manager *SubtitleManager) {
+	if s == nil {
+		return
+	}
+	s.subtitleManager = manager
+}
+
+// ConfigureSubtitleGeneration adjusts the default subtitle request that will be
+// used when invoking the subtitle manager.
+func (s *UploadService) ConfigureSubtitleGeneration(config SubtitleGenerationConfig) {
+	if s == nil {
+		return
+	}
+	s.subtitleConfig = config
 }
 
 func (s *UploadService) Upload(file *multipart.FileHeader, preferredName string) (UploadInfo, error) {
@@ -544,8 +583,20 @@ func (s *UploadService) uploadVideo(ctx context.Context, file *multipart.FileHea
 		Duration: duration,
 	}
 
-	if s.subtitleGenerator != nil {
-		subtitleResult, err := s.subtitleGenerator.Generate(ctx, filePath)
+	if s.subtitleManager != nil {
+		request := SubtitleGenerationRequest{
+			SourcePath:    filePath,
+			Provider:      s.subtitleConfig.Provider,
+			PreferredName: s.subtitleConfig.PreferredName,
+			Language:      s.subtitleConfig.Language,
+			Prompt:        s.subtitleConfig.Prompt,
+		}
+		if s.subtitleConfig.Temperature != nil {
+			value := *s.subtitleConfig.Temperature
+			request.Temperature = &value
+		}
+
+		subtitleResult, err := s.subtitleManager.Generate(ctx, request)
 		if err != nil {
 			cleanup()
 			return VideoUploadResult{}, fmt.Errorf("failed to generate subtitles: %w", err)

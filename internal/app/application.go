@@ -764,19 +764,51 @@ func (a *Application) initPluginManager() error {
 func (a *Application) initServices() {
 	uploadService := service.NewUploadService(a.cfg.UploadDir)
 	if a.cfg != nil && a.cfg.SubtitleGenerationEnabled {
-		provider := strings.ToLower(strings.TrimSpace(a.cfg.SubtitleProvider))
+		rawProvider := strings.TrimSpace(a.cfg.SubtitleProvider)
+		provider := strings.ToLower(rawProvider)
+		manager := service.NewSubtitleManager(provider)
+		temperature := float32(0)
+		if a.cfg.SubtitleTemperature != nil {
+			temperature = *a.cfg.SubtitleTemperature
+		}
+
 		switch provider {
 		case "", "openai":
 			generator, err := service.NewOpenAISubtitleGenerator(a.cfg.OpenAIAPIKey, service.OpenAISubtitleOptions{
-				Model: a.cfg.OpenAIModel,
+				Model:       a.cfg.OpenAIModel,
+				Temperature: temperature,
+				Prompt:      a.cfg.SubtitlePrompt,
+				Language:    a.cfg.SubtitleLanguage,
 			})
 			if err != nil {
 				logger.Error(err, "Failed to initialise subtitle generator", map[string]interface{}{"provider": "openai"})
 			} else {
-				uploadService.SetSubtitleGenerator(generator)
+				if registerErr := manager.Register("openai", generator); registerErr != nil {
+					logger.Error(registerErr, "Failed to register subtitle provider", map[string]interface{}{"provider": "openai"})
+				} else if provider == "" {
+					manager.SetDefaultProvider("openai")
+				}
 			}
 		default:
 			logger.Warn("Unsupported subtitle provider configured; subtitle generation disabled", map[string]interface{}{"provider": provider})
+		}
+
+		if providers := manager.Providers(); len(providers) > 0 {
+			uploadService.UseSubtitleManager(manager)
+
+			var tempPointer *float32
+			if a.cfg.SubtitleTemperature != nil {
+				value := *a.cfg.SubtitleTemperature
+				tempPointer = &value
+			}
+
+			uploadService.ConfigureSubtitleGeneration(service.SubtitleGenerationConfig{
+				Provider:      provider,
+				PreferredName: a.cfg.SubtitlePreferredName,
+				Language:      a.cfg.SubtitleLanguage,
+				Prompt:        a.cfg.SubtitlePrompt,
+				Temperature:   tempPointer,
+			})
 		}
 	}
 

@@ -74,12 +74,12 @@ func NewOpenAISubtitleGenerator(apiKey string, opts OpenAISubtitleOptions) (*Ope
 }
 
 // Generate invokes the OpenAI Whisper transcription endpoint to produce WebVTT subtitles.
-func (g *OpenAISubtitleGenerator) Generate(ctx context.Context, sourcePath string) (*SubtitleResult, error) {
+func (g *OpenAISubtitleGenerator) Generate(ctx context.Context, request SubtitleGenerationRequest) (*SubtitleResult, error) {
 	if g == nil || g.client == nil {
 		return nil, errors.New("openai subtitle generator is not configured")
 	}
 
-	trimmedPath := strings.TrimSpace(sourcePath)
+	trimmedPath := strings.TrimSpace(request.SourcePath)
 	if trimmedPath == "" {
 		return nil, errors.New("source path is required")
 	}
@@ -111,20 +111,35 @@ func (g *OpenAISubtitleGenerator) Generate(ctx context.Context, sourcePath strin
 		writer.Close()
 		return nil, fmt.Errorf("openai: failed to set response format: %w", err)
 	}
-	if g.prompt != "" {
-		if err := writer.WriteField("prompt", g.prompt); err != nil {
+
+	prompt := g.prompt
+	if candidate := strings.TrimSpace(request.Prompt); candidate != "" {
+		prompt = candidate
+	}
+	if prompt != "" {
+		if err := writer.WriteField("prompt", prompt); err != nil {
 			writer.Close()
 			return nil, fmt.Errorf("openai: failed to set prompt: %w", err)
 		}
 	}
-	if g.language != "" {
-		if err := writer.WriteField("language", g.language); err != nil {
+
+	language := g.language
+	if candidate := strings.TrimSpace(request.Language); candidate != "" {
+		language = candidate
+	}
+	if language != "" {
+		if err := writer.WriteField("language", language); err != nil {
 			writer.Close()
 			return nil, fmt.Errorf("openai: failed to set language: %w", err)
 		}
 	}
-	if g.temperature > 0 {
-		if err := writer.WriteField("temperature", strconv.FormatFloat(float64(g.temperature), 'f', -1, 32)); err != nil {
+
+	temperature := g.temperature
+	if request.Temperature != nil {
+		temperature = *request.Temperature
+	}
+	if temperature > 0 {
+		if err := writer.WriteField("temperature", strconv.FormatFloat(float64(temperature), 'f', -1, 32)); err != nil {
 			writer.Close()
 			return nil, fmt.Errorf("openai: failed to set temperature: %w", err)
 		}
@@ -134,14 +149,14 @@ func (g *OpenAISubtitleGenerator) Generate(ctx context.Context, sourcePath strin
 		return nil, fmt.Errorf("openai: failed to finalise request: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, g.endpoint, &body)
+	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, g.endpoint, &body)
 	if err != nil {
 		return nil, fmt.Errorf("openai: failed to build request: %w", err)
 	}
-	request.Header.Set("Authorization", "Bearer "+g.apiKey)
-	request.Header.Set("Content-Type", writer.FormDataContentType())
+	httpRequest.Header.Set("Authorization", "Bearer "+g.apiKey)
+	httpRequest.Header.Set("Content-Type", writer.FormDataContentType())
 
-	response, err := g.client.Do(request)
+	response, err := g.client.Do(httpRequest)
 	if err != nil {
 		return nil, fmt.Errorf("openai: transcription request failed: %w", err)
 	}
@@ -170,9 +185,14 @@ func (g *OpenAISubtitleGenerator) Generate(ctx context.Context, sourcePath strin
 		output = append(output, '\n')
 	}
 
-	return &SubtitleResult{
+	result := &SubtitleResult{
 		Data:     output,
 		Format:   SubtitleFormatVTT,
-		Language: g.language,
-	}, nil
+		Language: language,
+	}
+	if request.PreferredName != "" {
+		result.Name = request.PreferredName
+	}
+
+	return result, nil
 }

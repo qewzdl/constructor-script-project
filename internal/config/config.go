@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"constructor-script-backend/pkg/lang"
@@ -43,6 +44,10 @@ type Config struct {
 	// Subtitles
 	SubtitleGenerationEnabled bool
 	SubtitleProvider          string
+	SubtitlePreferredName     string
+	SubtitleLanguage          string
+	SubtitlePrompt            string
+	SubtitleTemperature       *float32
 	OpenAIAPIKey              string
 	OpenAIModel               string
 
@@ -112,6 +117,7 @@ func New() *Config {
 
 	defaultLanguage := normalizeDefaultLanguage(getEnv("SITE_DEFAULT_LANGUAGE", lang.Default))
 	supportedLanguages := normalizeSupportedLanguages(defaultLanguage, getEnvAsSlice("SITE_SUPPORTED_LANGUAGES"))
+	subtitleTemperature := getEnvAsFloat32Pointer("SUBTITLE_TEMPERATURE")
 
 	c := &Config{
 		// Database
@@ -145,6 +151,10 @@ func New() *Config {
 		// Subtitles
 		SubtitleGenerationEnabled: getEnvAsBool("SUBTITLE_GENERATION_ENABLED", false),
 		SubtitleProvider:          strings.TrimSpace(getEnv("SUBTITLE_PROVIDER", "openai")),
+		SubtitlePreferredName:     strings.TrimSpace(getEnv("SUBTITLE_PREFERRED_NAME", "")),
+		SubtitleLanguage:          strings.TrimSpace(getEnv("SUBTITLE_LANGUAGE", "")),
+		SubtitlePrompt:            strings.TrimSpace(getEnv("SUBTITLE_PROMPT", "")),
+		SubtitleTemperature:       subtitleTemperature,
 		OpenAIAPIKey:              strings.TrimSpace(getEnv("OPENAI_API_KEY", "")),
 		OpenAIModel:               strings.TrimSpace(getEnv("OPENAI_MODEL", "whisper-1")),
 
@@ -325,6 +335,21 @@ func getEnvAsInt(key string, defaultValue int) int {
 		return defaultValue
 	}
 	return value
+}
+
+func getEnvAsFloat32Pointer(key string) *float32 {
+	valueStr, ok := getEnvWithPresence(key)
+	if !ok {
+		return nil
+	}
+
+	parsed, err := strconv.ParseFloat(valueStr, 32)
+	if err != nil {
+		return nil
+	}
+
+	value := float32(parsed)
+	return &value
 }
 
 func generateSecureRandomString(length int) string {
