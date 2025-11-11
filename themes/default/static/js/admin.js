@@ -24,6 +24,8 @@
         parseContentDispositionFilename,
     } = utils;
 
+    const AUTO_GENERATED_SUBTITLE_TITLE = 'Auto-generated subtitles';
+
     const elementDefinitions = registry.getDefinitions();
     const createSectionBuilder = builderModule.create;
     
@@ -743,6 +745,30 @@
         const courseVideoAttachmentAddButton = courseVideoForm?.querySelector(
             '[data-role="course-video-attachment-add"]'
         );
+        const courseVideoSubtitleFieldset = courseVideoForm?.querySelector(
+            '[data-role="course-video-subtitle-fieldset"]'
+        );
+        const courseVideoSubtitleEmpty = courseVideoForm?.querySelector(
+            '[data-role="course-video-subtitle-empty"]'
+        );
+        const courseVideoSubtitleEditor = courseVideoForm?.querySelector(
+            '[data-role="course-video-subtitle-editor"]'
+        );
+        const courseVideoSubtitleTitleInput = courseVideoForm?.querySelector(
+            '[data-role="course-video-subtitle-title"]'
+        );
+        const courseVideoSubtitleContentInput = courseVideoForm?.querySelector(
+            '[data-role="course-video-subtitle-content"]'
+        );
+        const courseVideoSubtitleSaveButton = courseVideoForm?.querySelector(
+            '[data-role="course-video-subtitle-save"]'
+        );
+        const courseVideoSubtitleResetButton = courseVideoForm?.querySelector(
+            '[data-role="course-video-subtitle-reset"]'
+        );
+        const courseVideoSubtitleStatus = courseVideoForm?.querySelector(
+            '[data-role="course-video-subtitle-status"]'
+        );
 
         const courseTopicForm = root.querySelector('#admin-course-topic-form');
         const courseTopicTitleInput = courseTopicForm?.querySelector('input[name="title"]');
@@ -920,6 +946,22 @@
             });
         }
 
+        const createCourseVideoSubtitleState = () => ({
+            exists: false,
+            url: '',
+            title: '',
+            initialTitle: '',
+            content: '',
+            initialContent: '',
+            isLoading: false,
+            isSaving: false,
+            error: '',
+            success: '',
+            pendingSuccess: '',
+            titleDirty: false,
+            contentDirty: false,
+        });
+
         const state = {
             metrics: {},
             activityTrend: [],
@@ -990,6 +1032,7 @@
                 packageSearchQuery: '',
                 pendingQuestionFocusId: '',
                 videoAttachments: [],
+                videoSubtitle: createCourseVideoSubtitleState(),
                 grant: {
                     query: '',
                     results: [],
@@ -1000,6 +1043,8 @@
                 },
             },
         };
+
+        let courseVideoSubtitleRequestId = 0;
 
         const ensureHomepageState = () => {
             if (!state.homepage) {
@@ -5986,6 +6031,385 @@
             return [];
         };
 
+        const getCourseVideoSubtitleState = () => {
+            if (!state.courses.videoSubtitle) {
+                state.courses.videoSubtitle = createCourseVideoSubtitleState();
+            }
+            return state.courses.videoSubtitle;
+        };
+
+        const normaliseSubtitleUrl = (value) => {
+            const url = normaliseString(value).trim();
+            if (!url) {
+                return '';
+            }
+            if (/^https?:/i.test(url)) {
+                try {
+                    const parsed = new URL(url);
+                    return parsed.pathname + (parsed.search || '');
+                } catch (error) {
+                    return url;
+                }
+            }
+            return url.startsWith('/') ? url : `/${url.replace(/^\/+/, '')}`;
+        };
+
+        const isCourseVideoSubtitleAttachment = (attachment) => {
+            if (!attachment) {
+                return false;
+            }
+            const url = normaliseSubtitleUrl(attachment.url);
+            if (url) {
+                const base = url.split('#')[0].split('?')[0].toLowerCase();
+                if (base.endsWith('.vtt')) {
+                    return true;
+                }
+            }
+            const title = normaliseString(attachment.title).toLowerCase();
+            if (!title) {
+                return false;
+            }
+            if (title === AUTO_GENERATED_SUBTITLE_TITLE.toLowerCase()) {
+                return true;
+            }
+            return title.includes('subtitle');
+        };
+
+        const findCourseVideoSubtitleAttachment = (attachments, targetUrl) => {
+            if (!Array.isArray(attachments) || attachments.length === 0) {
+                return null;
+            }
+            const normalizedTarget = normaliseSubtitleUrl(targetUrl);
+            if (normalizedTarget) {
+                const directMatch = attachments.find(
+                    (attachment) => normaliseSubtitleUrl(attachment?.url) === normalizedTarget
+                );
+                if (directMatch) {
+                    return directMatch;
+                }
+            }
+            return attachments.find((attachment) => isCourseVideoSubtitleAttachment(attachment)) || null;
+        };
+
+        const renderCourseVideoSubtitle = () => {
+            if (!courseVideoSubtitleFieldset) {
+                return;
+            }
+            const subtitleState = getCourseVideoSubtitleState();
+            const hasSubtitle = subtitleState.exists;
+
+            if (courseVideoSubtitleEmpty) {
+                courseVideoSubtitleEmpty.hidden = hasSubtitle || subtitleState.isLoading;
+            }
+            if (courseVideoSubtitleEditor) {
+                courseVideoSubtitleEditor.hidden = !hasSubtitle;
+            }
+
+            if (!hasSubtitle) {
+                if (courseVideoSubtitleTitleInput) {
+                    courseVideoSubtitleTitleInput.value = '';
+                    courseVideoSubtitleTitleInput.readOnly = false;
+                }
+                if (courseVideoSubtitleContentInput) {
+                    courseVideoSubtitleContentInput.value = '';
+                    courseVideoSubtitleContentInput.readOnly = false;
+                }
+                if (courseVideoSubtitleSaveButton) {
+                    courseVideoSubtitleSaveButton.disabled = true;
+                }
+                if (courseVideoSubtitleResetButton) {
+                    courseVideoSubtitleResetButton.hidden = true;
+                    courseVideoSubtitleResetButton.disabled = true;
+                }
+                if (courseVideoSubtitleStatus) {
+                    courseVideoSubtitleStatus.textContent = subtitleState.error || '';
+                    courseVideoSubtitleStatus.hidden = !subtitleState.error;
+                    if (subtitleState.error) {
+                        courseVideoSubtitleStatus.dataset.state = 'error';
+                    } else {
+                        courseVideoSubtitleStatus.removeAttribute('data-state');
+                    }
+                }
+                return;
+            }
+
+            if (courseVideoSubtitleTitleInput) {
+                courseVideoSubtitleTitleInput.value = subtitleState.title;
+                courseVideoSubtitleTitleInput.readOnly = subtitleState.isLoading || subtitleState.isSaving;
+            }
+            if (courseVideoSubtitleContentInput) {
+                courseVideoSubtitleContentInput.value = subtitleState.content;
+                courseVideoSubtitleContentInput.readOnly = subtitleState.isLoading || subtitleState.isSaving;
+            }
+            if (courseVideoSubtitleSaveButton) {
+                courseVideoSubtitleSaveButton.disabled =
+                    subtitleState.isLoading ||
+                    subtitleState.isSaving ||
+                    (!subtitleState.titleDirty && !subtitleState.contentDirty);
+            }
+            if (courseVideoSubtitleResetButton) {
+                const canReset = subtitleState.titleDirty || subtitleState.contentDirty;
+                courseVideoSubtitleResetButton.hidden = !canReset;
+                courseVideoSubtitleResetButton.disabled =
+                    subtitleState.isLoading || subtitleState.isSaving || !canReset;
+            }
+            if (courseVideoSubtitleStatus) {
+                if (subtitleState.isLoading) {
+                    courseVideoSubtitleStatus.hidden = false;
+                    courseVideoSubtitleStatus.textContent = 'Loading subtitles…';
+                    courseVideoSubtitleStatus.dataset.state = 'info';
+                } else if (subtitleState.error) {
+                    courseVideoSubtitleStatus.hidden = false;
+                    courseVideoSubtitleStatus.textContent = subtitleState.error;
+                    courseVideoSubtitleStatus.dataset.state = 'error';
+                } else if (subtitleState.success) {
+                    courseVideoSubtitleStatus.hidden = false;
+                    courseVideoSubtitleStatus.textContent = subtitleState.success;
+                    courseVideoSubtitleStatus.dataset.state = 'success';
+                } else {
+                    courseVideoSubtitleStatus.hidden = true;
+                    courseVideoSubtitleStatus.textContent = '';
+                    courseVideoSubtitleStatus.removeAttribute('data-state');
+                }
+            }
+        };
+
+        const resetCourseVideoSubtitleState = () => {
+            courseVideoSubtitleRequestId += 1;
+            state.courses.videoSubtitle = createCourseVideoSubtitleState();
+            renderCourseVideoSubtitle();
+        };
+
+        const fetchCourseVideoSubtitleContent = async (url, requestId) => {
+            if (!url) {
+                return;
+            }
+            let source = url;
+            try {
+                source = buildAbsoluteUrl(url);
+            } catch (error) {
+                source = url;
+            }
+            try {
+                const response = await window.fetch(source, { credentials: 'same-origin' });
+                if (!response.ok) {
+                    throw new Error(`Failed to load subtitles (status ${response.status}).`);
+                }
+                const text = await response.text();
+                if (requestId !== courseVideoSubtitleRequestId) {
+                    return;
+                }
+                const subtitleState = getCourseVideoSubtitleState();
+                subtitleState.content = text;
+                subtitleState.initialContent = text;
+                subtitleState.contentDirty = false;
+                subtitleState.isLoading = false;
+                subtitleState.error = '';
+                subtitleState.success = subtitleState.pendingSuccess;
+                subtitleState.pendingSuccess = '';
+                renderCourseVideoSubtitle();
+            } catch (error) {
+                if (requestId !== courseVideoSubtitleRequestId) {
+                    return;
+                }
+                const subtitleState = getCourseVideoSubtitleState();
+                subtitleState.isLoading = false;
+                subtitleState.error =
+                    error && typeof error.message === 'string'
+                        ? error.message
+                        : 'Failed to load subtitles.';
+                subtitleState.success = '';
+                subtitleState.pendingSuccess = '';
+                renderCourseVideoSubtitle();
+            }
+        };
+
+        const prepareCourseVideoSubtitle = (video) => {
+            const attachments = getCourseVideoAttachments(video);
+            const subtitleState = getCourseVideoSubtitleState();
+            const candidate = findCourseVideoSubtitleAttachment(attachments, subtitleState.url);
+            if (!candidate) {
+                resetCourseVideoSubtitleState();
+                return;
+            }
+
+            const normalizedUrl = normaliseSubtitleUrl(candidate.url);
+            if (!normalizedUrl) {
+                resetCourseVideoSubtitleState();
+                return;
+            }
+
+            courseVideoSubtitleRequestId += 1;
+            const requestId = courseVideoSubtitleRequestId;
+            const title = normaliseString(candidate.title) || AUTO_GENERATED_SUBTITLE_TITLE;
+
+            subtitleState.exists = true;
+            subtitleState.url = normalizedUrl;
+            subtitleState.initialTitle = title;
+            subtitleState.title = title;
+            subtitleState.titleDirty = false;
+            subtitleState.content = '';
+            subtitleState.initialContent = '';
+            subtitleState.contentDirty = false;
+            subtitleState.isLoading = true;
+            subtitleState.isSaving = false;
+            subtitleState.error = '';
+            subtitleState.success = '';
+            subtitleState.pendingSuccess = '';
+
+            renderCourseVideoSubtitle();
+            fetchCourseVideoSubtitleContent(normalizedUrl, requestId);
+        };
+
+        const handleCourseVideoSubtitleTitleInput = () => {
+            if (!courseVideoSubtitleTitleInput) {
+                return;
+            }
+            const subtitleState = getCourseVideoSubtitleState();
+            if (!subtitleState.exists) {
+                return;
+            }
+            subtitleState.title = courseVideoSubtitleTitleInput.value;
+            subtitleState.titleDirty = subtitleState.title !== subtitleState.initialTitle;
+            subtitleState.success = '';
+            renderCourseVideoSubtitle();
+        };
+
+        const handleCourseVideoSubtitleContentInput = () => {
+            if (!courseVideoSubtitleContentInput) {
+                return;
+            }
+            const subtitleState = getCourseVideoSubtitleState();
+            if (!subtitleState.exists) {
+                return;
+            }
+            subtitleState.content = courseVideoSubtitleContentInput.value;
+            subtitleState.contentDirty = subtitleState.content !== subtitleState.initialContent;
+            subtitleState.success = '';
+            renderCourseVideoSubtitle();
+        };
+
+        const handleCourseVideoSubtitleReset = () => {
+            const subtitleState = getCourseVideoSubtitleState();
+            if (!subtitleState.exists) {
+                return;
+            }
+            subtitleState.title = subtitleState.initialTitle;
+            subtitleState.titleDirty = false;
+            subtitleState.content = subtitleState.initialContent;
+            subtitleState.contentDirty = false;
+            subtitleState.error = '';
+            subtitleState.success = '';
+            renderCourseVideoSubtitle();
+        };
+
+        const handleCourseVideoSubtitleSave = async () => {
+            if (!courseVideoForm) {
+                return;
+            }
+            const id = courseVideoForm.dataset.id;
+            if (!id) {
+                showAlert('Select a video to edit subtitles.', 'info');
+                return;
+            }
+            const subtitleState = getCourseVideoSubtitleState();
+            if (!subtitleState.exists) {
+                showAlert('No subtitles available for this lesson yet.', 'info');
+                return;
+            }
+            const content = subtitleState.content;
+            if (!normaliseString(content)) {
+                subtitleState.error = 'Subtitle content cannot be empty.';
+                subtitleState.success = '';
+                renderCourseVideoSubtitle();
+                return;
+            }
+            if (!endpoints.coursesVideos) {
+                showAlert('Course video endpoint is not configured.', 'error');
+                return;
+            }
+
+            subtitleState.isSaving = true;
+            subtitleState.error = '';
+            subtitleState.success = '';
+            renderCourseVideoSubtitle();
+
+            try {
+                const payload = {
+                    content,
+                };
+                const title = normaliseString(subtitleState.title).trim();
+                if (title) {
+                    payload.title = title;
+                }
+                if (subtitleState.url) {
+                    payload.attachment_url = subtitleState.url;
+                }
+
+                const response = await apiRequest(`${endpoints.coursesVideos}/${id}/subtitle`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                subtitleState.isSaving = false;
+                subtitleState.error = '';
+                subtitleState.titleDirty = false;
+                subtitleState.contentDirty = false;
+                subtitleState.pendingSuccess = '';
+                subtitleState.success = '';
+
+                const updatedVideo = response && response.video;
+                if (updatedVideo) {
+                    const updatedId = extractCourseVideoId(updatedVideo);
+                    if (updatedId) {
+                        state.courses.videos = Array.isArray(state.courses.videos)
+                            ? state.courses.videos.map((entry) =>
+                                  extractCourseVideoId(entry) === updatedId ? updatedVideo : entry
+                              )
+                            : [];
+                    }
+                    populateCourseVideoForm(updatedVideo, { scroll: false });
+                    const refreshedState = getCourseVideoSubtitleState();
+                    if (refreshedState.exists) {
+                        refreshedState.pendingSuccess = 'Subtitles saved.';
+                        refreshedState.success = '';
+                    } else {
+                        refreshedState.success = 'Subtitles saved.';
+                    }
+                    renderCourseVideoSubtitle();
+                } else {
+                    await loadCourseVideos(true);
+                    const refreshed = findCourseVideo(id);
+                    if (refreshed) {
+                        populateCourseVideoForm(refreshed, { scroll: false });
+                        const refreshedState = getCourseVideoSubtitleState();
+                        if (refreshedState.exists) {
+                            refreshedState.pendingSuccess = 'Subtitles saved.';
+                            refreshedState.success = '';
+                        } else {
+                            refreshedState.success = 'Subtitles saved.';
+                        }
+                        renderCourseVideoSubtitle();
+                    } else {
+                        subtitleState.success = 'Subtitles saved.';
+                        renderCourseVideoSubtitle();
+                    }
+                }
+            } catch (error) {
+                subtitleState.isSaving = false;
+                subtitleState.error =
+                    error && typeof error.message === 'string'
+                        ? error.message
+                        : 'Failed to save subtitles.';
+                subtitleState.success = '';
+                renderCourseVideoSubtitle();
+                handleRequestError(error);
+            }
+        };
+
         const openCourseAttachmentPicker = async (options = {}) => {
             if (!mediaLibrary) {
                 showAlert('Media library is not available in this environment.', 'error');
@@ -6036,6 +6460,7 @@
                 title: normaliseString(candidate.title),
             });
             renderCourseVideoAttachments();
+            prepareCourseVideoSubtitle({ attachments: state.courses.videoAttachments });
         };
 
         const handleCourseVideoAttachmentListClick = async (event) => {
@@ -6063,6 +6488,7 @@
             if (action === 'course-video-attachment-remove') {
                 attachments.splice(index, 1);
                 renderCourseVideoAttachments();
+                prepareCourseVideoSubtitle({ attachments: state.courses.videoAttachments });
                 return;
             }
             const current = attachments[index];
@@ -6085,6 +6511,7 @@
                 title: normaliseString(current?.title ?? '') || normaliseString(candidate.title),
             };
             renderCourseVideoAttachments();
+            prepareCourseVideoSubtitle({ attachments: state.courses.videoAttachments });
         };
 
         const handleCourseVideoAttachmentListInput = (event) => {
@@ -6105,6 +6532,17 @@
                 return;
             }
             attachments[index].title = target.value;
+            const subtitleState = getCourseVideoSubtitleState();
+            if (
+                subtitleState.exists &&
+                normaliseSubtitleUrl(attachments[index].url) === normaliseSubtitleUrl(subtitleState.url) &&
+                !subtitleState.titleDirty
+            ) {
+                subtitleState.initialTitle = target.value;
+                subtitleState.title = target.value;
+                subtitleState.success = '';
+                renderCourseVideoSubtitle();
+            }
         };
 
         const resetCourseVideoForm = () => {
@@ -6115,6 +6553,7 @@
             delete courseVideoForm.dataset.id;
             state.courses.selectedVideoId = '';
             setCourseVideoAttachments([]);
+            resetCourseVideoSubtitleState();
             if (courseVideoSectionsManager) {
                 courseVideoSectionsManager.reset();
             }
@@ -6186,6 +6625,7 @@
                 courseVideoSectionsManager.setSections(rawSections);
             }
             setCourseVideoAttachments(getCourseVideoAttachments(video));
+            prepareCourseVideoSubtitle(video);
             if (courseVideoUploadGroup) {
                 courseVideoUploadGroup.hidden = true;
             }
@@ -12692,6 +13132,22 @@
         courseVideoAttachmentList?.addEventListener(
             'input',
             handleCourseVideoAttachmentListInput
+        );
+        courseVideoSubtitleTitleInput?.addEventListener(
+            'input',
+            handleCourseVideoSubtitleTitleInput
+        );
+        courseVideoSubtitleContentInput?.addEventListener(
+            'input',
+            handleCourseVideoSubtitleContentInput
+        );
+        courseVideoSubtitleResetButton?.addEventListener(
+            'click',
+            handleCourseVideoSubtitleReset
+        );
+        courseVideoSubtitleSaveButton?.addEventListener(
+            'click',
+            handleCourseVideoSubtitleSave
         );
         courseTopicForm?.addEventListener('submit', handleCourseTopicSubmit);
         courseTopicDeleteButton?.addEventListener('click', handleCourseTopicDelete);

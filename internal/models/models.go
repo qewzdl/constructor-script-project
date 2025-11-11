@@ -351,6 +351,12 @@ type UpdateCourseVideoRequest struct {
 	Attachments *[]CourseVideoAttachment `json:"attachments"`
 }
 
+type UpdateCourseVideoSubtitleRequest struct {
+	Content       string `json:"content" binding:"required"`
+	Title         string `json:"title"`
+	AttachmentURL string `json:"attachment_url"`
+}
+
 type CreateCourseTopicRequest struct {
 	Title           string `json:"title" binding:"required"`
 	Slug            string `json:"slug" binding:"required,slug"`

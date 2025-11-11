@@ -1188,6 +1188,67 @@
                                     </li>
                                 </ul>
                             </fieldset>
+                            <fieldset
+                                class="admin-form__fieldset admin-courses__fieldset"
+                                data-role="course-video-subtitle-fieldset"
+                            >
+                                <legend class="admin-form__legend">Subtitles</legend>
+                                <p class="admin-card__description admin-form__hint">
+                                    Review and edit the subtitle track attached to this lesson. Updates are saved as a WebVTT
+                                    download for learners.
+                                </p>
+                                <p
+                                    class="admin-card__description admin-form__hint"
+                                    data-role="course-video-subtitle-empty"
+                                >
+                                    Subtitles will appear here after they are generated or uploaded.
+                                </p>
+                                <div
+                                    class="admin-form__group admin-form__group--stacked"
+                                    data-role="course-video-subtitle-editor"
+                                    hidden
+                                >
+                                    <label class="admin-form__label">
+                                        Subtitle title
+                                        <input
+                                            type="text"
+                                            class="admin-form__input"
+                                            data-role="course-video-subtitle-title"
+                                            placeholder="Subtitle download name"
+                                        />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Subtitle content
+                                        <textarea
+                                            class="admin-form__input admin-form__input--monospace"
+                                            rows="10"
+                                            data-role="course-video-subtitle-content"
+                                            spellcheck="false"
+                                        ></textarea>
+                                    </label>
+                                    <div class="admin-form__actions admin-form__actions--inline">
+                                        <button
+                                            type="button"
+                                            class="admin-navigation__button"
+                                            data-role="course-video-subtitle-save"
+                                        >
+                                            Save subtitles
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="admin-navigation__button admin-navigation__button--secondary"
+                                            data-role="course-video-subtitle-reset"
+                                        >
+                                            Discard changes
+                                        </button>
+                                    </div>
+                                    <p
+                                        class="admin-card__description admin-form__hint"
+                                        data-role="course-video-subtitle-status"
+                                        hidden
+                                    ></p>
+                                </div>
+                            </fieldset>
                             <div class="admin-form__group" data-role="course-video-upload-group">
                                 <label class="admin-form__label">
                                     Video file

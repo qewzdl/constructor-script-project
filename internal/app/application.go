@@ -763,6 +763,22 @@ func (a *Application) initPluginManager() error {
 
 func (a *Application) initServices() {
 	uploadService := service.NewUploadService(a.cfg.UploadDir)
+	if a.cfg != nil && a.cfg.SubtitleGenerationEnabled {
+		provider := strings.ToLower(strings.TrimSpace(a.cfg.SubtitleProvider))
+		switch provider {
+		case "", "openai":
+			generator, err := service.NewOpenAISubtitleGenerator(a.cfg.OpenAIAPIKey, service.OpenAISubtitleOptions{
+				Model: a.cfg.OpenAIModel,
+			})
+			if err != nil {
+				logger.Error(err, "Failed to initialise subtitle generator", map[string]interface{}{"provider": "openai"})
+			} else {
+				uploadService.SetSubtitleGenerator(generator)
+			}
+		default:
+			logger.Warn("Unsupported subtitle provider configured; subtitle generation disabled", map[string]interface{}{"provider": provider})
+		}
+	}
 
 	backupOptions := service.BackupOptions{UploadDir: a.cfg.UploadDir}
 
@@ -1097,6 +1113,7 @@ func (a *Application) initRouter() error {
 
 			content.POST("/courses/videos", a.handlers.CourseVideo.Create)
 			content.PUT("/courses/videos/:id", a.handlers.CourseVideo.Update)
+			content.PUT("/courses/videos/:id/subtitle", a.handlers.CourseVideo.UpdateSubtitle)
 			content.DELETE("/courses/videos/:id", a.handlers.CourseVideo.Delete)
 			content.GET("/courses/videos", a.handlers.CourseVideo.List)
 			content.GET("/courses/videos/:id", a.handlers.CourseVideo.Get)

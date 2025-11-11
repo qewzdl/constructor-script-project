@@ -1,6 +1,8 @@
 package service
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -26,6 +28,7 @@ type UploadService struct {
 	videoAllowedTypes []string
 	fileMaxSize       int64
 	fileAllowedTypes  []string
+	subtitleGenerator SubtitleGenerator
 }
 
 type UploadInfo struct {
@@ -34,6 +37,13 @@ type UploadInfo struct {
 	Size     int64     `json:"size"`
 	ModTime  time.Time `json:"mod_time"`
 	Type     string    `json:"type"`
+}
+
+// VideoUploadResult captures metadata for an uploaded video and its derived assets.
+type VideoUploadResult struct {
+	Video    UploadInfo    `json:"video"`
+	Duration time.Duration `json:"duration"`
+	Subtitle *UploadInfo   `json:"subtitle,omitempty"`
 }
 
 type UploadCategory string
@@ -50,6 +60,7 @@ var (
 	ErrUnsupportedUpload    = errors.New("file type not allowed")
 	ErrUploadTooLarge       = errors.New("file size exceeds maximum allowed size")
 	ErrUploadMissing        = errors.New("file is required")
+	ErrSubtitleContentEmpty = errors.New("subtitle content is required")
 	errUploadServiceMissing = errors.New("upload service is not configured")
 )
 
@@ -67,11 +78,19 @@ func NewUploadService(uploadDir string) *UploadService {
 		videoAllowedTypes: []string{".mp4", ".m4v", ".mov"},
 		fileMaxSize:       50 * 1024 * 1024,
 		fileAllowedTypes: []string{
-			".pdf", ".txt", ".csv", ".json", ".xml", ".md",
+			".pdf", ".txt", ".csv", ".json", ".xml", ".md", ".vtt",
 			".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
 			".zip", ".tar", ".gz", ".tgz", ".rar", ".7z",
 		},
 	}
+}
+
+// SetSubtitleGenerator attaches a subtitle generator that will run for each uploaded video.
+func (s *UploadService) SetSubtitleGenerator(generator SubtitleGenerator) {
+	if s == nil {
+		return
+	}
+	s.subtitleGenerator = generator
 }
 
 func (s *UploadService) Upload(file *multipart.FileHeader, preferredName string) (UploadInfo, error) {
@@ -88,8 +107,8 @@ func (s *UploadService) Upload(file *multipart.FileHeader, preferredName string)
 	case s.isAllowedType(ext, s.allowedTypes):
 		return s.uploadImage(file, preferredName)
 	case s.isAllowedType(ext, s.videoAllowedTypes):
-		info, _, err := s.uploadVideo(file, preferredName)
-		return info, err
+		result, err := s.uploadVideo(context.Background(), file, preferredName)
+		return result.Video, err
 	case s.isAllowedType(ext, s.fileAllowedTypes):
 		return s.uploadDocument(file, preferredName)
 	default:
@@ -122,13 +141,40 @@ func (s *UploadService) UploadMultipleImages(files []*multipart.FileHeader) ([]s
 	return urls, nil
 }
 
-func (s *UploadService) UploadVideo(file *multipart.FileHeader, preferredName string) (string, string, time.Duration, error) {
-	info, duration, err := s.uploadVideo(file, preferredName)
-	if err != nil {
-		return "", "", 0, err
+func (s *UploadService) UploadVideo(ctx context.Context, file *multipart.FileHeader, preferredName string) (VideoUploadResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
-	return info.URL, info.Filename, duration, nil
+	return s.uploadVideo(ctx, file, preferredName)
+}
+
+// SaveSubtitle persists subtitle content for a video and returns the stored asset metadata.
+func (s *UploadService) SaveSubtitle(videoFilename string, content []byte, preferredName string) (*UploadInfo, error) {
+	if s == nil {
+		return nil, errUploadServiceMissing
+	}
+	if len(bytes.TrimSpace(content)) == 0 {
+		return nil, ErrSubtitleContentEmpty
+	}
+
+	payload := make([]byte, len(content))
+	copy(payload, content)
+
+	result := &SubtitleResult{
+		Format: SubtitleFormatVTT,
+		Data:   payload,
+	}
+	if name := strings.TrimSpace(preferredName); name != "" {
+		result.Name = name
+	}
+
+	info, _, err := s.persistSubtitle(videoFilename, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return info, nil
 }
 
 func (s *UploadService) DeleteImage(url string) error {
@@ -465,31 +511,59 @@ func (s *UploadService) uploadImage(file *multipart.FileHeader, preferredName st
 	return info, err
 }
 
-func (s *UploadService) uploadVideo(file *multipart.FileHeader, preferredName string) (UploadInfo, time.Duration, error) {
+func (s *UploadService) uploadVideo(ctx context.Context, file *multipart.FileHeader, preferredName string) (VideoUploadResult, error) {
 	if s == nil {
-		return UploadInfo{}, 0, errUploadServiceMissing
+		return VideoUploadResult{}, errUploadServiceMissing
 	}
 	if file == nil {
-		return UploadInfo{}, 0, ErrUploadMissing
+		return VideoUploadResult{}, ErrUploadMissing
 	}
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if !s.isAllowedType(ext, s.videoAllowedTypes) {
-		return UploadInfo{}, 0, ErrUnsupportedUpload
+		return VideoUploadResult{}, ErrUnsupportedUpload
 	}
 
-	info, filePath, err := s.persistUpload(file, preferredName, ext, s.videoMaxSize, UploadCategoryVideo)
+	upload, filePath, err := s.persistUpload(file, preferredName, ext, s.videoMaxSize, UploadCategoryVideo)
 	if err != nil {
-		return UploadInfo{}, 0, err
+		return VideoUploadResult{}, err
+	}
+
+	cleanup := func() {
+		os.Remove(filePath)
 	}
 
 	duration, err := media.MP4Duration(filePath)
 	if err != nil {
-		os.Remove(filePath)
-		return UploadInfo{}, 0, err
+		cleanup()
+		return VideoUploadResult{}, err
 	}
 
-	return info, duration, nil
+	result := VideoUploadResult{
+		Video:    upload,
+		Duration: duration,
+	}
+
+	if s.subtitleGenerator != nil {
+		subtitleResult, err := s.subtitleGenerator.Generate(ctx, filePath)
+		if err != nil {
+			cleanup()
+			return VideoUploadResult{}, fmt.Errorf("failed to generate subtitles: %w", err)
+		}
+		if subtitleResult != nil && len(subtitleResult.Data) > 0 {
+			info, subtitlePath, err := s.persistSubtitle(upload.Filename, subtitleResult)
+			if err != nil {
+				cleanup()
+				if subtitlePath != "" {
+					os.Remove(subtitlePath)
+				}
+				return VideoUploadResult{}, fmt.Errorf("failed to persist generated subtitles: %w", err)
+			}
+			result.Subtitle = info
+		}
+	}
+
+	return result, nil
 }
 
 func (s *UploadService) uploadDocument(file *multipart.FileHeader, preferredName string) (UploadInfo, error) {
@@ -555,6 +629,53 @@ func (s *UploadService) persistUpload(file *multipart.FileHeader, preferredName 
 	}
 
 	return upload, filePath, nil
+}
+
+func (s *UploadService) persistSubtitle(videoFilename string, subtitle *SubtitleResult) (*UploadInfo, string, error) {
+	if s == nil {
+		return nil, "", errUploadServiceMissing
+	}
+	if subtitle == nil || len(subtitle.Data) == 0 {
+		return nil, "", nil
+	}
+
+	format := strings.TrimSpace(string(subtitle.Format))
+	ext := ".vtt"
+	if format != "" {
+		normalized := strings.ToLower(format)
+		if normalized != "vtt" && normalized != string(SubtitleFormatVTT) {
+			return nil, "", fmt.Errorf("unsupported subtitle format: %s", subtitle.Format)
+		}
+	}
+
+	baseName := strings.TrimSuffix(videoFilename, filepath.Ext(videoFilename))
+	preferredName := baseName + " subtitles"
+	if name := strings.TrimSpace(subtitle.Name); name != "" {
+		preferredName = name
+	}
+
+	filename := s.generateFilename(videoFilename, preferredName, ext)
+	subtitlePath := filepath.Join(s.uploadDir, filename)
+
+	if err := os.WriteFile(subtitlePath, subtitle.Data, 0644); err != nil {
+		return nil, "", err
+	}
+
+	info, err := os.Stat(subtitlePath)
+	if err != nil {
+		os.Remove(subtitlePath)
+		return nil, "", err
+	}
+
+	upload := &UploadInfo{
+		URL:      "/uploads/" + filename,
+		Filename: filename,
+		Size:     info.Size(),
+		ModTime:  info.ModTime(),
+		Type:     string(UploadCategoryFile),
+	}
+
+	return upload, subtitlePath, nil
 }
 
 func (s *UploadService) detectCategory(ext string) (UploadCategory, bool) {

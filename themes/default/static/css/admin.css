@@ -1021,6 +1021,21 @@
     resize: vertical;
 }
 
+.admin-form__input--monospace {
+    font-family: var(--font-family-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.admin-form__group--stacked {
+    display: grid;
+    gap: var(--size-base);
+}
+
+.admin-form__group--stacked .admin-form__actions {
+    margin-top: var(--size-sm);
+}
+
 .admin-form__input:focus-visible,
 .admin-form__label textarea:focus-visible,
 .admin-form__label select:focus-visible {

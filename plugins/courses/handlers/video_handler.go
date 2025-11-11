@@ -66,7 +66,7 @@ func (h *VideoHandler) Create(c *gin.Context) {
 		return
 	}
 
-	video, err := h.service.Create(req, file)
+	video, err := h.service.Create(c.Request.Context(), req, file)
 	if err != nil {
 		h.writeError(c, err)
 		return
@@ -92,6 +92,31 @@ func (h *VideoHandler) Update(c *gin.Context) {
 	}
 
 	video, err := h.service.Update(id, req)
+	if err != nil {
+		h.writeError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"video": video})
+}
+
+func (h *VideoHandler) UpdateSubtitle(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+
+	id, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req models.UpdateCourseVideoSubtitleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	video, err := h.service.UpdateSubtitle(c.Request.Context(), id, req)
 	if err != nil {
 		h.writeError(c, err)
 		return

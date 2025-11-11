@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"mime/multipart"
@@ -20,22 +21,25 @@ func TestUploadVideoSuccess(t *testing.T) {
 	content := buildTestMP4(t, buildMvhdVersion0Payload(1000, 45*1000))
 	file := createMultipartFile(t, "intro.mp4", content)
 
-	url, filename, duration, err := svc.UploadVideo(file, "Course Intro")
+	result, err := svc.UploadVideo(context.Background(), file, "Course Intro")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if url != "/uploads/course-intro.mp4" {
-		t.Fatalf("unexpected url: %s", url)
+	if result.Video.URL != "/uploads/course-intro.mp4" {
+		t.Fatalf("unexpected url: %s", result.Video.URL)
 	}
-	if filename != "course-intro.mp4" {
-		t.Fatalf("unexpected filename: %s", filename)
+	if result.Video.Filename != "course-intro.mp4" {
+		t.Fatalf("unexpected filename: %s", result.Video.Filename)
 	}
-	if duration != 45*time.Second {
-		t.Fatalf("unexpected duration: %v", duration)
+	if result.Duration != 45*time.Second {
+		t.Fatalf("unexpected duration: %v", result.Duration)
+	}
+	if result.Subtitle != nil {
+		t.Fatalf("expected subtitles to be nil when generator is not configured")
 	}
 
-	stored := filepath.Join(uploadDir, filename)
+	stored := filepath.Join(uploadDir, result.Video.Filename)
 	if _, err := os.Stat(stored); err != nil {
 		t.Fatalf("expected file to exist: %v", err)
 	}
@@ -48,7 +52,7 @@ func TestUploadVideoInvalidExtension(t *testing.T) {
 	content := []byte("not an mp4")
 	file := createMultipartFile(t, "intro.txt", content)
 
-	if _, _, _, err := svc.UploadVideo(file, "Course Intro"); err == nil {
+	if _, err := svc.UploadVideo(context.Background(), file, "Course Intro"); err == nil {
 		t.Fatal("expected error for invalid file type")
 	}
 }
@@ -61,7 +65,7 @@ func TestUploadVideoInvalidMediaRemoved(t *testing.T) {
 	content := []byte("invalid data")
 	file := createMultipartFile(t, "intro.mp4", content)
 
-	if _, _, _, err := svc.UploadVideo(file, "Course Intro"); err == nil {
+	if _, err := svc.UploadVideo(context.Background(), file, "Course Intro"); err == nil {
 		t.Fatal("expected error for invalid media")
 	}
 
@@ -72,6 +76,98 @@ func TestUploadVideoInvalidMediaRemoved(t *testing.T) {
 	}
 	if len(entries) != 0 {
 		t.Fatalf("expected upload directory to be empty, found %d entries", len(entries))
+	}
+}
+
+func TestUploadVideoWithSubtitles(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+
+	subtitleData := []byte("WEBVTT\n\n00:00:00.000 --> 00:00:05.000\nHello world\n")
+	svc.SetSubtitleGenerator(&stubSubtitleGenerator{
+		result: &SubtitleResult{Data: subtitleData, Format: SubtitleFormatVTT},
+	})
+
+	content := buildTestMP4(t, buildMvhdVersion0Payload(1000, 45*1000))
+	file := createMultipartFile(t, "intro.mp4", content)
+
+	result, err := svc.UploadVideo(context.Background(), file, "Course Intro")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Subtitle == nil {
+		t.Fatalf("expected subtitle metadata to be present")
+	}
+	if result.Subtitle.URL != "/uploads/course-intro-subtitles.vtt" {
+		t.Fatalf("unexpected subtitle url: %s", result.Subtitle.URL)
+	}
+	if result.Subtitle.Type != string(UploadCategoryFile) {
+		t.Fatalf("unexpected subtitle type: %s", result.Subtitle.Type)
+	}
+
+	stored := filepath.Join(uploadDir, result.Subtitle.Filename)
+	data, err := os.ReadFile(stored)
+	if err != nil {
+		t.Fatalf("expected subtitle file to exist: %v", err)
+	}
+	if !bytes.Equal(data, subtitleData) {
+		t.Fatalf("unexpected subtitle content: %q", string(data))
+	}
+}
+
+func TestUploadVideoSubtitleFailure(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+	svc.SetSubtitleGenerator(&stubSubtitleGenerator{err: errors.New("transcription failed")})
+
+	content := buildTestMP4(t, buildMvhdVersion0Payload(1000, 45*1000))
+	file := createMultipartFile(t, "intro.mp4", content)
+
+	if _, err := svc.UploadVideo(context.Background(), file, "Course Intro"); err == nil {
+		t.Fatal("expected subtitle generation error")
+	}
+
+	entries, err := os.ReadDir(uploadDir)
+	if err != nil {
+		t.Fatalf("failed to read upload dir: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected upload directory to be empty when subtitles fail, found %d entries", len(entries))
+	}
+}
+
+func TestSaveSubtitle(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+
+	content := []byte("WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nHi there\n")
+	info, err := svc.SaveSubtitle("lesson.mp4", content, "Lesson subtitles")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if info == nil {
+		t.Fatal("expected subtitle metadata")
+	}
+	if info.URL == "" {
+		t.Fatal("expected subtitle url to be set")
+	}
+	stored := filepath.Join(uploadDir, info.Filename)
+	data, err := os.ReadFile(stored)
+	if err != nil {
+		t.Fatalf("expected subtitle file to exist: %v", err)
+	}
+	if !bytes.Equal(data, content) {
+		t.Fatalf("unexpected subtitle contents: %q", string(data))
+	}
+}
+
+func TestSaveSubtitleEmptyContent(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+
+	if _, err := svc.SaveSubtitle("lesson.mp4", []byte("   \n\t"), "Lesson subtitles"); !errors.Is(err, ErrSubtitleContentEmpty) {
+		t.Fatalf("expected ErrSubtitleContentEmpty, got %v", err)
 	}
 }
 
@@ -185,6 +281,17 @@ func TestDeleteUploadRemovesFile(t *testing.T) {
 	}
 }
 
+type stubSubtitleGenerator struct {
+	result *SubtitleResult
+	err    error
+}
+
+func (s *stubSubtitleGenerator) Generate(ctx context.Context, sourcePath string) (*SubtitleResult, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.result, nil
+}
 func createMultipartFile(t *testing.T, filename string, content []byte) *multipart.FileHeader {
 	t.Helper()
 

@@ -40,6 +40,12 @@ type Config struct {
 	UploadDir     string
 	MaxUploadSize int64
 
+	// Subtitles
+	SubtitleGenerationEnabled bool
+	SubtitleProvider          string
+	OpenAIAPIKey              string
+	OpenAIModel               string
+
 	// Email
 	SMTPHost     string
 	SMTPPort     string
@@ -135,6 +141,12 @@ func New() *Config {
 		// Upload
 		UploadDir:     getEnv("UPLOAD_DIR", "./uploads"),
 		MaxUploadSize: 10 * 1024 * 1024, // 10MB
+
+		// Subtitles
+		SubtitleGenerationEnabled: getEnvAsBool("SUBTITLE_GENERATION_ENABLED", false),
+		SubtitleProvider:          strings.TrimSpace(getEnv("SUBTITLE_PROVIDER", "openai")),
+		OpenAIAPIKey:              strings.TrimSpace(getEnv("OPENAI_API_KEY", "")),
+		OpenAIModel:               strings.TrimSpace(getEnv("OPENAI_MODEL", "whisper-1")),
 
 		// Email
 		SMTPHost:     getEnv("SMTP_HOST", ""),
