@@ -123,6 +123,28 @@
         return match ? match[1].toUpperCase() : "";
     };
 
+    const looksLikeSubtitleAttachment = (attachment) => {
+        if (!attachment || typeof attachment !== "object") {
+            return false;
+        }
+
+        const extension = getAttachmentExtension(attachment.url).toLowerCase();
+        if (extension === "vtt" || extension === "srt") {
+            return true;
+        }
+
+        const title = typeof attachment.title === "string" ? attachment.title.trim().toLowerCase() : "";
+        if (!title) {
+            return false;
+        }
+
+        if (title === "auto-generated subtitles") {
+            return true;
+        }
+
+        return title.includes("subtitle") || title.includes("caption");
+    };
+
     const normaliseVideoAttachments = (video) => {
         const source = Array.isArray(video?.attachments)
             ? video.attachments
@@ -611,6 +633,18 @@
             const container = document.createElement("div");
             container.className = "course-player__lesson-content";
 
+            const attachments = normaliseVideoAttachments(video);
+            const subtitleAttachments = [];
+            const downloadableAttachments = [];
+
+            attachments.forEach((attachment) => {
+                if (looksLikeSubtitleAttachment(attachment)) {
+                    subtitleAttachments.push(attachment);
+                } else {
+                    downloadableAttachments.push(attachment);
+                }
+            });
+
             if (video?.description) {
                 const description = document.createElement("p");
                 description.className = "course-player__lesson-description";
@@ -638,12 +672,31 @@
                 if (video?.filename) {
                     videoEl.setAttribute("title", video.filename);
                 }
+
+                if (subtitleAttachments.length > 0) {
+                    subtitleAttachments.forEach((attachment, index) => {
+                        const track = document.createElement("track");
+                        track.kind = "captions";
+                        track.src = attachment.url;
+
+                        const label = deriveAttachmentLabel(attachment);
+                        if (label) {
+                            track.label = label;
+                        }
+
+                        if (index === 0) {
+                            track.default = true;
+                        }
+
+                        videoEl.appendChild(track);
+                    });
+                }
+
                 wrapper.appendChild(videoEl);
                 container.appendChild(wrapper);
             }
 
-            const attachments = normaliseVideoAttachments(video);
-            if (attachments.length > 0) {
+            if (downloadableAttachments.length > 0) {
                 const resources = document.createElement("section");
                 resources.className = "course-player__resources";
 
@@ -655,7 +708,7 @@
                 const list = document.createElement("ul");
                 list.className = "course-player__resources-list";
 
-                attachments.forEach((attachment) => {
+                downloadableAttachments.forEach((attachment) => {
                     const label = deriveAttachmentLabel(attachment);
                     const item = document.createElement("li");
                     item.className = "course-player__resource-item";
