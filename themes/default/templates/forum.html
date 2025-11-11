@@ -1,0 +1,155 @@
+{{ $questions := .ForumQuestions }}
+{{ $search := trim (default "" .ForumSearch) }}
+{{ $total := or .ForumTotal 0 }}
+{{ $page := .ForumPage }}
+{{ $forumPath := default "/forum" .ForumPath }}
+{{ $loginURL := printf "/login?redirect=%s" (urlquery $forumPath) }}
+<section
+    class="forum"
+    data-forum="list"
+    data-login-url="{{ $loginURL }}"
+    {{- with index .ForumEndpoints "Create" }}
+    data-endpoint-create="{{ . }}"
+    {{- end }}
+>
+    <header class="forum__header">
+        <div class="forum__heading">
+            <h1 class="forum__title">Community forum</h1>
+            <p class="forum__subtitle">
+                Ask questions, share knowledge, and collaborate with fellow builders across the community.
+            </p>
+        </div>
+        <form class="forum__search" action="/forum" method="get" role="search" aria-label="Forum search">
+            <label class="forum__search-label" for="forum-search-input">Search discussions</label>
+            <div class="forum__search-controls">
+                <input
+                    id="forum-search-input"
+                    class="forum__search-input"
+                    type="search"
+                    name="search"
+                    value="{{ $search }}"
+                    placeholder="Find topics, keywords, or authors"
+                    autocapitalize="sentences"
+                />
+                <button type="submit" class="forum__search-button">Search</button>
+            </div>
+        </form>
+    </header>
+
+    <div class="forum__toolbar">
+        <dl class="forum__stats">
+            <div class="forum__stat">
+                <dt class="forum__stat-label">Questions</dt>
+                <dd class="forum__stat-value" data-role="forum-total">{{ $total }}</dd>
+            </div>
+            {{ with $page }}
+            <div class="forum__stat">
+                <dt class="forum__stat-label">Page</dt>
+                <dd class="forum__stat-value">{{ .Current }} / {{ .TotalPages }}</dd>
+            </div>
+            {{ end }}
+        </dl>
+        {{ if .IsAuthenticated }}
+        <a class="forum__cta" href="#forum-question-form">Ask a question</a>
+        {{ else }}
+        <a class="forum__cta forum__cta--ghost" href="{{ $loginURL }}">Sign in to ask</a>
+        {{ end }}
+    </div>
+
+    <div class="forum__alert" data-role="forum-alert" role="status" hidden></div>
+
+    {{ if .IsAuthenticated }}
+    <form id="forum-question-form" class="forum__form" novalidate data-role="question-form">
+        <h2 class="forum__form-title">Start a new discussion</h2>
+        <p class="forum__form-hint">
+            Keep titles specific and include any context in the description so others can help quickly.
+        </p>
+        <label class="forum__label" for="forum-question-title">
+            Title
+            <input
+                id="forum-question-title"
+                class="forum__input"
+                type="text"
+                name="title"
+                placeholder="What would you like to learn?"
+                maxlength="160"
+                required
+            />
+        </label>
+        <label class="forum__label" for="forum-question-content">
+            Description
+            <textarea
+                id="forum-question-content"
+                class="forum__textarea"
+                name="content"
+                rows="5"
+                placeholder="Share background details, what you have tried, and what you are hoping to accomplish."
+                required
+            ></textarea>
+        </label>
+        <div class="forum__form-actions">
+            <button type="submit" class="forum__submit">Post question</button>
+            <button type="reset" class="forum__reset">Clear</button>
+        </div>
+    </form>
+    {{ else }}
+    <p class="forum__signin">
+        Have a question to ask? <a href="{{ $loginURL }}">Sign in</a> or
+        <a href="/register?redirect={{ urlquery $forumPath }}">create an account</a> to start a new thread.
+    </p>
+    {{ end }}
+
+    <section class="forum__list" aria-live="polite" aria-busy="false">
+        <p class="forum__empty" data-role="forum-empty" {{ if gt (len $questions) 0 }}hidden{{ end }}>
+            No discussions yet. Be the first to ask a question.
+        </p>
+        <ol class="forum__items" data-role="forum-list">
+            {{ range $questions }}
+            {{ $slug := .Slug }}
+            {{ if eq $slug "" }}
+                {{ $slug = printf "%d" .ID }}
+            {{ end }}
+            {{ $answers := .AnswersCount }}
+            <li class="forum__item" data-question-id="{{ .ID }}" data-question-slug="{{ $slug }}">
+                <article class="forum-question-card">
+                    <div class="forum-question-card__stats">
+                        <div class="forum-question-card__stat">
+                            <span class="forum-question-card__stat-value">{{ .Rating }}</span>
+                            <span class="forum-question-card__stat-label">votes</span>
+                        </div>
+                        <div class="forum-question-card__stat">
+                            <span class="forum-question-card__stat-value">{{ $answers }}</span>
+                            <span class="forum-question-card__stat-label">answers</span>
+                        </div>
+                        <div class="forum-question-card__stat">
+                            <span class="forum-question-card__stat-value">{{ .Views }}</span>
+                            <span class="forum-question-card__stat-label">views</span>
+                        </div>
+                    </div>
+                    <div class="forum-question-card__body">
+                        <h2 class="forum-question-card__title">
+                            <a href="/forum/{{ $slug }}">{{ .Title }}</a>
+                        </h2>
+                        <p class="forum-question-card__excerpt">{{ truncate (trim .Content) 200 }}</p>
+                        <footer class="forum-question-card__meta">
+                            {{ $author := trim .Author.Username }}
+                            <span class="forum-question-card__meta-item">
+                                {{ if $author }}Asked by {{ $author }}{{ else }}Asked by Community member{{ end }}
+                            </span>
+                            <span class="forum-question-card__meta-item">
+                                Updated {{ timeAgo .UpdatedAt }}
+                            </span>
+                        </footer>
+                    </div>
+                </article>
+            </li>
+            {{ end }}
+        </ol>
+    </section>
+
+    {{ with .Pagination }}
+    <div class="forum__pagination">
+        {{ template "components/pagination" . }}
+    </div>
+    {{ end }}
+</section>

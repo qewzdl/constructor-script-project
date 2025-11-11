@@ -47,37 +47,53 @@ func (s *QuestionService) List(page, limit int, search string, authorID *uint) (
 }
 
 func (s *QuestionService) GetByID(id uint) (*models.ForumQuestion, error) {
-	if s == nil || s.questionRepo == nil {
-		return nil, errors.New("question repository not configured")
-	}
-	question, err := s.questionRepo.GetByID(id)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrQuestionNotFound
-		}
-		return nil, err
-	}
-	if err := s.questionRepo.IncrementViews(id); err != nil {
-		return nil, fmt.Errorf("failed to update question views: %w", err)
-	}
-	return question, nil
+        if s == nil || s.questionRepo == nil {
+                return nil, errors.New("question repository not configured")
+        }
+        question, err := s.questionRepo.GetByID(id)
+        if err != nil {
+                if errors.Is(err, gorm.ErrRecordNotFound) {
+                        return nil, ErrQuestionNotFound
+                }
+                return nil, err
+        }
+        if err := s.questionRepo.IncrementViews(id); err != nil {
+                return nil, fmt.Errorf("failed to update question views: %w", err)
+        }
+        question.Views++
+        return question, nil
+}
+
+func (s *QuestionService) GetByIDWithoutIncrement(id uint) (*models.ForumQuestion, error) {
+        if s == nil || s.questionRepo == nil {
+                return nil, errors.New("question repository not configured")
+        }
+        question, err := s.questionRepo.GetByID(id)
+        if err != nil {
+                if errors.Is(err, gorm.ErrRecordNotFound) {
+                        return nil, ErrQuestionNotFound
+                }
+                return nil, err
+        }
+        return question, nil
 }
 
 func (s *QuestionService) GetBySlug(slug string) (*models.ForumQuestion, error) {
-	if s == nil || s.questionRepo == nil {
-		return nil, errors.New("question repository not configured")
-	}
-	question, err := s.questionRepo.GetBySlug(slug)
+        if s == nil || s.questionRepo == nil {
+                return nil, errors.New("question repository not configured")
+        }
+        question, err := s.questionRepo.GetBySlug(slug)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrQuestionNotFound
 		}
 		return nil, err
 	}
-	if err := s.questionRepo.IncrementViews(question.ID); err != nil {
-		return nil, fmt.Errorf("failed to update question views: %w", err)
-	}
-	return question, nil
+        if err := s.questionRepo.IncrementViews(question.ID); err != nil {
+                return nil, fmt.Errorf("failed to update question views: %w", err)
+        }
+        question.Views++
+        return question, nil
 }
 
 func (s *QuestionService) Create(req models.CreateForumQuestionRequest, authorID uint) (*models.ForumQuestion, error) {

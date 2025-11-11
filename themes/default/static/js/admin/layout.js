@@ -187,6 +187,9 @@
             root: rootElement,
             dataset: rootElement.dataset,
             blogEnabled: rootElement.dataset.blogEnabled !== 'false',
+            forumEnabled:
+                rootElement.dataset.forumEnabled !== 'false' &&
+                rootElement.dataset.forumEnabled !== undefined,
             languageFeatureEnabled:
                 rootElement.dataset.languageFeatureEnabled !== 'false' &&
                 rootElement.dataset.languageFeatureEnabled !== undefined,

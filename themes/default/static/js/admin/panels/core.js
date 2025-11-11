@@ -46,6 +46,15 @@
     });
 
     registerQuickAction({
+        id: 'quick-create-forum-question',
+        label: 'Start forum discussion',
+        navTarget: 'forum',
+        panelAction: 'forum-question-reset',
+        order: 15,
+        shouldRender: (context) => Boolean(context?.forumEnabled),
+    });
+
+    registerQuickAction({
         id: 'quick-update-settings',
         label: 'Update site identity',
         navTarget: 'settings',
@@ -653,6 +662,142 @@
                             </div>
                         </fieldset>
                     </form>
+                </div>
+            </div>
+        </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'forum',
+        order: 30,
+        shouldRender: (context) => Boolean(context?.forumEnabled),
+        markup: String.raw`
+<section
+                id="admin-panel-forum"
+                class="admin-panel"
+                data-panel="forum"
+                data-nav-group="community"
+                data-nav-group-label="Community"
+                data-nav-group-order="2"
+                data-nav-label="Forum"
+                data-nav-order="0"
+                role="tabpanel"
+                aria-labelledby="admin-tab-forum"
+                hidden
+            >
+            <header class="admin-panel__header">
+                <div>
+                    <h2 class="admin-panel__title">Forum discussions</h2>
+                    <p class="admin-panel__description">
+                        Moderate questions, update their content, and manage community answers.
+                    </p>
+                </div>
+                <div class="admin-panel__actions">
+                    <label class="admin-search" for="admin-forum-search">
+                        <span class="admin-search__label">Search questions</span>
+                        <input
+                            id="admin-forum-search"
+                            type="search"
+                            class="admin-search__input"
+                            placeholder="Search questions…"
+                            autocomplete="off"
+                            data-role="forum-question-search"
+                        />
+                    </label>
+                    <button type="button" class="admin-panel__reset" data-action="forum-question-reset">
+                        New question
+                    </button>
+                </div>
+            </header>
+            <div class="admin-panel__body admin-panel__body--split">
+                <div class="admin-panel__list" aria-live="polite">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Question</th>
+                                <th scope="col">Author</th>
+                                <th scope="col">Answers</th>
+                                <th scope="col">Rating</th>
+                                <th scope="col">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-forum-questions-table">
+                            <tr class="admin-table__placeholder">
+                                <td colspan="5">Loading questions…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="admin-panel__details">
+                    <form id="admin-forum-question-form" class="admin-form" novalidate>
+                        <fieldset class="admin-card admin-form__fieldset">
+                            <legend class="admin-card__title admin-form__legend">Question details</legend>
+                            <p class="admin-card__description admin-form__hint" data-role="forum-question-status" hidden></p>
+                            <label class="admin-form__label">
+                                Title
+                                <input type="text" name="title" class="admin-form__input" required />
+                            </label>
+                            <label class="admin-form__label">
+                                Content
+                                <textarea name="content" rows="6" class="admin-form__input" required></textarea>
+                            </label>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="forum-question-submit">
+                                    Save question
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="forum-question-delete" hidden>
+                                    Delete question
+                                </button>
+                            </div>
+                        </fieldset>
+                    </form>
+                    <section
+                        class="admin-card admin-panel__aside"
+                        id="admin-forum-answers"
+                        aria-labelledby="admin-forum-answers-title"
+                    >
+                        <div class="admin-card__header">
+                            <h3 id="admin-forum-answers-title" class="admin-card__title">Answers</h3>
+                            <p class="admin-card__description">
+                                View responses and curate community contributions.
+                            </p>
+                        </div>
+                        <div class="admin-forum-answers" data-role="forum-answer-container">
+                            <p class="admin-card__description" data-role="forum-answer-empty">
+                                Select a question to see submitted answers.
+                            </p>
+                            <ul class="admin-forum-answers__list" data-role="forum-answer-list"></ul>
+                        </div>
+                        <form id="admin-forum-answer-form" class="admin-form" novalidate>
+                            <label class="admin-form__label">
+                                Answer content
+                                <textarea
+                                    name="content"
+                                    rows="4"
+                                    class="admin-form__input"
+                                    required
+                                    data-role="forum-answer-content"
+                                ></textarea>
+                            </label>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="forum-answer-submit">
+                                    Save answer
+                                </button>
+                                <button
+                                    type="button"
+                                    class="admin-form__submit admin-form__submit--secondary"
+                                    data-role="forum-answer-cancel"
+                                    hidden
+                                >
+                                    Cancel edit
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="forum-answer-delete" hidden>
+                                    Delete answer
+                                </button>
+                            </div>
+                        </form>
+                    </section>
                 </div>
             </div>
         </section>

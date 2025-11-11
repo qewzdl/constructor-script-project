@@ -1,0 +1,542 @@
+(() => {
+    const app = window.App || {};
+
+    const getCookie = (name) => {
+        const pattern = new RegExp(`(?:^|; )${name}=([^;]*)`);
+        const match = document.cookie.match(pattern);
+        return match ? decodeURIComponent(match[1]) : "";
+    };
+
+    const fallbackApiRequest = async (url, options = {}) => {
+        const headers = Object.assign({}, options.headers || {});
+        const method = (options.method || "GET").toUpperCase();
+        const auth = app.auth;
+        const token = auth && typeof auth.getToken === "function" ? auth.getToken() : "";
+
+        if (options.body && !(options.body instanceof FormData)) {
+            headers["Content-Type"] = headers["Content-Type"] || "application/json";
+        }
+
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
+        if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+            const csrfToken = getCookie("csrf_token");
+            if (csrfToken) {
+                headers["X-CSRF-Token"] = csrfToken;
+            }
+        }
+
+        const response = await fetch(url, {
+            credentials: "include",
+            ...options,
+            headers,
+        });
+
+        const contentType = response.headers.get("content-type") || "";
+        const isJson = contentType.includes("application/json");
+        const payload = isJson ? await response.json().catch(() => null) : await response.text();
+
+        if (!response.ok) {
+            let message = "Request failed";
+            if (payload) {
+                if (typeof payload === "string") {
+                    message = payload;
+                } else if (payload.error) {
+                    message = payload.error;
+                }
+            }
+            const error = new Error(message);
+            error.status = response.status;
+            error.payload = payload;
+            throw error;
+        }
+
+        return payload;
+    };
+
+    const setAlert = typeof app.setAlert === "function"
+        ? app.setAlert
+        : (target, message, type = "info") => {
+              const element = typeof target === "string" ? document.getElementById(target) : target;
+              if (!element) {
+                  if (message && type === "error") {
+                      console.error(message);
+                  }
+                  return;
+              }
+              element.classList.remove("is-error", "is-success", "is-info");
+              if (!message) {
+                  element.hidden = true;
+                  element.textContent = "";
+                  return;
+              }
+              const statusClass =
+                  type === "error" ? "is-error" : type === "success" ? "is-success" : "is-info";
+              element.classList.add(statusClass);
+              element.hidden = false;
+              element.textContent = message;
+          };
+
+    const toggleFormDisabled = typeof app.toggleFormDisabled === "function"
+        ? app.toggleFormDisabled
+        : (form, disabled) => {
+              if (!form) {
+                  return;
+              }
+              form.querySelectorAll("input, textarea, button, select").forEach((element) => {
+                  element.disabled = disabled;
+              });
+              form.classList.toggle("is-disabled", disabled);
+          };
+
+    const apiRequest = typeof app.apiRequest === "function" ? app.apiRequest : fallbackApiRequest;
+
+    const isAuthenticated = () => {
+        if (document.body && document.body.dataset.authenticated === "true") {
+            return true;
+        }
+        if (app.auth && typeof app.auth.getToken === "function") {
+            return Boolean(app.auth.getToken());
+        }
+        return false;
+    };
+
+    const showAlert = (element, message, type = "info") => {
+        if (!element) {
+            if (message && type === "error") {
+                console.error(message);
+            }
+            return;
+        }
+        setAlert(element, message, type);
+    };
+
+    const normalizeEndpoint = (value) => {
+        if (typeof value !== "string") {
+            return "";
+        }
+        return value.replace(/\/+$/, "");
+    };
+
+    const getNumber = (entry, ...keys) => {
+        for (const key of keys) {
+            if (entry && Object.prototype.hasOwnProperty.call(entry, key)) {
+                const value = Number(entry[key]);
+                if (Number.isFinite(value)) {
+                    return value;
+                }
+            }
+        }
+        return 0;
+    };
+
+    const getString = (entry, ...keys) => {
+        for (const key of keys) {
+            if (entry && Object.prototype.hasOwnProperty.call(entry, key)) {
+                const value = entry[key];
+                if (value !== undefined && value !== null) {
+                    return String(value);
+                }
+            }
+        }
+        return "";
+    };
+
+    const getAuthorName = (entry) => {
+        if (!entry) {
+            return "";
+        }
+        const author = entry.author || entry.Author || null;
+        if (!author) {
+            return "";
+        }
+        return author.username || author.Username || "";
+    };
+
+    const formatDateTime = (value) => {
+        if (!value) {
+            return { iso: "", label: "" };
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return { iso: "", label: String(value) };
+        }
+        let label = "";
+        try {
+            label = date.toLocaleString(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+            });
+        } catch (_error) {
+            label = date.toISOString();
+        }
+        return { iso: date.toISOString(), label };
+    };
+
+    const buildAnswerElement = (answer) => {
+        const answerId = getNumber(answer, "id", "ID");
+        const rating = getNumber(answer, "rating", "Rating");
+        const content = getString(answer, "content", "Content");
+        const { iso, label } = formatDateTime(
+            getString(answer, "created_at", "createdAt", "CreatedAt")
+        );
+        const authorName = getAuthorName(answer);
+
+        const item = document.createElement("li");
+        item.className = "forum-answer";
+        if (answerId) {
+            item.dataset.answerId = String(answerId);
+        }
+
+        const votes = document.createElement("div");
+        votes.className = "forum-answer__votes";
+
+        const upvote = document.createElement("button");
+        upvote.type = "button";
+        upvote.className = "forum-vote forum-vote--up";
+        upvote.dataset.role = "answer-vote";
+        upvote.dataset.value = "1";
+        upvote.setAttribute("aria-label", "Upvote this answer");
+
+        const ratingOutput = document.createElement("output");
+        ratingOutput.className = "forum-vote__value";
+        ratingOutput.dataset.role = "answer-rating";
+        ratingOutput.textContent = String(rating);
+
+        const downvote = document.createElement("button");
+        downvote.type = "button";
+        downvote.className = "forum-vote forum-vote--down";
+        downvote.dataset.role = "answer-vote";
+        downvote.dataset.value = "-1";
+        downvote.setAttribute("aria-label", "Downvote this answer");
+
+        votes.append(upvote, ratingOutput, downvote);
+
+        const body = document.createElement("article");
+        body.className = "forum-answer__body";
+
+        const header = document.createElement("header");
+        header.className = "forum-answer__meta";
+
+        const author = document.createElement("span");
+        author.className = "forum-answer__meta-item";
+        author.textContent = authorName
+            ? `Answered by ${authorName}`
+            : "Community member";
+
+        const time = document.createElement("time");
+        time.className = "forum-answer__meta-item";
+        if (iso) {
+            time.setAttribute("datetime", iso);
+        }
+        time.textContent = label || "";
+
+        header.append(author);
+        if (label) {
+            header.append(time);
+        }
+
+        const contentElement = document.createElement("div");
+        contentElement.className = "forum-answer__content";
+        contentElement.textContent = content;
+
+        body.append(header, contentElement);
+        item.append(votes, body);
+
+        return item;
+    };
+
+    const initForumList = (root) => {
+        const alertElement = root.querySelector('[data-role="forum-alert"]');
+        const form = root.querySelector('[data-role="question-form"]');
+        if (!form) {
+            return;
+        }
+
+        const endpoint = normalizeEndpoint(root.dataset.endpointCreate || "");
+        const loginURL = root.dataset.loginUrl || "/login";
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            showAlert(alertElement, "");
+
+            if (!endpoint) {
+                showAlert(alertElement, "Question submission is unavailable right now.", "error");
+                return;
+            }
+
+            if (!isAuthenticated()) {
+                window.location.href = loginURL;
+                return;
+            }
+
+            const formData = new FormData(form);
+            const title = (formData.get("title") || "").toString().trim();
+            const content = (formData.get("content") || "").toString().trim();
+
+            if (!title || !content) {
+                showAlert(alertElement, "Please provide both a title and description.", "error");
+                return;
+            }
+
+            try {
+                toggleFormDisabled(form, true);
+                const payload = await apiRequest(endpoint, {
+                    method: "POST",
+                    body: JSON.stringify({ title, content }),
+                });
+                const question = payload?.question;
+                if (question) {
+                    const slug = getString(question, "slug", "Slug") || String(getNumber(question, "id", "ID"));
+                    showAlert(alertElement, "Your question has been posted. Redirecting…", "success");
+                    if (slug) {
+                        window.location.href = `/forum/${slug}`;
+                        return;
+                    }
+                }
+                showAlert(alertElement, "Question created successfully.", "success");
+                form.reset();
+            } catch (error) {
+                if (error && error.status === 401) {
+                    window.location.href = loginURL;
+                    return;
+                }
+                showAlert(alertElement, error?.message || "Failed to submit question.", "error");
+            } finally {
+                toggleFormDisabled(form, false);
+            }
+        });
+    };
+
+    const initForumQuestion = (root) => {
+        const alertElement = root.querySelector('[data-role="forum-alert"]');
+        const questionRatingOutput = root.querySelector('[data-role="question-rating"]');
+        const answerList = root.querySelector('[data-role="answer-list"]');
+        const answerEmpty = root.querySelector('[data-role="answer-empty"]');
+        const answerCountElement = root.querySelector('[data-role="answer-count"]');
+        const answerForm = root.querySelector('[data-role="answer-form"]');
+        const answerTextarea = root.querySelector('[data-role="answer-content"]');
+
+        const loginURL = root.dataset.loginUrl || "/login";
+        const questionVoteEndpoint = normalizeEndpoint(root.dataset.endpointQuestionVote || "");
+        const answerCreateEndpoint = normalizeEndpoint(root.dataset.endpointAnswerCreate || "");
+        const answerVoteEndpoint = normalizeEndpoint(root.dataset.endpointAnswerVote || "");
+
+        const answerVotes = new Map();
+        let questionVoteState = 0;
+
+        const getCurrentAnswerCount = () => {
+            const value = Number(root.dataset.answerCount || "0");
+            if (Number.isFinite(value)) {
+                return value;
+            }
+            if (answerList) {
+                return answerList.children.length;
+            }
+            return 0;
+        };
+
+        const updateAnswerCount = (count) => {
+            const safeCount = Math.max(0, count);
+            root.dataset.answerCount = String(safeCount);
+            if (answerCountElement) {
+                answerCountElement.textContent = `${safeCount} ${safeCount === 1 ? "answer" : "answers"}`;
+            }
+        };
+
+        const updateVoteIndicators = (container, currentValue) => {
+            if (!container) {
+                return;
+            }
+            container.querySelectorAll('[data-role="answer-vote"], [data-role="question-vote"]').forEach((button) => {
+                const value = Number(button.dataset.value || "0");
+                button.classList.toggle("is-active", currentValue !== 0 && value === currentValue);
+            });
+        };
+
+        const handleQuestionVote = async (button) => {
+            showAlert(alertElement, "");
+            if (!questionVoteEndpoint) {
+                showAlert(alertElement, "Voting is unavailable right now.", "error");
+                return;
+            }
+            const value = Number(button.dataset.value || "0");
+            if (!Number.isFinite(value) || value === 0) {
+                return;
+            }
+            if (!isAuthenticated()) {
+                window.location.href = loginURL;
+                return;
+            }
+
+            const submitValue = questionVoteState === value ? 0 : value;
+
+            try {
+                const payload = await apiRequest(questionVoteEndpoint, {
+                    method: "POST",
+                    body: JSON.stringify({ value: submitValue }),
+                });
+                const rating = Number(payload?.rating);
+                if (Number.isFinite(rating) && questionRatingOutput) {
+                    questionRatingOutput.textContent = String(rating);
+                }
+                questionVoteState = submitValue === 0 ? 0 : value;
+                updateVoteIndicators(root.querySelector('[data-role="question-votes"]'), questionVoteState);
+                showAlert(alertElement, "Thanks for your feedback.", "success");
+            } catch (error) {
+                if (error && error.status === 401) {
+                    window.location.href = loginURL;
+                    return;
+                }
+                showAlert(alertElement, error?.message || "Failed to submit your vote.", "error");
+            }
+        };
+
+        const handleAnswerVote = async (button) => {
+            showAlert(alertElement, "");
+            if (!answerVoteEndpoint) {
+                showAlert(alertElement, "Voting is unavailable right now.", "error");
+                return;
+            }
+            const item = button.closest(".forum-answer");
+            if (!item) {
+                return;
+            }
+            const answerId = Number(item.dataset.answerId || "0");
+            if (!Number.isFinite(answerId) || answerId <= 0) {
+                return;
+            }
+            const value = Number(button.dataset.value || "0");
+            if (!Number.isFinite(value) || value === 0) {
+                return;
+            }
+            if (!isAuthenticated()) {
+                window.location.href = loginURL;
+                return;
+            }
+
+            const currentValue = answerVotes.get(answerId) || 0;
+            const submitValue = currentValue === value ? 0 : value;
+            const endpoint = `${answerVoteEndpoint}/${answerId}/vote`;
+
+            try {
+                const payload = await apiRequest(endpoint, {
+                    method: "POST",
+                    body: JSON.stringify({ value: submitValue }),
+                });
+                const rating = Number(payload?.rating);
+                const ratingElement = item.querySelector('[data-role="answer-rating"]');
+                if (Number.isFinite(rating) && ratingElement) {
+                    ratingElement.textContent = String(rating);
+                }
+                const newValue = submitValue === 0 ? 0 : value;
+                answerVotes.set(answerId, newValue);
+                updateVoteIndicators(item.querySelector(".forum-answer__votes"), newValue);
+                showAlert(alertElement, "Thanks for your feedback.", "success");
+            } catch (error) {
+                if (error && error.status === 401) {
+                    window.location.href = loginURL;
+                    return;
+                }
+                showAlert(alertElement, error?.message || "Failed to submit your vote.", "error");
+            }
+        };
+
+        root.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            const questionVoteButton = target.closest('[data-role="question-vote"]');
+            if (questionVoteButton) {
+                event.preventDefault();
+                handleQuestionVote(questionVoteButton);
+                return;
+            }
+            const answerVoteButton = target.closest('[data-role="answer-vote"]');
+            if (answerVoteButton) {
+                event.preventDefault();
+                handleAnswerVote(answerVoteButton);
+            }
+        });
+
+        if (answerForm && answerTextarea) {
+            answerForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                showAlert(alertElement, "");
+
+                if (!answerCreateEndpoint) {
+                    showAlert(alertElement, "Answer submission is unavailable right now.", "error");
+                    return;
+                }
+
+                if (!isAuthenticated()) {
+                    window.location.href = loginURL;
+                    return;
+                }
+
+                const content = answerTextarea.value.trim();
+                if (!content) {
+                    showAlert(alertElement, "Please write an answer before submitting.", "error");
+                    return;
+                }
+
+                try {
+                    toggleFormDisabled(answerForm, true);
+                    const payload = await apiRequest(answerCreateEndpoint, {
+                        method: "POST",
+                        body: JSON.stringify({ content }),
+                    });
+                    const answer = payload?.answer;
+                    if (answer && answerList) {
+                        const element = buildAnswerElement(answer);
+                        if (answerList.firstChild) {
+                            answerList.prepend(element);
+                        } else {
+                            answerList.appendChild(element);
+                        }
+                        const newAnswerId = getNumber(answer, "id", "ID");
+                        if (newAnswerId > 0) {
+                            answerVotes.set(newAnswerId, 0);
+                        }
+                        if (answerEmpty) {
+                            answerEmpty.hidden = true;
+                        }
+                        updateAnswerCount(getCurrentAnswerCount() + 1);
+                        answerTextarea.value = "";
+                        showAlert(alertElement, "Your answer has been posted.", "success");
+                    } else {
+                        showAlert(alertElement, "Answer saved, but the interface could not refresh automatically.", "info");
+                    }
+                } catch (error) {
+                    if (error && error.status === 401) {
+                        window.location.href = loginURL;
+                        return;
+                    }
+                    showAlert(alertElement, error?.message || "Failed to post answer.", "error");
+                } finally {
+                    toggleFormDisabled(answerForm, false);
+                }
+            });
+        }
+    };
+
+    const initialize = () => {
+        const forumListRoot = document.querySelector('[data-forum="list"]');
+        if (forumListRoot) {
+            initForumList(forumListRoot);
+        }
+        const forumQuestionRoot = document.querySelector('[data-forum="question"]');
+        if (forumQuestionRoot) {
+            initForumQuestion(forumQuestionRoot);
+        }
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initialize);
+    } else {
+        initialize();
+    }
+})();

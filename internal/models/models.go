@@ -121,22 +121,23 @@ type Comment struct {
 }
 
 type ForumQuestion struct {
-	ID        uint           `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+ID        uint           `gorm:"primarykey" json:"id"`
+CreatedAt time.Time      `json:"created_at"`
+UpdatedAt time.Time      `json:"updated_at"`
+DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Title   string `gorm:"not null" json:"title"`
-	Slug    string `gorm:"uniqueIndex;not null" json:"slug"`
-	Content string `gorm:"type:text;not null" json:"content"`
+Title   string `gorm:"not null" json:"title"`
+Slug    string `gorm:"uniqueIndex;not null" json:"slug"`
+Content string `gorm:"type:text;not null" json:"content"`
 
-	AuthorID uint `gorm:"not null" json:"author_id"`
-	Author   User `gorm:"foreignKey:AuthorID" json:"author"`
+AuthorID uint `gorm:"not null" json:"author_id"`
+Author   User `gorm:"foreignKey:AuthorID" json:"author"`
 
-	Rating int `gorm:"default:0" json:"rating"`
-	Views  int `gorm:"default:0" json:"views"`
+Rating int `gorm:"default:0" json:"rating"`
+Views  int `gorm:"default:0" json:"views"`
 
-	Answers []ForumAnswer `gorm:"foreignKey:QuestionID;constraint:OnDelete:CASCADE" json:"answers,omitempty"`
+Answers      []ForumAnswer `gorm:"foreignKey:QuestionID;constraint:OnDelete:CASCADE" json:"answers,omitempty"`
+AnswersCount int           `gorm:"-" json:"answers_count"`
 }
 
 type ForumAnswer struct {

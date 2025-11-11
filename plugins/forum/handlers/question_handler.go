@@ -1,9 +1,10 @@
 package forumhandlers
 
 import (
-	"errors"
-	"net/http"
-	"strconv"
+        "errors"
+        "net/http"
+        "strconv"
+        "strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -74,12 +75,23 @@ func (h *QuestionHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid question id"})
 		return
 	}
-	question, err := h.service.GetByID(uint(id))
-	if err != nil {
-		if errors.Is(err, forumservice.ErrQuestionNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
+        increment := true
+        switch strings.ToLower(strings.TrimSpace(c.DefaultQuery("increment", "true"))) {
+        case "false", "0", "no":
+                increment = false
+        }
+
+        var question *models.ForumQuestion
+        if increment {
+                question, err = h.service.GetByID(uint(id))
+        } else {
+                question, err = h.service.GetByIDWithoutIncrement(uint(id))
+        }
+        if err != nil {
+                if errors.Is(err, forumservice.ErrQuestionNotFound) {
+                        c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+                        return
+                }
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

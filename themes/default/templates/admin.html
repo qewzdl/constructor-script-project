@@ -6,6 +6,7 @@
     data-page="admin"
     data-blog-enabled="{{ if .BlogEnabled }}true{{ else }}false{{ end }}"
     data-courses-enabled="{{ if .CoursesEnabled }}true{{ else }}false{{ end }}"
+    data-forum-enabled="{{ if .ForumEnabled }}true{{ else }}false{{ end }}"
     data-language-feature-enabled="{{ if .LanguageFeatureEnabled }}true{{ else }}false{{ end }}"
     data-endpoint-stats="{{ index $endpoints "Stats" }}"
     {{- if .BlogEnabled }}
@@ -35,6 +36,8 @@
     data-endpoint-backup-export="{{ index $endpoints "BackupExport" }}"
     data-endpoint-backup-import="{{ index $endpoints "BackupImport" }}"
     data-endpoint-backup-settings="{{ index $endpoints "BackupSettings" }}"
+    data-endpoint-forum-questions="{{ index $endpoints "ForumQuestions" }}"
+    data-endpoint-forum-answers="{{ index $endpoints "ForumAnswers" }}"
     {{- with index $endpoints "CourseVideos" }}
     data-endpoint-courses-videos="{{ . }}"
     {{- end }}

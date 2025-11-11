@@ -77,32 +77,40 @@ func (f *Feature) Activate() error {
 	if value, ok := handlers.Get(forumapi.HandlerAnswer).(*forumhandlers.AnswerHandler); ok {
 		answerHandler = value
 	}
-	if answerHandler == nil {
-		answerHandler = forumhandlers.NewAnswerHandler(answerSvc)
-		handlers.Set(forumapi.HandlerAnswer, answerHandler)
-	} else {
-		answerHandler.SetService(answerSvc)
-	}
+        if answerHandler == nil {
+                answerHandler = forumhandlers.NewAnswerHandler(answerSvc)
+                handlers.Set(forumapi.HandlerAnswer, answerHandler)
+        } else {
+                answerHandler.SetService(answerSvc)
+        }
 
-	return nil
+        if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
+                templateHandler.SetForumServices(questionSvc, answerSvc)
+        }
+
+        return nil
 }
 
 func (f *Feature) Deactivate() error {
-	if f == nil || f.host == nil {
-		return nil
-	}
+        if f == nil || f.host == nil {
+                return nil
+        }
 
-	handlers := f.host.Handlers(forumapi.Namespace)
-	if questionHandler, _ := handlers.Get(forumapi.HandlerQuestion).(*forumhandlers.QuestionHandler); questionHandler != nil {
-		questionHandler.SetService(nil)
-	}
-	if answerHandler, _ := handlers.Get(forumapi.HandlerAnswer).(*forumhandlers.AnswerHandler); answerHandler != nil {
-		answerHandler.SetService(nil)
-	}
+        handlers := f.host.Handlers(forumapi.Namespace)
+        if questionHandler, _ := handlers.Get(forumapi.HandlerQuestion).(*forumhandlers.QuestionHandler); questionHandler != nil {
+                questionHandler.SetService(nil)
+        }
+        if answerHandler, _ := handlers.Get(forumapi.HandlerAnswer).(*forumhandlers.AnswerHandler); answerHandler != nil {
+                answerHandler.SetService(nil)
+        }
 
-	services := f.host.Services(forumapi.Namespace)
-	services.Set(forumapi.ServiceQuestion, nil)
-	services.Set(forumapi.ServiceAnswer, nil)
+        services := f.host.Services(forumapi.Namespace)
+        services.Set(forumapi.ServiceQuestion, nil)
+        services.Set(forumapi.ServiceAnswer, nil)
 
-	return nil
+        if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
+                templateHandler.SetForumServices(nil, nil)
+        }
+
+        return nil
 }

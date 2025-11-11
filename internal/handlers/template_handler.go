@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"errors"
-	"html/template"
-	"net/http"
-	"path/filepath"
-	"sync"
+        "errors"
+        "html/template"
+        "net/http"
+        "path/filepath"
+        "sync"
 
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/sections"
@@ -13,57 +13,62 @@ import (
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
-	blogservice "constructor-script-backend/plugins/blog/service"
-	courseservice "constructor-script-backend/plugins/courses/service"
-	languageservice "constructor-script-backend/plugins/language/service"
+        blogservice "constructor-script-backend/plugins/blog/service"
+        courseservice "constructor-script-backend/plugins/courses/service"
+        forumservice "constructor-script-backend/plugins/forum/service"
+        languageservice "constructor-script-backend/plugins/language/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/microcosm-cc/bluemonday"
 )
 
 type TemplateHandler struct {
-	postService        *blogservice.PostService
-	categoryService    *blogservice.CategoryService
-	pageService        *service.PageService
-	authService        *service.AuthService
-	commentService     *blogservice.CommentService
-	searchService      *blogservice.SearchService
-	setupService       *service.SetupService
-	homepageService    *service.HomepageService
-	languageService    *languageservice.LanguageService
-	socialLinkService  *service.SocialLinkService
-	menuService        *service.MenuService
-	advertisingService *service.AdvertisingService
-	coursePackageSvc   *courseservice.PackageService
-	courseCheckoutSvc  *courseservice.CheckoutService
-	fontService        *service.FontService
-	templates          *template.Template
-	templatesMu        sync.RWMutex
-	currentTheme       string
-	themeManager       *theme.Manager
+        postService        *blogservice.PostService
+        categoryService    *blogservice.CategoryService
+        pageService        *service.PageService
+        authService        *service.AuthService
+        commentService     *blogservice.CommentService
+        searchService      *blogservice.SearchService
+        setupService       *service.SetupService
+        homepageService    *service.HomepageService
+        languageService    *languageservice.LanguageService
+        socialLinkService  *service.SocialLinkService
+        menuService        *service.MenuService
+        advertisingService *service.AdvertisingService
+        coursePackageSvc   *courseservice.PackageService
+        courseCheckoutSvc  *courseservice.CheckoutService
+        forumQuestionSvc   *forumservice.QuestionService
+        forumAnswerSvc     *forumservice.AnswerService
+        fontService        *service.FontService
+        templates          *template.Template
+        templatesMu        sync.RWMutex
+        currentTheme       string
+        themeManager       *theme.Manager
 	config             *config.Config
 	sanitizer          *bluemonday.Policy
 	sectionRegistry    *sections.Registry
 }
 
 func NewTemplateHandler(
-	postService *blogservice.PostService,
-	pageService *service.PageService,
-	authService *service.AuthService,
-	commentService *blogservice.CommentService,
-	searchService *blogservice.SearchService,
-	setupService *service.SetupService,
-	languageService *languageservice.LanguageService,
-	homepageService *service.HomepageService,
-	categoryService *blogservice.CategoryService,
-	socialLinkService *service.SocialLinkService,
-	menuService *service.MenuService,
-	fontService *service.FontService,
-	advertisingService *service.AdvertisingService,
-	coursePackageService *courseservice.PackageService,
-	courseCheckoutService *courseservice.CheckoutService,
-	cfg *config.Config,
-	themeManager *theme.Manager,
+        postService *blogservice.PostService,
+        pageService *service.PageService,
+        authService *service.AuthService,
+        commentService *blogservice.CommentService,
+        searchService *blogservice.SearchService,
+        setupService *service.SetupService,
+        languageService *languageservice.LanguageService,
+        homepageService *service.HomepageService,
+        categoryService *blogservice.CategoryService,
+        socialLinkService *service.SocialLinkService,
+        menuService *service.MenuService,
+        fontService *service.FontService,
+        advertisingService *service.AdvertisingService,
+        coursePackageService *courseservice.PackageService,
+        courseCheckoutService *courseservice.CheckoutService,
+        forumQuestionService *forumservice.QuestionService,
+        forumAnswerService *forumservice.AnswerService,
+        cfg *config.Config,
+        themeManager *theme.Manager,
 ) (*TemplateHandler, error) {
 	policy := bluemonday.UGCPolicy()
 	policy.AllowAttrs("class", "id").Globally()
@@ -75,20 +80,22 @@ func NewTemplateHandler(
 		pageService:        pageService,
 		authService:        authService,
 		commentService:     commentService,
-		searchService:      searchService,
-		setupService:       setupService,
-		languageService:    languageService,
-		homepageService:    homepageService,
-		socialLinkService:  socialLinkService,
-		menuService:        menuService,
-		fontService:        fontService,
-		advertisingService: advertisingService,
-		coursePackageSvc:   coursePackageService,
-		courseCheckoutSvc:  courseCheckoutService,
-		themeManager:       themeManager,
-		config:             cfg,
-		sanitizer:          policy,
-	}
+                searchService:      searchService,
+                setupService:       setupService,
+                languageService:    languageService,
+                homepageService:    homepageService,
+                socialLinkService:  socialLinkService,
+                menuService:        menuService,
+                fontService:        fontService,
+                advertisingService: advertisingService,
+                coursePackageSvc:   coursePackageService,
+                courseCheckoutSvc:  courseCheckoutService,
+                forumQuestionSvc:   forumQuestionService,
+                forumAnswerSvc:     forumAnswerService,
+                themeManager:       themeManager,
+                config:             cfg,
+                sanitizer:          policy,
+        }
 
 	handler.sectionRegistry = sections.DefaultRegistry()
 
@@ -134,32 +141,55 @@ func (h *TemplateHandler) SetCoursePackageService(packageService *courseservice.
 
 // SetCourseCheckoutService updates the course checkout service dependency used by the template handler.
 func (h *TemplateHandler) SetCourseCheckoutService(checkoutService *courseservice.CheckoutService) {
-	if h == nil {
-		return
-	}
-	h.courseCheckoutSvc = checkoutService
+        if h == nil {
+                return
+        }
+        h.courseCheckoutSvc = checkoutService
+}
+
+// SetForumServices updates the forum service dependencies used by the template handler.
+func (h *TemplateHandler) SetForumServices(questionService *forumservice.QuestionService, answerService *forumservice.AnswerService) {
+        if h == nil {
+                return
+        }
+        h.forumQuestionSvc = questionService
+        h.forumAnswerSvc = answerService
 }
 
 func (h *TemplateHandler) blogEnabled() bool {
-	return h != nil && h.postService != nil
+        return h != nil && h.postService != nil
 }
 
 func (h *TemplateHandler) coursesEnabled() bool {
-	return h != nil && h.coursePackageSvc != nil
+        return h != nil && h.coursePackageSvc != nil
 }
 
 func (h *TemplateHandler) courseCheckoutEnabled() bool {
-	return h != nil && h.courseCheckoutSvc != nil && h.courseCheckoutSvc.Enabled()
+        return h != nil && h.courseCheckoutSvc != nil && h.courseCheckoutSvc.Enabled()
+}
+
+func (h *TemplateHandler) forumEnabled() bool {
+        return h != nil && h.forumQuestionSvc != nil
 }
 
 func (h *TemplateHandler) ensureBlogAvailable(c *gin.Context) bool {
-	if h == nil || h.postService == nil {
-		if c != nil {
-			h.renderError(c, http.StatusServiceUnavailable, "Blog unavailable", "The blog plugin is not active.")
-		}
-		return false
-	}
-	return true
+        if h == nil || h.postService == nil {
+                if c != nil {
+                        h.renderError(c, http.StatusServiceUnavailable, "Blog unavailable", "The blog plugin is not active.")
+                }
+                return false
+        }
+        return true
+}
+
+func (h *TemplateHandler) ensureForumAvailable(c *gin.Context) bool {
+        if h == nil || h.forumQuestionSvc == nil {
+                if c != nil {
+                        h.renderError(c, http.StatusServiceUnavailable, "Forum unavailable", "The forum plugin is not active.")
+                }
+                return false
+        }
+        return true
 }
 
 func (h *TemplateHandler) reloadTemplates() error {

@@ -962,25 +962,27 @@ func (a *Application) initHandlers() error {
 		ForumAnswer:    forumhandlers.NewAnswerHandler(nil),
 	}
 
-	templateHandler, err := handlers.NewTemplateHandler(
-		nil,
-		a.services.Page,
-		a.services.Auth,
-		nil,
-		nil,
-		a.services.Setup,
-		a.services.Language,
-		a.services.Homepage,
-		nil,
-		a.services.SocialLink,
-		a.services.Menu,
-		a.services.Font,
-		a.services.Advertising,
-		nil,
-		nil,
-		a.cfg,
-		a.themeManager,
-	)
+        templateHandler, err := handlers.NewTemplateHandler(
+                nil,
+                a.services.Page,
+                a.services.Auth,
+                nil,
+                nil,
+                a.services.Setup,
+                a.services.Language,
+                a.services.Homepage,
+                nil,
+                a.services.SocialLink,
+                a.services.Menu,
+                a.services.Font,
+                a.services.Advertising,
+                nil,
+                nil,
+                nil,
+                nil,
+                a.cfg,
+                a.themeManager,
+        )
 	if err != nil {
 		return fmt.Errorf("failed to initialize template handler: %w", err)
 	}
@@ -1104,9 +1106,11 @@ func (a *Application) initRouter() error {
 	router.GET("/admin", a.templateHandler.RenderAdmin)
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
 	router.GET("/page/:slug", a.templateHandler.RenderPage)
-	router.GET("/blog", a.templateHandler.RenderBlog)
-	router.GET("/search", a.templateHandler.RenderSearch)
-	router.GET("/category/:slug", a.templateHandler.RenderCategory)
+        router.GET("/blog", a.templateHandler.RenderBlog)
+        router.GET("/search", a.templateHandler.RenderSearch)
+        router.GET("/forum", a.templateHandler.RenderForum)
+        router.GET("/forum/:slug", a.templateHandler.RenderForumQuestion)
+        router.GET("/category/:slug", a.templateHandler.RenderCategory)
 	router.GET("/tag/:slug", a.templateHandler.RenderTag)
 
 	v1 := router.Group("/api/v1")
