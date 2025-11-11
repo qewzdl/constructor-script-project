@@ -3724,6 +3724,21 @@
                 }
             }
             const result = String(value).trim();
+            if (!result) {
+                return '';
+            }
+            if (result.includes(':')) {
+                const parts = result
+                    .split(':')
+                    .map((part) => part.trim())
+                    .filter((part) => part.length > 0);
+                for (let index = parts.length - 1; index >= 0; index -= 1) {
+                    const part = parts[index];
+                    if (/^\d+$/.test(part)) {
+                        return part;
+                    }
+                }
+            }
             return result;
         };
 
