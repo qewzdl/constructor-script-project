@@ -2358,10 +2358,18 @@
             if (!table) {
                 return;
             }
-            table.querySelectorAll('tr').forEach((row) => {
+
+            const rows = table.querySelectorAll('tr');
+
+            if (!id) {
+                rows.forEach((row) => row.classList.remove('is-selected'));
+                return;
+            }
+
+            rows.forEach((row) => {
                 row.classList.toggle(
                     'is-selected',
-                    id && String(row.dataset.id) === String(id)
+                    String(row.dataset.id) === String(id)
                 );
             });
         };

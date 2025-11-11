@@ -467,6 +467,7 @@ textarea.form-field__input {
     padding: var(--size-max);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
+    margin-block: var(--size-max);
 }
 
 .auth[data-page='setup'] .auth__container {
