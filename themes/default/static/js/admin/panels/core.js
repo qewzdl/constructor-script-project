@@ -1300,8 +1300,42 @@
                                 <input type="text" name="title" required class="admin-form__input" />
                             </label>
                             <label class="admin-form__label">
-                                Description
+                                Slug
+                                <input
+                                    type="text"
+                                    name="slug"
+                                    required
+                                    pattern="[a-z0-9-]+"
+                                    class="admin-form__input"
+                                    placeholder="e.g. introduction"
+                                />
+                                <small class="admin-card__description admin-form__hint">
+                                    Used in links and references. Lowercase letters, numbers, and hyphens only.
+                                </small>
+                            </label>
+                            <label class="admin-form__label">
+                                Summary
+                                <textarea name="summary" rows="2" class="admin-form__input"></textarea>
+                                <small class="admin-card__description admin-form__hint">
+                                    Provide a concise overview shown in course outlines.
+                                </small>
+                            </label>
+                            <label class="admin-form__label">
+                                Detailed description
                                 <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                            </label>
+                            <label class="admin-form__label">
+                                Meta title
+                                <input
+                                    type="text"
+                                    name="meta_title"
+                                    class="admin-form__input"
+                                    placeholder="Optional SEO title"
+                                />
+                            </label>
+                            <label class="admin-form__label">
+                                Meta description
+                                <textarea name="meta_description" rows="2" class="admin-form__input"></textarea>
                             </label>
                             <fieldset class="admin-form__fieldset admin-courses__fieldset">
                                 <legend class="admin-form__legend">Topic steps</legend>
@@ -1495,8 +1529,48 @@
                                 <input type="text" name="title" required class="admin-form__input" />
                             </label>
                             <label class="admin-form__label">
-                                Description
+                                Slug
+                                <input
+                                    type="text"
+                                    name="slug"
+                                    required
+                                    pattern="[a-z0-9-]+"
+                                    class="admin-form__input"
+                                    placeholder="e.g. go-basics"
+                                />
+                                <small class="admin-card__description admin-form__hint">
+                                    Used in URLs. Lowercase letters, numbers, and hyphens only.
+                                </small>
+                            </label>
+                            <label class="admin-form__label">
+                                Summary
+                                <textarea name="summary" rows="2" class="admin-form__input"></textarea>
+                                <small class="admin-card__description admin-form__hint">
+                                    Shown in listings and share previews. Keep it concise.
+                                </small>
+                            </label>
+                            <label class="admin-form__label">
+                                Detailed description
                                 <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                            </label>
+                            <label class="admin-form__label">
+                                Meta title
+                                <input
+                                    type="text"
+                                    name="meta_title"
+                                    class="admin-form__input"
+                                    placeholder="Optional SEO title"
+                                />
+                                <small class="admin-card__description admin-form__hint">
+                                    Overrides the default page title shown in browser tabs and search results.
+                                </small>
+                            </label>
+                            <label class="admin-form__label">
+                                Meta description
+                                <textarea name="meta_description" rows="2" class="admin-form__input"></textarea>
+                                <small class="admin-card__description admin-form__hint">
+                                    Optional search and social description. Defaults to the summary when blank.
+                                </small>
                             </label>
                             <label class="admin-form__label">
                                 Price

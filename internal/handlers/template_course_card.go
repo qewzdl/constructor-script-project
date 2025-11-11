@@ -123,7 +123,16 @@ func buildProfileCourseEntries(courses []models.UserCoursePackage) []profileCour
 		modifier := ""
 		hasCourseID := false
 		courseID := ""
-		if pkg.ID > 0 {
+		slug := strings.TrimSpace(pkg.Slug)
+		if slug != "" {
+			element = "a"
+			href = fmt.Sprintf("/courses/%s", slug)
+			modifier = " profile-course--link"
+			hasCourseID = pkg.ID > 0
+			if pkg.ID > 0 {
+				courseID = fmt.Sprintf("%d", pkg.ID)
+			}
+		} else if pkg.ID > 0 {
 			element = "a"
 			href = fmt.Sprintf("/courses/%d", pkg.ID)
 			modifier = " profile-course--link"
@@ -174,7 +183,7 @@ func buildProfileCourseEntries(courses []models.UserCoursePackage) []profileCour
 			Href:         href,
 			CardModifier: modifier,
 			Title:        title,
-			Description:  strings.TrimSpace(pkg.Description),
+			Description:  strings.TrimSpace(pkg.Summary),
 			Image:        image,
 			MetaItems:    metaItems,
 			HasCourseID:  hasCourseID,

@@ -746,7 +746,11 @@
 
         const courseTopicForm = root.querySelector('#admin-course-topic-form');
         const courseTopicTitleInput = courseTopicForm?.querySelector('input[name="title"]');
+        const courseTopicSlugInput = courseTopicForm?.querySelector('input[name="slug"]');
+        const courseTopicSummaryInput = courseTopicForm?.querySelector('textarea[name="summary"]');
         const courseTopicDescriptionInput = courseTopicForm?.querySelector('textarea[name="description"]');
+        const courseTopicMetaTitleInput = courseTopicForm?.querySelector('input[name="meta_title"]');
+        const courseTopicMetaDescriptionInput = courseTopicForm?.querySelector('textarea[name="meta_description"]');
         const courseTopicStepSelect = courseTopicForm?.querySelector('[data-role="course-topic-step-select"]');
         const courseTopicStepAddButton = courseTopicForm?.querySelector('[data-role="course-topic-step-add"]');
         const courseTopicStepList = courseTopicForm?.querySelector('[data-role="course-topic-step-list"]');
@@ -765,7 +769,11 @@
 
         const coursePackageForm = root.querySelector('#admin-course-package-form');
         const coursePackageTitleInput = coursePackageForm?.querySelector('input[name="title"]');
+        const coursePackageSlugInput = coursePackageForm?.querySelector('input[name="slug"]');
+        const coursePackageSummaryInput = coursePackageForm?.querySelector('textarea[name="summary"]');
         const coursePackageDescriptionInput = coursePackageForm?.querySelector('textarea[name="description"]');
+        const coursePackageMetaTitleInput = coursePackageForm?.querySelector('input[name="meta_title"]');
+        const coursePackageMetaDescriptionInput = coursePackageForm?.querySelector('textarea[name="meta_description"]');
         const coursePackagePriceInput = coursePackageForm?.querySelector('input[name="price"]');
         const coursePackageImageInput = coursePackageForm?.querySelector('input[name="image_url"]');
         const coursePackageTopicSelect = coursePackageForm?.querySelector('[data-role="course-package-topic-select"]');
@@ -3703,6 +3711,14 @@
             extractCourseTopicId(topic),
             topic?.title,
             topic?.Title,
+            topic?.slug,
+            topic?.Slug,
+            topic?.summary,
+            topic?.Summary,
+            topic?.meta_title,
+            topic?.MetaTitle,
+            topic?.meta_description,
+            topic?.MetaDescription,
             topic?.description,
             topic?.Description,
         ];
@@ -3719,6 +3735,14 @@
             extractCoursePackageId(pkg),
             pkg?.title,
             pkg?.Title,
+            pkg?.slug,
+            pkg?.Slug,
+            pkg?.summary,
+            pkg?.Summary,
+            pkg?.meta_title,
+            pkg?.MetaTitle,
+            pkg?.meta_description,
+            pkg?.MetaDescription,
             pkg?.description,
             pkg?.Description,
         ];
@@ -6242,9 +6266,29 @@
                     topic?.title ?? topic?.Title ?? ''
                 );
             }
+            if (courseTopicSlugInput) {
+                courseTopicSlugInput.value = normaliseString(
+                    topic?.slug ?? topic?.Slug ?? ''
+                );
+            }
+            if (courseTopicSummaryInput) {
+                courseTopicSummaryInput.value = normaliseString(
+                    topic?.summary ?? topic?.Summary ?? ''
+                );
+            }
             if (courseTopicDescriptionInput) {
                 courseTopicDescriptionInput.value = normaliseString(
                     topic?.description ?? topic?.Description ?? ''
+                );
+            }
+            if (courseTopicMetaTitleInput) {
+                courseTopicMetaTitleInput.value = normaliseString(
+                    topic?.meta_title ?? topic?.MetaTitle ?? ''
+                );
+            }
+            if (courseTopicMetaDescriptionInput) {
+                courseTopicMetaDescriptionInput.value = normaliseString(
+                    topic?.meta_description ?? topic?.MetaDescription ?? ''
                 );
             }
             state.courses.topicSteps = getCourseTopicSteps(topic)
@@ -6292,9 +6336,29 @@
                     pkg?.title ?? pkg?.Title ?? ''
                 );
             }
+            if (coursePackageSlugInput) {
+                coursePackageSlugInput.value = normaliseString(
+                    pkg?.slug ?? pkg?.Slug ?? ''
+                );
+            }
+            if (coursePackageSummaryInput) {
+                coursePackageSummaryInput.value = normaliseString(
+                    pkg?.summary ?? pkg?.Summary ?? ''
+                );
+            }
             if (coursePackageDescriptionInput) {
                 coursePackageDescriptionInput.value = normaliseString(
                     pkg?.description ?? pkg?.Description ?? ''
+                );
+            }
+            if (coursePackageMetaTitleInput) {
+                coursePackageMetaTitleInput.value = normaliseString(
+                    pkg?.meta_title ?? pkg?.MetaTitle ?? ''
+                );
+            }
+            if (coursePackageMetaDescriptionInput) {
+                coursePackageMetaDescriptionInput.value = normaliseString(
+                    pkg?.meta_description ?? pkg?.MetaDescription ?? ''
                 );
             }
             if (coursePackagePriceInput) {
@@ -6594,6 +6658,8 @@
             }
             event.preventDefault();
             const title = normaliseString(courseTopicTitleInput?.value).trim();
+            const slug = normaliseString(courseTopicSlugInput?.value).trim();
+            const summary = normaliseString(courseTopicSummaryInput?.value).trim();
             const description = normaliseString(
                 courseTopicDescriptionInput?.value
             );
@@ -6601,10 +6667,20 @@
                 showAlert('Please provide a topic title.', 'error');
                 return;
             }
+            if (!slug) {
+                showAlert('Please provide a topic slug.', 'error');
+                return;
+            }
+            if (!/^[a-z0-9-]+$/.test(slug)) {
+                showAlert('Topic slugs may only contain lowercase letters, numbers, and hyphens.', 'error');
+                return;
+            }
             if (!endpoints.coursesTopics) {
                 showAlert('Topic management is not configured.', 'error');
                 return;
             }
+            const metaTitle = normaliseString(courseTopicMetaTitleInput?.value).trim();
+            const metaDescription = normaliseString(courseTopicMetaDescriptionInput?.value).trim();
             const stepRefs = state.courses.topicSteps
                 .map((step) => {
                     const idValue = Number.parseInt(String(step?.id ?? ''), 10);
@@ -6632,7 +6708,11 @@
                             },
                             body: JSON.stringify({
                                 title,
+                                slug,
+                                summary,
                                 description,
+                                meta_title: metaTitle,
+                                meta_description: metaDescription,
                             }),
                         }
                     );
@@ -6655,7 +6735,11 @@
                         },
                         body: JSON.stringify({
                             title,
+                            slug,
+                            summary,
                             description,
+                            meta_title: metaTitle,
+                            meta_description: metaDescription,
                             video_ids: videoIds,
                         }),
                     });
@@ -6809,11 +6893,21 @@
             }
             event.preventDefault();
             const title = normaliseString(coursePackageTitleInput?.value).trim();
+            const slug = normaliseString(coursePackageSlugInput?.value).trim();
+            const summary = normaliseString(coursePackageSummaryInput?.value).trim();
             const description = normaliseString(
                 coursePackageDescriptionInput?.value
             );
             if (!title) {
                 showAlert('Please provide a package title.', 'error');
+                return;
+            }
+            if (!slug) {
+                showAlert('Please provide a package slug.', 'error');
+                return;
+            }
+            if (!/^[a-z0-9-]+$/.test(slug)) {
+                showAlert('Package slugs may only contain lowercase letters, numbers, and hyphens.', 'error');
                 return;
             }
             const priceValue = coursePackagePriceInput?.value || '';
@@ -6827,6 +6921,8 @@
                 return;
             }
             const imageUrl = normaliseString(coursePackageImageInput?.value);
+            const metaTitle = normaliseString(coursePackageMetaTitleInput?.value).trim();
+            const metaDescription = normaliseString(coursePackageMetaDescriptionInput?.value).trim();
             const topicIds = state.courses.packageTopicIds
                 .map((entry) => Number.parseInt(String(entry), 10))
                 .filter((value) => Number.isFinite(value) && value > 0);
@@ -6842,7 +6938,11 @@
                             },
                             body: JSON.stringify({
                                 title,
+                                slug,
+                                summary,
                                 description,
+                                meta_title: metaTitle,
+                                meta_description: metaDescription,
                                 price_cents: priceCents,
                                 image_url: imageUrl,
                             }),
@@ -6867,7 +6967,11 @@
                         },
                         body: JSON.stringify({
                             title,
+                            slug,
+                            summary,
                             description,
+                            meta_title: metaTitle,
+                            meta_description: metaDescription,
                             price_cents: priceCents,
                             image_url: imageUrl,
                             topic_ids: topicIds,

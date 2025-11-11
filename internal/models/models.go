@@ -154,8 +154,12 @@ type CourseTopic struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Title       string `gorm:"not null" json:"title"`
-	Description string `json:"description"`
+	Title           string `gorm:"not null" json:"title"`
+	Slug            string `gorm:"not null;uniqueIndex" json:"slug"`
+	Summary         string `json:"summary"`
+	Description     string `json:"description"`
+	MetaTitle       string `json:"meta_title"`
+	MetaDescription string `json:"meta_description"`
 
 	Videos []CourseVideo     `gorm:"-" json:"videos"`
 	Steps  []CourseTopicStep `gorm:"-" json:"steps"`
@@ -167,10 +171,14 @@ type CoursePackage struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Title       string `gorm:"not null" json:"title"`
-	Description string `json:"description"`
-	PriceCents  int64  `gorm:"not null" json:"price_cents"`
-	ImageURL    string `json:"image_url"`
+	Title           string `gorm:"not null" json:"title"`
+	Slug            string `gorm:"not null;uniqueIndex" json:"slug"`
+	Summary         string `json:"summary"`
+	Description     string `json:"description"`
+	MetaTitle       string `json:"meta_title"`
+	MetaDescription string `json:"meta_description"`
+	PriceCents      int64  `gorm:"not null" json:"price_cents"`
+	ImageURL        string `json:"image_url"`
 
 	Topics []CourseTopic `gorm:"-" json:"topics"`
 }
@@ -344,14 +352,22 @@ type UpdateCourseVideoRequest struct {
 }
 
 type CreateCourseTopicRequest struct {
-	Title       string `json:"title" binding:"required"`
-	Description string `json:"description"`
-	VideoIDs    []uint `json:"video_ids"`
+	Title           string `json:"title" binding:"required"`
+	Slug            string `json:"slug" binding:"required,slug"`
+	Summary         string `json:"summary"`
+	Description     string `json:"description"`
+	MetaTitle       string `json:"meta_title"`
+	MetaDescription string `json:"meta_description"`
+	VideoIDs        []uint `json:"video_ids"`
 }
 
 type UpdateCourseTopicRequest struct {
-	Title       string `json:"title" binding:"required"`
-	Description string `json:"description"`
+	Title           string `json:"title" binding:"required"`
+	Slug            string `json:"slug" binding:"required,slug"`
+	Summary         string `json:"summary"`
+	Description     string `json:"description"`
+	MetaTitle       string `json:"meta_title"`
+	MetaDescription string `json:"meta_description"`
 }
 
 type ReorderCourseTopicVideosRequest struct {
@@ -359,18 +375,26 @@ type ReorderCourseTopicVideosRequest struct {
 }
 
 type CreateCoursePackageRequest struct {
-	Title       string `json:"title" binding:"required"`
-	Description string `json:"description"`
-	PriceCents  int64  `json:"price_cents" binding:"required"`
-	ImageURL    string `json:"image_url"`
-	TopicIDs    []uint `json:"topic_ids"`
+	Title           string `json:"title" binding:"required"`
+	Slug            string `json:"slug" binding:"required,slug"`
+	Summary         string `json:"summary"`
+	Description     string `json:"description"`
+	MetaTitle       string `json:"meta_title"`
+	MetaDescription string `json:"meta_description"`
+	PriceCents      int64  `json:"price_cents" binding:"required"`
+	ImageURL        string `json:"image_url"`
+	TopicIDs        []uint `json:"topic_ids"`
 }
 
 type UpdateCoursePackageRequest struct {
-	Title       string `json:"title" binding:"required"`
-	Description string `json:"description"`
-	PriceCents  int64  `json:"price_cents" binding:"required"`
-	ImageURL    string `json:"image_url"`
+	Title           string `json:"title" binding:"required"`
+	Slug            string `json:"slug" binding:"required,slug"`
+	Summary         string `json:"summary"`
+	Description     string `json:"description"`
+	MetaTitle       string `json:"meta_title"`
+	MetaDescription string `json:"meta_description"`
+	PriceCents      int64  `json:"price_cents" binding:"required"`
+	ImageURL        string `json:"image_url"`
 }
 
 type ReorderCoursePackageTopicsRequest struct {

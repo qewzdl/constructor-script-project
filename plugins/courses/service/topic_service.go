@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"gorm.io/gorm"
@@ -52,9 +53,26 @@ func (s *TopicService) Create(req models.CreateCourseTopicRequest) (*models.Cour
 		return nil, newValidationError("topic title is required")
 	}
 
+	slug := normalizeSlug(req.Slug)
+	if slug == "" {
+		return nil, newValidationError("topic slug is required")
+	}
+
+	if existing, err := s.topicRepo.GetBySlug(slug); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+	} else if existing != nil {
+		return nil, newValidationError("topic slug is already in use")
+	}
+
 	topic := models.CourseTopic{
-		Title:       title,
-		Description: strings.TrimSpace(req.Description),
+		Title:           title,
+		Slug:            slug,
+		Summary:         strings.TrimSpace(req.Summary),
+		Description:     strings.TrimSpace(req.Description),
+		MetaTitle:       strings.TrimSpace(req.MetaTitle),
+		MetaDescription: strings.TrimSpace(req.MetaDescription),
 	}
 
 	if err := s.topicRepo.Create(&topic); err != nil {
@@ -85,8 +103,25 @@ func (s *TopicService) Update(id uint, req models.UpdateCourseTopicRequest) (*mo
 		return nil, newValidationError("topic title is required")
 	}
 
+	slug := normalizeSlug(req.Slug)
+	if slug == "" {
+		return nil, newValidationError("topic slug is required")
+	}
+
+	if existing, err := s.topicRepo.GetBySlug(slug); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+	} else if existing != nil && existing.ID != topic.ID {
+		return nil, newValidationError("topic slug is already in use")
+	}
+
 	topic.Title = title
+	topic.Slug = slug
+	topic.Summary = strings.TrimSpace(req.Summary)
 	topic.Description = strings.TrimSpace(req.Description)
+	topic.MetaTitle = strings.TrimSpace(req.MetaTitle)
+	topic.MetaDescription = strings.TrimSpace(req.MetaDescription)
 
 	if err := s.topicRepo.Update(topic); err != nil {
 		return nil, err
@@ -112,13 +147,38 @@ func (s *TopicService) GetByID(id uint) (*models.CourseTopic, error) {
 		return nil, err
 	}
 
-	topics := []models.CourseTopic{*topic}
-	if err := s.populateSteps(topics); err != nil {
+	return s.prepareTopic(topic)
+}
+
+func (s *TopicService) GetBySlug(slug string) (*models.CourseTopic, error) {
+	if s == nil || s.topicRepo == nil {
+		return nil, errors.New("course topic repository is not configured")
+	}
+
+	normalized := normalizeSlug(slug)
+	if normalized == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	topic, err := s.topicRepo.GetBySlug(normalized)
+	if err != nil {
 		return nil, err
 	}
 
-	result := topics[0]
-	return &result, nil
+	return s.prepareTopic(topic)
+}
+
+func (s *TopicService) GetByIdentifier(identifier string) (*models.CourseTopic, error) {
+	trimmed := strings.TrimSpace(identifier)
+	if trimmed == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	if id, err := strconv.ParseUint(trimmed, 10, 64); err == nil && id > 0 {
+		return s.GetByID(uint(id))
+	}
+
+	return s.GetBySlug(trimmed)
 }
 
 func (s *TopicService) List() ([]models.CourseTopic, error) {
@@ -169,6 +229,20 @@ func (s *TopicService) UpdateSteps(topicID uint, refs []models.CourseTopicStepRe
 	}
 
 	return s.GetByID(topicID)
+}
+
+func (s *TopicService) prepareTopic(topic *models.CourseTopic) (*models.CourseTopic, error) {
+	if topic == nil {
+		return nil, errors.New("topic is required")
+	}
+
+	topics := []models.CourseTopic{*topic}
+	if err := s.populateSteps(topics); err != nil {
+		return nil, err
+	}
+
+	result := topics[0]
+	return &result, nil
 }
 
 func (s *TopicService) buildSteps(refs []models.CourseTopicStepReference) ([]models.CourseTopicStep, error) {

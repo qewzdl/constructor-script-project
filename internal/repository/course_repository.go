@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -25,6 +26,7 @@ type CourseTopicRepository interface {
 	Update(topic *models.CourseTopic) error
 	Delete(id uint) error
 	GetByID(id uint) (*models.CourseTopic, error)
+	GetBySlug(slug string) (*models.CourseTopic, error)
 	GetByIDs(ids []uint) ([]models.CourseTopic, error)
 	List() ([]models.CourseTopic, error)
 	Exists(id uint) (bool, error)
@@ -37,6 +39,7 @@ type CoursePackageRepository interface {
 	Update(pkg *models.CoursePackage) error
 	Delete(id uint) error
 	GetByID(id uint) (*models.CoursePackage, error)
+	GetBySlug(slug string) (*models.CoursePackage, error)
 	GetByIDs(ids []uint) ([]models.CoursePackage, error)
 	List() ([]models.CoursePackage, error)
 	Exists(id uint) (bool, error)
@@ -235,6 +238,21 @@ func (r *courseTopicRepository) GetByID(id uint) (*models.CourseTopic, error) {
 	return &topic, nil
 }
 
+func (r *courseTopicRepository) GetBySlug(slug string) (*models.CourseTopic, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course topic repository is not initialised")
+	}
+	cleaned := strings.TrimSpace(slug)
+	if cleaned == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+	var topic models.CourseTopic
+	if err := r.db.Where("slug = ?", cleaned).First(&topic).Error; err != nil {
+		return nil, err
+	}
+	return &topic, nil
+}
+
 func (r *courseTopicRepository) GetByIDs(ids []uint) ([]models.CourseTopic, error) {
 	if r == nil || r.db == nil {
 		return nil, errors.New("course topic repository is not initialised")
@@ -348,6 +366,21 @@ func (r *coursePackageRepository) GetByID(id uint) (*models.CoursePackage, error
 	}
 	var pkg models.CoursePackage
 	if err := r.db.First(&pkg, id).Error; err != nil {
+		return nil, err
+	}
+	return &pkg, nil
+}
+
+func (r *coursePackageRepository) GetBySlug(slug string) (*models.CoursePackage, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course package repository is not initialised")
+	}
+	cleaned := strings.TrimSpace(slug)
+	if cleaned == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+	var pkg models.CoursePackage
+	if err := r.db.Where("slug = ?", cleaned).First(&pkg).Error; err != nil {
 		return nil, err
 	}
 	return &pkg, nil

@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -154,12 +155,13 @@ func (h *PackageHandler) Get(c *gin.Context) {
 		return
 	}
 
-	id, ok := parseUintParam(c, "id")
-	if !ok {
+	identifier := strings.TrimSpace(c.Param("id"))
+	if identifier == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "course package not found"})
 		return
 	}
 
-	pkg, err := h.service.GetByID(id)
+	pkg, err := h.service.GetByIdentifier(identifier)
 	if err != nil {
 		h.writeError(c, err)
 		return
@@ -173,18 +175,19 @@ func (h *PackageHandler) GetForUser(c *gin.Context) {
 		return
 	}
 
-	id, ok := parseUintParam(c, "id")
-	if !ok {
-		return
-	}
-
 	userID := c.GetUint("user_id")
 	if userID == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
 		return
 	}
 
-	course, err := h.service.GetForUser(id, userID)
+	identifier := strings.TrimSpace(c.Param("id"))
+	if identifier == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "course package not found"})
+		return
+	}
+
+	course, err := h.service.GetForUserByIdentifier(identifier, userID)
 	if err != nil {
 		h.writeError(c, err)
 		return

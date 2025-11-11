@@ -30,6 +30,21 @@ func (m *mockPackageRepo) GetByID(id uint) (*models.CoursePackage, error) {
 	}
 	return nil, gorm.ErrRecordNotFound
 }
+func (m *mockPackageRepo) GetBySlug(slug string) (*models.CoursePackage, error) {
+	if m.pkg != nil && m.pkg.Slug == slug {
+		copy := *m.pkg
+		return &copy, nil
+	}
+	if m.packages != nil {
+		for _, pkg := range m.packages {
+			if pkg.Slug == slug {
+				copy := pkg
+				return &copy, nil
+			}
+		}
+	}
+	return nil, gorm.ErrRecordNotFound
+}
 func (m *mockPackageRepo) GetByIDs(ids []uint) ([]models.CoursePackage, error) {
 	result := make([]models.CoursePackage, 0, len(ids))
 	for _, id := range ids {
@@ -109,6 +124,15 @@ func (m *mockTopicRepo) GetByID(id uint) (*models.CourseTopic, error) {
 	if topic, ok := m.topics[id]; ok {
 		copy := topic
 		return &copy, nil
+	}
+	return nil, gorm.ErrRecordNotFound
+}
+func (m *mockTopicRepo) GetBySlug(slug string) (*models.CourseTopic, error) {
+	for _, topic := range m.topics {
+		if topic.Slug == slug {
+			copy := topic
+			return &copy, nil
+		}
 	}
 	return nil, gorm.ErrRecordNotFound
 }
@@ -251,7 +275,7 @@ func (m *mockAccessRepo) ListActiveByUser(userID uint) ([]models.CoursePackageAc
 }
 
 func TestPackageServiceGetForUser(t *testing.T) {
-	pkg := &models.CoursePackage{ID: 7, Title: "Advanced Go", Description: "Deep dive"}
+	pkg := &models.CoursePackage{ID: 7, Title: "Advanced Go", Slug: "advanced-go", Description: "Deep dive"}
 	access := &models.CoursePackageAccess{UserID: 3, PackageID: 7, CreatedAt: time.Now()}
 
 	svc := &PackageService{
@@ -280,7 +304,7 @@ func TestPackageServiceGetForUser(t *testing.T) {
 
 func TestPackageServiceGetForUserExpired(t *testing.T) {
 	past := time.Now().Add(-2 * time.Hour)
-	pkg := &models.CoursePackage{ID: 1, Title: "Basics"}
+	pkg := &models.CoursePackage{ID: 1, Title: "Basics", Slug: "basics"}
 	access := &models.CoursePackageAccess{UserID: 9, PackageID: 1, ExpiresAt: &past}
 
 	svc := &PackageService{
@@ -324,8 +348,8 @@ func TestPackageServiceListForUserPopulatesContent(t *testing.T) {
 	topicID := uint(33)
 
 	packages := map[uint]models.CoursePackage{
-		1: {ID: 1, Title: "Go Foundations"},
-		2: {ID: 2, Title: "Go Patterns"},
+		1: {ID: 1, Title: "Go Foundations", Slug: "go-foundations"},
+		2: {ID: 2, Title: "Go Patterns", Slug: "go-patterns"},
 	}
 
 	accessRepo := &mockAccessRepo{
@@ -349,7 +373,7 @@ func TestPackageServiceListForUserPopulatesContent(t *testing.T) {
 
 	topicRepo := &mockTopicRepo{
 		topics: map[uint]models.CourseTopic{
-			topicID: {ID: topicID, Title: "Concurrency", Description: "Manage goroutines"},
+			topicID: {ID: topicID, Title: "Concurrency", Slug: "concurrency", Summary: "Manage goroutines", Description: "Manage goroutines"},
 		},
 		steps: map[uint][]models.CourseTopicStep{
 			topicID: {
@@ -439,5 +463,55 @@ func TestPackageServiceListForUserPopulatesContent(t *testing.T) {
 	}
 	if len(second.Package.Topics) != 0 {
 		t.Fatalf("expected no topics for second package, got %d", len(second.Package.Topics))
+	}
+}
+
+func TestPackageServiceGetByIdentifierWithSlug(t *testing.T) {
+	pkg := models.CoursePackage{ID: 55, Title: "Architecting Go", Slug: "architecting-go"}
+
+	packageRepo := &mockPackageRepo{pkg: &pkg}
+	topicRepo := &mockTopicRepo{}
+	videoRepo := &mockVideoRepo{}
+	testRepo := &mockTestRepo{}
+
+	svc := NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, nil, nil)
+
+	result, err := svc.GetByIdentifier("Architecting-Go")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result == nil {
+		t.Fatalf("expected package, got nil")
+	}
+	if result.ID != pkg.ID {
+		t.Fatalf("expected package id %d, got %d", pkg.ID, result.ID)
+	}
+	if result.Slug != pkg.Slug {
+		t.Fatalf("expected slug %q, got %q", pkg.Slug, result.Slug)
+	}
+}
+
+func TestPackageServiceGetByIdentifierWithNumericID(t *testing.T) {
+	pkg := models.CoursePackage{ID: 77, Title: "Production Go", Slug: "production-go"}
+
+	packageRepo := &mockPackageRepo{pkg: &pkg}
+	topicRepo := &mockTopicRepo{}
+	videoRepo := &mockVideoRepo{}
+	testRepo := &mockTestRepo{}
+
+	svc := NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, nil, nil)
+
+	result, err := svc.GetByIdentifier("77")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result == nil {
+		t.Fatalf("expected package, got nil")
+	}
+	if result.ID != pkg.ID {
+		t.Fatalf("expected package id %d, got %d", pkg.ID, result.ID)
+	}
+	if result.Slug != pkg.Slug {
+		t.Fatalf("expected slug %q, got %q", pkg.Slug, result.Slug)
 	}
 }

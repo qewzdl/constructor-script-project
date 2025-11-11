@@ -28,7 +28,10 @@
 
                 <div class="course-player__header-content">
                     <h1 id="course-title" class="course-player__title">{{ default "Untitled course" $package.Title }}</h1>
-                    {{ if $package.Description }}
+                    {{ $summary := trim $package.Summary }}
+                    {{ if $summary }}
+                        <p class="course-player__description">{{ $summary }}</p>
+                    {{ else if $package.Description }}
                         <p class="course-player__description">{{ $package.Description }}</p>
                     {{ end }}
 

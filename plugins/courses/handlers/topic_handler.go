@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -152,12 +153,13 @@ func (h *TopicHandler) Get(c *gin.Context) {
 		return
 	}
 
-	id, ok := parseUintParam(c, "id")
-	if !ok {
+	identifier := strings.TrimSpace(c.Param("id"))
+	if identifier == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "course topic not found"})
 		return
 	}
 
-	topic, err := h.service.GetByID(id)
+	topic, err := h.service.GetByIdentifier(identifier)
 	if err != nil {
 		h.writeError(c, err)
 		return

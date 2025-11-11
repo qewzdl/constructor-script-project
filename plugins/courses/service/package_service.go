@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -70,11 +71,28 @@ func (s *PackageService) Create(req models.CreateCoursePackageRequest) (*models.
 		return nil, newValidationError("package price must be zero or positive")
 	}
 
+	slug := normalizeSlug(req.Slug)
+	if slug == "" {
+		return nil, newValidationError("package slug is required")
+	}
+
+	if existing, err := s.packageRepo.GetBySlug(slug); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+	} else if existing != nil {
+		return nil, newValidationError("package slug is already in use")
+	}
+
 	pkg := models.CoursePackage{
-		Title:       title,
-		Description: strings.TrimSpace(req.Description),
-		PriceCents:  req.PriceCents,
-		ImageURL:    strings.TrimSpace(req.ImageURL),
+		Title:           title,
+		Slug:            slug,
+		Summary:         strings.TrimSpace(req.Summary),
+		Description:     strings.TrimSpace(req.Description),
+		MetaTitle:       strings.TrimSpace(req.MetaTitle),
+		MetaDescription: strings.TrimSpace(req.MetaDescription),
+		PriceCents:      req.PriceCents,
+		ImageURL:        strings.TrimSpace(req.ImageURL),
 	}
 
 	if err := s.packageRepo.Create(&pkg); err != nil {
@@ -108,8 +126,25 @@ func (s *PackageService) Update(id uint, req models.UpdateCoursePackageRequest) 
 		return nil, newValidationError("package price must be zero or positive")
 	}
 
+	slug := normalizeSlug(req.Slug)
+	if slug == "" {
+		return nil, newValidationError("package slug is required")
+	}
+
+	if existing, err := s.packageRepo.GetBySlug(slug); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+	} else if existing != nil && existing.ID != pkg.ID {
+		return nil, newValidationError("package slug is already in use")
+	}
+
 	pkg.Title = title
+	pkg.Slug = slug
+	pkg.Summary = strings.TrimSpace(req.Summary)
 	pkg.Description = strings.TrimSpace(req.Description)
+	pkg.MetaTitle = strings.TrimSpace(req.MetaTitle)
+	pkg.MetaDescription = strings.TrimSpace(req.MetaDescription)
 	pkg.PriceCents = req.PriceCents
 	pkg.ImageURL = strings.TrimSpace(req.ImageURL)
 
@@ -137,13 +172,38 @@ func (s *PackageService) GetByID(id uint) (*models.CoursePackage, error) {
 		return nil, err
 	}
 
-	packages := []models.CoursePackage{*pkg}
-	if err := s.populateTopics(packages); err != nil {
+	return s.preparePackage(pkg)
+}
+
+func (s *PackageService) GetBySlug(slug string) (*models.CoursePackage, error) {
+	if s == nil || s.packageRepo == nil {
+		return nil, errors.New("course package repository is not configured")
+	}
+
+	normalized := normalizeSlug(slug)
+	if normalized == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	pkg, err := s.packageRepo.GetBySlug(normalized)
+	if err != nil {
 		return nil, err
 	}
 
-	result := packages[0]
-	return &result, nil
+	return s.preparePackage(pkg)
+}
+
+func (s *PackageService) GetByIdentifier(identifier string) (*models.CoursePackage, error) {
+	trimmed := strings.TrimSpace(identifier)
+	if trimmed == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	if id, err := strconv.ParseUint(trimmed, 10, 64); err == nil && id > 0 {
+		return s.GetByID(uint(id))
+	}
+
+	return s.GetBySlug(trimmed)
 }
 
 func (s *PackageService) List() ([]models.CoursePackage, error) {
@@ -292,6 +352,56 @@ func (s *PackageService) ListForUser(userID uint) ([]models.UserCoursePackage, e
 	return result, nil
 }
 
+func (s *PackageService) preparePackage(pkg *models.CoursePackage) (*models.CoursePackage, error) {
+	if s == nil {
+		return nil, errors.New("course package service is not configured")
+	}
+	if pkg == nil {
+		return nil, errors.New("course package is required")
+	}
+
+	packages := []models.CoursePackage{*pkg}
+	if err := s.populateTopics(packages); err != nil {
+		return nil, err
+	}
+
+	result := packages[0]
+	return &result, nil
+}
+
+func (s *PackageService) buildUserCourse(pkg *models.CoursePackage, userID uint) (*models.UserCoursePackage, error) {
+	if s == nil || s.accessRepo == nil {
+		return nil, errors.New("course package service is not fully configured")
+	}
+	if pkg == nil {
+		return nil, errors.New("course package is required")
+	}
+
+	access, err := s.accessRepo.GetByUserAndPackage(userID, pkg.ID)
+	if err != nil {
+		return nil, err
+	}
+	if access == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
+	if access.ExpiresAt != nil {
+		if access.ExpiresAt.Before(time.Now()) {
+			return nil, gorm.ErrRecordNotFound
+		}
+	}
+
+	prepared, err := s.preparePackage(pkg)
+	if err != nil {
+		return nil, err
+	}
+
+	result := models.UserCoursePackage{
+		Package: *prepared,
+		Access:  *access,
+	}
+	return &result, nil
+}
+
 func (s *PackageService) GetForUser(packageID, userID uint) (*models.UserCoursePackage, error) {
 	if s == nil || s.packageRepo == nil || s.accessRepo == nil {
 		return nil, errors.New("course package service is not fully configured")
@@ -303,36 +413,42 @@ func (s *PackageService) GetForUser(packageID, userID uint) (*models.UserCourseP
 		return nil, newValidationError("user id is required")
 	}
 
-	access, err := s.accessRepo.GetByUserAndPackage(userID, packageID)
-	if err != nil {
-		return nil, err
-	}
-	if access == nil {
-		return nil, gorm.ErrRecordNotFound
-	}
-	if access.ExpiresAt != nil {
-		now := time.Now()
-		if access.ExpiresAt.Before(now) {
-			return nil, gorm.ErrRecordNotFound
-		}
-	}
-
 	pkg, err := s.packageRepo.GetByID(packageID)
 	if err != nil {
 		return nil, err
 	}
 
-	packages := []models.CoursePackage{*pkg}
-	if err := s.populateTopics(packages); err != nil {
+	return s.buildUserCourse(pkg, userID)
+}
+
+func (s *PackageService) GetForUserByIdentifier(identifier string, userID uint) (*models.UserCoursePackage, error) {
+	if s == nil || s.packageRepo == nil || s.accessRepo == nil {
+		return nil, errors.New("course package service is not fully configured")
+	}
+	if userID == 0 {
+		return nil, newValidationError("user id is required")
+	}
+
+	trimmed := strings.TrimSpace(identifier)
+	if trimmed == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	if id, err := strconv.ParseUint(trimmed, 10, 64); err == nil && id > 0 {
+		return s.GetForUser(uint(id), userID)
+	}
+
+	normalized := normalizeSlug(trimmed)
+	if normalized == "" {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	pkg, err := s.packageRepo.GetBySlug(normalized)
+	if err != nil {
 		return nil, err
 	}
 
-	result := models.UserCoursePackage{
-		Package: packages[0],
-		Access:  *access,
-	}
-
-	return &result, nil
+	return s.buildUserCourse(pkg, userID)
 }
 
 func (s *PackageService) assignTopics(packageID uint, topicIDs []uint) error {

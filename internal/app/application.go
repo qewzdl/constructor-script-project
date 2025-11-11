@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -33,6 +34,7 @@ import (
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/logger"
+	"constructor-script-backend/pkg/utils"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogservice "constructor-script-backend/plugins/blog/service"
 	coursehandlers "constructor-script-backend/plugins/courses/handlers"
@@ -337,6 +339,10 @@ func (a *Application) runMigrations() error {
 		}
 	}
 
+	if err := a.ensureCourseSlugs(migrator); err != nil {
+		return err
+	}
+
 	if migrator.HasTable(&models.Page{}) && !migrator.HasColumn(&models.Page{}, "path") {
 		if err := a.db.Exec("ALTER TABLE pages ADD COLUMN path text").Error; err != nil {
 			return fmt.Errorf("failed to add page path column: %w", err)
@@ -443,6 +449,124 @@ func (a *Application) runMigrations() error {
 
 	logger.Info("Database migration completed", nil)
 	return nil
+}
+
+func (a *Application) ensureCourseSlugs(migrator gorm.Migrator) error {
+	if err := a.ensureCourseTopicSlugs(migrator); err != nil {
+		return err
+	}
+
+	if err := a.ensureCoursePackageSlugs(migrator); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *Application) ensureCourseTopicSlugs(migrator gorm.Migrator) error {
+	if !migrator.HasTable(&models.CourseTopic{}) {
+		return nil
+	}
+
+	if !migrator.HasColumn(&models.CourseTopic{}, "slug") {
+		if err := a.db.Exec("ALTER TABLE course_topics ADD COLUMN slug text").Error; err != nil {
+			return fmt.Errorf("failed to add course topic slug column: %w", err)
+		}
+	}
+
+	if err := a.ensureSlugsForTable("course_topics", "topic", "idx_course_topics_slug"); err != nil {
+		return fmt.Errorf("failed to ensure course topic slugs: %w", err)
+	}
+
+	return nil
+}
+
+func (a *Application) ensureCoursePackageSlugs(migrator gorm.Migrator) error {
+	if !migrator.HasTable(&models.CoursePackage{}) {
+		return nil
+	}
+
+	if !migrator.HasColumn(&models.CoursePackage{}, "slug") {
+		if err := a.db.Exec("ALTER TABLE course_packages ADD COLUMN slug text").Error; err != nil {
+			return fmt.Errorf("failed to add course package slug column: %w", err)
+		}
+	}
+
+	if err := a.ensureSlugsForTable("course_packages", "package", "idx_course_packages_slug"); err != nil {
+		return fmt.Errorf("failed to ensure course package slugs: %w", err)
+	}
+
+	return nil
+}
+
+func (a *Application) ensureSlugsForTable(tableName, fallbackPrefix, indexName string) error {
+	return a.db.Transaction(func(tx *gorm.DB) error {
+		type slugRow struct {
+			ID    uint
+			Title string
+			Slug  sql.NullString
+		}
+
+		var rows []slugRow
+		if err := tx.Table(tableName).Select("id, title, slug").Order("id ASC").Find(&rows).Error; err != nil {
+			return fmt.Errorf("failed to load %s rows for slug backfill: %w", tableName, err)
+		}
+
+		existing := make(map[string]struct{}, len(rows))
+
+		for _, row := range rows {
+			base := strings.TrimSpace(strings.ToLower(row.Slug.String))
+			if base == "" {
+				generated := utils.GenerateSlug(row.Title)
+				base = strings.TrimSpace(strings.ToLower(generated))
+			}
+
+			if base == "" {
+				base = fmt.Sprintf("%s-%d", fallbackPrefix, row.ID)
+			}
+
+			candidate := base
+			suffix := 0
+			for {
+				var attempt string
+				switch suffix {
+				case 0:
+					attempt = base
+				case 1:
+					attempt = fmt.Sprintf("%s-%d", base, row.ID)
+				default:
+					attempt = fmt.Sprintf("%s-%d-%d", base, row.ID, suffix)
+				}
+
+				if _, exists := existing[attempt]; !exists {
+					candidate = attempt
+					break
+				}
+
+				suffix++
+			}
+
+			existing[candidate] = struct{}{}
+
+			current := strings.TrimSpace(row.Slug.String)
+			currentLower := strings.TrimSpace(strings.ToLower(row.Slug.String))
+			if !row.Slug.Valid || currentLower != candidate || current != candidate || row.Slug.String != current {
+				if err := tx.Exec(fmt.Sprintf("UPDATE %s SET slug = ? WHERE id = ?", tableName), candidate, row.ID).Error; err != nil {
+					return fmt.Errorf("failed to update %s slug for id %d: %w", tableName, row.ID, err)
+				}
+			}
+		}
+
+		if err := tx.Exec(fmt.Sprintf("ALTER TABLE %s ALTER COLUMN slug SET NOT NULL", tableName)).Error; err != nil {
+			return fmt.Errorf("failed to enforce NOT NULL on %s slug column: %w", tableName, err)
+		}
+
+		if err := tx.Exec(fmt.Sprintf("CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s (slug)", indexName, tableName)).Error; err != nil {
+			return fmt.Errorf("failed to ensure unique index for %s slug column: %w", tableName, err)
+		}
+
+		return nil
+	})
 }
 
 func (a *Application) createIndexes() error {
@@ -889,7 +1013,7 @@ func (a *Application) initRouter() error {
 	router.GET("/register", a.templateHandler.RenderRegister)
 	router.GET("/setup", a.templateHandler.RenderSetup)
 	router.GET("/profile", a.templateHandler.RenderProfile)
-	router.GET("/courses/:id", a.templateHandler.RenderCourse)
+	router.GET("/courses/:slug", a.templateHandler.RenderCourse)
 	router.GET("/admin", a.templateHandler.RenderAdmin)
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
 	router.GET("/page/:slug", a.templateHandler.RenderPage)

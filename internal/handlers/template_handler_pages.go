@@ -1180,14 +1180,13 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		return
 	}
 
-	idParam := strings.TrimSpace(c.Param("id"))
-	courseID, err := strconv.ParseUint(idParam, 10, 64)
-	if err != nil || courseID == 0 {
+	identifier := strings.TrimSpace(c.Param("slug"))
+	if identifier == "" {
 		h.renderError(c, http.StatusNotFound, "Course not found", "Requested course could not be found.")
 		return
 	}
 
-	course, err := h.coursePackageSvc.GetForUser(uint(courseID), user.ID)
+	course, err := h.coursePackageSvc.GetForUserByIdentifier(identifier, user.ID)
 	if err == nil && course == nil {
 		err = fmt.Errorf("course package was nil without error")
 	}
@@ -1200,18 +1199,28 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 			h.renderError(c, http.StatusBadRequest, "Course unavailable", err.Error())
 			return
 		default:
-			logger.Error(err, "Failed to load course for user", map[string]interface{}{"course_id": courseID, "user_id": user.ID})
+			logger.Error(err, "Failed to load course for user", map[string]interface{}{"course_identifier": identifier, "user_id": user.ID})
 			h.renderError(c, http.StatusInternalServerError, "Course unavailable", "We couldn't load this course right now.")
 			return
 		}
 	}
 
 	pkg := course.Package
+	slug := strings.TrimSpace(pkg.Slug)
+	if _, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil && slug != "" && !strings.EqualFold(slug, identifier) {
+		c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/courses/%s", slug))
+		return
+	}
+
 	title := strings.TrimSpace(pkg.Title)
 	if title == "" {
 		title = "Course"
 	}
-	description := strings.TrimSpace(pkg.Description)
+	summary := strings.TrimSpace(pkg.Summary)
+	description := summary
+	if description == "" {
+		description = strings.TrimSpace(pkg.Description)
+	}
 
 	var sectionScripts []string
 	for topicIndex := range pkg.Topics {
@@ -1238,13 +1247,16 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 
 	payload, err := json.Marshal(course)
 	if err != nil {
-		logger.Error(err, "Failed to serialise course", map[string]interface{}{"course_id": courseID, "user_id": user.ID})
+		logger.Error(err, "Failed to serialise course", map[string]interface{}{"course_identifier": identifier, "user_id": user.ID})
 		h.renderError(c, http.StatusInternalServerError, "Course unavailable", "We couldn't prepare this course for viewing.")
 		return
 	}
 	payload = bytes.ReplaceAll(payload, []byte("</"), []byte("<\\/"))
 
-	canonicalPath := fmt.Sprintf("/courses/%d", pkg.ID)
+	canonicalPath := fmt.Sprintf("/courses/%s", slug)
+	if slug == "" {
+		canonicalPath = fmt.Sprintf("/courses/%d", pkg.ID)
+	}
 	canonical := h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath)
 
 	lessonCount := 0
@@ -1254,10 +1266,24 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 
 	scripts := appendScripts([]string{"/static/js/course-player.js"}, sectionScripts)
 
+	pageTitle := strings.TrimSpace(pkg.MetaTitle)
+	if pageTitle == "" {
+		pageTitle = title
+	}
+	pageDescription := strings.TrimSpace(pkg.MetaDescription)
+	if pageDescription == "" {
+		pageDescription = description
+	}
+
+	courseEndpoint := fmt.Sprintf("/api/v1/courses/packages/%s", slug)
+	if slug == "" {
+		courseEndpoint = fmt.Sprintf("/api/v1/courses/packages/%d", pkg.ID)
+	}
+
 	data := gin.H{
 		"Course":              course,
 		"CourseJSON":          template.JS(string(payload)),
-		"CourseEndpoint":      fmt.Sprintf("/api/v1/courses/packages/%d", pkg.ID),
+		"CourseEndpoint":      courseEndpoint,
 		"CourseTestEndpoint":  "/api/v1/courses/tests",
 		"CourseTopicCount":    len(pkg.Topics),
 		"CourseLessonCount":   lessonCount,
@@ -1267,7 +1293,7 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		"NoIndex":             true,
 	}
 
-	h.renderTemplate(c, "course", title, description, data)
+	h.renderTemplate(c, "course", pageTitle, pageDescription, data)
 }
 
 func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
