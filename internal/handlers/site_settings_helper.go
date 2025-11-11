@@ -20,6 +20,12 @@ func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService,
 		}
 	}
 
+	var subtitleTemp *float32
+	if cfg.SubtitleTemperature != nil {
+		value := *cfg.SubtitleTemperature
+		subtitleTemp = &value
+	}
+
 	defaults := models.SiteSettings{
 		Name:                     cfg.SiteName,
 		Description:              cfg.SiteDescription,
@@ -36,6 +42,16 @@ func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService,
 		CourseCheckoutSuccessURL: cfg.CourseCheckoutSuccessURL,
 		CourseCheckoutCancelURL:  cfg.CourseCheckoutCancelURL,
 		CourseCheckoutCurrency:   strings.ToLower(strings.TrimSpace(cfg.CourseCheckoutCurrency)),
+		Subtitles: models.SubtitleSettings{
+			Enabled:       cfg.SubtitleGenerationEnabled,
+			Provider:      strings.TrimSpace(cfg.SubtitleProvider),
+			PreferredName: strings.TrimSpace(cfg.SubtitlePreferredName),
+			Language:      strings.TrimSpace(cfg.SubtitleLanguage),
+			Prompt:        strings.TrimSpace(cfg.SubtitlePrompt),
+			Temperature:   subtitleTemp,
+			OpenAIModel:   strings.TrimSpace(cfg.OpenAIModel),
+			OpenAIAPIKey:  strings.TrimSpace(cfg.OpenAIAPIKey),
+		},
 	}
 
 	if strings.TrimSpace(defaults.Logo) == "" {
@@ -65,6 +81,7 @@ func ResolveSiteSettings(cfg *config.Config, setupService *service.SetupService,
 
 	settings.StripeSecretKey = ""
 	settings.StripeWebhookSecret = ""
+	settings.Subtitles.OpenAIAPIKey = ""
 
 	return settings, nil
 }

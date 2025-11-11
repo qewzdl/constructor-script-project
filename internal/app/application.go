@@ -763,54 +763,34 @@ func (a *Application) initPluginManager() error {
 
 func (a *Application) initServices() {
 	uploadService := service.NewUploadService(a.cfg.UploadDir)
-	if a.cfg != nil && a.cfg.SubtitleGenerationEnabled {
-		rawProvider := strings.TrimSpace(a.cfg.SubtitleProvider)
-		provider := strings.ToLower(rawProvider)
-		manager := service.NewSubtitleManager(provider)
-		temperature := float32(0)
+	var languageService *languageservice.LanguageService
+	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService, languageService)
+
+	subtitleDefaults := models.SubtitleSettings{}
+	if a.cfg != nil {
+		subtitleDefaults.Enabled = a.cfg.SubtitleGenerationEnabled
+		subtitleDefaults.Provider = strings.TrimSpace(a.cfg.SubtitleProvider)
+		subtitleDefaults.PreferredName = strings.TrimSpace(a.cfg.SubtitlePreferredName)
+		subtitleDefaults.Language = strings.TrimSpace(a.cfg.SubtitleLanguage)
+		subtitleDefaults.Prompt = strings.TrimSpace(a.cfg.SubtitlePrompt)
+		subtitleDefaults.OpenAIModel = strings.TrimSpace(a.cfg.OpenAIModel)
+		subtitleDefaults.OpenAIAPIKey = strings.TrimSpace(a.cfg.OpenAIAPIKey)
 		if a.cfg.SubtitleTemperature != nil {
-			temperature = *a.cfg.SubtitleTemperature
-		}
-
-		switch provider {
-		case "", "openai":
-			generator, err := service.NewOpenAISubtitleGenerator(a.cfg.OpenAIAPIKey, service.OpenAISubtitleOptions{
-				Model:       a.cfg.OpenAIModel,
-				Temperature: temperature,
-				Prompt:      a.cfg.SubtitlePrompt,
-				Language:    a.cfg.SubtitleLanguage,
-			})
-			if err != nil {
-				logger.Error(err, "Failed to initialise subtitle generator", map[string]interface{}{"provider": "openai"})
-			} else {
-				if registerErr := manager.Register("openai", generator); registerErr != nil {
-					logger.Error(registerErr, "Failed to register subtitle provider", map[string]interface{}{"provider": "openai"})
-				} else if provider == "" {
-					manager.SetDefaultProvider("openai")
-				}
-			}
-		default:
-			logger.Warn("Unsupported subtitle provider configured; subtitle generation disabled", map[string]interface{}{"provider": provider})
-		}
-
-		if providers := manager.Providers(); len(providers) > 0 {
-			uploadService.UseSubtitleManager(manager)
-
-			var tempPointer *float32
-			if a.cfg.SubtitleTemperature != nil {
-				value := *a.cfg.SubtitleTemperature
-				tempPointer = &value
-			}
-
-			uploadService.ConfigureSubtitleGeneration(service.SubtitleGenerationConfig{
-				Provider:      provider,
-				PreferredName: a.cfg.SubtitlePreferredName,
-				Language:      a.cfg.SubtitleLanguage,
-				Prompt:        a.cfg.SubtitlePrompt,
-				Temperature:   tempPointer,
-			})
+			value := *a.cfg.SubtitleTemperature
+			subtitleDefaults.Temperature = &value
 		}
 	}
+
+	subtitleSettings := subtitleDefaults
+	if setupService != nil {
+		if resolved, err := setupService.GetSubtitleSettings(subtitleDefaults); err != nil {
+			logger.Error(err, "Failed to load subtitle settings", nil)
+		} else {
+			subtitleSettings = resolved
+		}
+	}
+
+	service.ConfigureUploadSubtitles(uploadService, subtitleSettings)
 
 	backupOptions := service.BackupOptions{UploadDir: a.cfg.UploadDir}
 
@@ -854,8 +834,6 @@ func (a *Application) initServices() {
 
 	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
 	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
-	var languageService *languageservice.LanguageService
-	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService, languageService)
 	homepageService := service.NewHomepageService(a.repositories.Setting, a.repositories.Page)
 	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
 	menuService := service.NewMenuService(a.repositories.Menu)

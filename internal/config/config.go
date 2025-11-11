@@ -217,6 +217,19 @@ func New() *Config {
 		CourseCheckoutCurrency: strings.ToLower(strings.TrimSpace(getEnv("COURSE_CURRENCY", "usd"))),
 	}
 
+	if trimmed := strings.ToLower(strings.TrimSpace(c.SubtitleProvider)); trimmed != "" {
+		c.SubtitleProvider = trimmed
+	} else {
+		c.SubtitleProvider = "openai"
+	}
+
+	_, subtitleFlagExplicit := os.LookupEnv("SUBTITLE_GENERATION_ENABLED")
+	if !c.SubtitleGenerationEnabled && !subtitleFlagExplicit {
+		if strings.EqualFold(c.SubtitleProvider, "openai") && c.OpenAIAPIKey != "" {
+			c.SubtitleGenerationEnabled = true
+		}
+	}
+
 	successURL := strings.TrimSpace(getEnv("COURSE_CHECKOUT_SUCCESS_URL", ""))
 	cancelURL := strings.TrimSpace(getEnv("COURSE_CHECKOUT_CANCEL_URL", ""))
 

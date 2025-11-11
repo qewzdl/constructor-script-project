@@ -130,6 +130,7 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 		CourseCheckoutSuccessURL: "",
 		CourseCheckoutCancelURL:  "",
 		CourseCheckoutCurrency:   "",
+		Subtitles:                models.SubtitleSettings{},
 	}
 
 	if h.config != nil {
@@ -144,6 +145,18 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 		settings.CourseCheckoutSuccessURL = strings.TrimSpace(h.config.CourseCheckoutSuccessURL)
 		settings.CourseCheckoutCancelURL = strings.TrimSpace(h.config.CourseCheckoutCancelURL)
 		settings.CourseCheckoutCurrency = strings.ToLower(strings.TrimSpace(h.config.CourseCheckoutCurrency))
+
+		settings.Subtitles.Enabled = h.config.SubtitleGenerationEnabled
+		settings.Subtitles.Provider = strings.TrimSpace(h.config.SubtitleProvider)
+		settings.Subtitles.PreferredName = strings.TrimSpace(h.config.SubtitlePreferredName)
+		settings.Subtitles.Language = strings.TrimSpace(h.config.SubtitleLanguage)
+		settings.Subtitles.Prompt = strings.TrimSpace(h.config.SubtitlePrompt)
+		settings.Subtitles.OpenAIModel = strings.TrimSpace(h.config.OpenAIModel)
+		settings.Subtitles.OpenAIAPIKey = strings.TrimSpace(h.config.OpenAIAPIKey)
+		if h.config.SubtitleTemperature != nil {
+			value := *h.config.SubtitleTemperature
+			settings.Subtitles.Temperature = &value
+		}
 	}
 
 	h.applyFontSettings(&settings)
@@ -178,6 +191,7 @@ func (h *SetupHandler) sanitizeSensitiveSettings(settings *models.SiteSettings) 
 	}
 	settings.StripeSecretKey = ""
 	settings.StripeWebhookSecret = ""
+	settings.Subtitles.OpenAIAPIKey = ""
 }
 
 func (h *SetupHandler) GetSiteSettings(c *gin.Context) {

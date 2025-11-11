@@ -731,26 +731,38 @@ type PluginInfo struct {
 	AdditionalData JSONMap    `json:"metadata,omitempty"`
 }
 
+type SubtitleSettings struct {
+	Enabled       bool     `json:"enabled"`
+	Provider      string   `json:"provider"`
+	PreferredName string   `json:"preferred_name"`
+	Language      string   `json:"language"`
+	Prompt        string   `json:"prompt"`
+	Temperature   *float32 `json:"temperature,omitempty"`
+	OpenAIModel   string   `json:"openai_model"`
+	OpenAIAPIKey  string   `json:"openai_api_key"`
+}
+
 type SiteSettings struct {
-	Name                     string       `json:"name"`
-	Description              string       `json:"description"`
-	URL                      string       `json:"url"`
-	Favicon                  string       `json:"favicon"`
-	FaviconType              string       `json:"favicon_type"`
-	Logo                     string       `json:"logo"`
-	UnusedTagRetentionHours  int          `json:"unused_tag_retention_hours"`
-	SocialLinks              []SocialLink `json:"social_links"`
-	MenuItems                []MenuItem   `json:"menu_items"`
-	DefaultLanguage          string       `json:"default_language"`
-	SupportedLanguages       []string     `json:"supported_languages"`
-	Fonts                    []FontAsset  `json:"fonts"`
-	FontPreconnects          []string     `json:"font_preconnects"`
-	StripeSecretKey          string       `json:"stripe_secret_key"`
-	StripePublishableKey     string       `json:"stripe_publishable_key"`
-	StripeWebhookSecret      string       `json:"stripe_webhook_secret"`
-	CourseCheckoutSuccessURL string       `json:"course_checkout_success_url"`
-	CourseCheckoutCancelURL  string       `json:"course_checkout_cancel_url"`
-	CourseCheckoutCurrency   string       `json:"course_checkout_currency"`
+	Name                     string           `json:"name"`
+	Description              string           `json:"description"`
+	URL                      string           `json:"url"`
+	Favicon                  string           `json:"favicon"`
+	FaviconType              string           `json:"favicon_type"`
+	Logo                     string           `json:"logo"`
+	UnusedTagRetentionHours  int              `json:"unused_tag_retention_hours"`
+	SocialLinks              []SocialLink     `json:"social_links"`
+	MenuItems                []MenuItem       `json:"menu_items"`
+	DefaultLanguage          string           `json:"default_language"`
+	SupportedLanguages       []string         `json:"supported_languages"`
+	Fonts                    []FontAsset      `json:"fonts"`
+	FontPreconnects          []string         `json:"font_preconnects"`
+	StripeSecretKey          string           `json:"stripe_secret_key"`
+	StripePublishableKey     string           `json:"stripe_publishable_key"`
+	StripeWebhookSecret      string           `json:"stripe_webhook_secret"`
+	CourseCheckoutSuccessURL string           `json:"course_checkout_success_url"`
+	CourseCheckoutCancelURL  string           `json:"course_checkout_cancel_url"`
+	CourseCheckoutCurrency   string           `json:"course_checkout_currency"`
+	Subtitles                SubtitleSettings `json:"subtitles"`
 }
 
 type BackupSettings struct {
@@ -776,20 +788,32 @@ type ThemeInfo struct {
 }
 
 type UpdateSiteSettingsRequest struct {
-	Name                     string   `json:"name" binding:"required"`
-	Description              string   `json:"description"`
-	URL                      string   `json:"url" binding:"required"`
-	Favicon                  string   `json:"favicon"`
-	Logo                     string   `json:"logo"`
-	UnusedTagRetentionHours  int      `json:"unused_tag_retention_hours" binding:"required,min=1"`
-	DefaultLanguage          string   `json:"default_language"`
-	SupportedLanguages       []string `json:"supported_languages"`
-	StripeSecretKey          string   `json:"stripe_secret_key"`
-	StripePublishableKey     string   `json:"stripe_publishable_key"`
-	StripeWebhookSecret      string   `json:"stripe_webhook_secret"`
-	CourseCheckoutSuccessURL string   `json:"course_checkout_success_url"`
-	CourseCheckoutCancelURL  string   `json:"course_checkout_cancel_url"`
-	CourseCheckoutCurrency   string   `json:"course_checkout_currency"`
+	Name                     string                         `json:"name" binding:"required"`
+	Description              string                         `json:"description"`
+	URL                      string                         `json:"url" binding:"required"`
+	Favicon                  string                         `json:"favicon"`
+	Logo                     string                         `json:"logo"`
+	UnusedTagRetentionHours  int                            `json:"unused_tag_retention_hours" binding:"required,min=1"`
+	DefaultLanguage          string                         `json:"default_language"`
+	SupportedLanguages       []string                       `json:"supported_languages"`
+	StripeSecretKey          string                         `json:"stripe_secret_key"`
+	StripePublishableKey     string                         `json:"stripe_publishable_key"`
+	StripeWebhookSecret      string                         `json:"stripe_webhook_secret"`
+	CourseCheckoutSuccessURL string                         `json:"course_checkout_success_url"`
+	CourseCheckoutCancelURL  string                         `json:"course_checkout_cancel_url"`
+	CourseCheckoutCurrency   string                         `json:"course_checkout_currency"`
+	Subtitles                *UpdateSubtitleSettingsRequest `json:"subtitles"`
+}
+
+type UpdateSubtitleSettingsRequest struct {
+	Enabled       bool     `json:"enabled"`
+	Provider      string   `json:"provider"`
+	PreferredName string   `json:"preferred_name"`
+	Language      string   `json:"language"`
+	Prompt        string   `json:"prompt"`
+	Temperature   *float32 `json:"temperature"`
+	OpenAIModel   string   `json:"openai_model"`
+	OpenAIAPIKey  string   `json:"openai_api_key"`
 }
 
 type FontAsset struct {

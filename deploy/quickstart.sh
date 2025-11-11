@@ -151,6 +151,15 @@ ENABLE_REDIS=false
 ENABLE_EMAIL=false
 ENABLE_METRICS=false
 UPLOAD_DIR=./uploads
+# Subtitle generation (uncomment to enable OpenAI Whisper auto-transcriptions)
+# SUBTITLE_GENERATION_ENABLED=true # Admin settings override this flag
+# SUBTITLE_PROVIDER=openai
+# OPENAI_API_KEY=sk-your-openai-api-key
+# OPENAI_MODEL=whisper-1
+# SUBTITLE_PREFERRED_NAME=lesson-subtitles
+# SUBTITLE_LANGUAGE=en
+# SUBTITLE_PROMPT=
+# SUBTITLE_TEMPERATURE=0.0
 JWT_SECRET=$JWT_SECRET
 ENV
 

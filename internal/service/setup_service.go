@@ -18,6 +18,7 @@ import (
 	"constructor-script-backend/internal/payments/stripe"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/lang"
+	"constructor-script-backend/pkg/logger"
 	blogservice "constructor-script-backend/plugins/blog/service"
 	languageservice "constructor-script-backend/plugins/language/service"
 )
@@ -192,6 +193,11 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 	var err error
 	result := defaults
 
+	if defaults.Subtitles.Temperature != nil {
+		value := *defaults.Subtitles.Temperature
+		result.Subtitles.Temperature = &value
+	}
+
 	if value, getErr := s.getSettingValue(settingKeySiteName); getErr != nil {
 		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
 			err = getErr
@@ -321,7 +327,233 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 		result.CourseCheckoutCurrency = strings.ToLower(strings.TrimSpace(defaults.CourseCheckoutCurrency))
 	}
 
+	subtitleSettings, subtitleErr := s.GetSubtitleSettings(defaults.Subtitles)
+	if subtitleErr != nil {
+		err = errors.Join(err, subtitleErr)
+	}
+	result.Subtitles = subtitleSettings
+
 	return result, err
+}
+
+func (s *SetupService) GetSubtitleSettings(defaults models.SubtitleSettings) (models.SubtitleSettings, error) {
+	result := defaults
+	if defaults.Temperature != nil {
+		value := *defaults.Temperature
+		result.Temperature = &value
+	}
+
+	if s.settingRepo == nil {
+		normalizeSubtitleSettings(&result)
+		return result, nil
+	}
+
+	var err error
+
+	if value, getErr := s.getSettingValue(settingKeySubtitlesEnabled); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = errors.Join(err, getErr)
+		}
+	} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+		if parsed, parseErr := strconv.ParseBool(trimmed); parseErr != nil {
+			err = errors.Join(err, parseErr)
+		} else {
+			result.Enabled = parsed
+		}
+	}
+
+	if value, getErr := s.getSettingValue(settingKeySubtitlesProvider); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = errors.Join(err, getErr)
+		}
+	} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+		result.Provider = trimmed
+	}
+
+	if value, getErr := s.getSettingValue(settingKeySubtitlesPreferredName); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = errors.Join(err, getErr)
+		}
+	} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+		result.PreferredName = trimmed
+	}
+
+	if value, getErr := s.getSettingValue(settingKeySubtitlesLanguage); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = errors.Join(err, getErr)
+		}
+	} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+		result.Language = trimmed
+	}
+
+	if value, getErr := s.getSettingValue(settingKeySubtitlesPrompt); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = errors.Join(err, getErr)
+		}
+	} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+		result.Prompt = trimmed
+	}
+
+	if value, getErr := s.getSettingValue(settingKeySubtitlesTemperature); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = errors.Join(err, getErr)
+		}
+	} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+		if parsed, parseErr := strconv.ParseFloat(trimmed, 32); parseErr != nil {
+			err = errors.Join(err, parseErr)
+		} else {
+			temp := float32(parsed)
+			result.Temperature = &temp
+		}
+	}
+
+	if value, getErr := s.getSettingValue(settingKeySubtitlesOpenAIModel); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = errors.Join(err, getErr)
+		}
+	} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+		result.OpenAIModel = trimmed
+	}
+
+	if value, getErr := s.getSettingValue(settingKeySubtitlesOpenAIAPIKey); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = errors.Join(err, getErr)
+		}
+	} else if trimmed := strings.TrimSpace(value); trimmed != "" {
+		result.OpenAIAPIKey = trimmed
+	}
+
+	normalizeSubtitleSettings(&result)
+
+	return result, err
+}
+
+func (s *SetupService) updateSubtitleSettings(req models.UpdateSubtitleSettingsRequest, defaults models.SubtitleSettings) error {
+	if s.settingRepo == nil {
+		return errors.New("setting repository not configured")
+	}
+
+	provider := normalizeSubtitleProvider(req.Provider)
+	if provider == "" {
+		provider = normalizeSubtitleProvider(defaults.Provider)
+	}
+	if provider == "" {
+		provider = "openai"
+	}
+
+	switch provider {
+	case "openai":
+	case "default", "":
+		provider = "openai"
+	default:
+		return fmt.Errorf("unsupported subtitle provider: %s", req.Provider)
+	}
+
+	currentKey := strings.TrimSpace(defaults.OpenAIAPIKey)
+	if value, err := s.getSettingValue(settingKeySubtitlesOpenAIAPIKey); err == nil {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			currentKey = trimmed
+		}
+	}
+
+	requestedKey := strings.TrimSpace(req.OpenAIAPIKey)
+	finalKey := requestedKey
+	if finalKey == "" {
+		finalKey = currentKey
+	}
+
+	if finalKey == "" {
+		finalKey = strings.TrimSpace(defaults.OpenAIAPIKey)
+	}
+
+	if req.Enabled && provider == "openai" && finalKey == "" {
+		return fmt.Errorf("OpenAI API key is required when enabling subtitle generation")
+	}
+
+	subtitleUpdates := map[string]string{
+		settingKeySubtitlesEnabled:       strconv.FormatBool(req.Enabled),
+		settingKeySubtitlesProvider:      provider,
+		settingKeySubtitlesPreferredName: strings.TrimSpace(req.PreferredName),
+		settingKeySubtitlesLanguage:      strings.TrimSpace(req.Language),
+		settingKeySubtitlesPrompt:        strings.TrimSpace(req.Prompt),
+		settingKeySubtitlesOpenAIModel:   strings.TrimSpace(req.OpenAIModel),
+	}
+
+	if req.Temperature != nil {
+		subtitleUpdates[settingKeySubtitlesTemperature] = strconv.FormatFloat(float64(*req.Temperature), 'f', -1, 32)
+	} else {
+		subtitleUpdates[settingKeySubtitlesTemperature] = ""
+	}
+
+	for key, value := range subtitleUpdates {
+		if value == "" {
+			if key == settingKeySubtitlesEnabled || key == settingKeySubtitlesProvider {
+				continue
+			}
+			if err := s.settingRepo.Delete(key); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+			continue
+		}
+
+		if err := s.settingRepo.Set(key, value); err != nil {
+			return err
+		}
+	}
+
+	switch {
+	case requestedKey != "":
+		if err := s.settingRepo.Set(settingKeySubtitlesOpenAIAPIKey, requestedKey); err != nil {
+			return err
+		}
+	case currentKey != "" && req.Enabled:
+		// Preserve existing key when still enabled and no new value provided.
+	default:
+		if err := s.settingRepo.Delete(settingKeySubtitlesOpenAIAPIKey); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *SetupService) refreshSubtitleConfiguration(defaults models.SubtitleSettings) {
+	if s == nil || s.uploadService == nil {
+		return
+	}
+
+	settings, err := s.GetSubtitleSettings(defaults)
+	if err != nil {
+		logger.Error(err, "Failed to reload subtitle settings", nil)
+		return
+	}
+
+	ConfigureUploadSubtitles(s.uploadService, settings)
+}
+
+func normalizeSubtitleSettings(settings *models.SubtitleSettings) {
+	if settings == nil {
+		return
+	}
+
+	settings.Provider = normalizeSubtitleProvider(settings.Provider)
+	if settings.Provider == "" {
+		settings.Provider = "openai"
+	}
+	settings.PreferredName = strings.TrimSpace(settings.PreferredName)
+	settings.Language = strings.TrimSpace(settings.Language)
+	settings.Prompt = strings.TrimSpace(settings.Prompt)
+	settings.OpenAIModel = strings.TrimSpace(settings.OpenAIModel)
+	settings.OpenAIAPIKey = strings.TrimSpace(settings.OpenAIAPIKey)
+	if settings.Temperature != nil {
+		value := *settings.Temperature
+		settings.Temperature = &value
+	}
+}
+
+func normalizeSubtitleProvider(provider string) string {
+	return strings.ToLower(strings.TrimSpace(provider))
 }
 
 func (s *SetupService) ReplaceFavicon(file *multipart.FileHeader) (string, string, error) {
@@ -517,6 +749,13 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		}
 	}
 
+	if req.Subtitles != nil {
+		if err := s.updateSubtitleSettings(*req.Subtitles, defaults.Subtitles); err != nil {
+			return err
+		}
+		s.refreshSubtitleConfiguration(defaults.Subtitles)
+	}
+
 	defaultLanguage := strings.TrimSpace(req.DefaultLanguage)
 	if defaultLanguage == "" {
 		defaultLanguage = defaults.DefaultLanguage
@@ -644,4 +883,12 @@ const (
 	settingKeyCourseCheckoutSuccessURL = "courses.checkout.success_url"
 	settingKeyCourseCheckoutCancelURL  = "courses.checkout.cancel_url"
 	settingKeyCourseCheckoutCurrency   = "courses.checkout.currency"
+	settingKeySubtitlesEnabled         = "media.subtitles.enabled"
+	settingKeySubtitlesProvider        = "media.subtitles.provider"
+	settingKeySubtitlesPreferredName   = "media.subtitles.preferred_name"
+	settingKeySubtitlesLanguage        = "media.subtitles.language"
+	settingKeySubtitlesPrompt          = "media.subtitles.prompt"
+	settingKeySubtitlesTemperature     = "media.subtitles.temperature"
+	settingKeySubtitlesOpenAIModel     = "media.subtitles.openai_model"
+	settingKeySubtitlesOpenAIAPIKey    = "media.subtitles.openai_api_key"
 )
