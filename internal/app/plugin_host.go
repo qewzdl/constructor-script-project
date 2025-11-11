@@ -18,6 +18,9 @@ import (
 	courseapi "constructor-script-backend/plugins/courses/api"
 	coursehandlers "constructor-script-backend/plugins/courses/handlers"
 	courseservice "constructor-script-backend/plugins/courses/service"
+	forumapi "constructor-script-backend/plugins/forum/api"
+	forumhandlers "constructor-script-backend/plugins/forum/handlers"
+	forumservice "constructor-script-backend/plugins/forum/service"
 	languageservice "constructor-script-backend/plugins/language/service"
 )
 
@@ -325,6 +328,34 @@ func (r applicationRepositoryAccess) CourseTest() repository.CourseTestRepositor
 	return r.app.repositories.CourseTest
 }
 
+func (r applicationRepositoryAccess) ForumQuestion() repository.ForumQuestionRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.ForumQuestion
+}
+
+func (r applicationRepositoryAccess) ForumAnswer() repository.ForumAnswerRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.ForumAnswer
+}
+
+func (r applicationRepositoryAccess) ForumQuestionVote() repository.ForumQuestionVoteRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.ForumQuestionVote
+}
+
+func (r applicationRepositoryAccess) ForumAnswerVote() repository.ForumAnswerVoteRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.ForumAnswerVote
+}
+
 func (s applicationCoreServices) Auth() *service.AuthService {
 	if s.app == nil {
 		return nil
@@ -482,6 +513,54 @@ func (a *Application) registerPluginServiceBindings() {
 			}
 			if svc, ok := value.(*blogservice.SearchService); ok {
 				a.services.Search = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		forumapi.Namespace,
+		forumapi.ServiceQuestion,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.ForumQuestion
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.ForumQuestion = nil
+				return
+			}
+			if svc, ok := value.(*forumservice.QuestionService); ok {
+				a.services.ForumQuestion = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		forumapi.Namespace,
+		forumapi.ServiceAnswer,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.ForumAnswer
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.ForumAnswer = nil
+				return
+			}
+			if svc, ok := value.(*forumservice.AnswerService); ok {
+				a.services.ForumAnswer = svc
 			}
 		},
 	)
@@ -701,6 +780,54 @@ func (a *Application) registerPluginHandlerBindings() {
 			}
 			if handler, ok := value.(*bloghandlers.SearchHandler); ok {
 				a.handlers.Search = handler
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindHandlers,
+		forumapi.Namespace,
+		forumapi.HandlerQuestion,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.ForumQuestion
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.ForumQuestion = nil
+				return
+			}
+			if handler, ok := value.(*forumhandlers.QuestionHandler); ok {
+				a.handlers.ForumQuestion = handler
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindHandlers,
+		forumapi.Namespace,
+		forumapi.HandlerAnswer,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.ForumAnswer
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.ForumAnswer = nil
+				return
+			}
+			if handler, ok := value.(*forumhandlers.AnswerHandler); ok {
+				a.handlers.ForumAnswer = handler
 			}
 		},
 	)

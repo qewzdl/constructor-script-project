@@ -120,6 +120,61 @@ type Comment struct {
 	Replies  []*Comment `gorm:"foreignKey:ParentID" json:"replies,omitempty"`
 }
 
+type ForumQuestion struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Title   string `gorm:"not null" json:"title"`
+	Slug    string `gorm:"uniqueIndex;not null" json:"slug"`
+	Content string `gorm:"type:text;not null" json:"content"`
+
+	AuthorID uint `gorm:"not null" json:"author_id"`
+	Author   User `gorm:"foreignKey:AuthorID" json:"author"`
+
+	Rating int `gorm:"default:0" json:"rating"`
+	Views  int `gorm:"default:0" json:"views"`
+
+	Answers []ForumAnswer `gorm:"foreignKey:QuestionID;constraint:OnDelete:CASCADE" json:"answers,omitempty"`
+}
+
+type ForumAnswer struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	QuestionID uint          `gorm:"not null;index" json:"question_id"`
+	Question   ForumQuestion `gorm:"foreignKey:QuestionID" json:"-"`
+
+	AuthorID uint `gorm:"not null" json:"author_id"`
+	Author   User `gorm:"foreignKey:AuthorID" json:"author"`
+
+	Content string `gorm:"type:text;not null" json:"content"`
+	Rating  int    `gorm:"default:0" json:"rating"`
+}
+
+type ForumQuestionVote struct {
+	ID        uint      `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	QuestionID uint `gorm:"not null;index:idx_forum_question_votes_question_user,priority:1" json:"question_id"`
+	UserID     uint `gorm:"not null;index:idx_forum_question_votes_question_user,priority:2" json:"user_id"`
+	Value      int  `gorm:"not null;check:value IN (-1,1)" json:"value"`
+}
+
+type ForumAnswerVote struct {
+	ID        uint      `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	AnswerID uint `gorm:"not null;index:idx_forum_answer_votes_answer_user,priority:1" json:"answer_id"`
+	UserID   uint `gorm:"not null;index:idx_forum_answer_votes_answer_user,priority:2" json:"user_id"`
+	Value    int  `gorm:"not null;check:value IN (-1,1)" json:"value"`
+}
+
 const (
 	CourseTopicStepTypeVideo = "video"
 	CourseTopicStepTypeTest  = "test"
@@ -638,6 +693,28 @@ type UpdatePostRequest struct {
 	Sections    *[]Section   `json:"sections"`
 	Template    *string      `json:"template"`
 	PublishAt   OptionalTime `json:"publish_at"`
+}
+
+type CreateForumQuestionRequest struct {
+	Title   string `json:"title" binding:"required"`
+	Content string `json:"content" binding:"required"`
+}
+
+type UpdateForumQuestionRequest struct {
+	Title   *string `json:"title"`
+	Content *string `json:"content"`
+}
+
+type CreateForumAnswerRequest struct {
+	Content string `json:"content" binding:"required"`
+}
+
+type UpdateForumAnswerRequest struct {
+	Content *string `json:"content"`
+}
+
+type ForumVoteRequest struct {
+	Value int `json:"value" binding:"required,oneof=-1 0 1"`
 }
 
 type Page struct {

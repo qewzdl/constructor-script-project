@@ -39,6 +39,8 @@ import (
 	blogservice "constructor-script-backend/plugins/blog/service"
 	coursehandlers "constructor-script-backend/plugins/courses/handlers"
 	courseservice "constructor-script-backend/plugins/courses/service"
+	forumhandlers "constructor-script-backend/plugins/forum/handlers"
+	forumservice "constructor-script-backend/plugins/forum/service"
 	languageservice "constructor-script-backend/plugins/language/service"
 )
 
@@ -86,6 +88,10 @@ type repositoryContainer struct {
 	CoursePackage       repository.CoursePackageRepository
 	CoursePackageAccess repository.CoursePackageAccessRepository
 	CourseTest          repository.CourseTestRepository
+	ForumQuestion       repository.ForumQuestionRepository
+	ForumAnswer         repository.ForumAnswerRepository
+	ForumQuestionVote   repository.ForumQuestionVoteRepository
+	ForumAnswerVote     repository.ForumAnswerVoteRepository
 }
 
 type serviceContainer struct {
@@ -111,6 +117,8 @@ type serviceContainer struct {
 	CoursePackage  *courseservice.PackageService
 	CourseTest     *courseservice.TestService
 	CourseCheckout *courseservice.CheckoutService
+	ForumQuestion  *forumservice.QuestionService
+	ForumAnswer    *forumservice.AnswerService
 }
 
 type handlerContainer struct {
@@ -136,6 +144,8 @@ type handlerContainer struct {
 	CourseTest     *coursehandlers.TestHandler
 	CoursePackage  *coursehandlers.PackageHandler
 	CourseCheckout *coursehandlers.CheckoutHandler
+	ForumQuestion  *forumhandlers.QuestionHandler
+	ForumAnswer    *forumhandlers.AnswerHandler
 }
 
 func New(cfg *config.Config, opts Options) (*Application, error) {
@@ -358,6 +368,10 @@ func (a *Application) runMigrations() error {
 		&models.Page{},
 		&models.Tag{},
 		&models.Comment{},
+		&models.ForumQuestion{},
+		&models.ForumAnswer{},
+		&models.ForumQuestionVote{},
+		&models.ForumAnswerVote{},
 		&models.CourseVideo{},
 		&models.CourseTopic{},
 		&models.CoursePackage{},
@@ -737,6 +751,10 @@ func (a *Application) initRepositories() {
 		CoursePackage:       repository.NewCoursePackageRepository(a.db),
 		CoursePackageAccess: repository.NewCoursePackageAccessRepository(a.db),
 		CourseTest:          repository.NewCourseTestRepository(a.db),
+		ForumQuestion:       repository.NewForumQuestionRepository(a.db),
+		ForumAnswer:         repository.NewForumAnswerRepository(a.db),
+		ForumQuestionVote:   repository.NewForumQuestionVoteRepository(a.db),
+		ForumAnswerVote:     repository.NewForumAnswerVoteRepository(a.db),
 	}
 }
 
@@ -902,7 +920,13 @@ func (a *Application) initServices() {
 		Advertising:    advertisingService,
 		Plugin:         pluginService,
 		Font:           fontService,
+		CourseVideo:    nil,
+		CourseTopic:    nil,
+		CoursePackage:  nil,
+		CourseTest:     nil,
 		CourseCheckout: nil,
+		ForumQuestion:  nil,
+		ForumAnswer:    nil,
 	}
 
 	a.registerPluginServiceBindings()
@@ -934,6 +958,8 @@ func (a *Application) initHandlers() error {
 		CourseTest:     coursehandlers.NewTestHandler(nil),
 		CoursePackage:  coursehandlers.NewPackageHandler(nil),
 		CourseCheckout: coursehandlers.NewCheckoutHandler(nil),
+		ForumQuestion:  forumhandlers.NewQuestionHandler(nil),
+		ForumAnswer:    forumhandlers.NewAnswerHandler(nil),
 	}
 
 	templateHandler, err := handlers.NewTemplateHandler(
@@ -1113,6 +1139,8 @@ func (a *Application) initRouter() error {
 			public.GET("/tags", a.handlers.Post.GetAllTags)
 			public.GET("/tags/:slug/posts", a.handlers.Post.GetPostsByTag)
 			public.POST("/courses/checkout", a.handlers.CourseCheckout.CreateSession)
+			public.GET("/forum/questions", a.handlers.ForumQuestion.List)
+			public.GET("/forum/questions/:id", a.handlers.ForumQuestion.GetByID)
 		}
 
 		protected := v1.Group("")
@@ -1128,6 +1156,14 @@ func (a *Application) initRouter() error {
 			protected.GET("/courses/packages/:id", a.handlers.CoursePackage.GetForUser)
 			protected.GET("/courses/tests/:id", a.handlers.CourseTest.Get)
 			protected.POST("/courses/tests/:id/submit", a.handlers.CourseTest.Submit)
+			protected.POST("/forum/questions", a.handlers.ForumQuestion.Create)
+			protected.PUT("/forum/questions/:id", a.handlers.ForumQuestion.Update)
+			protected.DELETE("/forum/questions/:id", a.handlers.ForumQuestion.Delete)
+			protected.POST("/forum/questions/:id/vote", a.handlers.ForumQuestion.Vote)
+			protected.POST("/forum/questions/:id/answers", a.handlers.ForumAnswer.Create)
+			protected.PUT("/forum/answers/:id", a.handlers.ForumAnswer.Update)
+			protected.DELETE("/forum/answers/:id", a.handlers.ForumAnswer.Delete)
+			protected.POST("/forum/answers/:id/vote", a.handlers.ForumAnswer.Vote)
 		}
 
 		admin := v1.Group("/admin")
