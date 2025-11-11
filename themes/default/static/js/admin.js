@@ -962,6 +962,30 @@
             contentDirty: false,
         });
 
+        const COURSE_VIDEO_SUBTITLE_STATE_KEYS = new Set(
+            Object.keys(createCourseVideoSubtitleState())
+        );
+
+        const buildCourseVideoSubtitleState = (overrides = {}, base = null) => {
+            const baseState = createCourseVideoSubtitleState();
+            if (base && typeof base === 'object') {
+                for (const key of COURSE_VIDEO_SUBTITLE_STATE_KEYS) {
+                    if (Object.prototype.hasOwnProperty.call(base, key)) {
+                        baseState[key] = base[key];
+                    }
+                }
+            }
+            if (!overrides || typeof overrides !== 'object') {
+                return baseState;
+            }
+            for (const [key, value] of Object.entries(overrides)) {
+                if (COURSE_VIDEO_SUBTITLE_STATE_KEYS.has(key)) {
+                    baseState[key] = value;
+                }
+            }
+            return baseState;
+        };
+
         const state = {
             metrics: {},
             activityTrend: [],
@@ -6189,9 +6213,9 @@
             }
         };
 
-        const resetCourseVideoSubtitleState = () => {
+        const resetCourseVideoSubtitleState = (overrides = {}) => {
             courseVideoSubtitleRequestId += 1;
-            state.courses.videoSubtitle = createCourseVideoSubtitleState();
+            state.courses.videoSubtitle = buildCourseVideoSubtitleState(overrides);
             renderCourseVideoSubtitle();
         };
 
@@ -6243,34 +6267,50 @@
             const attachments = getCourseVideoAttachments(video);
             const subtitleState = getCourseVideoSubtitleState();
             const candidate = findCourseVideoSubtitleAttachment(attachments, subtitleState.url);
+
+            courseVideoSubtitleRequestId += 1;
+            const requestId = courseVideoSubtitleRequestId;
+
             if (!candidate) {
-                resetCourseVideoSubtitleState();
+                state.courses.videoSubtitle = buildCourseVideoSubtitleState(
+                    {
+                        exists: true,
+                        url: '',
+                        isLoading: false,
+                        isSaving: false,
+                    },
+                    subtitleState
+                );
+                renderCourseVideoSubtitle();
                 return;
             }
 
             const normalizedUrl = normaliseSubtitleUrl(candidate.url);
             if (!normalizedUrl) {
-                resetCourseVideoSubtitleState();
+                state.courses.videoSubtitle = buildCourseVideoSubtitleState(
+                    {
+                        exists: true,
+                        url: '',
+                        isLoading: false,
+                        isSaving: false,
+                    },
+                    subtitleState
+                );
+                renderCourseVideoSubtitle();
                 return;
             }
 
-            courseVideoSubtitleRequestId += 1;
-            const requestId = courseVideoSubtitleRequestId;
             const title = normaliseString(candidate.title) || AUTO_GENERATED_SUBTITLE_TITLE;
 
-            subtitleState.exists = true;
-            subtitleState.url = normalizedUrl;
-            subtitleState.initialTitle = title;
-            subtitleState.title = title;
-            subtitleState.titleDirty = false;
-            subtitleState.content = '';
-            subtitleState.initialContent = '';
-            subtitleState.contentDirty = false;
-            subtitleState.isLoading = true;
-            subtitleState.isSaving = false;
-            subtitleState.error = '';
-            subtitleState.success = '';
-            subtitleState.pendingSuccess = '';
+            state.courses.videoSubtitle = buildCourseVideoSubtitleState({
+                exists: true,
+                url: normalizedUrl,
+                initialTitle: title,
+                title,
+                initialContent: '',
+                content: '',
+                isLoading: true,
+            });
 
             renderCourseVideoSubtitle();
             fetchCourseVideoSubtitleContent(normalizedUrl, requestId);
