@@ -7,8 +7,13 @@
     data-forum="question"
     data-question-id="{{ $question.ID }}"
     data-question-slug="{{ $question.Slug }}"
+    data-forum-path="{{ $forumPath }}"
+    data-can-delete="{{ if .ForumQuestionCanDelete }}true{{ else }}false{{ end }}"
     data-login-url="{{ .ForumLoginURL }}"
     data-answer-count="{{ $answerCount }}"
+    {{- with index .ForumEndpoints "Question" }}
+    data-endpoint-question="{{ . }}"
+    {{- end }}
     {{- with index .ForumEndpoints "QuestionVote" }}
     data-endpoint-question-vote="{{ . }}"
     {{- end }}
@@ -67,6 +72,14 @@
                 ></button>
             </div>
         </header>
+
+        {{ if .ForumQuestionCanDelete }}
+        <div class="forum-question__actions">
+            <button type="button" class="forum-question__delete" data-role="question-delete">
+                Delete question
+            </button>
+        </div>
+        {{ end }}
 
         <article class="forum-question__body">
             <div class="forum-question__content">{{ $question.Content }}</div>

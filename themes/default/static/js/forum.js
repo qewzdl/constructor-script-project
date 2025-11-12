@@ -493,11 +493,14 @@
         const answerCountElement = root.querySelector('[data-role="answer-count"]');
         const answerForm = root.querySelector('[data-role="answer-form"]');
         const answerTextarea = root.querySelector('[data-role="answer-content"]');
+        const questionDeleteButton = root.querySelector('[data-role="question-delete"]');
 
         const loginURL = root.dataset.loginUrl || "/login";
+        const questionEndpoint = normalizeEndpoint(root.dataset.endpointQuestion || "");
         const questionVoteEndpoint = normalizeEndpoint(root.dataset.endpointQuestionVote || "");
         const answerCreateEndpoint = normalizeEndpoint(root.dataset.endpointAnswerCreate || "");
         const answerVoteEndpoint = normalizeEndpoint(root.dataset.endpointAnswerVote || "");
+        const forumPath = root.dataset.forumPath || "/forum";
 
         const answerVotes = new Map();
         let questionVoteState = 0;
@@ -529,6 +532,40 @@
                 const value = Number(button.dataset.value || "0");
                 button.classList.toggle("is-active", currentValue !== 0 && value === currentValue);
             });
+        };
+
+        const handleQuestionDelete = async () => {
+            showAlert(alertElement, "");
+            if (!questionEndpoint) {
+                showAlert(alertElement, "Question deletion is unavailable right now.", "error");
+                return;
+            }
+            if (!isAuthenticated()) {
+                window.location.href = loginURL;
+                return;
+            }
+            const confirmation = window.confirm(
+                "Are you sure you want to delete this question? This action cannot be undone."
+            );
+            if (!confirmation) {
+                return;
+            }
+            if (questionDeleteButton) {
+                questionDeleteButton.disabled = true;
+            }
+            try {
+                await apiRequest(questionEndpoint, { method: "DELETE" });
+                window.location.href = forumPath || "/forum";
+            } catch (error) {
+                if (questionDeleteButton) {
+                    questionDeleteButton.disabled = false;
+                }
+                if (error && error.status === 401) {
+                    window.location.href = loginURL;
+                    return;
+                }
+                showAlert(alertElement, error?.message || "Failed to delete question.", "error");
+            }
         };
 
         const handleQuestionVote = async (button) => {
@@ -618,6 +655,13 @@
                 showAlert(alertElement, error?.message || "Failed to submit your vote.", "error");
             }
         };
+
+        if (questionDeleteButton) {
+            questionDeleteButton.addEventListener("click", (event) => {
+                event.preventDefault();
+                handleQuestionDelete();
+            });
+        }
 
         root.addEventListener("click", (event) => {
             const target = event.target;

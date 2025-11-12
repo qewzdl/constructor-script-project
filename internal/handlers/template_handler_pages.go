@@ -782,6 +782,13 @@ func (h *TemplateHandler) RenderForumQuestion(c *gin.Context) {
         site := h.siteSettings()
         structuredData := h.buildForumStructuredData(question, site, canonicalURL)
 
+        canDeleteQuestion := false
+        if user, ok := h.currentUser(c); ok {
+                if user.ID == question.AuthorID || authorization.RoleHasPermission(user.Role, authorization.PermissionManageAllContent) {
+                        canDeleteQuestion = true
+                }
+        }
+
         loginRedirect := c.Request.URL.RequestURI()
         if loginRedirect == "" {
                 loginRedirect = canonicalPath
@@ -797,6 +804,8 @@ func (h *TemplateHandler) RenderForumQuestion(c *gin.Context) {
                         "AnswerBase":   "/api/v1/forum/answers",
                         "AnswerVote":   "/api/v1/forum/answers",
                 },
+                "ForumQuestionCanDelete": canDeleteQuestion,
+                "ForumPath":              "/forum",
                 "Scripts":        []string{"/static/js/forum.js"},
                 "Canonical":      canonicalURL,
                 "StructuredData": structuredData,

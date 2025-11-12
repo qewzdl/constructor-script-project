@@ -533,6 +533,29 @@ body.forum-question-modal-open {
     padding: var(--size-base);
 }
 
+.forum-question__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-sm);
+    margin: var(--size-sm) 0;
+}
+
+.forum-question__delete {
+    padding: 0.6rem 1.2rem;
+    border: 1px solid color-mix(in srgb, var(--color-error) 40%, transparent);
+    background-color: color-mix(in srgb, var(--color-error) 8%, transparent);
+    color: var(--color-error);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.forum-question__delete:hover,
+.forum-question__delete:focus-visible {
+    background-color: var(--color-error);
+    color: var(--color-text-darker);
+    outline: none;
+}
+
 .forum-question__heading {
     display: grid;
     gap: var(--size-sm);
@@ -540,7 +563,7 @@ body.forum-question-modal-open {
 }
 
 .forum-question__title {
-    font-size: clamp(2rem, 2.6vw + 1rem, 3rem);
+    font-size: 1.4rem;
     font-weight: 700;
 }
 
