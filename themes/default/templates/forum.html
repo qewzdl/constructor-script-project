@@ -145,7 +145,7 @@
                 {{ end }}
                 {{ $answers := .AnswersCount }}
                 <li class="forum__item" data-question-id="{{ .ID }}" data-question-slug="{{ $slug }}">
-                    <article class="forum-question-card">
+                    <a class="forum-question-card" href="/forum/{{ $slug }}">
                         <div class="forum-question-card__stats">
                             <div class="forum-question-card__stat">
                                 <span class="forum-question-card__stat-value">{{ .Rating }}</span>
@@ -161,9 +161,7 @@
                             </div>
                         </div>
                         <div class="forum-question-card__body">
-                            <h2 class="forum-question-card__title">
-                                <a href="/forum/{{ $slug }}">{{ .Title }}</a>
-                            </h2>
+                            <h2 class="forum-question-card__title">{{ .Title }}</h2>
                             <p class="forum-question-card__excerpt">{{ truncate (trim .Content) 200 }}</p>
                             <footer class="forum-question-card__meta">
                                 {{ $author := trim .Author.Username }}
@@ -175,7 +173,7 @@
                                 </span>
                             </footer>
                         </div>
-                    </article>
+                    </a>
                 </li>
                 {{ end }}
             </ol>
