@@ -1,10 +1,10 @@
 package forumhandlers
 
 import (
-        "errors"
-        "net/http"
-        "strconv"
-        "strings"
+	"errors"
+	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -75,23 +75,23 @@ func (h *QuestionHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid question id"})
 		return
 	}
-        increment := true
-        switch strings.ToLower(strings.TrimSpace(c.DefaultQuery("increment", "true"))) {
-        case "false", "0", "no":
-                increment = false
-        }
+	increment := true
+	switch strings.ToLower(strings.TrimSpace(c.DefaultQuery("increment", "true"))) {
+	case "false", "0", "no":
+		increment = false
+	}
 
-        var question *models.ForumQuestion
-        if increment {
-                question, err = h.service.GetByID(uint(id))
-        } else {
-                question, err = h.service.GetByIDWithoutIncrement(uint(id))
-        }
-        if err != nil {
-                if errors.Is(err, forumservice.ErrQuestionNotFound) {
-                        c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-                        return
-                }
+	var question *models.ForumQuestion
+	if increment {
+		question, err = h.service.GetByID(uint(id))
+	} else {
+		question, err = h.service.GetByIDWithoutIncrement(uint(id))
+	}
+	if err != nil {
+		if errors.Is(err, forumservice.ErrQuestionNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -110,7 +110,12 @@ func (h *QuestionHandler) Create(c *gin.Context) {
 	authorID := c.GetUint("user_id")
 	question, err := h.service.Create(req, authorID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, forumservice.ErrCategoryNotFound):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"question": question})
@@ -141,6 +146,8 @@ func (h *QuestionHandler) Update(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		case errors.Is(err, forumservice.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		case errors.Is(err, forumservice.ErrCategoryNotFound):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}

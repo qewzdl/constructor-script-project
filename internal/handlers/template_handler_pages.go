@@ -20,9 +20,9 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
-        blogservice "constructor-script-backend/plugins/blog/service"
-        courseservice "constructor-script-backend/plugins/courses/service"
-        forumservice "constructor-script-backend/plugins/forum/service"
+	blogservice "constructor-script-backend/plugins/blog/service"
+	courseservice "constructor-script-backend/plugins/courses/service"
+	forumservice "constructor-script-backend/plugins/forum/service"
 )
 
 func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
@@ -564,10 +564,10 @@ func (h *TemplateHandler) renderBlogOverviewSection(posts []models.Post, tags []
 }
 
 func (h *TemplateHandler) RenderSearch(c *gin.Context) {
-        if h.searchService == nil {
-                h.renderError(c, http.StatusServiceUnavailable, "Search unavailable", "The blog plugin is not active.")
-                return
-        }
+	if h.searchService == nil {
+		h.renderError(c, http.StatusServiceUnavailable, "Search unavailable", "The blog plugin is not active.")
+		return
+	}
 
 	query := strings.TrimSpace(c.Query("q"))
 	searchType := c.DefaultQuery("type", "all")
@@ -617,293 +617,303 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 		data["Total"] = result.Total
 	}
 
-        h.renderTemplate(c, "search", title, description, data)
+	h.renderTemplate(c, "search", title, description, data)
 }
 
 func (h *TemplateHandler) RenderForum(c *gin.Context) {
-        if !h.ensureForumAvailable(c) {
-                return
-        }
+	if !h.ensureForumAvailable(c) {
+		return
+	}
 
-        pageNumber, err := strconv.Atoi(c.DefaultQuery("page", "1"))
-        if err != nil || pageNumber < 1 {
-                pageNumber = 1
-        }
+	pageNumber, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || pageNumber < 1 {
+		pageNumber = 1
+	}
 
-        limit := 20
-        if limitParam := strings.TrimSpace(c.Query("limit")); limitParam != "" {
-                if parsed, parseErr := strconv.Atoi(limitParam); parseErr == nil && parsed > 0 && parsed <= 100 {
-                        limit = parsed
-                }
-        }
+	limit := 20
+	if limitParam := strings.TrimSpace(c.Query("limit")); limitParam != "" {
+		if parsed, parseErr := strconv.Atoi(limitParam); parseErr == nil && parsed > 0 && parsed <= 100 {
+			limit = parsed
+		}
+	}
 
-        search := strings.TrimSpace(c.Query("search"))
+	search := strings.TrimSpace(c.Query("search"))
 
-        questions, total, listErr := h.forumQuestionSvc.List(pageNumber, limit, search, nil)
-        if listErr != nil {
-                logger.Error(listErr, "Failed to load forum questions", map[string]interface{}{"page": pageNumber, "search": search})
-                h.renderError(c, http.StatusInternalServerError, "Forum unavailable", "We couldn't load the forum questions right now.")
-                return
-        }
+	questions, total, listErr := h.forumQuestionSvc.List(pageNumber, limit, search, nil)
+	if listErr != nil {
+		logger.Error(listErr, "Failed to load forum questions", map[string]interface{}{"page": pageNumber, "search": search})
+		h.renderError(c, http.StatusInternalServerError, "Forum unavailable", "We couldn't load the forum questions right now.")
+		return
+	}
 
-        totalPages := 0
-        if limit > 0 {
-                totalPages = int((total + int64(limit) - 1) / int64(limit))
-        }
-        if totalPages < 1 {
-                totalPages = 1
-        }
+	var categories []models.ForumCategory
+	if h.forumCategorySvc != nil {
+		if list, err := h.forumCategorySvc.GetAll(); err != nil {
+			logger.Error(err, "Failed to load forum categories", nil)
+		} else {
+			categories = list
+		}
+	}
 
-        pagination := h.buildPagination(pageNumber, totalPages, func(p int) string {
-                params := url.Values{}
-                if search != "" {
-                        params.Set("search", search)
-                }
-                if p > 1 {
-                        params.Set("page", strconv.Itoa(p))
-                }
-                if limitParam := strings.TrimSpace(c.Query("limit")); limitParam != "" && limitParam != strconv.Itoa(limit) {
-                        params.Set("limit", limitParam)
-                }
-                base := "/forum"
-                if len(params) == 0 {
-                        return base
-                }
-                return base + "?" + params.Encode()
-        })
+	totalPages := 0
+	if limit > 0 {
+		totalPages = int((total + int64(limit) - 1) / int64(limit))
+	}
+	if totalPages < 1 {
+		totalPages = 1
+	}
 
-        pageTitle := "Community forum"
-        description := "Join the community forum to ask questions, share insights, and collaborate with other members."
-        if search != "" {
-                pageTitle = fmt.Sprintf("Forum results for \"%s\"", search)
-                description = fmt.Sprintf("Questions matching \"%s\" from the community discussion board.", search)
-        }
+	pagination := h.buildPagination(pageNumber, totalPages, func(p int) string {
+		params := url.Values{}
+		if search != "" {
+			params.Set("search", search)
+		}
+		if p > 1 {
+			params.Set("page", strconv.Itoa(p))
+		}
+		if limitParam := strings.TrimSpace(c.Query("limit")); limitParam != "" && limitParam != strconv.Itoa(limit) {
+			params.Set("limit", limitParam)
+		}
+		base := "/forum"
+		if len(params) == 0 {
+			return base
+		}
+		return base + "?" + params.Encode()
+	})
 
-        canonicalPath := "/forum"
-        params := url.Values{}
-        if search != "" {
-                params.Set("search", search)
-        }
-        if pageNumber > 1 {
-                params.Set("page", strconv.Itoa(pageNumber))
-        }
-        if limitParam := strings.TrimSpace(c.Query("limit")); limitParam != "" && limitParam != strconv.Itoa(limit) {
-                params.Set("limit", limitParam)
-        }
-        if len(params) > 0 {
-                canonicalPath = canonicalPath + "?" + params.Encode()
-        }
+	pageTitle := "Community forum"
+	description := "Join the community forum to ask questions, share insights, and collaborate with other members."
+	if search != "" {
+		pageTitle = fmt.Sprintf("Forum results for \"%s\"", search)
+		description = fmt.Sprintf("Questions matching \"%s\" from the community discussion board.", search)
+	}
 
-        extra := gin.H{
-                "ForumQuestions": questions,
-                "ForumSearch":    search,
-                "ForumTotal":     total,
-                "ForumPage": gin.H{
-                        "Current":    pageNumber,
-                        "Limit":      limit,
-                        "TotalPages": totalPages,
-                },
-                "ForumEndpoints": gin.H{
-                        "Create": "/api/v1/forum/questions",
-                },
-                "Scripts":   []string{"/static/js/forum.js"},
-                "Canonical": h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath),
-                "ForumPath": "/forum",
-        }
+	canonicalPath := "/forum"
+	params := url.Values{}
+	if search != "" {
+		params.Set("search", search)
+	}
+	if pageNumber > 1 {
+		params.Set("page", strconv.Itoa(pageNumber))
+	}
+	if limitParam := strings.TrimSpace(c.Query("limit")); limitParam != "" && limitParam != strconv.Itoa(limit) {
+		params.Set("limit", limitParam)
+	}
+	if len(params) > 0 {
+		canonicalPath = canonicalPath + "?" + params.Encode()
+	}
 
-        if pagination != nil {
-                extra["Pagination"] = pagination
-        }
+	extra := gin.H{
+		"ForumQuestions": questions,
+		"ForumSearch":    search,
+		"ForumTotal":     total,
+		"ForumPage": gin.H{
+			"Current":    pageNumber,
+			"Limit":      limit,
+			"TotalPages": totalPages,
+		},
+		"ForumEndpoints": gin.H{
+			"Create": "/api/v1/forum/questions",
+		},
+		"Scripts":         []string{"/static/js/forum.js"},
+		"Canonical":       h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath),
+		"ForumPath":       "/forum",
+		"ForumCategories": categories,
+	}
 
-        if search != "" {
-                extra["NoIndex"] = true
-        }
+	if pagination != nil {
+		extra["Pagination"] = pagination
+	}
 
-        h.renderTemplate(c, "forum", pageTitle, description, extra)
+	if search != "" {
+		extra["NoIndex"] = true
+	}
+
+	h.renderTemplate(c, "forum", pageTitle, description, extra)
 }
 
 func (h *TemplateHandler) RenderForumQuestion(c *gin.Context) {
-        if !h.ensureForumAvailable(c) {
-                return
-        }
+	if !h.ensureForumAvailable(c) {
+		return
+	}
 
-        identifier := strings.TrimSpace(c.Param("slug"))
-        if identifier == "" {
-                h.renderError(c, http.StatusNotFound, "404 - Question not found", "The requested discussion could not be found.")
-                return
-        }
+	identifier := strings.TrimSpace(c.Param("slug"))
+	if identifier == "" {
+		h.renderError(c, http.StatusNotFound, "404 - Question not found", "The requested discussion could not be found.")
+		return
+	}
 
-        question, err := h.forumQuestionSvc.GetBySlug(identifier)
-        if err != nil {
-                if !errors.Is(err, forumservice.ErrQuestionNotFound) {
-                        logger.Error(err, "Failed to load forum question", map[string]interface{}{"identifier": identifier})
-                }
-                if idValue, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil {
-                        question, err = h.forumQuestionSvc.GetByID(uint(idValue))
-                }
-        }
+	question, err := h.forumQuestionSvc.GetBySlug(identifier)
+	if err != nil {
+		if !errors.Is(err, forumservice.ErrQuestionNotFound) {
+			logger.Error(err, "Failed to load forum question", map[string]interface{}{"identifier": identifier})
+		}
+		if idValue, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil {
+			question, err = h.forumQuestionSvc.GetByID(uint(idValue))
+		}
+	}
 
-        if err != nil {
-                if errors.Is(err, forumservice.ErrQuestionNotFound) {
-                        h.renderError(c, http.StatusNotFound, "404 - Question not found", "The requested discussion could not be found.")
-                } else {
-                        logger.Error(err, "Failed to load forum question", map[string]interface{}{"identifier": identifier})
-                        h.renderError(c, http.StatusInternalServerError, "Forum unavailable", "We couldn't load this discussion right now.")
-                }
-                return
-        }
+	if err != nil {
+		if errors.Is(err, forumservice.ErrQuestionNotFound) {
+			h.renderError(c, http.StatusNotFound, "404 - Question not found", "The requested discussion could not be found.")
+		} else {
+			logger.Error(err, "Failed to load forum question", map[string]interface{}{"identifier": identifier})
+			h.renderError(c, http.StatusInternalServerError, "Forum unavailable", "We couldn't load this discussion right now.")
+		}
+		return
+	}
 
-        slug := strings.TrimSpace(question.Slug)
-        if slug != "" && !strings.EqualFold(slug, identifier) {
-                c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/forum/%s", slug))
-                return
-        }
+	slug := strings.TrimSpace(question.Slug)
+	if slug != "" && !strings.EqualFold(slug, identifier) {
+		c.Redirect(http.StatusMovedPermanently, fmt.Sprintf("/forum/%s", slug))
+		return
+	}
 
-        answerCount := len(question.Answers)
-        canonicalPath := fmt.Sprintf("/forum/%s", slug)
-        if slug == "" {
-                canonicalPath = fmt.Sprintf("/forum/%d", question.ID)
-        }
-        canonicalURL := h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath)
+	answerCount := len(question.Answers)
+	canonicalPath := fmt.Sprintf("/forum/%s", slug)
+	if slug == "" {
+		canonicalPath = fmt.Sprintf("/forum/%d", question.ID)
+	}
+	canonicalURL := h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath)
 
-        contentSummary := truncatePlainText(strings.TrimSpace(question.Content), 160)
-        authorName := strings.TrimSpace(question.Author.Username)
-        description := contentSummary
-        if description == "" {
-                if authorName != "" {
-                        description = fmt.Sprintf("Discussion started by %s.", authorName)
-                } else {
-                        description = "Community discussion thread."
-                }
-        } else if authorName != "" {
-                description = fmt.Sprintf("%s — %s", authorName, description)
-        }
+	contentSummary := truncatePlainText(strings.TrimSpace(question.Content), 160)
+	authorName := strings.TrimSpace(question.Author.Username)
+	description := contentSummary
+	if description == "" {
+		if authorName != "" {
+			description = fmt.Sprintf("Discussion started by %s.", authorName)
+		} else {
+			description = "Community discussion thread."
+		}
+	} else if authorName != "" {
+		description = fmt.Sprintf("%s — %s", authorName, description)
+	}
 
-        site := h.siteSettings()
-        structuredData := h.buildForumStructuredData(question, site, canonicalURL)
+	site := h.siteSettings()
+	structuredData := h.buildForumStructuredData(question, site, canonicalURL)
 
-        canDeleteQuestion := false
-        if user, ok := h.currentUser(c); ok {
-                if user.ID == question.AuthorID || authorization.RoleHasPermission(user.Role, authorization.PermissionManageAllContent) {
-                        canDeleteQuestion = true
-                }
-        }
+	canDeleteQuestion := false
+	if user, ok := h.currentUser(c); ok {
+		if user.ID == question.AuthorID || authorization.RoleHasPermission(user.Role, authorization.PermissionManageAllContent) {
+			canDeleteQuestion = true
+		}
+	}
 
-        loginRedirect := c.Request.URL.RequestURI()
-        if loginRedirect == "" {
-                loginRedirect = canonicalPath
-        }
+	loginRedirect := c.Request.URL.RequestURI()
+	if loginRedirect == "" {
+		loginRedirect = canonicalPath
+	}
 
-        extra := gin.H{
-                "Question": question,
-                "ForumAnswerCount": answerCount,
-                "ForumEndpoints": gin.H{
-                        "Question":     fmt.Sprintf("/api/v1/forum/questions/%d", question.ID),
-                        "QuestionVote": fmt.Sprintf("/api/v1/forum/questions/%d/vote", question.ID),
-                        "AnswerCreate": fmt.Sprintf("/api/v1/forum/questions/%d/answers", question.ID),
-                        "AnswerBase":   "/api/v1/forum/answers",
-                        "AnswerVote":   "/api/v1/forum/answers",
-                },
-                "ForumQuestionCanDelete": canDeleteQuestion,
-                "ForumPath":              "/forum",
-                "Scripts":        []string{"/static/js/forum.js"},
-                "Canonical":      canonicalURL,
-                "StructuredData": structuredData,
-                "OGType":         "article",
-                "OGURL":          canonicalURL,
-                "TwitterCard":    "summary_large_image",
-                "ForumLoginURL":  fmt.Sprintf("/login?redirect=%s", url.QueryEscape(loginRedirect)),
-        }
+	extra := gin.H{
+		"Question":         question,
+		"ForumAnswerCount": answerCount,
+		"ForumEndpoints": gin.H{
+			"Question":     fmt.Sprintf("/api/v1/forum/questions/%d", question.ID),
+			"QuestionVote": fmt.Sprintf("/api/v1/forum/questions/%d/vote", question.ID),
+			"AnswerCreate": fmt.Sprintf("/api/v1/forum/questions/%d/answers", question.ID),
+			"AnswerBase":   "/api/v1/forum/answers",
+			"AnswerVote":   "/api/v1/forum/answers",
+		},
+		"ForumQuestionCanDelete": canDeleteQuestion,
+		"ForumPath":              "/forum",
+		"Scripts":                []string{"/static/js/forum.js"},
+		"Canonical":              canonicalURL,
+		"StructuredData":         structuredData,
+		"OGType":                 "article",
+		"OGURL":                  canonicalURL,
+		"TwitterCard":            "summary_large_image",
+		"ForumLoginURL":          fmt.Sprintf("/login?redirect=%s", url.QueryEscape(loginRedirect)),
+	}
 
-        h.renderTemplate(c, "forum_question", question.Title, description, extra)
+	h.renderTemplate(c, "forum_question", question.Title, description, extra)
 }
 
 func truncatePlainText(value string, limit int) string {
-        trimmed := strings.TrimSpace(value)
-        if limit <= 0 || trimmed == "" {
-                return trimmed
-        }
-        runes := []rune(trimmed)
-        if len(runes) <= limit {
-                return trimmed
-        }
-        truncated := strings.TrimSpace(string(runes[:limit]))
-        if truncated == "" {
-                truncated = strings.TrimSpace(string(runes[:limit]))
-        }
-        return truncated + "…"
+	trimmed := strings.TrimSpace(value)
+	if limit <= 0 || trimmed == "" {
+		return trimmed
+	}
+	runes := []rune(trimmed)
+	if len(runes) <= limit {
+		return trimmed
+	}
+	truncated := strings.TrimSpace(string(runes[:limit]))
+	if truncated == "" {
+		truncated = strings.TrimSpace(string(runes[:limit]))
+	}
+	return truncated + "…"
 }
 
 func (h *TemplateHandler) buildForumStructuredData(question *models.ForumQuestion, site models.SiteSettings, canonicalURL string) template.JS {
-        if question == nil {
-                return ""
-        }
+	if question == nil {
+		return ""
+	}
 
-        payload := map[string]any{
-                "@context": "https://schema.org",
-                "@type":    "QAPage",
-        }
+	payload := map[string]any{
+		"@context": "https://schema.org",
+		"@type":    "QAPage",
+	}
 
-        questionData := map[string]any{
-                "@type":        "Question",
-                "name":         strings.TrimSpace(question.Title),
-                "text":         strings.TrimSpace(question.Content),
-                "answerCount":  question.AnswersCount,
-                "upvoteCount":  question.Rating,
-                "dateCreated":  question.CreatedAt.UTC().Format(time.RFC3339),
-                "dateModified": question.UpdatedAt.UTC().Format(time.RFC3339),
-        }
+	questionData := map[string]any{
+		"@type":        "Question",
+		"name":         strings.TrimSpace(question.Title),
+		"text":         strings.TrimSpace(question.Content),
+		"answerCount":  question.AnswersCount,
+		"upvoteCount":  question.Rating,
+		"dateCreated":  question.CreatedAt.UTC().Format(time.RFC3339),
+		"dateModified": question.UpdatedAt.UTC().Format(time.RFC3339),
+	}
 
-        if canonicalURL != "" {
-                payload["url"] = canonicalURL
-                questionData["url"] = canonicalURL
-        }
+	if canonicalURL != "" {
+		payload["url"] = canonicalURL
+		questionData["url"] = canonicalURL
+	}
 
-        if authorName := strings.TrimSpace(question.Author.Username); authorName != "" {
-                questionData["author"] = map[string]any{
-                        "@type": "Person",
-                        "name":  authorName,
-                }
-        }
+	if authorName := strings.TrimSpace(question.Author.Username); authorName != "" {
+		questionData["author"] = map[string]any{
+			"@type": "Person",
+			"name":  authorName,
+		}
+	}
 
-        answers := make([]map[string]any, 0, len(question.Answers))
-        for _, answer := range question.Answers {
-                text := strings.TrimSpace(answer.Content)
-                if text == "" {
-                        continue
-                }
-                answerData := map[string]any{
-                        "@type":        "Answer",
-                        "text":         text,
-                        "dateCreated":  answer.CreatedAt.UTC().Format(time.RFC3339),
-                        "dateModified": answer.UpdatedAt.UTC().Format(time.RFC3339),
-                        "upvoteCount":  answer.Rating,
-                }
-                if author := strings.TrimSpace(answer.Author.Username); author != "" {
-                        answerData["author"] = map[string]any{
-                                "@type": "Person",
-                                "name":  author,
-                        }
-                }
-                answers = append(answers, answerData)
-        }
+	answers := make([]map[string]any, 0, len(question.Answers))
+	for _, answer := range question.Answers {
+		text := strings.TrimSpace(answer.Content)
+		if text == "" {
+			continue
+		}
+		answerData := map[string]any{
+			"@type":        "Answer",
+			"text":         text,
+			"dateCreated":  answer.CreatedAt.UTC().Format(time.RFC3339),
+			"dateModified": answer.UpdatedAt.UTC().Format(time.RFC3339),
+			"upvoteCount":  answer.Rating,
+		}
+		if author := strings.TrimSpace(answer.Author.Username); author != "" {
+			answerData["author"] = map[string]any{
+				"@type": "Person",
+				"name":  author,
+			}
+		}
+		answers = append(answers, answerData)
+	}
 
-        if len(answers) > 0 {
-                questionData["suggestedAnswer"] = answers
-        }
+	if len(answers) > 0 {
+		questionData["suggestedAnswer"] = answers
+	}
 
-        payload["mainEntity"] = questionData
+	payload["mainEntity"] = questionData
 
-        if site.Name != "" {
-                payload["name"] = fmt.Sprintf("%s — %s", site.Name, strings.TrimSpace(question.Title))
-        }
+	if site.Name != "" {
+		payload["name"] = fmt.Sprintf("%s — %s", site.Name, strings.TrimSpace(question.Title))
+	}
 
-        data, err := json.Marshal(payload)
-        if err != nil {
-                logger.Error(err, "Failed to build forum structured data", map[string]interface{}{"question_id": question.ID})
-                return ""
-        }
-        return template.JS(data)
+	data, err := json.Marshal(payload)
+	if err != nil {
+		logger.Error(err, "Failed to build forum structured data", map[string]interface{}{"question_id": question.ID})
+		return ""
+	}
+	return template.JS(data)
 }
 
 func (h *TemplateHandler) RenderCategory(c *gin.Context) {
@@ -1605,9 +1615,9 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 	}
 
 	sectionJSON, elementJSON := h.builderDefinitionsJSON()
-        blogEnabled := h.blogEnabled()
-        coursesEnabled := h.coursesEnabled()
-        forumEnabled := h.forumEnabled()
+	blogEnabled := h.blogEnabled()
+	coursesEnabled := h.coursesEnabled()
+	forumEnabled := h.forumEnabled()
 
 	adminEndpoints := gin.H{
 		"Stats":          "/api/v1/admin/stats",
@@ -1632,40 +1642,41 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"BackupImport":   "/api/v1/admin/backups/import",
 	}
 
-        if coursesEnabled {
-                adminEndpoints["CourseVideos"] = "/api/v1/admin/courses/videos"
-                adminEndpoints["CourseTopics"] = "/api/v1/admin/courses/topics"
-                adminEndpoints["CourseTests"] = "/api/v1/admin/courses/tests"
-                adminEndpoints["CoursePackages"] = "/api/v1/admin/courses/packages"
-        }
+	if coursesEnabled {
+		adminEndpoints["CourseVideos"] = "/api/v1/admin/courses/videos"
+		adminEndpoints["CourseTopics"] = "/api/v1/admin/courses/topics"
+		adminEndpoints["CourseTests"] = "/api/v1/admin/courses/tests"
+		adminEndpoints["CoursePackages"] = "/api/v1/admin/courses/packages"
+	}
 
-        if blogEnabled {
-                adminEndpoints["Posts"] = "/api/v1/admin/posts"
-                adminEndpoints["Categories"] = "/api/v1/admin/categories"
-                adminEndpoints["CategoriesIndex"] = "/api/v1/categories"
-                adminEndpoints["Comments"] = "/api/v1/admin/comments"
-                adminEndpoints["Tags"] = "/api/v1/tags"
-                adminEndpoints["TagsAdmin"] = "/api/v1/admin/tags"
-        }
+	if blogEnabled {
+		adminEndpoints["Posts"] = "/api/v1/admin/posts"
+		adminEndpoints["Categories"] = "/api/v1/admin/categories"
+		adminEndpoints["CategoriesIndex"] = "/api/v1/categories"
+		adminEndpoints["Comments"] = "/api/v1/admin/comments"
+		adminEndpoints["Tags"] = "/api/v1/tags"
+		adminEndpoints["TagsAdmin"] = "/api/v1/admin/tags"
+	}
 
-        if forumEnabled {
-                adminEndpoints["ForumQuestions"] = "/api/v1/forum/questions"
-                adminEndpoints["ForumAnswers"] = "/api/v1/forum/answers"
-        }
+	if forumEnabled {
+		adminEndpoints["ForumQuestions"] = "/api/v1/forum/questions"
+		adminEndpoints["ForumAnswers"] = "/api/v1/forum/answers"
+		adminEndpoints["ForumCategories"] = "/api/v1/forum/categories"
+	}
 
 	h.renderTemplate(c, "admin", "Admin dashboard", "Monitor site activity, review content performance, and manage published resources in one place.", gin.H{
 		"Layout":                 "admin_base.html",
 		"Styles":                 []string{"/static/css/admin.css"},
-                "Scripts":                h.builderScripts(),
-                "SectionDefinitionsJSON": sectionJSON,
-                "ElementDefinitionsJSON": elementJSON,
-                "AdminEndpoints":         adminEndpoints,
-                "BlogEnabled":            blogEnabled,
-                "CoursesEnabled":         coursesEnabled,
-                "ForumEnabled":           forumEnabled,
-                "LanguageFeatureEnabled": h.languageService != nil,
-                "NoIndex":                true,
-        })
+		"Scripts":                h.builderScripts(),
+		"SectionDefinitionsJSON": sectionJSON,
+		"ElementDefinitionsJSON": elementJSON,
+		"AdminEndpoints":         adminEndpoints,
+		"BlogEnabled":            blogEnabled,
+		"CoursesEnabled":         coursesEnabled,
+		"ForumEnabled":           forumEnabled,
+		"LanguageFeatureEnabled": h.languageService != nil,
+		"NoIndex":                true,
+	})
 }
 
 func (h *TemplateHandler) builderScripts() []string {
@@ -1701,21 +1712,21 @@ func (h *TemplateHandler) builderScripts() []string {
 		scripts = append(scripts, assets.SectionScripts...)
 	}
 
-        scripts = append(scripts,
-                "/static/js/admin/builder/section-state.js",
-                "/static/js/admin/builder/section-view.js",
-                "/static/js/admin/builder/section-events.js",
-                "/static/js/admin/builder/section-builder.js",
-                "/static/js/admin/media-library.js",
-                "/static/js/admin/layout.js",
-                "/static/js/admin/panels/core.js",
-                "/static/js/section-builder.js",
-                "/static/js/admin.js",
-        )
+	scripts = append(scripts,
+		"/static/js/admin/builder/section-state.js",
+		"/static/js/admin/builder/section-view.js",
+		"/static/js/admin/builder/section-events.js",
+		"/static/js/admin/builder/section-builder.js",
+		"/static/js/admin/media-library.js",
+		"/static/js/admin/layout.js",
+		"/static/js/admin/panels/core.js",
+		"/static/js/section-builder.js",
+		"/static/js/admin.js",
+	)
 
-        scripts = append(scripts, "/static/js/admin/forum.js")
+	scripts = append(scripts, "/static/js/admin/forum.js")
 
-        return scripts
+	return scripts
 }
 
 func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {

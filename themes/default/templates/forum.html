@@ -3,6 +3,7 @@
 {{ $total := or .ForumTotal 0 }}
 {{ $page := .ForumPage }}
 {{ $forumPath := default "/forum" .ForumPath }}
+{{ $categories := .ForumCategories }}
 {{ $loginURL := printf "/login?redirect=%s" (urlquery $forumPath) }}
 <section
     class="forum"
@@ -119,6 +120,22 @@
                             required
                         ></textarea>
                     </label>
+                    {{ if gt (len $categories) 0 }}
+                    <label class="forum__label" for="forum-question-category">
+                        Category
+                        <select
+                            id="forum-question-category"
+                            class="forum__input"
+                            name="category_id"
+                            data-role="question-category"
+                        >
+                            <option value="">No category</option>
+                            {{ range $categories }}
+                            <option value="{{ .ID }}">{{ .Name }}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+                    {{ end }}
                     <div class="forum__form-actions">
                         <button type="submit" class="forum__submit">Post question</button>
                         <button type="reset" class="forum__reset">Clear</button>
@@ -164,6 +181,11 @@
                             <h2 class="forum-question-card__title">{{ .Title }}</h2>
                             <p class="forum-question-card__excerpt">{{ truncate (trim .Content) 200 }}</p>
                             <footer class="forum-question-card__meta">
+                                {{ with .Category }}
+                                <span class="forum-question-card__meta-item forum-question-card__meta-item--category">
+                                    {{ .Name }}
+                                </span>
+                                {{ end }}
                                 {{ $author := trim .Author.Username }}
                                 <span class="forum-question-card__meta-item">
                                     {{ if $author }}Asked by {{ $author }}{{ else }}Asked by Community member{{ end }}

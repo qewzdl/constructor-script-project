@@ -328,6 +328,13 @@ func (r applicationRepositoryAccess) CourseTest() repository.CourseTestRepositor
 	return r.app.repositories.CourseTest
 }
 
+func (r applicationRepositoryAccess) ForumCategory() repository.ForumCategoryRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.ForumCategory
+}
+
 func (r applicationRepositoryAccess) ForumQuestion() repository.ForumQuestionRepository {
 	if r.app == nil {
 		return nil
@@ -537,6 +544,30 @@ func (a *Application) registerPluginServiceBindings() {
 			}
 			if svc, ok := value.(*forumservice.QuestionService); ok {
 				a.services.ForumQuestion = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		forumapi.Namespace,
+		forumapi.ServiceCategory,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.ForumCategory
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.ForumCategory = nil
+				return
+			}
+			if svc, ok := value.(*forumservice.CategoryService); ok {
+				a.services.ForumCategory = svc
 			}
 		},
 	)
@@ -804,6 +835,30 @@ func (a *Application) registerPluginHandlerBindings() {
 			}
 			if handler, ok := value.(*forumhandlers.QuestionHandler); ok {
 				a.handlers.ForumQuestion = handler
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindHandlers,
+		forumapi.Namespace,
+		forumapi.HandlerCategory,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.ForumCategory
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.ForumCategory = nil
+				return
+			}
+			if handler, ok := value.(*forumhandlers.CategoryHandler); ok {
+				a.handlers.ForumCategory = handler
 			}
 		},
 	)

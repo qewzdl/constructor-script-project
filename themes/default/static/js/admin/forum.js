@@ -120,8 +120,10 @@
             return;
         }
         const answersEndpointRaw = (context.dataset?.endpointForumAnswers || '').trim();
+        const categoriesEndpointRaw = (context.dataset?.endpointForumCategories || '').trim();
         const questionsEndpoint = questionsEndpointRaw.replace(/\/+$/, '');
         const answersEndpoint = answersEndpointRaw ? answersEndpointRaw.replace(/\/+$/, '') : '';
+        const categoriesEndpoint = categoriesEndpointRaw ? categoriesEndpointRaw.replace(/\/+$/, '') : '';
 
         const questionTable = panel.querySelector('#admin-forum-questions-table');
         const questionForm = panel.querySelector('#admin-forum-question-form');
@@ -130,6 +132,7 @@
         const questionDeleteButton = panel.querySelector('[data-role="forum-question-delete"]');
         const questionResetButton = panel.querySelector('[data-action="forum-question-reset"]');
         const searchInput = panel.querySelector('[data-role="forum-question-search"]');
+        const questionCategorySelect = panel.querySelector('[data-role="forum-question-category"]');
 
         const answersContainer = panel.querySelector('[data-role="forum-answer-container"]');
         const answersList = panel.querySelector('[data-role="forum-answer-list"]');
@@ -140,10 +143,20 @@
         const answerCancelButton = panel.querySelector('[data-role="forum-answer-cancel"]');
         const answerDeleteButton = panel.querySelector('[data-role="forum-answer-delete"]');
 
+        const categoryTable = panel.querySelector('#admin-forum-categories-table');
+        const categoryForm = panel.querySelector('#admin-forum-category-form');
+        const categoryStatus = panel.querySelector('[data-role="forum-category-status"]');
+        const categorySubmitButton = panel.querySelector('[data-role="forum-category-submit"]');
+        const categoryDeleteButton = panel.querySelector('[data-role="forum-category-delete"]');
+        const categoryResetButton = panel.querySelector('[data-action="forum-category-reset"]');
+        const categorySearchInput = panel.querySelector('[data-role="forum-category-search"]');
+
         const state = {
             questions: [],
+            categories: [],
             selectedQuestionId: '',
             selectedAnswerId: '',
+            selectedCategoryId: '',
         };
 
         const showAlert = (message, type = 'info') => {
@@ -209,6 +222,221 @@
             setAnswerFormEnabled(false);
         };
 
+        const resolveQuestionCategoryId = (question) => {
+            if (!question) {
+                return '';
+            }
+            const direct = question.category_id ?? question.CategoryID;
+            if (direct !== undefined && direct !== null) {
+                const numeric = Number(direct);
+                return Number.isFinite(numeric) && numeric > 0 ? String(numeric) : '';
+            }
+            const category = question.category || question.Category;
+            if (category && (category.id || category.ID)) {
+                const numeric = Number(category.id ?? category.ID);
+                return Number.isFinite(numeric) && numeric > 0 ? String(numeric) : '';
+            }
+            return '';
+        };
+
+        const resolveQuestionCategoryName = (question) => {
+            if (!question) {
+                return '';
+            }
+            const category = question.category || question.Category;
+            if (category && (category.name || category.Name)) {
+                return category.name || category.Name || '';
+            }
+            const categoryId = resolveQuestionCategoryId(question);
+            if (!categoryId) {
+                return '';
+            }
+            const matched = state.categories.find((entry) => {
+                const identifier = entry?.id ?? entry?.ID;
+                return identifier !== undefined && String(identifier) === categoryId;
+            });
+            if (matched) {
+                return matched.name || matched.Name || '';
+            }
+            return '';
+        };
+
+        const updateQuestionCategoryOptions = () => {
+            if (!questionCategorySelect) {
+                return;
+            }
+            const previousValue = questionCategorySelect.value;
+            questionCategorySelect.innerHTML = '';
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'No category';
+            questionCategorySelect.appendChild(defaultOption);
+            state.categories.forEach((category) => {
+                const identifier = category?.id ?? category?.ID;
+                if (!identifier) {
+                    return;
+                }
+                const option = document.createElement('option');
+                option.value = String(identifier);
+                option.textContent = category?.name || category?.Name || `Category ${identifier}`;
+                questionCategorySelect.appendChild(option);
+            });
+
+            const selectedQuestion = state.questions.find(
+                (question) => String(question?.id) === state.selectedQuestionId
+            );
+            const desiredValue = selectedQuestion ? resolveQuestionCategoryId(selectedQuestion) : previousValue;
+            if (desiredValue && questionCategorySelect.querySelector(`option[value="${CSS.escape(desiredValue)}"]`)) {
+                questionCategorySelect.value = desiredValue;
+            } else {
+                questionCategorySelect.value = '';
+            }
+        };
+
+        const highlightCategoryRow = (categoryId) => {
+            if (!categoryTable) {
+                return;
+            }
+            Array.from(categoryTable.querySelectorAll('tr')).forEach((row) => {
+                if (!row.dataset || !row.dataset.id) {
+                    return;
+                }
+                row.classList.toggle('is-selected', row.dataset.id === categoryId);
+            });
+        };
+
+        const renderCategories = () => {
+            if (!categoryTable) {
+                return;
+            }
+            const filterValue = categorySearchInput?.value ? categorySearchInput.value.trim().toLowerCase() : '';
+            const filtered = state.categories.filter((category) => {
+                if (!filterValue) {
+                    return true;
+                }
+                const name = (category?.name || category?.Name || '').toLowerCase();
+                return name.includes(filterValue);
+            });
+
+            categoryTable.innerHTML = '';
+
+            if (!filtered.length) {
+                const placeholder = document.createElement('tr');
+                placeholder.className = 'admin-table__placeholder';
+                const cell = document.createElement('td');
+                cell.colSpan = 3;
+                cell.textContent = filterValue
+                    ? 'No categories match your search.'
+                    : 'No categories available yet.';
+                placeholder.appendChild(cell);
+                categoryTable.appendChild(placeholder);
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            filtered.forEach((category) => {
+                const row = document.createElement('tr');
+                const identifier = category?.id ?? category?.ID;
+                if (identifier) {
+                    row.dataset.id = String(identifier);
+                }
+                if (String(identifier) === state.selectedCategoryId) {
+                    row.classList.add('is-selected');
+                }
+                const questions = Number(category?.question_count ?? category?.QuestionCount ?? 0);
+                const updatedValue =
+                    resolveDateValue(category, 'updated_at', 'updatedAt', 'UpdatedAt') ||
+                    resolveDateValue(category, 'created_at', 'createdAt', 'CreatedAt');
+
+                row.innerHTML = `
+                    <td>${escapeHtml(category?.name || category?.Name || '')}</td>
+                    <td>${Number.isFinite(questions) ? questions : 0}</td>
+                    <td>${escapeHtml(formatDateTime(updatedValue))}</td>
+                `;
+
+                fragment.appendChild(row);
+            });
+
+            categoryTable.appendChild(fragment);
+        };
+
+        const resetCategoryForm = () => {
+            if (!categoryForm) {
+                return;
+            }
+            categoryForm.reset();
+            delete categoryForm.dataset.id;
+            state.selectedCategoryId = '';
+            highlightCategoryRow('');
+            if (categorySubmitButton) {
+                categorySubmitButton.textContent = 'Create category';
+            }
+            if (categoryDeleteButton) {
+                categoryDeleteButton.hidden = true;
+            }
+            if (categoryStatus) {
+                categoryStatus.textContent = '';
+                categoryStatus.hidden = true;
+            }
+        };
+
+        const populateCategoryForm = (category) => {
+            if (!categoryForm || !category) {
+                return;
+            }
+            const identifier = category?.id ?? category?.ID;
+            if (identifier) {
+                categoryForm.dataset.id = String(identifier);
+                state.selectedCategoryId = String(identifier);
+            }
+            const nameField = categoryForm.querySelector('input[name="name"]');
+            if (nameField) {
+                nameField.value = category?.name || category?.Name || '';
+            }
+            if (categorySubmitButton) {
+                categorySubmitButton.textContent = 'Update category';
+            }
+            if (categoryDeleteButton) {
+                categoryDeleteButton.hidden = false;
+            }
+            if (categoryStatus) {
+                const questions = Number(category?.question_count ?? category?.QuestionCount ?? 0);
+                categoryStatus.textContent = `Assigned to ${questions} ${questions === 1 ? 'question' : 'questions'}.`;
+                categoryStatus.hidden = false;
+            }
+        };
+
+        const selectCategory = (categoryId) => {
+            if (!categoryId) {
+                resetCategoryForm();
+                return;
+            }
+            const category = state.categories.find((entry) => String(entry?.id ?? entry?.ID) === String(categoryId));
+            if (!category) {
+                resetCategoryForm();
+                return;
+            }
+            highlightCategoryRow(String(categoryId));
+            populateCategoryForm(category);
+        };
+
+        const loadCategories = async () => {
+            if (!categoriesEndpoint) {
+                return;
+            }
+            try {
+                const payload = await apiClient(`${categoriesEndpoint}?include_counts=true`);
+                state.categories = Array.isArray(payload?.categories) ? payload.categories : [];
+                renderCategories();
+                updateQuestionCategoryOptions();
+                if (state.selectedCategoryId) {
+                    highlightCategoryRow(state.selectedCategoryId);
+                }
+            } catch (error) {
+                showAlert(error.message || 'Failed to load forum categories.', 'error');
+            }
+        };
+
         const highlightQuestionRow = (questionId) => {
             if (!questionTable) {
                 return;
@@ -234,7 +462,10 @@
                 const authorMatch = (question.author?.username || '')
                     .toLowerCase()
                     .includes(filterValue);
-                return titleMatch || authorMatch;
+                const categoryMatch = resolveQuestionCategoryName(question)
+                    .toLowerCase()
+                    .includes(filterValue);
+                return titleMatch || authorMatch || categoryMatch;
             });
 
             questionTable.innerHTML = '';
@@ -243,7 +474,7 @@
                 const placeholder = document.createElement('tr');
                 placeholder.className = 'admin-table__placeholder';
                 const cell = document.createElement('td');
-                cell.colSpan = 5;
+                cell.colSpan = 6;
                 cell.textContent = filterValue
                     ? 'No questions match your search.'
                     : 'No questions available yet.';
@@ -260,6 +491,7 @@
                     row.classList.add('is-selected');
                 }
                 const author = question.author?.username || '—';
+                const categoryName = resolveQuestionCategoryName(question) || '—';
                 const answersCount = Number.isFinite(question.answers_count)
                     ? question.answers_count
                     : Array.isArray(question.answers)
@@ -271,6 +503,7 @@
 
                 row.innerHTML = `
                     <td>${escapeHtml(question.title || '')}</td>
+                    <td>${escapeHtml(categoryName)}</td>
                     <td>${escapeHtml(author)}</td>
                     <td>${answersCount}</td>
                     <td>${Number.isFinite(question.rating) ? question.rating : 0}</td>
@@ -352,6 +585,9 @@
             }
             state.selectedQuestionId = '';
             highlightQuestionRow('');
+            if (questionCategorySelect) {
+                questionCategorySelect.value = '';
+            }
             if (questionStatus) {
                 questionStatus.textContent = '';
                 questionStatus.hidden = true;
@@ -378,6 +614,17 @@
             }
             if (contentField) {
                 contentField.value = question.content || '';
+            }
+            if (questionCategorySelect) {
+                const categoryId = resolveQuestionCategoryId(question);
+                if (
+                    categoryId &&
+                    questionCategorySelect.querySelector(`option[value="${CSS.escape(categoryId)}"]`)
+                ) {
+                    questionCategorySelect.value = categoryId;
+                } else {
+                    questionCategorySelect.value = '';
+                }
             }
             if (questionSubmitButton) {
                 questionSubmitButton.textContent = 'Update question';
@@ -481,7 +728,21 @@
                 const questionId = questionForm.dataset.id;
                 const method = questionId ? 'PUT' : 'POST';
                 const endpoint = questionId ? buildQuestionEndpoint(questionId) : questionsEndpoint;
-                const payload = questionId ? { title, content } : { title, content };
+                const rawCategory = formData.get('category_id');
+                const categoryValue = rawCategory === null ? '' : String(rawCategory).trim();
+                let categoryId = null;
+                if (categoryValue) {
+                    const parsed = Number(categoryValue);
+                    if (Number.isFinite(parsed) && parsed > 0) {
+                        categoryId = parsed;
+                    }
+                }
+                const payload = { title, content };
+                if (questionId) {
+                    payload.category_id = categoryValue ? categoryId : null;
+                } else if (categoryId !== null) {
+                    payload.category_id = categoryId;
+                }
                 try {
                     toggleFormDisabled(questionForm, true);
                     const response = await apiClient(endpoint, {
@@ -529,6 +790,111 @@
                     showAlert(error.message || 'Failed to delete question.', 'error');
                 } finally {
                     toggleFormDisabled(questionForm, false);
+                }
+            });
+        }
+
+        if (categoryTable) {
+            categoryTable.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) {
+                    return;
+                }
+                const row = target.closest('tr');
+                if (!row || !row.dataset.id) {
+                    return;
+                }
+                event.preventDefault();
+                selectCategory(row.dataset.id);
+            });
+        }
+
+        if (categorySearchInput) {
+            categorySearchInput.addEventListener('input', () => {
+                renderCategories();
+            });
+        }
+
+        if (categoryResetButton) {
+            categoryResetButton.addEventListener('click', () => {
+                resetCategoryForm();
+                renderCategories();
+            });
+        }
+
+        if (categoryForm) {
+            categoryForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                if (!categoriesEndpoint) {
+                    showAlert('Category management is unavailable right now.', 'error');
+                    return;
+                }
+                const form = event.currentTarget;
+                const formData = new FormData(form);
+                const name = (formData.get('name') || '').toString().trim();
+                if (!name) {
+                    showAlert('Category name is required.', 'error');
+                    return;
+                }
+                const categoryId = categoryForm.dataset.id;
+                const method = categoryId ? 'PUT' : 'POST';
+                const endpoint = categoryId
+                    ? `${categoriesEndpoint}/${categoryId}`
+                    : categoriesEndpoint;
+                const payload = { name };
+                try {
+                    toggleFormDisabled(categoryForm, true);
+                    const response = await apiClient(endpoint, {
+                        method,
+                        body: JSON.stringify(payload),
+                    });
+                    showAlert(
+                        categoryId ? 'Category updated successfully.' : 'Category created successfully.',
+                        'success'
+                    );
+                    await loadCategories();
+                    const createdId = response?.category?.id ?? response?.category?.ID;
+                    if (createdId) {
+                        selectCategory(createdId);
+                    } else if (categoryId) {
+                        selectCategory(categoryId);
+                    } else {
+                        resetCategoryForm();
+                    }
+                } catch (error) {
+                    showAlert(error.message || 'Failed to save category.', 'error');
+                } finally {
+                    toggleFormDisabled(categoryForm, false);
+                }
+            });
+        }
+
+        if (categoryDeleteButton) {
+            categoryDeleteButton.addEventListener('click', async () => {
+                if (!categoriesEndpoint) {
+                    showAlert('Category management is unavailable right now.', 'error');
+                    return;
+                }
+                const categoryId = categoryForm?.dataset.id;
+                if (!categoryId) {
+                    return;
+                }
+                const confirmed = window.confirm(
+                    'Delete this category? Questions assigned to it will become uncategorised.'
+                );
+                if (!confirmed) {
+                    return;
+                }
+                try {
+                    toggleFormDisabled(categoryForm, true);
+                    await apiClient(`${categoriesEndpoint}/${categoryId}`, { method: 'DELETE' });
+                    showAlert('Category deleted successfully.', 'success');
+                    resetCategoryForm();
+                    await loadCategories();
+                } catch (error) {
+                    showAlert(error.message || 'Failed to delete category.', 'error');
+                } finally {
+                    toggleFormDisabled(categoryForm, false);
                 }
             });
         }
@@ -683,6 +1049,7 @@
         }
 
         resetQuestionForm();
+        loadCategories();
         loadQuestions();
     });
 })();

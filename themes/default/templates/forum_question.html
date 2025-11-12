@@ -36,6 +36,11 @@
             <div class="forum-question__heading">
                 <h1 class="forum-question__title">{{ $question.Title }}</h1>
                 <div class="forum-question__meta">
+                    {{ with $question.Category }}
+                    <span class="forum-question__meta-item forum-question__meta-item--category">
+                        {{ .Name }}
+                    </span>
+                    {{ end }}
                     {{ $author := trim $question.Author.Username }}
                     <span class="forum-question__meta-item">
                         {{ if $author }}Asked by {{ $author }}{{ else }}Asked by Community member{{ end }}

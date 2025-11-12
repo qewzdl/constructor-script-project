@@ -450,6 +450,16 @@
             const formData = new FormData(form);
             const title = (formData.get("title") || "").toString().trim();
             const content = (formData.get("content") || "").toString().trim();
+            const categoryValue = (formData.get("category_id") || "").toString().trim();
+            let categoryId = null;
+            if (categoryValue !== "") {
+                const parsed = Number(categoryValue);
+                if (!Number.isFinite(parsed) || parsed <= 0) {
+                    showAlert(alertElement, "Please choose a valid category.", "error");
+                    return;
+                }
+                categoryId = parsed;
+            }
 
             if (!title || !content) {
                 showAlert(alertElement, "Please provide both a title and description.", "error");
@@ -458,9 +468,13 @@
 
             try {
                 toggleFormDisabled(form, true);
+                const body = { title, content };
+                if (categoryId !== null) {
+                    body.category_id = categoryId;
+                }
                 const payload = await apiRequest(endpoint, {
                     method: "POST",
-                    body: JSON.stringify({ title, content }),
+                    body: JSON.stringify(body),
                 });
                 const question = payload?.question;
                 if (question) {

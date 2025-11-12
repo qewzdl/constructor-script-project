@@ -49,6 +49,7 @@ type RepositoryAccess interface {
 	CoursePackage() repository.CoursePackageRepository
 	CoursePackageAccess() repository.CoursePackageAccessRepository
 	CourseTest() repository.CourseTestRepository
+	ForumCategory() repository.ForumCategoryRepository
 	ForumQuestion() repository.ForumQuestionRepository
 	ForumAnswer() repository.ForumAnswerRepository
 	ForumQuestionVote() repository.ForumQuestionVoteRepository

@@ -88,6 +88,7 @@ type repositoryContainer struct {
 	CoursePackage       repository.CoursePackageRepository
 	CoursePackageAccess repository.CoursePackageAccessRepository
 	CourseTest          repository.CourseTestRepository
+	ForumCategory       repository.ForumCategoryRepository
 	ForumQuestion       repository.ForumQuestionRepository
 	ForumAnswer         repository.ForumAnswerRepository
 	ForumQuestionVote   repository.ForumQuestionVoteRepository
@@ -117,6 +118,7 @@ type serviceContainer struct {
 	CoursePackage  *courseservice.PackageService
 	CourseTest     *courseservice.TestService
 	CourseCheckout *courseservice.CheckoutService
+	ForumCategory  *forumservice.CategoryService
 	ForumQuestion  *forumservice.QuestionService
 	ForumAnswer    *forumservice.AnswerService
 }
@@ -144,6 +146,7 @@ type handlerContainer struct {
 	CourseTest     *coursehandlers.TestHandler
 	CoursePackage  *coursehandlers.PackageHandler
 	CourseCheckout *coursehandlers.CheckoutHandler
+	ForumCategory  *forumhandlers.CategoryHandler
 	ForumQuestion  *forumhandlers.QuestionHandler
 	ForumAnswer    *forumhandlers.AnswerHandler
 }
@@ -368,6 +371,7 @@ func (a *Application) runMigrations() error {
 		&models.Page{},
 		&models.Tag{},
 		&models.Comment{},
+		&models.ForumCategory{},
 		&models.ForumQuestion{},
 		&models.ForumAnswer{},
 		&models.ForumQuestionVote{},
@@ -751,6 +755,7 @@ func (a *Application) initRepositories() {
 		CoursePackage:       repository.NewCoursePackageRepository(a.db),
 		CoursePackageAccess: repository.NewCoursePackageAccessRepository(a.db),
 		CourseTest:          repository.NewCourseTestRepository(a.db),
+		ForumCategory:       repository.NewForumCategoryRepository(a.db),
 		ForumQuestion:       repository.NewForumQuestionRepository(a.db),
 		ForumAnswer:         repository.NewForumAnswerRepository(a.db),
 		ForumQuestionVote:   repository.NewForumQuestionVoteRepository(a.db),
@@ -925,6 +930,7 @@ func (a *Application) initServices() {
 		CoursePackage:  nil,
 		CourseTest:     nil,
 		CourseCheckout: nil,
+		ForumCategory:  nil,
 		ForumQuestion:  nil,
 		ForumAnswer:    nil,
 	}
@@ -958,31 +964,33 @@ func (a *Application) initHandlers() error {
 		CourseTest:     coursehandlers.NewTestHandler(nil),
 		CoursePackage:  coursehandlers.NewPackageHandler(nil),
 		CourseCheckout: coursehandlers.NewCheckoutHandler(nil),
+		ForumCategory:  forumhandlers.NewCategoryHandler(nil),
 		ForumQuestion:  forumhandlers.NewQuestionHandler(nil),
 		ForumAnswer:    forumhandlers.NewAnswerHandler(nil),
 	}
 
-        templateHandler, err := handlers.NewTemplateHandler(
-                nil,
-                a.services.Page,
-                a.services.Auth,
-                nil,
-                nil,
-                a.services.Setup,
-                a.services.Language,
-                a.services.Homepage,
-                nil,
-                a.services.SocialLink,
-                a.services.Menu,
-                a.services.Font,
-                a.services.Advertising,
-                nil,
-                nil,
-                nil,
-                nil,
-                a.cfg,
-                a.themeManager,
-        )
+	templateHandler, err := handlers.NewTemplateHandler(
+		nil,
+		a.services.Page,
+		a.services.Auth,
+		nil,
+		nil,
+		a.services.Setup,
+		a.services.Language,
+		a.services.Homepage,
+		nil,
+		a.services.SocialLink,
+		a.services.Menu,
+		a.services.Font,
+		a.services.Advertising,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		a.cfg,
+		a.themeManager,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize template handler: %w", err)
 	}
@@ -1106,11 +1114,11 @@ func (a *Application) initRouter() error {
 	router.GET("/admin", a.templateHandler.RenderAdmin)
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
 	router.GET("/page/:slug", a.templateHandler.RenderPage)
-        router.GET("/blog", a.templateHandler.RenderBlog)
-        router.GET("/search", a.templateHandler.RenderSearch)
-        router.GET("/forum", a.templateHandler.RenderForum)
-        router.GET("/forum/:slug", a.templateHandler.RenderForumQuestion)
-        router.GET("/category/:slug", a.templateHandler.RenderCategory)
+	router.GET("/blog", a.templateHandler.RenderBlog)
+	router.GET("/search", a.templateHandler.RenderSearch)
+	router.GET("/forum", a.templateHandler.RenderForum)
+	router.GET("/forum/:slug", a.templateHandler.RenderForumQuestion)
+	router.GET("/category/:slug", a.templateHandler.RenderCategory)
 	router.GET("/tag/:slug", a.templateHandler.RenderTag)
 
 	v1 := router.Group("/api/v1")
@@ -1145,6 +1153,8 @@ func (a *Application) initRouter() error {
 			public.POST("/courses/checkout", a.handlers.CourseCheckout.CreateSession)
 			public.GET("/forum/questions", a.handlers.ForumQuestion.List)
 			public.GET("/forum/questions/:id", a.handlers.ForumQuestion.GetByID)
+			public.GET("/forum/categories", a.handlers.ForumCategory.List)
+			public.GET("/forum/categories/:id", a.handlers.ForumCategory.GetByID)
 		}
 
 		protected := v1.Group("")
@@ -1195,6 +1205,12 @@ func (a *Application) initRouter() error {
 			content.POST("/categories", a.handlers.Category.Create)
 			content.PUT("/categories/:id", a.handlers.Category.Update)
 			content.DELETE("/categories/:id", a.handlers.Category.Delete)
+
+			content.GET("/forum/categories", a.handlers.ForumCategory.List)
+			content.GET("/forum/categories/:id", a.handlers.ForumCategory.GetByID)
+			content.POST("/forum/categories", a.handlers.ForumCategory.Create)
+			content.PUT("/forum/categories/:id", a.handlers.ForumCategory.Update)
+			content.DELETE("/forum/categories/:id", a.handlers.ForumCategory.Delete)
 
 			content.POST("/courses/videos", a.handlers.CourseVideo.Create)
 			content.PUT("/courses/videos/:id", a.handlers.CourseVideo.Update)

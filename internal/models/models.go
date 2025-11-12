@@ -46,6 +46,18 @@ type Category struct {
 	Posts []Post `gorm:"foreignKey:CategoryID" json:"posts,omitempty"`
 }
 
+type ForumCategory struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Name string `gorm:"uniqueIndex;not null" json:"name"`
+	Slug string `gorm:"uniqueIndex;not null" json:"slug"`
+
+	QuestionCount int `gorm:"-" json:"question_count"`
+}
+
 type Post struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -121,23 +133,26 @@ type Comment struct {
 }
 
 type ForumQuestion struct {
-ID        uint           `gorm:"primarykey" json:"id"`
-CreatedAt time.Time      `json:"created_at"`
-UpdatedAt time.Time      `json:"updated_at"`
-DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-Title   string `gorm:"not null" json:"title"`
-Slug    string `gorm:"uniqueIndex;not null" json:"slug"`
-Content string `gorm:"type:text;not null" json:"content"`
+	Title   string `gorm:"not null" json:"title"`
+	Slug    string `gorm:"uniqueIndex;not null" json:"slug"`
+	Content string `gorm:"type:text;not null" json:"content"`
 
-AuthorID uint `gorm:"not null" json:"author_id"`
-Author   User `gorm:"foreignKey:AuthorID" json:"author"`
+	AuthorID uint `gorm:"not null" json:"author_id"`
+	Author   User `gorm:"foreignKey:AuthorID" json:"author"`
 
-Rating int `gorm:"default:0" json:"rating"`
-Views  int `gorm:"default:0" json:"views"`
+	CategoryID *uint          `gorm:"index" json:"category_id"`
+	Category   *ForumCategory `gorm:"foreignKey:CategoryID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"category,omitempty"`
 
-Answers      []ForumAnswer `gorm:"foreignKey:QuestionID;constraint:OnDelete:CASCADE" json:"answers,omitempty"`
-AnswersCount int           `gorm:"-" json:"answers_count"`
+	Rating int `gorm:"default:0" json:"rating"`
+	Views  int `gorm:"default:0" json:"views"`
+
+	Answers      []ForumAnswer `gorm:"foreignKey:QuestionID;constraint:OnDelete:CASCADE" json:"answers,omitempty"`
+	AnswersCount int           `gorm:"-" json:"answers_count"`
 }
 
 type ForumAnswer struct {
@@ -697,13 +712,15 @@ type UpdatePostRequest struct {
 }
 
 type CreateForumQuestionRequest struct {
-	Title   string `json:"title" binding:"required"`
-	Content string `json:"content" binding:"required"`
+	Title      string `json:"title" binding:"required"`
+	Content    string `json:"content" binding:"required"`
+	CategoryID *uint  `json:"category_id"`
 }
 
 type UpdateForumQuestionRequest struct {
-	Title   *string `json:"title"`
-	Content *string `json:"content"`
+	Title      *string      `json:"title"`
+	Content    *string      `json:"content"`
+	CategoryID OptionalUint `json:"category_id"`
 }
 
 type CreateForumAnswerRequest struct {
@@ -716,6 +733,14 @@ type UpdateForumAnswerRequest struct {
 
 type ForumVoteRequest struct {
 	Value int `json:"value" binding:"required,oneof=-1 0 1"`
+}
+
+type CreateForumCategoryRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
+type UpdateForumCategoryRequest struct {
+	Name *string `json:"name"`
 }
 
 type Page struct {

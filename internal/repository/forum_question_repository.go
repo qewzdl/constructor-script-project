@@ -49,54 +49,56 @@ func (r *forumQuestionRepository) Delete(id uint) error {
 }
 
 func (r *forumQuestionRepository) GetByID(id uint) (*models.ForumQuestion, error) {
-        if r == nil || r.db == nil {
-                return nil, gorm.ErrInvalidDB
-        }
-        var question models.ForumQuestion
-        err := r.db.
-                Preload("Author").
-                Preload("Answers", func(db *gorm.DB) *gorm.DB {
-                        return db.Preload("Author").Order("rating DESC, created_at ASC")
-                }).
-                First(&question, id).Error
-        if err != nil {
-                return nil, err
-        }
-        question.AnswersCount = len(question.Answers)
-        return &question, nil
+	if r == nil || r.db == nil {
+		return nil, gorm.ErrInvalidDB
+	}
+	var question models.ForumQuestion
+	err := r.db.
+		Preload("Author").
+		Preload("Category").
+		Preload("Answers", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Author").Order("rating DESC, created_at ASC")
+		}).
+		First(&question, id).Error
+	if err != nil {
+		return nil, err
+	}
+	question.AnswersCount = len(question.Answers)
+	return &question, nil
 }
 
 func (r *forumQuestionRepository) GetBySlug(slug string) (*models.ForumQuestion, error) {
-        if r == nil || r.db == nil {
-                return nil, gorm.ErrInvalidDB
-        }
-        cleaned := strings.TrimSpace(slug)
-        var question models.ForumQuestion
-        err := r.db.Where("slug = ?", cleaned).
-                Preload("Author").
-                Preload("Answers", func(db *gorm.DB) *gorm.DB {
-                        return db.Preload("Author").Order("rating DESC, created_at ASC")
-                }).
-                First(&question).Error
-        if err != nil {
-                return nil, err
-        }
-        question.AnswersCount = len(question.Answers)
-        return &question, nil
+	if r == nil || r.db == nil {
+		return nil, gorm.ErrInvalidDB
+	}
+	cleaned := strings.TrimSpace(slug)
+	var question models.ForumQuestion
+	err := r.db.Where("slug = ?", cleaned).
+		Preload("Author").
+		Preload("Category").
+		Preload("Answers", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("Author").Order("rating DESC, created_at ASC")
+		}).
+		First(&question).Error
+	if err != nil {
+		return nil, err
+	}
+	question.AnswersCount = len(question.Answers)
+	return &question, nil
 }
 
 func (r *forumQuestionRepository) List(offset, limit int, search string, authorID *uint) ([]models.ForumQuestion, int64, error) {
-        if r == nil || r.db == nil {
-                return nil, 0, gorm.ErrInvalidDB
-        }
+	if r == nil || r.db == nil {
+		return nil, 0, gorm.ErrInvalidDB
+	}
 
-        query := r.db.Model(&models.ForumQuestion{}).
-                Select("forum_questions.*, (SELECT COUNT(*) FROM forum_answers WHERE forum_answers.question_id = forum_questions.id) AS answers_count")
+	query := r.db.Model(&models.ForumQuestion{}).
+		Select("forum_questions.*, (SELECT COUNT(*) FROM forum_answers WHERE forum_answers.question_id = forum_questions.id) AS answers_count")
 
-        cleanedSearch := strings.TrimSpace(search)
-        if cleanedSearch != "" {
-                like := "%" + cleanedSearch + "%"
-                query = query.Where("title ILIKE ? OR content ILIKE ?", like, like)
+	cleanedSearch := strings.TrimSpace(search)
+	if cleanedSearch != "" {
+		like := "%" + cleanedSearch + "%"
+		query = query.Where("title ILIKE ? OR content ILIKE ?", like, like)
 	}
 
 	if authorID != nil {
@@ -108,16 +110,17 @@ func (r *forumQuestionRepository) List(offset, limit int, search string, authorI
 		return nil, 0, err
 	}
 
-        if limit > 0 {
-                query = query.Offset(offset).Limit(limit)
-        }
+	if limit > 0 {
+		query = query.Offset(offset).Limit(limit)
+	}
 
-        var questions []models.ForumQuestion
-        err := query.
-                Preload("Author").
-                Order("rating DESC, created_at DESC").
-                Find(&questions).Error
-        return questions, total, err
+	var questions []models.ForumQuestion
+	err := query.
+		Preload("Author").
+		Preload("Category").
+		Order("rating DESC, created_at DESC").
+		Find(&questions).Error
+	return questions, total, err
 }
 
 func (r *forumQuestionRepository) ExistsBySlug(slug string) (bool, error) {
