@@ -248,15 +248,188 @@
         return item;
     };
 
+    const focusableSelector =
+        'a[href]:not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
+
     const initForumList = (root) => {
-        const alertElement = root.querySelector('[data-role="forum-alert"]');
-        const form = root.querySelector('[data-role="question-form"]');
+        const modal = root.querySelector('[data-role="question-modal"]');
+        const container = modal || root;
+        const alertElement = container.querySelector('[data-role="forum-alert"]');
+        const form = container.querySelector('[data-role="question-form"]');
         if (!form) {
             return;
         }
 
         const endpoint = normalizeEndpoint(root.dataset.endpointCreate || "");
         const loginURL = root.dataset.loginUrl || "/login";
+
+        let lastFocusedElement = null;
+
+        const getFocusableElements = () => {
+            if (!modal) {
+                return [];
+            }
+            return Array.from(modal.querySelectorAll(focusableSelector)).filter((element) => {
+                if (!(element instanceof HTMLElement)) {
+                    return false;
+                }
+                return !element.hasAttribute("hidden") && !element.closest("[hidden]");
+            });
+        };
+
+        const openModal = () => {
+            if (!modal) {
+                return;
+            }
+
+            if (modal.classList.contains("forum-question-modal--active")) {
+                return;
+            }
+
+            if (!isAuthenticated()) {
+                window.location.href = loginURL;
+                return;
+            }
+
+            lastFocusedElement =
+                document.activeElement && document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : null;
+
+            if (form.id && window.location.hash !== `#${form.id}`) {
+                try {
+                    history.replaceState(null, document.title, `#${form.id}`);
+                } catch (_error) {
+                    // Ignore history errors in unsupported environments.
+                }
+            }
+
+            modal.hidden = false;
+            modal.setAttribute("aria-hidden", "false");
+            requestAnimationFrame(() => {
+                modal.classList.add("forum-question-modal--active");
+            });
+            document.body.classList.add("forum-question-modal-open");
+
+            const focusable = getFocusableElements();
+            const preferredTarget = focusable.find((element) =>
+                element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
+            );
+            const initialFocus = preferredTarget || focusable[0];
+            if (initialFocus) {
+                initialFocus.focus({ preventScroll: true });
+            }
+        };
+
+        const clearHash = () => {
+            if (modal && window.location.hash === `#${form.id}`) {
+                const url = `${window.location.pathname}${window.location.search}`;
+                try {
+                    history.replaceState(null, document.title, url);
+                } catch (_error) {
+                    // Ignore history errors in unsupported environments.
+                }
+            }
+        };
+
+        const closeModal = () => {
+            if (!modal) {
+                return;
+            }
+
+            if (!modal.classList.contains("forum-question-modal--active")) {
+                clearHash();
+                return;
+            }
+
+            modal.classList.remove("forum-question-modal--active");
+            modal.setAttribute("aria-hidden", "true");
+            document.body.classList.remove("forum-question-modal-open");
+
+            const handleTransitionEnd = (event) => {
+                if (event.target === modal) {
+                    modal.hidden = true;
+                    modal.removeEventListener("transitionend", handleTransitionEnd);
+                }
+            };
+            modal.addEventListener("transitionend", handleTransitionEnd);
+            window.setTimeout(() => {
+                modal.hidden = true;
+                modal.removeEventListener("transitionend", handleTransitionEnd);
+            }, 320);
+
+            clearHash();
+
+            if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+                lastFocusedElement.focus({ preventScroll: true });
+            }
+        };
+
+        if (modal) {
+            const openButtons = root.querySelectorAll('[data-role="question-modal-open"]');
+            openButtons.forEach((button) => {
+                button.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    openModal();
+                });
+            });
+
+            const closeButton = modal.querySelector('[data-role="question-modal-close"]');
+            if (closeButton) {
+                closeButton.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    closeModal();
+                });
+            }
+
+            modal.addEventListener("click", (event) => {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            modal.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") {
+                    event.preventDefault();
+                    closeModal();
+                    return;
+                }
+
+                if (event.key !== "Tab") {
+                    return;
+                }
+
+                const focusable = getFocusableElements();
+                if (focusable.length === 0) {
+                    return;
+                }
+
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                const active = document.activeElement;
+
+                if (event.shiftKey) {
+                    if (active === first || !modal.contains(active)) {
+                        event.preventDefault();
+                        last.focus({ preventScroll: true });
+                    }
+                } else if (active === last) {
+                    event.preventDefault();
+                    first.focus({ preventScroll: true });
+                }
+            });
+
+            const shouldOpenFromHash = () => `#${form.id}` === window.location.hash;
+            if (shouldOpenFromHash()) {
+                openModal();
+            }
+
+            window.addEventListener("hashchange", () => {
+                if (shouldOpenFromHash()) {
+                    openModal();
+                }
+            });
+        }
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();

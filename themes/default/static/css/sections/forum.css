@@ -102,7 +102,7 @@
 
 .forum__stat {
     display: grid;
-    gap: var(--size-xxs);
+    gap: var(--size-xs);
 }
 
 .forum__stat-label {
@@ -122,7 +122,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--size-xxs);
+    gap: var(--size-xs);
     padding: 0.7rem 1.4rem;
     border: 1px solid var(--color-primary);
     background-color: var(--color-primary);
@@ -202,7 +202,7 @@
 
 .forum__label {
     display: grid;
-    gap: var(--size-xxs);
+    gap: var(--size-xs);
     font-weight: 600;
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
@@ -236,6 +236,87 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--size-xs);
+}
+
+html.forum-question-modal-open,
+body.forum-question-modal-open {
+    overflow: hidden;
+}
+
+.forum-question-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1.5rem, 5vw, 3rem) var(--size-base);
+    background-color: var(--modal-outside-bg);
+    opacity: 0;
+    z-index: 1100;
+}
+
+.forum-question-modal--active {
+    opacity: 1;
+}
+
+.forum-question-modal[hidden] {
+    display: none;
+}
+
+.forum-question-modal__dialog {
+    position: relative;
+    width: min(640px, 100%);
+    max-height: calc(100vh - clamp(3rem, 10vw, 6rem));
+    overflow: auto;
+}
+
+.forum-question-modal__dialog .forum__form {
+    margin: 0;
+    padding-top: calc(var(--size-base) + 2.5rem);
+}
+
+.forum-question-modal__close {
+    position: absolute;
+    top: var(--size-base);
+    right: var(--size-base);
+    width: 2.5rem;
+    height: 2.5rem;
+    border: none;
+    background: transparent;
+    color: var(--color-secondary);
+    cursor: pointer;
+}
+
+.forum-question-modal__close::before,
+.forum-question-modal__close::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.5rem;
+    height: 2px;
+    background-color: currentColor;
+    transform-origin: center;
+}
+
+.forum-question-modal__close::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.forum-question-modal__close::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.forum-question-modal__close:hover,
+.forum-question-modal__close:focus-visible {
+    color: var(--color-text);
+    outline: none;
+}
+
+@media (max-width: 640px) {
+    .forum-question-modal__dialog {
+        max-height: none;
+    }
 }
 
 .forum__submit {
@@ -316,7 +397,7 @@
 
 .forum-question-card__stat {
     display: grid;
-    gap: var(--size-xxs);
+    gap: var(--size-xs);
     min-width: 72px;
     text-align: center;
 }
@@ -364,7 +445,7 @@
 .forum-question-card__meta-item {
     display: inline-flex;
     align-items: center;
-    gap: var(--size-xxs);
+    gap: var(--size-xs);
 }
 
 .forum__pagination {

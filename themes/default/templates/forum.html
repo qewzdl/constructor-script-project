@@ -51,48 +51,81 @@
                 {{ end }}
             </dl>
             {{ if .IsAuthenticated }}
-            <a class="forum__cta" href="#forum-question-form">Ask a question</a>
+            <button
+                type="button"
+                class="forum__cta"
+                data-role="question-modal-open"
+                aria-haspopup="dialog"
+            >
+                Ask a question
+            </button>
             {{ else }}
             <a class="forum__cta forum__cta--ghost" href="{{ $loginURL }}">Sign in to ask</a>
             {{ end }}
         </div>
 
-        <div class="forum__alert" data-role="forum-alert" role="status" hidden></div>
-
         {{ if .IsAuthenticated }}
-        <form id="forum-question-form" class="forum__form" novalidate data-role="question-form">
-            <h2 class="forum__form-title">Start a new discussion</h2>
-            <p class="forum__form-hint">
-                Keep titles specific and include any context in the description so others can help quickly.
-            </p>
-            <label class="forum__label" for="forum-question-title">
-                Title
-                <input
-                    id="forum-question-title"
-                    class="forum__input"
-                    type="text"
-                    name="title"
-                    placeholder="What would you like to learn?"
-                    maxlength="160"
-                    required
-                />
-            </label>
-            <label class="forum__label" for="forum-question-content">
-                Description
-                <textarea
-                    id="forum-question-content"
-                    class="forum__textarea"
-                    name="content"
-                    rows="5"
-                    placeholder="Share background details, what you have tried, and what you are hoping to accomplish."
-                    required
-                ></textarea>
-            </label>
-            <div class="forum__form-actions">
-                <button type="submit" class="forum__submit">Post question</button>
-                <button type="reset" class="forum__reset">Clear</button>
+        <div
+            class="forum-question-modal"
+            data-role="question-modal"
+            hidden
+            aria-hidden="true"
+        >
+            <div
+                class="forum-question-modal__dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="forum-question-modal-title"
+            >
+                <button
+                    type="button"
+                    class="forum-question-modal__close"
+                    data-role="question-modal-close"
+                    aria-label="Close question form"
+                ></button>
+                <form
+                    id="forum-question-form"
+                    class="forum__form"
+                    novalidate
+                    data-role="question-form"
+                >
+                    <h2 class="forum__form-title" id="forum-question-modal-title">
+                        Start a new discussion
+                    </h2>
+                    <p class="forum__form-hint">
+                        Keep titles specific and include any context in the description so others can help quickly.
+                    </p>
+                    <div class="forum__alert" data-role="forum-alert" role="status" hidden></div>
+                    <label class="forum__label" for="forum-question-title">
+                        Title
+                        <input
+                            id="forum-question-title"
+                            class="forum__input"
+                            type="text"
+                            name="title"
+                            placeholder="What would you like to learn?"
+                            maxlength="160"
+                            required
+                        />
+                    </label>
+                    <label class="forum__label" for="forum-question-content">
+                        Description
+                        <textarea
+                            id="forum-question-content"
+                            class="forum__textarea"
+                            name="content"
+                            rows="5"
+                            placeholder="Share background details, what you have tried, and what you are hoping to accomplish."
+                            required
+                        ></textarea>
+                    </label>
+                    <div class="forum__form-actions">
+                        <button type="submit" class="forum__submit">Post question</button>
+                        <button type="reset" class="forum__reset">Clear</button>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
         {{ else }}
         <p class="forum__signin">
             Have a question to ask? <a href="{{ $loginURL }}">Sign in</a> or
