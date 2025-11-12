@@ -310,6 +310,7 @@
                 modal.classList.add("forum-question-modal--active");
             });
             document.body.classList.add("forum-question-modal-open");
+            document.documentElement.classList.add("forum-question-modal-open");
 
             const focusable = getFocusableElements();
             const preferredTarget = focusable.find((element) =>
@@ -345,6 +346,7 @@
             modal.classList.remove("forum-question-modal--active");
             modal.setAttribute("aria-hidden", "true");
             document.body.classList.remove("forum-question-modal-open");
+            document.documentElement.classList.remove("forum-question-modal-open");
 
             const handleTransitionEnd = (event) => {
                 if (event.target === modal) {
