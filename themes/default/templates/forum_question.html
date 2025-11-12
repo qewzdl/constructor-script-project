@@ -22,132 +22,134 @@
     data-endpoint-answer-vote="{{ . }}"
     {{- end }}
 >
-    <nav class="forum-question__nav" aria-label="Forum navigation">
-        <a class="forum-question__back" href="{{ $forumPath }}">← Back to all discussions</a>
-    </nav>
+    <div class="forum-question__container">
+        <nav class="forum-question__nav" aria-label="Forum navigation">
+            <a class="forum-question__back" href="{{ $forumPath }}">← Back to all discussions</a>
+        </nav>
 
-    <header class="forum-question__header">
-        <div class="forum-question__heading">
-            <h1 class="forum-question__title">{{ $question.Title }}</h1>
-            <div class="forum-question__meta">
-                {{ $author := trim $question.Author.Username }}
-                <span class="forum-question__meta-item">
-                    {{ if $author }}Asked by {{ $author }}{{ else }}Asked by Community member{{ end }}
-                </span>
-                <time
-                    class="forum-question__meta-item"
-                    datetime='{{ $question.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}'
-                >
-                    Posted on {{ $question.CreatedAt.Format "02 Jan 2006" }}
-                </time>
-                <span class="forum-question__meta-item" data-role="answer-count">
-                    {{ $answerCount }} {{ if eq $answerCount 1 }}answer{{ else }}answers{{ end }}
-                </span>
-                <span class="forum-question__meta-item">
-                    {{ $question.Views }} {{ if eq $question.Views 1 }}view{{ else }}views{{ end }}
-                </span>
-            </div>
-        </div>
-        <div class="forum-question__votes" data-role="question-votes">
-            <button
-                type="button"
-                class="forum-vote forum-vote--up"
-                data-role="question-vote"
-                data-value="1"
-                aria-label="Upvote this question"
-            ></button>
-            <output class="forum-vote__value" data-role="question-rating">{{ $question.Rating }}</output>
-            <button
-                type="button"
-                class="forum-vote forum-vote--down"
-                data-role="question-vote"
-                data-value="-1"
-                aria-label="Downvote this question"
-            ></button>
-        </div>
-    </header>
-
-    <article class="forum-question__body">
-        <div class="forum-question__content">{{ $question.Content }}</div>
-    </article>
-
-    <div class="forum-question__alert forum__alert" data-role="forum-alert" role="status" hidden></div>
-
-    <section class="forum-answers" aria-labelledby="forum-answers-title">
-        <div class="forum-answers__header">
-            <h2 id="forum-answers-title" class="forum-answers__title">Answers</h2>
-            <p class="forum-answers__subtitle">
-                Share your experience or offer guidance to help the original poster.
-            </p>
-        </div>
-        <p class="forum-answers__empty" data-role="answer-empty" {{ if gt (len $answers) 0 }}hidden{{ end }}>
-            No answers yet. Join the conversation with the first response.
-        </p>
-        <ol class="forum-answers__list" data-role="answer-list">
-            {{ range $answers }}
-            <li class="forum-answer" data-answer-id="{{ .ID }}">
-                <div class="forum-answer__votes">
-                    <button
-                        type="button"
-                        class="forum-vote forum-vote--up"
-                        data-role="answer-vote"
-                        data-value="1"
-                        aria-label="Upvote this answer"
-                    ></button>
-                    <output class="forum-vote__value" data-role="answer-rating">{{ .Rating }}</output>
-                    <button
-                        type="button"
-                        class="forum-vote forum-vote--down"
-                        data-role="answer-vote"
-                        data-value="-1"
-                        aria-label="Downvote this answer"
-                    ></button>
+        <header class="forum-question__header">
+            <div class="forum-question__heading">
+                <h1 class="forum-question__title">{{ $question.Title }}</h1>
+                <div class="forum-question__meta">
+                    {{ $author := trim $question.Author.Username }}
+                    <span class="forum-question__meta-item">
+                        {{ if $author }}Asked by {{ $author }}{{ else }}Asked by Community member{{ end }}
+                    </span>
+                    <time
+                        class="forum-question__meta-item"
+                        datetime='{{ $question.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}'
+                    >
+                        Posted on {{ $question.CreatedAt.Format "02 Jan 2006" }}
+                    </time>
+                    <span class="forum-question__meta-item" data-role="answer-count">
+                        {{ $answerCount }} {{ if eq $answerCount 1 }}answer{{ else }}answers{{ end }}
+                    </span>
+                    <span class="forum-question__meta-item">
+                        {{ $question.Views }} {{ if eq $question.Views 1 }}view{{ else }}views{{ end }}
+                    </span>
                 </div>
-                <article class="forum-answer__body">
-                    <header class="forum-answer__meta">
-                        {{ $answerAuthor := trim .Author.Username }}
-                        <span class="forum-answer__meta-item">
-                            {{ if $answerAuthor }}Answered by {{ $answerAuthor }}{{ else }}Community member{{ end }}
-                        </span>
-                        <time
-                            class="forum-answer__meta-item"
-                            datetime='{{ .CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}'
-                        >
-                            {{ .CreatedAt.Format "02 Jan 2006 15:04" }}
-                        </time>
-                    </header>
-                    <div class="forum-answer__content">{{ .Content }}</div>
-                </article>
-            </li>
-            {{ end }}
-        </ol>
-    </section>
+            </div>
+            <div class="forum-question__votes" data-role="question-votes">
+                <button
+                    type="button"
+                    class="forum-vote forum-vote--up"
+                    data-role="question-vote"
+                    data-value="1"
+                    aria-label="Upvote this question"
+                ></button>
+                <output class="forum-vote__value" data-role="question-rating">{{ $question.Rating }}</output>
+                <button
+                    type="button"
+                    class="forum-vote forum-vote--down"
+                    data-role="question-vote"
+                    data-value="-1"
+                    aria-label="Downvote this question"
+                ></button>
+            </div>
+        </header>
 
-    {{ if .IsAuthenticated }}
-    <form class="forum-answer-form" novalidate data-role="answer-form">
-        <h3 class="forum-answer-form__title">Share your answer</h3>
-        <p class="forum-answer-form__hint">
-            Provide as much detail as possible. Answers that include context or code snippets are most helpful.
+        <article class="forum-question__body">
+            <div class="forum-question__content">{{ $question.Content }}</div>
+        </article>
+
+        <div class="forum-question__alert forum__alert" data-role="forum-alert" role="status" hidden></div>
+
+        <section class="forum-answers" aria-labelledby="forum-answers-title">
+            <div class="forum-answers__header">
+                <h2 id="forum-answers-title" class="forum-answers__title">Answers</h2>
+                <p class="forum-answers__subtitle">
+                    Share your experience or offer guidance to help the original poster.
+                </p>
+            </div>
+            <p class="forum-answers__empty" data-role="answer-empty" {{ if gt (len $answers) 0 }}hidden{{ end }}>
+                No answers yet. Join the conversation with the first response.
+            </p>
+            <ol class="forum-answers__list" data-role="answer-list">
+                {{ range $answers }}
+                <li class="forum-answer" data-answer-id="{{ .ID }}">
+                    <div class="forum-answer__votes">
+                        <button
+                            type="button"
+                            class="forum-vote forum-vote--up"
+                            data-role="answer-vote"
+                            data-value="1"
+                            aria-label="Upvote this answer"
+                        ></button>
+                        <output class="forum-vote__value" data-role="answer-rating">{{ .Rating }}</output>
+                        <button
+                            type="button"
+                            class="forum-vote forum-vote--down"
+                            data-role="answer-vote"
+                            data-value="-1"
+                            aria-label="Downvote this answer"
+                        ></button>
+                    </div>
+                    <article class="forum-answer__body">
+                        <header class="forum-answer__meta">
+                            {{ $answerAuthor := trim .Author.Username }}
+                            <span class="forum-answer__meta-item">
+                                {{ if $answerAuthor }}Answered by {{ $answerAuthor }}{{ else }}Community member{{ end }}
+                            </span>
+                            <time
+                                class="forum-answer__meta-item"
+                                datetime='{{ .CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}'
+                            >
+                                {{ .CreatedAt.Format "02 Jan 2006 15:04" }}
+                            </time>
+                        </header>
+                        <div class="forum-answer__content">{{ .Content }}</div>
+                    </article>
+                </li>
+                {{ end }}
+            </ol>
+        </section>
+
+        {{ if .IsAuthenticated }}
+        <form class="forum-answer-form" novalidate data-role="answer-form">
+            <h3 class="forum-answer-form__title">Share your answer</h3>
+            <p class="forum-answer-form__hint">
+                Provide as much detail as possible. Answers that include context or code snippets are most helpful.
+            </p>
+            <label class="forum__label" for="forum-answer-content">
+                Your answer
+                <textarea
+                    id="forum-answer-content"
+                    class="forum__textarea"
+                    name="content"
+                    rows="5"
+                    data-role="answer-content"
+                    required
+                ></textarea>
+            </label>
+            <div class="forum-answer-form__actions">
+                <button type="submit" class="forum__submit">Post answer</button>
+            </div>
+        </form>
+        {{ else }}
+        <p class="forum-answer-form__signin">
+            Want to contribute? <a href="{{ .ForumLoginURL }}">Sign in</a> or
+            <a href="/register?redirect={{ urlquery $forumPath }}">create an account</a> to reply.
         </p>
-        <label class="forum__label" for="forum-answer-content">
-            Your answer
-            <textarea
-                id="forum-answer-content"
-                class="forum__textarea"
-                name="content"
-                rows="5"
-                data-role="answer-content"
-                required
-            ></textarea>
-        </label>
-        <div class="forum-answer-form__actions">
-            <button type="submit" class="forum__submit">Post answer</button>
-        </div>
-    </form>
-    {{ else }}
-    <p class="forum-answer-form__signin">
-        Want to contribute? <a href="{{ .ForumLoginURL }}">Sign in</a> or
-        <a href="/register?redirect={{ urlquery $forumPath }}">create an account</a> to reply.
-    </p>
-    {{ end }}
+        {{ end }}
+    </div>
 </section>
