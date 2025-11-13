@@ -37,6 +37,37 @@ func (h *DirectoryHandler) ensureService(c *gin.Context) bool {
 	return true
 }
 
+func parseTreeFlag(raw string) bool {
+	normalized := strings.TrimSpace(strings.ToLower(raw))
+	if normalized == "" {
+		return false
+	}
+
+	parts := strings.FieldsFunc(normalized, func(r rune) bool {
+		switch r {
+		case ':', ',', ';', '|':
+			return true
+		default:
+			return false
+		}
+	})
+
+	if len(parts) == 0 {
+		return false
+	}
+
+	normalized = parts[0]
+
+	switch normalized {
+	case "1", "true", "yes", "on", "y", "t":
+		return true
+	case "0", "false", "no", "off", "n", "f":
+		return false
+	default:
+		return false
+	}
+}
+
 func (h *DirectoryHandler) List(c *gin.Context) {
 	if !h.ensureService(c) {
 		return
@@ -44,7 +75,7 @@ func (h *DirectoryHandler) List(c *gin.Context) {
 
 	view := strings.TrimSpace(strings.ToLower(c.Query("view")))
 	treeFlag := c.Query("tree")
-	if view == "tree" || strings.EqualFold(treeFlag, "true") || treeFlag == "1" {
+	if view == "tree" || parseTreeFlag(treeFlag) {
 		directories, err := h.service.ListTree(true)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
