@@ -489,64 +489,6 @@ body.forum-question-modal-open {
     font-size: var(--font-size-sm);
 }
 
-@media (max-width: 1024px) {
-    .forum-table {
-        min-width: 640px;
-    }
-}
-
-@media (max-width: 860px) {
-    .forum-table {
-        min-width: 100%;
-    }
-
-    .forum-table__header {
-        display: none;
-    }
-
-    .forum-table__body {
-        display: grid;
-        gap: var(--size-base);
-    }
-
-    .forum-table__row {
-        display: grid;
-        gap: var(--size-sm);
-        border: 1px solid var(--color-border);
-        padding: var(--size-base);
-    }
-
-    .forum-table__cell {
-        padding: 0;
-        border: none;
-    }
-
-    .forum-table__cell::before {
-        content: attr(data-label);
-        display: block;
-        font-size: var(--font-size-xs);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--color-secondary);
-        margin-bottom: var(--size-min);
-    }
-
-    .forum-table__cell--question {
-        width: auto;
-        min-width: 0;
-    }
-
-    .forum-table__cell--numeric,
-    .forum-table__cell--category,
-    .forum-table__cell--updated {
-        text-align: left;
-    }
-
-    .forum-table__numeric {
-        font-size: var(--font-size-base);
-    }
-}
-
 .forum__pagination {
     justify-self: start;
 }
