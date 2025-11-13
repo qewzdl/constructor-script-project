@@ -392,6 +392,8 @@ func (a *Application) runMigrations() error {
 		&models.Post{},
 		&models.PostViewStat{},
 		&models.Page{},
+		&models.ArchiveDirectory{},
+		&models.ArchiveFile{},
 		&models.Tag{},
 		&models.Comment{},
 		&models.ForumCategory{},
