@@ -154,51 +154,118 @@
             <p class="forum__empty" data-role="forum-empty" {{ if gt (len $questions) 0 }}hidden{{ end }}>
                 No discussions yet. Be the first to ask a question.
             </p>
-            <ol class="forum__items" data-role="forum-list">
-                {{ range $questions }}
-                {{ $slug := .Slug }}
-                {{ if eq $slug "" }}
-                    {{ $slug = printf "%d" .ID }}
-                {{ end }}
-                {{ $answers := .AnswersCount }}
-                <li class="forum__item" data-question-id="{{ .ID }}" data-question-slug="{{ $slug }}">
-                    <a class="forum-question-card" href="/forum/{{ $slug }}">
-                        <div class="forum-question-card__stats">
-                            <div class="forum-question-card__stat">
-                                <span class="forum-question-card__stat-value">{{ .Rating }}</span>
-                                <span class="forum-question-card__stat-label">votes</span>
-                            </div>
-                            <div class="forum-question-card__stat">
-                                <span class="forum-question-card__stat-value">{{ $answers }}</span>
-                                <span class="forum-question-card__stat-label">answers</span>
-                            </div>
-                            <div class="forum-question-card__stat">
-                                <span class="forum-question-card__stat-value">{{ .Views }}</span>
-                                <span class="forum-question-card__stat-label">views</span>
-                            </div>
-                        </div>
-                        <div class="forum-question-card__body">
-                            <h2 class="forum-question-card__title">{{ .Title }}</h2>
-                            <p class="forum-question-card__excerpt">{{ truncate (trim .Content) 200 }}</p>
-                            <footer class="forum-question-card__meta">
+            <div
+                class="forum__table-wrapper"
+                data-role="forum-table-wrapper"
+                {{ if not (gt (len $questions) 0) }}hidden{{ end }}
+            >
+                <table class="forum-table">
+                    <caption class="visually-hidden">Community forum questions</caption>
+                    <thead class="forum-table__header">
+                        <tr>
+                            <th scope="col" class="forum-table__heading forum-table__heading--question">
+                                Question
+                            </th>
+                            <th scope="col" class="forum-table__heading forum-table__heading--category">
+                                Category
+                            </th>
+                            <th scope="col" class="forum-table__heading forum-table__heading--numeric">
+                                Votes
+                            </th>
+                            <th scope="col" class="forum-table__heading forum-table__heading--numeric">
+                                Answers
+                            </th>
+                            <th scope="col" class="forum-table__heading forum-table__heading--numeric">
+                                Views
+                            </th>
+                            <th scope="col" class="forum-table__heading forum-table__heading--updated">
+                                Updated
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="forum-table__body" data-role="forum-list">
+                        {{ range $questions }}
+                        {{ $slug := .Slug }}
+                        {{ if eq $slug "" }}
+                            {{ $slug = printf "%d" .ID }}
+                        {{ end }}
+                        {{ $answers := .AnswersCount }}
+                        {{ $author := trim .Author.Username }}
+                        {{ $updatedAt := .UpdatedAt }}
+                        <tr
+                            class="forum-table__row"
+                            data-question-id="{{ .ID }}"
+                            data-question-slug="{{ $slug }}"
+                        >
+                            <th
+                                scope="row"
+                                class="forum-table__cell forum-table__cell--question"
+                                data-label="Question"
+                            >
+                                <a class="forum-table__title" href="/forum/{{ $slug }}">{{ .Title }}</a>
+                                <p class="forum-table__excerpt">{{ truncate (trim .Content) 200 }}</p>
+                                <div class="forum-table__meta">
+                                    <span class="forum-table__meta-item">
+                                        {{ if $author }}Asked by {{ $author }}{{ else }}Asked by Community member{{ end }}
+                                    </span>
+                                    {{ with $updatedAt }}
+                                    <time
+                                        class="forum-table__meta-item"
+                                        datetime="{{ .Format "2006-01-02T15:04:05Z07:00" }}"
+                                    >
+                                        Updated {{ timeAgo . }}
+                                    </time>
+                                    {{ end }}
+                                </div>
+                            </th>
+                            <td
+                                class="forum-table__cell forum-table__cell--category"
+                                data-label="Category"
+                            >
                                 {{ with .Category }}
-                                <span class="forum-question-card__meta-item forum-question-card__meta-item--category">
-                                    {{ .Name }}
-                                </span>
+                                <span class="forum-table__category">{{ .Name }}</span>
+                                {{ else }}
+                                <span class="forum-table__category forum-table__category--empty">No category</span>
                                 {{ end }}
-                                {{ $author := trim .Author.Username }}
-                                <span class="forum-question-card__meta-item">
-                                    {{ if $author }}Asked by {{ $author }}{{ else }}Asked by Community member{{ end }}
-                                </span>
-                                <span class="forum-question-card__meta-item">
-                                    Updated {{ timeAgo .UpdatedAt }}
-                                </span>
-                            </footer>
-                        </div>
-                    </a>
-                </li>
-                {{ end }}
-            </ol>
+                            </td>
+                            <td
+                                class="forum-table__cell forum-table__cell--numeric"
+                                data-label="Votes"
+                            >
+                                <span class="forum-table__numeric">{{ .Rating }}</span>
+                            </td>
+                            <td
+                                class="forum-table__cell forum-table__cell--numeric"
+                                data-label="Answers"
+                            >
+                                <span class="forum-table__numeric">{{ $answers }}</span>
+                            </td>
+                            <td
+                                class="forum-table__cell forum-table__cell--numeric"
+                                data-label="Views"
+                            >
+                                <span class="forum-table__numeric">{{ .Views }}</span>
+                            </td>
+                            <td
+                                class="forum-table__cell forum-table__cell--updated"
+                                data-label="Updated"
+                            >
+                                {{ with $updatedAt }}
+                                <time
+                                    class="forum-table__updated"
+                                    datetime="{{ .Format "2006-01-02T15:04:05Z07:00" }}"
+                                >
+                                    {{ timeAgo . }}
+                                </time>
+                                {{ else }}
+                                <span class="forum-table__updated">—</span>
+                                {{ end }}
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         {{ with .Pagination }}

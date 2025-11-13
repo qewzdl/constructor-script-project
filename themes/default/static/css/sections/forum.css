@@ -354,24 +354,10 @@ body.forum-question-modal-open {
     outline: none;
 }
 
+
 .forum__list {
     display: grid;
     gap: var(--size-base);
-}
-
-.forum__items {
-    list-style: none;
-    display: grid;
-    margin: 0;
-    padding: 0;
-    background-color: var(--color-bg-bottom);
-    border-top: 1px solid var(--color-border);
-    border-bottom: none
-}
-
-.forum__item {
-    width: 100%;
-    min-width: 0; 
 }
 
 .forum__empty {
@@ -379,127 +365,189 @@ body.forum-question-modal-open {
     font-size: var(--font-size-base);
 }
 
-.forum__items
-
-.forum-question-card {
-    display: flex;
-    justify-content: space-between;
-    flex-direction: row-reverse;
-    gap: var(--size-base);
-    padding: var(--size-base);
-    border-bottom: 1px solid var(--color-border);
-    cursor: pointer;
-    color: inherit;
-    text-decoration: none;
-    box-sizing: border-box;
-    min-width: 0; 
+.forum__table-wrapper {
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-bg-bottom);
+    overflow-x: auto;
 }
 
-.forum-question-card__body {
-    min-width: 0;
-    flex: 1;
+.forum-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
 }
 
-.forum-question-card__title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    overflow-wrap: break-word;
-    white-space: normal;
+.forum-table__header {
+    background-color: var(--color-bg-top);
 }
 
-.forum-question-card:hover .forum-question-card__title,
-.forum-question-card:focus-within .forum-question-card__title {
-    color: var(--color-primary);
-}
-
-.forum-question-card__stats {
-    display: flex;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: var(--size-base);
-    height: fit-content;
-}
-
-.forum-question-card__stat {
-    display: grid;
-    text-align: center;
-}
-
-.forum-question-card__stat-value {
-    font-size: 1rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-}
-
-.forum-question-card__stat-label {
+.forum-table__heading {
+    text-align: left;
+    padding: var(--size-sm) var(--size-base);
     font-size: var(--font-size-xs);
-    color: var(--color-secondary);
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    color: var(--color-secondary);
+    border-bottom: 1px solid var(--color-border);
 }
 
-.forum-question-card__body {
-    overflow: hidden;
-    flex: 1;
+.forum-table__heading--numeric {
+    text-align: right;
 }
 
-.forum-question-card__body {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--size-sm);
+.forum-table__body {
+    background-color: var(--color-bg-bottom);
 }
 
-.forum-question-card__title {
-    font-size: 1.2rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    word-break: break-word;
+.forum-table__row {
+    transition: background-color 0.2s ease;
 }
 
-.forum-question-card__title a {
-    color: inherit;
+.forum-table__row:hover,
+.forum-table__row:focus-within {
+    background-color: color-mix(in srgb, var(--color-primary-transparent) 35%, transparent);
 }
 
-.forum-question-card__title a:hover,
-.forum-question-card__title a:focus-visible {
+.forum-table__cell {
+    padding: var(--size-base);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+    background-color: inherit;
+}
+
+.forum-table__cell--numeric {
+    text-align: right;
+}
+
+.forum-table__cell--question {
+    width: 38%;
+    min-width: 320px;
+}
+
+.forum-table__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-xs);
+    width: 100%;
+}
+
+.forum-table__title:hover,
+.forum-table__title:focus-visible {
     color: var(--color-primary);
     outline: none;
 }
 
-.forum-question-card__excerpt {
+.forum-table__excerpt {
+    margin-top: var(--size-xs);
     color: var(--color-secondary);
     line-height: 1.6;
-    overflow: hidden;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    word-break: break-word;
-    text-overflow: ellipsis;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    display: none;
+    width: 100%;
+    text-align: start;
+    font-size: var(--font-size-xs);
+    font-weight: 400;
 }
 
-.forum-question-card__meta {
+.forum-table__meta {
+    margin-top: var(--size-xs);
     display: flex;
     flex-wrap: wrap;
     gap: var(--size-xs);
     color: var(--color-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: 400;
+}
+
+.forum-table__meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-min);
+}
+
+.forum-table__category {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--size-xs) var(--size-sm);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-top);
+    border-radius: 999px;
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+.forum-table__category--empty {
+    padding: 0;
+    color: var(--color-secondary);
+    border-color: transparent;
+    background-color: transparent;
+}
+
+.forum-table__numeric {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.forum-table__updated {
+    color: var(--color-secondary);
     font-size: var(--font-size-sm);
 }
 
-.forum-question-card__meta-item {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--size-xs);
+@media (max-width: 1024px) {
+    .forum-table {
+        min-width: 640px;
+    }
 }
 
-@media (max-width: 790px) {
-    .forum-question-card {
-        flex-direction: column-reverse;
+@media (max-width: 860px) {
+    .forum-table {
+        min-width: 100%;
+    }
+
+    .forum-table__header {
+        display: none;
+    }
+
+    .forum-table__body {
+        display: grid;
+        gap: var(--size-base);
+    }
+
+    .forum-table__row {
+        display: grid;
+        gap: var(--size-sm);
+        border: 1px solid var(--color-border);
+        padding: var(--size-base);
+    }
+
+    .forum-table__cell {
+        padding: 0;
+        border: none;
+    }
+
+    .forum-table__cell::before {
+        content: attr(data-label);
+        display: block;
+        font-size: var(--font-size-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-secondary);
+        margin-bottom: var(--size-min);
+    }
+
+    .forum-table__cell--question {
+        width: auto;
+        min-width: 0;
+    }
+
+    .forum-table__cell--numeric,
+    .forum-table__cell--category,
+    .forum-table__cell--updated {
+        text-align: left;
+    }
+
+    .forum-table__numeric {
+        font-size: var(--font-size-base);
     }
 }
 
