@@ -130,13 +130,9 @@
                 {{- range $children }}
                 {{- $childName := trim (default "" .Name) -}}
                 {{- $childPath := trim (default "" .Path) -}}
-                {{- $childHref := "#" -}}
-                {{- if $childPath -}}
-                {{- $childHref = printf "/archive/%s" $childPath -}}
-                {{- end -}}
                 <li class="archive-directory__item">
                     <h3 class="archive-directory__item-title">
-                        <a class="archive-directory__item-link" href="{{ $childHref }}">
+                        <a class="archive-directory__item-link" href="{{- if $childPath -}}/archive/{{ $childPath }}{{- else -}}#{{- end }}">
                             {{- if $childName -}}
                             {{ $childName }}
                             {{- else -}}
