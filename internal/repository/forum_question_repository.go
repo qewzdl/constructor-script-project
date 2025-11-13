@@ -93,7 +93,7 @@ func (r *forumQuestionRepository) List(offset, limit int, search string, authorI
 	}
 
 	query := r.db.Model(&models.ForumQuestion{}).
-		Select("forum_questions.*, (SELECT COUNT(*) FROM forum_answers WHERE forum_answers.question_id = forum_questions.id) AS answers_count")
+		Select("forum_questions.*, (SELECT COUNT(*) FROM forum_answers WHERE forum_answers.question_id = forum_questions.id AND forum_answers.deleted_at IS NULL) AS answers_count")
 
 	cleanedSearch := strings.TrimSpace(search)
 	if cleanedSearch != "" {
