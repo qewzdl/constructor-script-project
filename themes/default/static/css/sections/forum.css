@@ -399,10 +399,6 @@ body.forum-question-modal-open {
     background-color: var(--color-bg-bottom);
 }
 
-.forum-table__row {
-    transition: background-color 0.2s ease;
-}
-
 .forum-table__row:hover,
 .forum-table__row:focus-within {
     background-color: color-mix(in srgb, var(--color-primary-transparent) 35%, transparent);
