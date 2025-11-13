@@ -4,6 +4,138 @@
     const INITIALIZED_ATTR = "data-custom-select-initialized";
     const states = new WeakMap();
     let idCounter = 0;
+    const DROPDOWN_OFFSET_REM = 0.35;
+    const SCROLLABLE_OVERFLOW_PATTERN = /(auto|scroll|overlay)/;
+
+    function remToPixels(remValue) {
+        const rootFontSize = parseFloat(window.getComputedStyle(document.documentElement).fontSize);
+        if (Number.isNaN(rootFontSize)) {
+            return remValue * 16;
+        }
+        return remValue * rootFontSize;
+    }
+
+    function getScrollableAncestors(element) {
+        const ancestors = [];
+        let current = element.parentElement;
+        while (current) {
+            const style = window.getComputedStyle(current);
+            const overflowY = style.overflowY || style.overflow;
+            const overflowX = style.overflowX || style.overflow;
+            if (
+                SCROLLABLE_OVERFLOW_PATTERN.test(overflowY) ||
+                SCROLLABLE_OVERFLOW_PATTERN.test(overflowX)
+            ) {
+                ancestors.push(current);
+            }
+            current = current.parentElement;
+        }
+        return ancestors;
+    }
+
+    function positionDropdown(state) {
+        if (!state.isOpen || !state.list || state.list.hidden) {
+            return;
+        }
+
+        const { trigger, list } = state;
+        const rect = trigger.getBoundingClientRect();
+        const viewportWidth = document.documentElement.clientWidth;
+        const viewportHeight = document.documentElement.clientHeight;
+        const offset = remToPixels(DROPDOWN_OFFSET_REM);
+
+        const computedStyle = window.getComputedStyle(list);
+        const computedMaxHeight = parseFloat(computedStyle.maxHeight) || viewportHeight;
+        const desiredHeight = Math.min(computedMaxHeight, list.scrollHeight || computedMaxHeight);
+
+        const availableBelow = Math.max(viewportHeight - rect.bottom - offset, 0);
+        const availableAbove = Math.max(rect.top - offset, 0);
+
+        let openAbove = false;
+        let maxHeight = Math.min(computedMaxHeight, availableBelow);
+        let placementHeight = Math.min(desiredHeight, Math.max(maxHeight, 0));
+        let top = rect.bottom + offset;
+
+        if (desiredHeight > availableBelow && availableAbove > availableBelow) {
+            openAbove = true;
+            maxHeight = Math.min(computedMaxHeight, availableAbove);
+            placementHeight = Math.min(desiredHeight, Math.max(maxHeight, 0));
+            top = rect.top - offset - placementHeight;
+        }
+
+        if (placementHeight <= 0) {
+            maxHeight = Math.min(computedMaxHeight, viewportHeight - offset * 2);
+            placementHeight = Math.min(desiredHeight || maxHeight, maxHeight);
+            top = Math.max(offset, (viewportHeight - placementHeight) / 2);
+        }
+
+        top = Math.max(0, Math.min(top, viewportHeight - placementHeight));
+
+        const effectiveWidth = Math.min(rect.width, viewportWidth);
+        let left = rect.left;
+        if (left + effectiveWidth > viewportWidth) {
+            left = Math.max(0, viewportWidth - effectiveWidth);
+        }
+        if (left < 0) {
+            left = 0;
+        }
+
+        list.style.top = `${top}px`;
+        list.style.left = `${left}px`;
+        list.style.right = "";
+        list.style.bottom = "";
+        list.style.width = `${effectiveWidth}px`;
+        list.style.minWidth = `${effectiveWidth}px`;
+        list.style.maxWidth = `${viewportWidth - left}px`;
+        list.style.maxHeight = `${Math.max(maxHeight, 0)}px`;
+        list.classList.toggle("custom-select__options--open-above", openAbove);
+    }
+
+    function bindDropdownPositioning(state) {
+        if (state.repositionHandler) {
+            return;
+        }
+
+        const handler = () => {
+            positionDropdown(state);
+        };
+
+        const scrollParents = Array.from(new Set(getScrollableAncestors(state.container)));
+        state.scrollParents = scrollParents.filter((node) => node !== window);
+        state.repositionHandler = handler;
+
+        state.scrollParents.forEach((node) => {
+            node.addEventListener("scroll", handler, { passive: true });
+        });
+        window.addEventListener("scroll", handler, { passive: true });
+        window.addEventListener("resize", handler);
+
+        if ("ResizeObserver" in window) {
+            state.resizeObserver = new window.ResizeObserver(handler);
+            state.resizeObserver.observe(state.trigger);
+            state.resizeObserver.observe(state.list);
+        }
+    }
+
+    function unbindDropdownPositioning(state) {
+        if (!state.repositionHandler) {
+            return;
+        }
+
+        state.scrollParents.forEach((node) => {
+            node.removeEventListener("scroll", state.repositionHandler);
+        });
+        window.removeEventListener("scroll", state.repositionHandler);
+        window.removeEventListener("resize", state.repositionHandler);
+
+        if (state.resizeObserver) {
+            state.resizeObserver.disconnect();
+            state.resizeObserver = null;
+        }
+
+        state.scrollParents = [];
+        state.repositionHandler = null;
+    }
 
     function uniqueId(prefix = "custom-select") {
         idCounter += 1;
@@ -151,6 +283,12 @@
         });
 
         updateSelection(state, { shouldSetActive: true });
+
+        if (state.isOpen) {
+            window.requestAnimationFrame(() => {
+                positionDropdown(state);
+            });
+        }
     }
 
     function openSelect(state) {
@@ -161,10 +299,15 @@
         state.container.classList.add("is-open");
         state.trigger.setAttribute("aria-expanded", "true");
         state.list.hidden = false;
+        bindDropdownPositioning(state);
+        positionDropdown(state);
         state.list.focus({ preventScroll: true });
         if (state.activeIndex >= 0) {
             setActiveIndex(state, state.activeIndex);
         }
+        window.requestAnimationFrame(() => {
+            positionDropdown(state);
+        });
     }
 
     function closeSelect(state, focusTrigger = true) {
@@ -174,7 +317,17 @@
         state.isOpen = false;
         state.container.classList.remove("is-open");
         state.trigger.setAttribute("aria-expanded", "false");
+        unbindDropdownPositioning(state);
         state.list.hidden = true;
+        state.list.classList.remove("custom-select__options--open-above");
+        state.list.style.top = "";
+        state.list.style.left = "";
+        state.list.style.right = "";
+        state.list.style.bottom = "";
+        state.list.style.width = "";
+        state.list.style.minWidth = "";
+        state.list.style.maxWidth = "";
+        state.list.style.maxHeight = "";
         if (focusTrigger) {
             state.trigger.focus();
         }
@@ -350,7 +503,7 @@
         }
         container.appendChild(select);
         container.appendChild(trigger);
-        container.appendChild(list);
+        document.body.appendChild(list);
 
         select.classList.forEach((className) => {
             if (className && className !== "custom-select__native") {
@@ -368,6 +521,9 @@
             optionElements: [],
             activeIndex: -1,
             isOpen: false,
+            scrollParents: [],
+            repositionHandler: null,
+            resizeObserver: null,
         };
 
         states.set(select, state);
@@ -410,7 +566,10 @@
         }
 
         const documentClickHandler = (event) => {
-            if (!container.contains(event.target)) {
+            if (
+                !container.contains(event.target) &&
+                !state.list.contains(event.target)
+            ) {
                 closeSelect(state, false);
             }
         };
@@ -451,6 +610,10 @@
         state.cleanup = () => {
             document.removeEventListener("click", documentClickHandler);
             observer.disconnect();
+            unbindDropdownPositioning(state);
+            if (state.list.parentNode) {
+                state.list.parentNode.removeChild(state.list);
+            }
         };
     }
 
