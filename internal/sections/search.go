@@ -101,5 +101,5 @@ func renderSearch(ctx RenderContext, prefix string, elem models.SectionElement) 
 		return "", nil
 	}
 
-	return buf.String(), []string{"/static/js/search.js"}
+        return buf.String(), nil
 }

@@ -609,9 +609,8 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 		"HasQuery":    hasQuery,
 		"Result":      result,
 		"SearchQuery": query,
-		"Scripts":     []string{"/static/js/search.js"},
-		"NoIndex":     true,
-	}
+                "NoIndex":     true,
+        }
 
 	if result != nil {
 		data["Total"] = result.Total
