@@ -12,6 +12,9 @@ import (
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/cache"
+	archiveapi "constructor-script-backend/plugins/archive/api"
+	archivehandlers "constructor-script-backend/plugins/archive/handlers"
+	archiveservice "constructor-script-backend/plugins/archive/service"
 	blogapi "constructor-script-backend/plugins/blog/api"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogservice "constructor-script-backend/plugins/blog/service"
@@ -354,6 +357,20 @@ func (r applicationRepositoryAccess) ForumQuestionVote() repository.ForumQuestio
 		return nil
 	}
 	return r.app.repositories.ForumQuestionVote
+}
+
+func (r applicationRepositoryAccess) ArchiveDirectory() repository.ArchiveDirectoryRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.ArchiveDirectory
+}
+
+func (r applicationRepositoryAccess) ArchiveFile() repository.ArchiveFileRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.ArchiveFile
 }
 
 func (r applicationRepositoryAccess) ForumAnswerVote() repository.ForumAnswerVoteRepository {
@@ -715,6 +732,54 @@ func (a *Application) registerPluginServiceBindings() {
 			}
 		},
 	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		archiveapi.Namespace,
+		archiveapi.ServiceDirectory,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.ArchiveDirectory
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.ArchiveDirectory = nil
+				return
+			}
+			if svc, ok := value.(*archiveservice.DirectoryService); ok {
+				a.services.ArchiveDirectory = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		archiveapi.Namespace,
+		archiveapi.ServiceFile,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.ArchiveFile
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.ArchiveFile = nil
+				return
+			}
+			if svc, ok := value.(*archiveservice.FileService); ok {
+				a.services.ArchiveFile = svc
+			}
+		},
+	)
 }
 
 // registerPluginHandlerBindings configures handler registry adapters for built-in plugins.
@@ -1003,6 +1068,78 @@ func (a *Application) registerPluginHandlerBindings() {
 			}
 			if handler, ok := value.(*coursehandlers.CheckoutHandler); ok {
 				a.handlers.CourseCheckout = handler
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindHandlers,
+		archiveapi.Namespace,
+		archiveapi.HandlerDirectory,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.ArchiveDirectory
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.ArchiveDirectory = nil
+				return
+			}
+			if handler, ok := value.(*archivehandlers.DirectoryHandler); ok {
+				a.handlers.ArchiveDirectory = handler
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindHandlers,
+		archiveapi.Namespace,
+		archiveapi.HandlerFile,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.ArchiveFile
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.ArchiveFile = nil
+				return
+			}
+			if handler, ok := value.(*archivehandlers.FileHandler); ok {
+				a.handlers.ArchiveFile = handler
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindHandlers,
+		archiveapi.Namespace,
+		archiveapi.HandlerPublic,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.ArchivePublic
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.ArchivePublic = nil
+				return
+			}
+			if handler, ok := value.(*archivehandlers.PublicHandler); ok {
+				a.handlers.ArchivePublic = handler
 			}
 		},
 	)

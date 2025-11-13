@@ -71,6 +71,19 @@
             Boolean(context?.dataset?.endpointCoursesVideos),
     });
 
+    registerQuickAction({
+        id: 'quick-create-archive-directory',
+        label: 'Create archive directory',
+        navTarget: 'archive',
+        panelAction: 'archive-directory-reset',
+        order: 35,
+        shouldRender: (context) =>
+            Boolean(
+                context?.archiveEnabled &&
+                    context?.dataset?.endpointArchiveDirectories
+            ),
+    });
+
     registerPanelMarkup({
         id: 'metrics',
         order: 0,
@@ -2034,6 +2047,216 @@
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'archive',
+        order: 40,
+        shouldRender: (context) =>
+            Boolean(
+                context?.archiveEnabled &&
+                    context?.dataset?.endpointArchiveDirectories
+            ),
+        markup: String.raw`
+<section
+        id="admin-panel-archive"
+        class="admin-panel"
+        data-panel="archive"
+        data-nav-group="content"
+        data-nav-group-label="Content"
+        data-nav-group-order="1"
+        data-nav-label="Archive"
+        data-nav-order="4"
+        role="tabpanel"
+        aria-labelledby="admin-tab-archive"
+        hidden
+    >
+        <header class="admin-panel__header">
+            <div>
+                <h2 class="admin-panel__title">Resource archive</h2>
+                <p class="admin-panel__description">
+                    Organize directories and files that appear in the public archive. Update structure, descriptions, and download links.
+                </p>
+            </div>
+        </header>
+        <div class="admin-panel__body admin-panel__body--stacked">
+            <section
+                class="admin-card admin__section"
+                id="admin-archive-directories-section"
+                aria-labelledby="admin-archive-directories-title"
+                data-nav-child-of="archive"
+                data-nav-child-label="Directories"
+                data-nav-child-order="1"
+            >
+                <header class="admin-card__header">
+                    <div>
+                        <h3 id="admin-archive-directories-title" class="admin-card__title">Directories</h3>
+                        <p class="admin-card__description">
+                            Build the directory tree and control visibility for each section of the archive.
+                        </p>
+                    </div>
+                    <div class="admin-panel__actions">
+                        <button type="button" class="admin-panel__reset" data-action="archive-directory-reset">
+                            New directory
+                        </button>
+                    </div>
+                </header>
+                <div class="admin-card__body">
+                    <div class="admin-panel__body admin-panel__body--split">
+                        <div class="admin-panel__list admin-archive__tree" data-role="archive-directory-tree">
+                            <p class="admin-card__description" data-role="archive-directory-empty">
+                                Create a directory to start building your archive structure.
+                            </p>
+                            <ul class="admin-archive__list" data-role="archive-directory-list"></ul>
+                        </div>
+                        <div class="admin-panel__details">
+                            <form id="admin-archive-directory-form" class="admin-form" novalidate>
+                                <fieldset class="admin-card admin-form__fieldset">
+                                    <legend class="admin-card__title admin-form__legend">Directory details</legend>
+                                    <p class="admin-card__description admin-form__hint" data-role="archive-directory-status" hidden></p>
+                                    <label class="admin-form__label">
+                                        Name
+                                        <input type="text" name="name" required class="admin-form__input" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Slug
+                                        <input type="text" name="slug" class="admin-form__input" placeholder="Auto-generated if left blank" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Parent directory
+                                        <select name="parent_id" class="admin-form__input" data-role="archive-directory-parent"></select>
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Description
+                                        <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Display order
+                                        <input type="number" name="order" class="admin-form__input" inputmode="numeric" />
+                                    </label>
+                                    <label class="admin-form__checkbox checkbox">
+                                        <input type="checkbox" name="published" value="true" checked />
+                                        <span class="checkbox__label">Published</span>
+                                    </label>
+                                    <div class="admin-form__actions">
+                                        <button type="submit" class="admin-form__submit" data-role="archive-directory-submit">
+                                            Save directory
+                                        </button>
+                                        <button type="button" class="admin-form__delete" data-role="archive-directory-delete" hidden>
+                                            Delete directory
+                                        </button>
+                                    </div>
+                                </fieldset>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section
+                class="admin-card admin__section"
+                id="admin-archive-files-section"
+                aria-labelledby="admin-archive-files-title"
+                data-nav-child-of="archive"
+                data-nav-child-label="Files"
+                data-nav-child-order="2"
+            >
+                <header class="admin-card__header">
+                    <div>
+                        <h3 id="admin-archive-files-title" class="admin-card__title">Files</h3>
+                        <p class="admin-card__description">
+                            Upload or link files within the selected directory. Provide friendly names and optional preview URLs.
+                        </p>
+                    </div>
+                    <div class="admin-panel__actions">
+                        <button type="button" class="admin-panel__reset" data-action="archive-file-reset">
+                            New file
+                        </button>
+                    </div>
+                </header>
+                <div class="admin-card__body">
+                    <div class="admin-panel__body admin-panel__body--split">
+                        <div class="admin-panel__list" aria-live="polite">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">File</th>
+                                        <th scope="col">Type</th>
+                                        <th scope="col">Updated</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-archive-files-table">
+                                    <tr class="admin-table__placeholder">
+                                        <td colspan="3">Select a directory to view files.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="admin-panel__details">
+                            <form id="admin-archive-file-form" class="admin-form" novalidate>
+                                <fieldset class="admin-card admin-form__fieldset">
+                                    <legend class="admin-card__title admin-form__legend">File details</legend>
+                                    <p class="admin-card__description admin-form__hint" data-role="archive-file-status" hidden></p>
+                                    <label class="admin-form__label">
+                                        Name
+                                        <input type="text" name="name" required class="admin-form__input" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Slug
+                                        <input type="text" name="slug" class="admin-form__input" placeholder="Auto-generated if left blank" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Directory
+                                        <select name="directory_id" class="admin-form__input" data-role="archive-file-directory" required></select>
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Description
+                                        <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                                    </label>
+                                    <label class="admin-form__label">
+                                        File URL
+                                        <input type="url" name="file_url" required class="admin-form__input" placeholder="https://example.com/file.pdf" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Preview URL
+                                        <input type="url" name="preview_url" class="admin-form__input" placeholder="Optional preview link" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        MIME type
+                                        <input type="text" name="mime_type" class="admin-form__input" placeholder="application/pdf" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        File type
+                                        <input type="text" name="file_type" class="admin-form__input" placeholder="Document, image, video…" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        File size (bytes)
+                                        <input type="number" name="file_size" class="admin-form__input" inputmode="numeric" min="0" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Display order
+                                        <input type="number" name="order" class="admin-form__input" inputmode="numeric" />
+                                    </label>
+                                    <label class="admin-form__checkbox checkbox">
+                                        <input type="checkbox" name="published" value="true" checked />
+                                        <span class="checkbox__label">Published</span>
+                                    </label>
+                                    <div class="admin-form__actions">
+                                        <button type="submit" class="admin-form__submit" data-role="archive-file-submit">
+                                            Save file
+                                        </button>
+                                        <button type="button" class="admin-form__delete" data-role="archive-file-delete" hidden>
+                                            Delete file
+                                        </button>
+                                    </div>
+                                </fieldset>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </section>

@@ -54,6 +54,8 @@ type RepositoryAccess interface {
 	ForumAnswer() repository.ForumAnswerRepository
 	ForumQuestionVote() repository.ForumQuestionVoteRepository
 	ForumAnswerVote() repository.ForumAnswerVoteRepository
+	ArchiveDirectory() repository.ArchiveDirectoryRepository
+	ArchiveFile() repository.ArchiveFileRepository
 }
 
 type CoreServiceAccess interface {

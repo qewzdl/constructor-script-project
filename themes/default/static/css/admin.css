@@ -3943,3 +3943,102 @@
 .admin-course-test-option__correct .checkbox__label {
     font-size: var(--font-size-sm);
 }
+
+.admin-archive__tree {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-top);
+    padding: var(--size-base);
+    max-height: 28rem;
+    overflow-y: auto;
+    display: grid;
+    gap: var(--size-xs);
+}
+
+.admin-archive__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+}
+
+.admin-archive__item > .admin-archive__list {
+    margin-top: 0.25rem;
+    padding-left: var(--size-base);
+    border-left: 1px solid color-mix(
+        in srgb,
+        var(--color-border) 70%,
+        transparent
+    );
+}
+
+.admin-archive__directory {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-xs);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    color: var(--color-secondary);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-archive__directory:hover,
+.admin-archive__directory:focus-visible {
+    outline: none;
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 60%,
+        transparent
+    );
+}
+
+.admin-archive__directory.is-active {
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 80%,
+        var(--color-bg-top)
+    );
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.admin-archive__directory.is-unpublished::after {
+    content: ' • Hidden';
+    color: var(--color-secondary);
+    font-weight: 400;
+}
+
+.admin-archive__file-row {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.admin-archive__file-row:hover,
+.admin-archive__file-row:focus-within {
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 60%,
+        var(--color-bg-top)
+    );
+}
+
+.admin-archive__file-row.is-active {
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 80%,
+        var(--color-bg-top)
+    );
+}
+
+.admin-form.is-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}

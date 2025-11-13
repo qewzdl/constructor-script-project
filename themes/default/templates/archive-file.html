@@ -1,0 +1,91 @@
+{{- $file := .File -}}
+{{- $directory := .Directory -}}
+{{- $breadcrumbs := .Breadcrumbs -}}
+
+<section class="archive-file" data-archive="file">
+    <nav class="archive-breadcrumbs" aria-label="Breadcrumb">
+        <ol class="archive-breadcrumbs__list">
+            <li class="archive-breadcrumbs__item">
+                <a class="archive-breadcrumbs__link" href="/archive">Archive</a>
+            </li>
+            {{- $crumbCount := len $breadcrumbs -}}
+            {{- if gt $crumbCount 0 -}}
+            {{- $lastIndex := sub $crumbCount 1 -}}
+            {{- range $index, $crumb := $breadcrumbs -}}
+            {{- $crumbName := trim (default "" $crumb.Name) -}}
+            {{- $crumbPath := trim (default "" $crumb.Path) -}}
+            <li class="archive-breadcrumbs__item">
+                <span aria-hidden="true">›</span>
+                {{- if eq $index $lastIndex -}}
+                <span aria-current="page">{{ if $crumbName }}{{ $crumbName }}{{ else if $crumbPath }}{{ $crumbPath }}{{ else }}Selected file{{ end }}</span>
+                {{- else if $crumbPath -}}
+                <a class="archive-breadcrumbs__link" href="/archive/{{ $crumbPath }}">{{ if $crumbName }}{{ $crumbName }}{{ else }}{{ $crumbPath }}{{ end }}</a>
+                {{- else -}}
+                <span>{{ if $crumbName }}{{ $crumbName }}{{ else }}Directory{{ end }}</span>
+                {{- end -}}
+            </li>
+            {{- end -}}
+            {{- end -}}
+        </ol>
+    </nav>
+
+    <header class="archive-file__header">
+        <h1 class="archive-file__title">{{ trim (default "Archive file" $file.Name) }}</h1>
+        {{- with trim $file.Description }}
+        <p class="archive-file__description">{{ . }}</p>
+        {{- end }}
+    </header>
+
+    <div class="archive-directory__file-actions">
+        {{- with trim (default "" $file.FileURL) }}
+        <a class="archive-button" href="{{ . }}" target="_blank" rel="noopener">Download file</a>
+        {{- end }}
+        {{- with trim (default "" $directory.Path) }}
+        <a class="archive-button archive-button--ghost" href="/archive/{{ . }}">Back to {{ trim (default "directory" $directory.Name) }}</a>
+        {{- end }}
+    </div>
+
+    <div class="archive-file__meta">
+        {{- with trim (default "" $directory.Path) }}
+        <div class="archive-file__meta-item">
+            <span class="archive-file__meta-label">Directory</span>
+            <span><a class="archive-directory__item-link" href="/archive/{{ . }}">{{ trim (default "View directory" $directory.Name) }}</a></span>
+        </div>
+        {{- end }}
+        <div class="archive-file__meta-item">
+            <span class="archive-file__meta-label">File type</span>
+            <span>
+                {{- with trim $file.FileType -}}
+                {{ . }}
+                {{- else if trim $file.MimeType -}}
+                {{ trim $file.MimeType }}
+                {{- else -}}
+                Not specified
+                {{- end -}}
+            </span>
+        </div>
+        <div class="archive-file__meta-item">
+            <span class="archive-file__meta-label">Size</span>
+            <span>{{ if $file.FileSize }}{{ $file.FileSize }} bytes{{ else }}Not specified{{ end }}</span>
+        </div>
+        <div class="archive-file__meta-item">
+            <span class="archive-file__meta-label">Updated</span>
+            <span>{{ formatDate $file.UpdatedAt "medium" }}</span>
+        </div>
+    </div>
+
+    <section class="archive-file__preview" aria-labelledby="archive-file-preview-title">
+        <h2 id="archive-file-preview-title" class="archive-directory__panel-title">Preview</h2>
+        {{- with trim (default "" $file.PreviewURL) }}
+        <iframe
+            class="archive-file__iframe"
+            src="{{ . }}"
+            title="Preview of {{ trim (default "file" $file.Name) }}"
+            loading="lazy"
+        ></iframe>
+        <p class="archive-file__preview-hint">If the preview does not load, use the download button above to access the file.</p>
+        {{- else }}
+        <p class="archive-file__preview-hint">A live preview is not available for this file. Use the download link above to view the original.</p>
+        {{- end }}
+    </section>
+</section>

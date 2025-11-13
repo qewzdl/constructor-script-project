@@ -1,0 +1,8 @@
+{
+  "name": "Archive",
+  "slug": "archive",
+  "version": "1.0.0",
+  "description": "Provides managed directory and file browsing for public archives.",
+  "author": "Constructor Script",
+  "homepage": "https://constructor-script.example.com"
+}

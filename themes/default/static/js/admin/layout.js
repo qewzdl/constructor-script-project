@@ -190,6 +190,9 @@
             forumEnabled:
                 rootElement.dataset.forumEnabled !== 'false' &&
                 rootElement.dataset.forumEnabled !== undefined,
+            archiveEnabled:
+                rootElement.dataset.archiveEnabled !== 'false' &&
+                rootElement.dataset.archiveEnabled !== undefined,
             languageFeatureEnabled:
                 rootElement.dataset.languageFeatureEnabled !== 'false' &&
                 rootElement.dataset.languageFeatureEnabled !== undefined,

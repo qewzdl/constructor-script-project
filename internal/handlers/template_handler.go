@@ -13,6 +13,7 @@ import (
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
+	archiveservice "constructor-script-backend/plugins/archive/service"
 	blogservice "constructor-script-backend/plugins/blog/service"
 	courseservice "constructor-script-backend/plugins/courses/service"
 	forumservice "constructor-script-backend/plugins/forum/service"
@@ -23,31 +24,33 @@ import (
 )
 
 type TemplateHandler struct {
-	postService        *blogservice.PostService
-	categoryService    *blogservice.CategoryService
-	pageService        *service.PageService
-	authService        *service.AuthService
-	commentService     *blogservice.CommentService
-	searchService      *blogservice.SearchService
-	setupService       *service.SetupService
-	homepageService    *service.HomepageService
-	languageService    *languageservice.LanguageService
-	socialLinkService  *service.SocialLinkService
-	menuService        *service.MenuService
-	advertisingService *service.AdvertisingService
-	coursePackageSvc   *courseservice.PackageService
-	courseCheckoutSvc  *courseservice.CheckoutService
-	forumQuestionSvc   *forumservice.QuestionService
-	forumAnswerSvc     *forumservice.AnswerService
-	forumCategorySvc   *forumservice.CategoryService
-	fontService        *service.FontService
-	templates          *template.Template
-	templatesMu        sync.RWMutex
-	currentTheme       string
-	themeManager       *theme.Manager
-	config             *config.Config
-	sanitizer          *bluemonday.Policy
-	sectionRegistry    *sections.Registry
+	postService         *blogservice.PostService
+	categoryService     *blogservice.CategoryService
+	pageService         *service.PageService
+	authService         *service.AuthService
+	commentService      *blogservice.CommentService
+	searchService       *blogservice.SearchService
+	setupService        *service.SetupService
+	homepageService     *service.HomepageService
+	languageService     *languageservice.LanguageService
+	socialLinkService   *service.SocialLinkService
+	menuService         *service.MenuService
+	advertisingService  *service.AdvertisingService
+	coursePackageSvc    *courseservice.PackageService
+	courseCheckoutSvc   *courseservice.CheckoutService
+	forumQuestionSvc    *forumservice.QuestionService
+	forumAnswerSvc      *forumservice.AnswerService
+	forumCategorySvc    *forumservice.CategoryService
+	archiveDirectorySvc *archiveservice.DirectoryService
+	archiveFileSvc      *archiveservice.FileService
+	fontService         *service.FontService
+	templates           *template.Template
+	templatesMu         sync.RWMutex
+	currentTheme        string
+	themeManager        *theme.Manager
+	config              *config.Config
+	sanitizer           *bluemonday.Policy
+	sectionRegistry     *sections.Registry
 }
 
 func NewTemplateHandler(
@@ -69,6 +72,8 @@ func NewTemplateHandler(
 	forumQuestionService *forumservice.QuestionService,
 	forumAnswerService *forumservice.AnswerService,
 	forumCategoryService *forumservice.CategoryService,
+	archiveDirectoryService *archiveservice.DirectoryService,
+	archiveFileService *archiveservice.FileService,
 	cfg *config.Config,
 	themeManager *theme.Manager,
 ) (*TemplateHandler, error) {
@@ -77,27 +82,29 @@ func NewTemplateHandler(
 	policy.AllowAttrs("style").OnElements("span", "div", "p")
 
 	handler := &TemplateHandler{
-		postService:        postService,
-		categoryService:    categoryService,
-		pageService:        pageService,
-		authService:        authService,
-		commentService:     commentService,
-		searchService:      searchService,
-		setupService:       setupService,
-		languageService:    languageService,
-		homepageService:    homepageService,
-		socialLinkService:  socialLinkService,
-		menuService:        menuService,
-		fontService:        fontService,
-		advertisingService: advertisingService,
-		coursePackageSvc:   coursePackageService,
-		courseCheckoutSvc:  courseCheckoutService,
-		forumQuestionSvc:   forumQuestionService,
-		forumAnswerSvc:     forumAnswerService,
-		forumCategorySvc:   forumCategoryService,
-		themeManager:       themeManager,
-		config:             cfg,
-		sanitizer:          policy,
+		postService:         postService,
+		categoryService:     categoryService,
+		pageService:         pageService,
+		authService:         authService,
+		commentService:      commentService,
+		searchService:       searchService,
+		setupService:        setupService,
+		languageService:     languageService,
+		homepageService:     homepageService,
+		socialLinkService:   socialLinkService,
+		menuService:         menuService,
+		fontService:         fontService,
+		advertisingService:  advertisingService,
+		coursePackageSvc:    coursePackageService,
+		courseCheckoutSvc:   courseCheckoutService,
+		forumQuestionSvc:    forumQuestionService,
+		forumAnswerSvc:      forumAnswerService,
+		forumCategorySvc:    forumCategoryService,
+		archiveDirectorySvc: archiveDirectoryService,
+		archiveFileSvc:      archiveFileService,
+		themeManager:        themeManager,
+		config:              cfg,
+		sanitizer:           policy,
 	}
 
 	handler.sectionRegistry = sections.DefaultRegistry()
@@ -160,6 +167,15 @@ func (h *TemplateHandler) SetForumServices(questionService *forumservice.Questio
 	h.forumCategorySvc = categoryService
 }
 
+// SetArchiveServices updates the archive directory and file services used by the template handler.
+func (h *TemplateHandler) SetArchiveServices(directoryService *archiveservice.DirectoryService, fileService *archiveservice.FileService) {
+	if h == nil {
+		return
+	}
+	h.archiveDirectorySvc = directoryService
+	h.archiveFileSvc = fileService
+}
+
 func (h *TemplateHandler) blogEnabled() bool {
 	return h != nil && h.postService != nil
 }
@@ -176,6 +192,10 @@ func (h *TemplateHandler) forumEnabled() bool {
 	return h != nil && h.forumQuestionSvc != nil
 }
 
+func (h *TemplateHandler) archiveEnabled() bool {
+	return h != nil && h.archiveDirectorySvc != nil && h.archiveFileSvc != nil
+}
+
 func (h *TemplateHandler) ensureBlogAvailable(c *gin.Context) bool {
 	if h == nil || h.postService == nil {
 		if c != nil {
@@ -190,6 +210,16 @@ func (h *TemplateHandler) ensureForumAvailable(c *gin.Context) bool {
 	if h == nil || h.forumQuestionSvc == nil {
 		if c != nil {
 			h.renderError(c, http.StatusServiceUnavailable, "Forum unavailable", "The forum plugin is not active.")
+		}
+		return false
+	}
+	return true
+}
+
+func (h *TemplateHandler) ensureArchiveAvailable(c *gin.Context) bool {
+	if h == nil || h.archiveDirectorySvc == nil || h.archiveFileSvc == nil {
+		if c != nil {
+			h.renderError(c, http.StatusServiceUnavailable, "Archive unavailable", "The archive plugin is not active.")
 		}
 		return false
 	}

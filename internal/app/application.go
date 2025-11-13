@@ -35,6 +35,8 @@ import (
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/utils"
+	archivehandlers "constructor-script-backend/plugins/archive/handlers"
+	archiveservice "constructor-script-backend/plugins/archive/service"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
 	blogservice "constructor-script-backend/plugins/blog/service"
 	coursehandlers "constructor-script-backend/plugins/courses/handlers"
@@ -92,63 +94,70 @@ type repositoryContainer struct {
 	ForumQuestion       repository.ForumQuestionRepository
 	ForumAnswer         repository.ForumAnswerRepository
 	ForumQuestionVote   repository.ForumQuestionVoteRepository
+	ArchiveDirectory    repository.ArchiveDirectoryRepository
+	ArchiveFile         repository.ArchiveFileRepository
 	ForumAnswerVote     repository.ForumAnswerVoteRepository
 }
 
 type serviceContainer struct {
-	Auth           *service.AuthService
-	Category       *blogservice.CategoryService
-	Post           *blogservice.PostService
-	Comment        *blogservice.CommentService
-	Search         *blogservice.SearchService
-	Upload         *service.UploadService
-	Backup         *service.BackupService
-	Page           *service.PageService
-	Setup          *service.SetupService
-	Language       *languageservice.LanguageService
-	Homepage       *service.HomepageService
-	SocialLink     *service.SocialLinkService
-	Menu           *service.MenuService
-	Theme          *service.ThemeService
-	Advertising    *service.AdvertisingService
-	Plugin         *service.PluginService
-	Font           *service.FontService
-	CourseVideo    *courseservice.VideoService
-	CourseTopic    *courseservice.TopicService
-	CoursePackage  *courseservice.PackageService
-	CourseTest     *courseservice.TestService
-	CourseCheckout *courseservice.CheckoutService
-	ForumCategory  *forumservice.CategoryService
-	ForumQuestion  *forumservice.QuestionService
-	ForumAnswer    *forumservice.AnswerService
+	Auth             *service.AuthService
+	Category         *blogservice.CategoryService
+	Post             *blogservice.PostService
+	Comment          *blogservice.CommentService
+	Search           *blogservice.SearchService
+	Upload           *service.UploadService
+	Backup           *service.BackupService
+	Page             *service.PageService
+	Setup            *service.SetupService
+	Language         *languageservice.LanguageService
+	Homepage         *service.HomepageService
+	SocialLink       *service.SocialLinkService
+	Menu             *service.MenuService
+	Theme            *service.ThemeService
+	Advertising      *service.AdvertisingService
+	Plugin           *service.PluginService
+	Font             *service.FontService
+	CourseVideo      *courseservice.VideoService
+	CourseTopic      *courseservice.TopicService
+	CoursePackage    *courseservice.PackageService
+	CourseTest       *courseservice.TestService
+	CourseCheckout   *courseservice.CheckoutService
+	ForumCategory    *forumservice.CategoryService
+	ForumQuestion    *forumservice.QuestionService
+	ArchiveDirectory *archiveservice.DirectoryService
+	ArchiveFile      *archiveservice.FileService
+	ForumAnswer      *forumservice.AnswerService
 }
 
 type handlerContainer struct {
-	Auth           *handlers.AuthHandler
-	Category       *bloghandlers.CategoryHandler
-	Post           *bloghandlers.PostHandler
-	Comment        *bloghandlers.CommentHandler
-	Search         *bloghandlers.SearchHandler
-	Upload         *handlers.UploadHandler
-	Backup         *handlers.BackupHandler
-	Page           *handlers.PageHandler
-	Setup          *handlers.SetupHandler
-	Homepage       *handlers.HomepageHandler
-	SocialLink     *handlers.SocialLinkHandler
-	Menu           *handlers.MenuHandler
-	SEO            *handlers.SEOHandler
-	Theme          *handlers.ThemeHandler
-	Advertising    *handlers.AdvertisingHandler
-	Plugin         *handlers.PluginHandler
-	Font           *handlers.FontHandler
-	CourseVideo    *coursehandlers.VideoHandler
-	CourseTopic    *coursehandlers.TopicHandler
-	CourseTest     *coursehandlers.TestHandler
-	CoursePackage  *coursehandlers.PackageHandler
-	CourseCheckout *coursehandlers.CheckoutHandler
-	ForumCategory  *forumhandlers.CategoryHandler
-	ForumQuestion  *forumhandlers.QuestionHandler
-	ForumAnswer    *forumhandlers.AnswerHandler
+	Auth             *handlers.AuthHandler
+	Category         *bloghandlers.CategoryHandler
+	Post             *bloghandlers.PostHandler
+	Comment          *bloghandlers.CommentHandler
+	Search           *bloghandlers.SearchHandler
+	Upload           *handlers.UploadHandler
+	Backup           *handlers.BackupHandler
+	Page             *handlers.PageHandler
+	Setup            *handlers.SetupHandler
+	Homepage         *handlers.HomepageHandler
+	SocialLink       *handlers.SocialLinkHandler
+	Menu             *handlers.MenuHandler
+	SEO              *handlers.SEOHandler
+	Theme            *handlers.ThemeHandler
+	Advertising      *handlers.AdvertisingHandler
+	Plugin           *handlers.PluginHandler
+	Font             *handlers.FontHandler
+	CourseVideo      *coursehandlers.VideoHandler
+	CourseTopic      *coursehandlers.TopicHandler
+	CourseTest       *coursehandlers.TestHandler
+	CoursePackage    *coursehandlers.PackageHandler
+	CourseCheckout   *coursehandlers.CheckoutHandler
+	ForumCategory    *forumhandlers.CategoryHandler
+	ForumQuestion    *forumhandlers.QuestionHandler
+	ArchiveDirectory *archivehandlers.DirectoryHandler
+	ArchiveFile      *archivehandlers.FileHandler
+	ArchivePublic    *archivehandlers.PublicHandler
+	ForumAnswer      *forumhandlers.AnswerHandler
 }
 
 func New(cfg *config.Config, opts Options) (*Application, error) {
@@ -771,6 +780,8 @@ func (a *Application) initRepositories() {
 		CourseTest:          repository.NewCourseTestRepository(a.db),
 		ForumCategory:       repository.NewForumCategoryRepository(a.db),
 		ForumQuestion:       repository.NewForumQuestionRepository(a.db),
+		ArchiveDirectory:    repository.NewArchiveDirectoryRepository(a.db),
+		ArchiveFile:         repository.NewArchiveFileRepository(a.db),
 		ForumAnswer:         repository.NewForumAnswerRepository(a.db),
 		ForumQuestionVote:   repository.NewForumQuestionVoteRepository(a.db),
 		ForumAnswerVote:     repository.NewForumAnswerVoteRepository(a.db),
@@ -958,29 +969,32 @@ func (a *Application) initHandlers() error {
 	commentGuard := bloghandlers.NewCommentGuard(a.cfg)
 
 	a.handlers = handlerContainer{
-		Auth:           handlers.NewAuthHandler(a.services.Auth),
-		Category:       bloghandlers.NewCategoryHandler(nil),
-		Post:           bloghandlers.NewPostHandler(nil),
-		Comment:        bloghandlers.NewCommentHandler(nil, a.services.Auth, commentGuard),
-		Search:         bloghandlers.NewSearchHandler(nil),
-		Upload:         handlers.NewUploadHandler(a.services.Upload),
-		Backup:         handlers.NewBackupHandler(a.services.Backup),
-		Page:           handlers.NewPageHandler(a.services.Page),
-		Setup:          handlers.NewSetupHandler(a.services.Setup, a.services.Font, a.cfg),
-		Homepage:       handlers.NewHomepageHandler(a.services.Homepage),
-		SocialLink:     handlers.NewSocialLinkHandler(a.services.SocialLink),
-		Menu:           handlers.NewMenuHandler(a.services.Menu),
-		SEO:            handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.services.Language, a.cfg),
-		Advertising:    handlers.NewAdvertisingHandler(a.services.Advertising),
-		Plugin:         handlers.NewPluginHandler(a.services.Plugin),
-		CourseVideo:    coursehandlers.NewVideoHandler(nil),
-		CourseTopic:    coursehandlers.NewTopicHandler(nil),
-		CourseTest:     coursehandlers.NewTestHandler(nil),
-		CoursePackage:  coursehandlers.NewPackageHandler(nil),
-		CourseCheckout: coursehandlers.NewCheckoutHandler(nil),
-		ForumCategory:  forumhandlers.NewCategoryHandler(nil),
-		ForumQuestion:  forumhandlers.NewQuestionHandler(nil),
-		ForumAnswer:    forumhandlers.NewAnswerHandler(nil),
+		Auth:             handlers.NewAuthHandler(a.services.Auth),
+		Category:         bloghandlers.NewCategoryHandler(nil),
+		Post:             bloghandlers.NewPostHandler(nil),
+		Comment:          bloghandlers.NewCommentHandler(nil, a.services.Auth, commentGuard),
+		Search:           bloghandlers.NewSearchHandler(nil),
+		Upload:           handlers.NewUploadHandler(a.services.Upload),
+		Backup:           handlers.NewBackupHandler(a.services.Backup),
+		Page:             handlers.NewPageHandler(a.services.Page),
+		Setup:            handlers.NewSetupHandler(a.services.Setup, a.services.Font, a.cfg),
+		Homepage:         handlers.NewHomepageHandler(a.services.Homepage),
+		SocialLink:       handlers.NewSocialLinkHandler(a.services.SocialLink),
+		Menu:             handlers.NewMenuHandler(a.services.Menu),
+		SEO:              handlers.NewSEOHandler(nil, a.services.Page, nil, a.services.Setup, a.services.Language, a.cfg),
+		Advertising:      handlers.NewAdvertisingHandler(a.services.Advertising),
+		Plugin:           handlers.NewPluginHandler(a.services.Plugin),
+		CourseVideo:      coursehandlers.NewVideoHandler(nil),
+		CourseTopic:      coursehandlers.NewTopicHandler(nil),
+		CourseTest:       coursehandlers.NewTestHandler(nil),
+		CoursePackage:    coursehandlers.NewPackageHandler(nil),
+		CourseCheckout:   coursehandlers.NewCheckoutHandler(nil),
+		ForumCategory:    forumhandlers.NewCategoryHandler(nil),
+		ForumQuestion:    forumhandlers.NewQuestionHandler(nil),
+		ArchiveDirectory: archivehandlers.NewDirectoryHandler(nil),
+		ArchiveFile:      archivehandlers.NewFileHandler(nil),
+		ArchivePublic:    archivehandlers.NewPublicHandler(nil, nil),
+		ForumAnswer:      forumhandlers.NewAnswerHandler(nil),
 	}
 
 	templateHandler, err := handlers.NewTemplateHandler(
@@ -997,6 +1011,8 @@ func (a *Application) initHandlers() error {
 		a.services.Menu,
 		a.services.Font,
 		a.services.Advertising,
+		nil,
+		nil,
 		nil,
 		nil,
 		nil,
@@ -1134,6 +1150,9 @@ func (a *Application) initRouter() error {
 	router.GET("/forum/:slug", a.templateHandler.RenderForumQuestion)
 	router.GET("/category/:slug", a.templateHandler.RenderCategory)
 	router.GET("/tag/:slug", a.templateHandler.RenderTag)
+	router.GET("/archive", a.templateHandler.RenderArchive)
+	router.GET("/archive/files/*path", a.templateHandler.RenderArchiveFile)
+	router.GET("/archive/*path", a.templateHandler.RenderArchiveDirectory)
 
 	v1 := router.Group("/api/v1")
 	v1.Use(middleware.NoIndexMiddleware())
@@ -1169,6 +1188,9 @@ func (a *Application) initRouter() error {
 			public.GET("/forum/questions/:id", a.handlers.ForumQuestion.GetByID)
 			public.GET("/forum/categories", a.handlers.ForumCategory.List)
 			public.GET("/forum/categories/:id", a.handlers.ForumCategory.GetByID)
+			public.GET("/archive/tree", a.handlers.ArchivePublic.Tree)
+			public.GET("/archive/directories/*path", a.handlers.ArchivePublic.GetDirectory)
+			public.GET("/archive/files/*path", a.handlers.ArchivePublic.GetFile)
 		}
 
 		protected := v1.Group("")
@@ -1255,6 +1277,18 @@ func (a *Application) initRouter() error {
 			content.DELETE("/courses/packages/:id", a.handlers.CoursePackage.Delete)
 			content.GET("/courses/packages", a.handlers.CoursePackage.List)
 			content.GET("/courses/packages/:id", a.handlers.CoursePackage.Get)
+
+			content.GET("/archive/directories", a.handlers.ArchiveDirectory.List)
+			content.GET("/archive/directories/:id", a.handlers.ArchiveDirectory.Get)
+			content.POST("/archive/directories", a.handlers.ArchiveDirectory.Create)
+			content.PUT("/archive/directories/:id", a.handlers.ArchiveDirectory.Update)
+			content.DELETE("/archive/directories/:id", a.handlers.ArchiveDirectory.Delete)
+
+			content.GET("/archive/files", a.handlers.ArchiveFile.List)
+			content.GET("/archive/files/:id", a.handlers.ArchiveFile.Get)
+			content.POST("/archive/files", a.handlers.ArchiveFile.Create)
+			content.PUT("/archive/files/:id", a.handlers.ArchiveFile.Update)
+			content.DELETE("/archive/files/:id", a.handlers.ArchiveFile.Delete)
 
 			content.DELETE("/tags/:id", a.handlers.Post.DeleteTag)
 		}

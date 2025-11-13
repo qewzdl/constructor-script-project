@@ -1,0 +1,330 @@
+.archive,
+.archive-directory,
+.archive-file {
+    padding-block: var(--size-max);
+    display: grid;
+    gap: var(--size-max);
+}
+
+.archive__header {
+    display: grid;
+    gap: var(--size-sm);
+    text-align: center;
+    max-width: 48rem;
+    margin-inline: auto;
+}
+
+.archive__title {
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 700;
+}
+
+.archive__description {
+    color: var(--color-secondary);
+    font-size: var(--font-size-lg);
+    line-height: 1.6;
+}
+
+.archive__body {
+    display: grid;
+    gap: var(--size-max);
+}
+
+.archive-tree {
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    background: var(--color-bg-top);
+    padding: var(--size-max);
+    display: grid;
+    gap: var(--size-base);
+}
+
+.archive-tree__title {
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+    font-weight: 600;
+}
+
+.archive-tree__hint,
+.archive-tree__empty {
+    color: var(--color-secondary);
+    font-size: var(--font-size-base);
+}
+
+.archive-tree__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--size-base);
+}
+
+.archive-tree__item {
+    display: grid;
+    gap: var(--size-sm);
+}
+
+.archive-tree__entry {
+    display: grid;
+    gap: var(--size-xs);
+}
+
+.archive-tree__entry-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.archive-tree__entry-link {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.archive-tree__entry-link:hover,
+.archive-tree__entry-link:focus-visible {
+    text-decoration: underline;
+}
+
+.archive-tree__entry-description {
+    color: var(--color-secondary);
+    line-height: 1.6;
+}
+
+.archive-tree__files {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+}
+
+.archive-tree__file {
+    display: flex;
+    align-items: baseline;
+    gap: var(--size-xs);
+    font-size: var(--font-size-sm);
+}
+
+.archive-tree__file-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.archive-tree__file-link:hover,
+.archive-tree__file-link:focus-visible {
+    text-decoration: underline;
+}
+
+.archive-tree__file-meta {
+    color: var(--color-secondary);
+}
+
+.archive-breadcrumbs {
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.archive-breadcrumbs__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.archive-breadcrumbs__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.archive-breadcrumbs__link {
+    color: var(--color-secondary);
+    text-decoration: none;
+}
+
+.archive-breadcrumbs__link:hover,
+.archive-breadcrumbs__link:focus-visible {
+    text-decoration: underline;
+}
+
+.archive-directory__header,
+.archive-file__header {
+    display: grid;
+    gap: var(--size-sm);
+    max-width: 56rem;
+}
+
+.archive-directory__title,
+.archive-file__title {
+    font-size: clamp(2rem, 3.5vw, 2.6rem);
+    font-weight: 700;
+}
+
+.archive-directory__description,
+.archive-file__description {
+    color: var(--color-secondary);
+    line-height: 1.6;
+    font-size: var(--font-size-lg);
+}
+
+.archive-directory__sections {
+    display: grid;
+    gap: var(--size-max);
+}
+
+.archive-directory__panel {
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    background: var(--color-bg-top);
+    padding: var(--size-max);
+    display: grid;
+    gap: var(--size-base);
+}
+
+.archive-directory__panel-title {
+    font-size: clamp(1.3rem, 2.6vw, 1.6rem);
+    font-weight: 600;
+}
+
+.archive-directory__items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--size-base);
+}
+
+.archive-directory__item {
+    display: grid;
+    gap: var(--size-xs);
+}
+
+.archive-directory__item-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.archive-directory__item-link {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.archive-directory__item-link:hover,
+.archive-directory__item-link:focus-visible {
+    text-decoration: underline;
+}
+
+.archive-directory__item-description {
+    color: var(--color-secondary);
+    line-height: 1.6;
+}
+
+.archive-directory__file-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-sm);
+    align-items: center;
+}
+
+.archive-directory__file-meta {
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.archive-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--size-xs);
+    padding: 0.65rem 1.4rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+    border: 1px solid var(--color-primary);
+    background: var(--color-primary);
+    color: #ffffff;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.archive-button:hover,
+.archive-button:focus-visible {
+    background: var(--color-primary-hover);
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.archive-button--ghost {
+    background: transparent;
+    color: var(--color-primary);
+}
+
+.archive-button--ghost:hover,
+.archive-button--ghost:focus-visible {
+    background: color-mix(in srgb, var(--color-primary-transparent) 70%, transparent);
+}
+
+.archive-file__meta {
+    display: grid;
+    gap: var(--size-xs);
+    font-size: var(--font-size-base);
+    color: var(--color-secondary);
+}
+
+.archive-file__meta-item {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.archive-file__meta-label {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.archive-file__preview {
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    background: var(--color-bg-top);
+    padding: var(--size-base);
+    display: grid;
+    gap: var(--size-sm);
+}
+
+.archive-file__iframe {
+    width: 100%;
+    min-height: 22rem;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+}
+
+.archive-file__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+}
+
+.archive-file__preview-hint {
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+
+@media (min-width: 768px) {
+    .archive-directory__sections {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--size-max);
+    }
+
+    .archive-directory__panel:last-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 767px) {
+    .archive-directory__panel {
+        padding: var(--size-base);
+    }
+}

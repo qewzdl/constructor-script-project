@@ -20,6 +20,7 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
+	archiveservice "constructor-script-backend/plugins/archive/service"
 	blogservice "constructor-script-backend/plugins/blog/service"
 	courseservice "constructor-script-backend/plugins/courses/service"
 	forumservice "constructor-script-backend/plugins/forum/service"
@@ -1715,6 +1716,176 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 	h.renderTemplate(c, "course", pageTitle, pageDescription, data)
 }
 
+func (h *TemplateHandler) RenderArchive(c *gin.Context) {
+	if !h.ensureArchiveAvailable(c) {
+		return
+	}
+
+	directories, err := h.archiveDirectorySvc.ListPublishedTree()
+	if err != nil {
+		logger.Error(err, "Failed to load archive tree", nil)
+		h.renderError(c, http.StatusInternalServerError, "Archive unavailable", "We couldn't load the archive directory tree right now.")
+		return
+	}
+
+	title := "Resource archive"
+	description := "Browse shared documents and downloadable files from a single archive."
+
+	data := gin.H{
+		"Directories":    directories,
+		"ArchiveEnabled": true,
+		"Styles":         []string{"/static/css/sections/archive.css"},
+	}
+
+	h.renderTemplate(c, "archive", title, description, data)
+}
+
+func (h *TemplateHandler) RenderArchiveDirectory(c *gin.Context) {
+	if !h.ensureArchiveAvailable(c) {
+		return
+	}
+
+	pathValue := strings.Trim(c.Param("path"), "/")
+	if pathValue == "" {
+		h.RenderArchive(c)
+		return
+	}
+
+	directory, err := h.archiveDirectorySvc.GetByPath(pathValue, false)
+	if err != nil {
+		if errors.Is(err, archiveservice.ErrDirectoryNotFound) {
+			h.renderError(c, http.StatusNotFound, "Directory not found", "The requested directory could not be located.")
+			return
+		}
+		logger.Error(err, "Failed to load archive directory", map[string]interface{}{"path": pathValue})
+		h.renderError(c, http.StatusInternalServerError, "Archive unavailable", "We couldn't load this directory right now.")
+		return
+	}
+
+	files, err := h.archiveFileSvc.ListByDirectory(directory.ID, false)
+	if err != nil {
+		logger.Error(err, "Failed to list archive files", map[string]interface{}{"directory": directory.Path})
+		h.renderError(c, http.StatusInternalServerError, "Archive unavailable", "We couldn't list the files for this directory.")
+		return
+	}
+
+	children, err := h.archiveDirectorySvc.ListByParent(&directory.ID, false)
+	if err != nil {
+		logger.Error(err, "Failed to list archive subdirectories", map[string]interface{}{"directory": directory.Path})
+	}
+
+	breadcrumbs, err := h.archiveDirectorySvc.BuildBreadcrumbs(pathValue, false)
+	if err != nil {
+		if errors.Is(err, archiveservice.ErrDirectoryNotFound) {
+			h.renderError(c, http.StatusNotFound, "Directory not found", "The requested directory could not be located.")
+		} else {
+			logger.Error(err, "Failed to build archive breadcrumbs", map[string]interface{}{"path": pathValue})
+			h.renderError(c, http.StatusInternalServerError, "Archive unavailable", "We couldn't prepare navigation for this directory.")
+		}
+		return
+	}
+
+	title := strings.TrimSpace(directory.Name)
+	if title == "" {
+		title = "Archive directory"
+	}
+	description := strings.TrimSpace(directory.Description)
+	if description == "" {
+		description = fmt.Sprintf("Browse files available in %s.", strings.TrimSpace(directory.Name))
+	}
+
+	canonicalPath := "/archive/" + directory.Path
+	canonical := h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath)
+
+	data := gin.H{
+		"Directory":      directory,
+		"Files":          files,
+		"Children":       children,
+		"Breadcrumbs":    breadcrumbs,
+		"ArchiveEnabled": true,
+		"Canonical":      canonical,
+		"Styles":         []string{"/static/css/sections/archive.css"},
+	}
+
+	h.renderTemplate(c, "archive-directory", title, description, data)
+}
+
+func (h *TemplateHandler) RenderArchiveFile(c *gin.Context) {
+	if !h.ensureArchiveAvailable(c) {
+		return
+	}
+
+	pathValue := strings.Trim(c.Param("path"), "/")
+	if pathValue == "" {
+		h.renderError(c, http.StatusNotFound, "File not found", "The requested file could not be located.")
+		return
+	}
+
+	file, err := h.archiveFileSvc.GetByPath(pathValue, false)
+	if err != nil {
+		if errors.Is(err, archiveservice.ErrFileNotFound) {
+			h.renderError(c, http.StatusNotFound, "File not found", "The requested file could not be located.")
+			return
+		}
+		logger.Error(err, "Failed to load archive file", map[string]interface{}{"path": pathValue})
+		h.renderError(c, http.StatusInternalServerError, "Archive unavailable", "We couldn't load this file right now.")
+		return
+	}
+
+	segments := strings.Split(pathValue, "/")
+	if len(segments) < 2 {
+		h.renderError(c, http.StatusBadRequest, "Invalid file path", "Files must belong to a directory.")
+		return
+	}
+
+	directoryPath := strings.Join(segments[:len(segments)-1], "/")
+	directory, err := h.archiveDirectorySvc.GetByPath(directoryPath, false)
+	if err != nil {
+		if errors.Is(err, archiveservice.ErrDirectoryNotFound) {
+			h.renderError(c, http.StatusNotFound, "Directory not found", "The parent directory could not be located.")
+			return
+		}
+		logger.Error(err, "Failed to load archive directory for file", map[string]interface{}{"path": directoryPath})
+		h.renderError(c, http.StatusInternalServerError, "Archive unavailable", "We couldn't load the parent directory for this file.")
+		return
+	}
+
+	breadcrumbs, err := h.archiveDirectorySvc.BuildBreadcrumbs(directoryPath, false)
+	if err != nil {
+		if errors.Is(err, archiveservice.ErrDirectoryNotFound) {
+			h.renderError(c, http.StatusNotFound, "Directory not found", "The parent directory could not be located.")
+		} else {
+			logger.Error(err, "Failed to build archive breadcrumbs", map[string]interface{}{"path": directoryPath})
+			h.renderError(c, http.StatusInternalServerError, "Archive unavailable", "We couldn't prepare navigation for this file.")
+		}
+		return
+	}
+	breadcrumbs = append(breadcrumbs, models.ArchiveBreadcrumb{Name: strings.TrimSpace(file.Name), Path: file.Path})
+
+	title := strings.TrimSpace(file.Name)
+	if title == "" {
+		title = "Archive file"
+	}
+	description := strings.TrimSpace(file.Description)
+	if description == "" {
+		description = fmt.Sprintf("Download or preview %s.", strings.TrimSpace(file.Name))
+	}
+
+	canonicalPath := "/archive/files/" + file.Path
+	canonical := h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath)
+
+	data := gin.H{
+		"File":           file,
+		"Directory":      directory,
+		"Breadcrumbs":    breadcrumbs,
+		"ArchiveEnabled": true,
+		"Canonical":      canonical,
+		"Styles":         []string{"/static/css/sections/archive.css"},
+	}
+
+	h.renderTemplate(c, "archive-file", title, description, data)
+}
+
 func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 	user, ok := h.currentUser(c)
 	if !ok {
@@ -1740,6 +1911,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 	blogEnabled := h.blogEnabled()
 	coursesEnabled := h.coursesEnabled()
 	forumEnabled := h.forumEnabled()
+	archiveEnabled := h.archiveEnabled()
 
 	adminEndpoints := gin.H{
 		"Stats":          "/api/v1/admin/stats",
@@ -1787,6 +1959,12 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		adminEndpoints["ForumCategories"] = "/api/v1/admin/forum/categories"
 	}
 
+	if archiveEnabled {
+		adminEndpoints["ArchiveDirectories"] = "/api/v1/admin/archive/directories"
+		adminEndpoints["ArchiveFiles"] = "/api/v1/admin/archive/files"
+		adminEndpoints["ArchiveTree"] = "/api/v1/admin/archive/directories?tree=1"
+	}
+
 	h.renderTemplate(c, "admin", "Admin dashboard", "Monitor site activity, review content performance, and manage published resources in one place.", gin.H{
 		"Layout":                 "admin_base.html",
 		"Styles":                 []string{"/static/css/admin.css"},
@@ -1797,6 +1975,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"BlogEnabled":            blogEnabled,
 		"CoursesEnabled":         coursesEnabled,
 		"ForumEnabled":           forumEnabled,
+		"ArchiveEnabled":         archiveEnabled,
 		"LanguageFeatureEnabled": h.languageService != nil,
 		"NoIndex":                true,
 	})
@@ -1848,6 +2027,7 @@ func (h *TemplateHandler) builderScripts() []string {
 	)
 
 	scripts = append(scripts, "/static/js/admin/forum.js")
+	scripts = append(scripts, "/static/js/admin/archive.js")
 
 	return scripts
 }
