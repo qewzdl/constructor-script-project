@@ -5,43 +5,15 @@
     {{- $dirPath := trim (default "" .Path) -}}
     <li class="archive-tree__item">
         <article class="archive-tree__entry">
-            <h3 class="archive-tree__entry-title">
-                <a class="archive-tree__entry-link" href="{{ if $dirPath }}/archive/{{ $dirPath }}{{ else }}#{{ end }}">
-                    {{- if $dirName -}}
-                    {{ $dirName }}
-                    {{- else if $dirPath -}}
-                    {{ $dirPath }}
-                    {{- else -}}
-                    Untitled directory
-                    {{- end -}}
-                </a>
-            </h3>
-            {{- with .Files }}
-            <ul class="archive-tree__files">
-                {{- range . }}
-                {{- $fileName := trim (default "" .Name) -}}
-                {{- $filePath := trim (default "" .Path) -}}
-                <li class="archive-tree__file">
-                    <a class="archive-tree__file-link" href="{{ if $filePath }}/archive/files/{{ $filePath }}{{ else }}#{{ end }}">
-                        {{- if $fileName -}}
-                        {{ $fileName }}
-                        {{- else if $filePath -}}
-                        {{ $filePath }}
-                        {{- else -}}
-                        View file
-                        {{- end -}}
-                    </a>
-                    {{- with trim .FileType }}
-                    <span class="archive-tree__file-meta">{{ . }}</span>
-                    {{- else }}
-                    {{- with trim .MimeType }}
-                    <span class="archive-tree__file-meta">{{ . }}</span>
-                    {{- end }}
-                    {{- end }}
-                </li>
-                {{- end }}
-            </ul>
-            {{- end }}
+            <a class="archive-tree__entry-link" href="{{ if $dirPath }}/archive/{{ $dirPath }}{{ else }}#{{ end }}">
+                {{- if $dirName -}}
+                {{ $dirName }}
+                {{- else if $dirPath -}}
+                {{ $dirPath }}
+                {{- else -}}
+                Untitled directory
+                {{- end -}}
+            </a>
         </article>
         {{- if .Children }}
         {{- template "archive-tree-list" .Children -}}
