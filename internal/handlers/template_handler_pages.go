@@ -1740,7 +1740,7 @@ func (h *TemplateHandler) RenderArchive(c *gin.Context) {
 	h.renderTemplate(c, "archive", title, description, data)
 }
 
-func (h *TemplateHandler) RenderArchiveDirectory(c *gin.Context) {
+func (h *TemplateHandler) RenderArchivePath(c *gin.Context) {
 	if !h.ensureArchiveAvailable(c) {
 		return
 	}
@@ -1751,6 +1751,21 @@ func (h *TemplateHandler) RenderArchiveDirectory(c *gin.Context) {
 		return
 	}
 
+	if strings.HasPrefix(pathValue, "files/") {
+		filePath := strings.TrimPrefix(pathValue, "files/")
+		if strings.TrimSpace(filePath) == "" {
+			h.renderError(c, http.StatusNotFound, "File not found", "The requested file could not be located.")
+			return
+		}
+
+		h.renderArchiveFile(c, filePath)
+		return
+	}
+
+	h.renderArchiveDirectory(c, pathValue)
+}
+
+func (h *TemplateHandler) renderArchiveDirectory(c *gin.Context, pathValue string) {
 	directory, err := h.archiveDirectorySvc.GetByPath(pathValue, false)
 	if err != nil {
 		if errors.Is(err, archiveservice.ErrDirectoryNotFound) {
@@ -1810,17 +1825,7 @@ func (h *TemplateHandler) RenderArchiveDirectory(c *gin.Context) {
 	h.renderTemplate(c, "archive-directory", title, description, data)
 }
 
-func (h *TemplateHandler) RenderArchiveFile(c *gin.Context) {
-	if !h.ensureArchiveAvailable(c) {
-		return
-	}
-
-	pathValue := strings.Trim(c.Param("path"), "/")
-	if pathValue == "" {
-		h.renderError(c, http.StatusNotFound, "File not found", "The requested file could not be located.")
-		return
-	}
-
+func (h *TemplateHandler) renderArchiveFile(c *gin.Context, pathValue string) {
 	file, err := h.archiveFileSvc.GetByPath(pathValue, false)
 	if err != nil {
 		if errors.Is(err, archiveservice.ErrFileNotFound) {

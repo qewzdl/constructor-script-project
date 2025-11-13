@@ -1151,8 +1151,7 @@ func (a *Application) initRouter() error {
 	router.GET("/category/:slug", a.templateHandler.RenderCategory)
 	router.GET("/tag/:slug", a.templateHandler.RenderTag)
 	router.GET("/archive", a.templateHandler.RenderArchive)
-	router.GET("/archive/files/*path", a.templateHandler.RenderArchiveFile)
-	router.GET("/archive/*path", a.templateHandler.RenderArchiveDirectory)
+	router.GET("/archive/*path", a.templateHandler.RenderArchivePath)
 
 	v1 := router.Group("/api/v1")
 	v1.Use(middleware.NoIndexMiddleware())
