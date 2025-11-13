@@ -52,16 +52,7 @@
                 </div>
                 {{ end }}
             </dl>
-            {{ if .IsAuthenticated }}
-            <button
-                type="button"
-                class="forum__cta"
-                data-role="question-modal-open"
-                aria-haspopup="dialog"
-            >
-                Ask a question
-            </button>
-            {{ else }}
+            {{ if not .IsAuthenticated }}
             <a class="forum__cta forum__cta--ghost" href="{{ $loginURL }}">Sign in to ask</a>
             {{ end }}
             {{ if gt (len $categoryFilters) 0 }}
@@ -302,6 +293,22 @@
                 </table>
             </div>
         </section>
+
+        {{ if .IsAuthenticated }}
+        <div class="forum__ask">
+            <p class="forum__ask-text">
+                Can't find what you're looking for?
+                <button
+                    type="button"
+                    class="forum__ask-trigger"
+                    data-role="question-modal-open"
+                    aria-haspopup="dialog"
+                >
+                    Start a new discussion
+                </button>
+            </p>
+        </div>
+        {{ end }}
 
         {{ with .Pagination }}
         <div class="forum__pagination">
