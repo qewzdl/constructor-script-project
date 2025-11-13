@@ -17,11 +17,35 @@
             <li class="archive-breadcrumbs__item">
                 <span aria-hidden="true">›</span>
                 {{- if eq $index $lastIndex -}}
-                <span aria-current="page">{{ if $crumbName }}{{ $crumbName }}{{ else if $crumbPath }}{{ $crumbPath }}{{ else }}Selected file{{ end }}</span>
-                {{- else if $crumbPath -}}
-                <a class="archive-breadcrumbs__link" href="/archive/{{ $crumbPath }}">{{ if $crumbName }}{{ $crumbName }}{{ else }}{{ $crumbPath }}{{ end }}</a>
+                <span aria-current="page">
+                    {{- if $crumbName -}}
+                    {{ $crumbName }}
+                    {{- else -}}
+                        {{- if $crumbPath -}}
+                        {{ $crumbPath }}
+                        {{- else -}}
+                        Selected file
+                        {{- end -}}
+                    {{- end -}}
+                </span>
                 {{- else -}}
-                <span>{{ if $crumbName }}{{ $crumbName }}{{ else }}Directory{{ end }}</span>
+                    {{- if $crumbPath -}}
+                    <a class="archive-breadcrumbs__link" href="/archive/{{ $crumbPath }}">
+                        {{- if $crumbName -}}
+                        {{ $crumbName }}
+                        {{- else -}}
+                        {{ $crumbPath }}
+                        {{- end -}}
+                    </a>
+                    {{- else -}}
+                    <span>
+                        {{- if $crumbName -}}
+                        {{ $crumbName }}
+                        {{- else -}}
+                        Directory
+                        {{- end -}}
+                    </span>
+                    {{- end -}}
                 {{- end -}}
             </li>
             {{- end -}}
@@ -57,10 +81,12 @@
             <span>
                 {{- with trim $file.FileType -}}
                 {{ . }}
-                {{- else if trim $file.MimeType -}}
-                {{ trim $file.MimeType }}
                 {{- else -}}
-                Not specified
+                    {{- if trim $file.MimeType -}}
+                    {{ trim $file.MimeType }}
+                    {{- else -}}
+                    Not specified
+                    {{- end -}}
                 {{- end -}}
             </span>
         </div>
