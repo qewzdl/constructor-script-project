@@ -37,6 +37,9 @@ type Config struct {
 	// CORS
 	CORSOrigins []string
 
+	// Security
+	CSPFrameAncestors []string
+
 	// Upload
 	UploadDir     string
 	MaxUploadSize int64
@@ -119,6 +122,8 @@ func New() *Config {
 	supportedLanguages := normalizeSupportedLanguages(defaultLanguage, getEnvAsSlice("SITE_SUPPORTED_LANGUAGES"))
 	subtitleTemperature := getEnvAsFloat32Pointer("SUBTITLE_TEMPERATURE")
 
+	frameAncestors := normalizeFrameAncestors(getEnvAsSlice("CSP_FRAME_ANCESTORS"))
+
 	c := &Config{
 		// Database
 		DBHost:     getEnv("DB_HOST", "localhost"),
@@ -143,6 +148,9 @@ func New() *Config {
 
 		// CORS
 		CORSOrigins: strings.Split(getEnv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080"), ","),
+
+		// Security
+		CSPFrameAncestors: frameAncestors,
 
 		// Upload
 		UploadDir:     getEnv("UPLOAD_DIR", "./uploads"),
@@ -450,6 +458,61 @@ func normalizeSupportedLanguages(defaultLanguage string, values []string) []stri
 	}
 
 	return result
+}
+
+func normalizeFrameAncestors(values []string) []string {
+	if len(values) == 0 {
+		return []string{"'none'"}
+	}
+
+	normalized := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+
+		lower := strings.ToLower(trimmed)
+		switch lower {
+		case "'none'", "none":
+			trimmed = "'none'"
+		case "'self'", "self":
+			trimmed = "'self'"
+		default:
+			// keep provided origin as-is
+		}
+
+		if _, exists := seen[trimmed]; exists {
+			continue
+		}
+
+		seen[trimmed] = struct{}{}
+		normalized = append(normalized, trimmed)
+	}
+
+	if len(normalized) == 0 {
+		return []string{"'none'"}
+	}
+
+	if len(normalized) == 1 {
+		return normalized
+	}
+
+	filtered := normalized[:0]
+	for _, value := range normalized {
+		if value == "'none'" {
+			continue
+		}
+		filtered = append(filtered, value)
+	}
+
+	if len(filtered) == 0 {
+		return []string{"'none'"}
+	}
+
+	return filtered
 }
 
 func (c *Config) IsDevelopment() bool {

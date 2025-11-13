@@ -50,3 +50,28 @@ func TestSubtitleGenerationRemainsDisabledWithoutAPIKey(t *testing.T) {
 		t.Fatalf("expected subtitle generation to remain disabled without API key")
 	}
 }
+
+func TestFrameAncestorsDefaultsToNone(t *testing.T) {
+	unsetEnv(t, "CSP_FRAME_ANCESTORS")
+
+	cfg := New()
+	if len(cfg.CSPFrameAncestors) != 1 || cfg.CSPFrameAncestors[0] != "'none'" {
+		t.Fatalf("expected frame ancestors to default to 'none', got %#v", cfg.CSPFrameAncestors)
+	}
+}
+
+func TestFrameAncestorsNormalizeValues(t *testing.T) {
+	t.Setenv("CSP_FRAME_ANCESTORS", "self, https://example.com , 'none'")
+
+	cfg := New()
+	if len(cfg.CSPFrameAncestors) != 2 {
+		t.Fatalf("expected two normalized frame ancestor entries, got %#v", cfg.CSPFrameAncestors)
+	}
+
+	expected := []string{"'self'", "https://example.com"}
+	for i, value := range expected {
+		if cfg.CSPFrameAncestors[i] != value {
+			t.Fatalf("expected frame ancestor %d to be %s, got %s", i, value, cfg.CSPFrameAncestors[i])
+		}
+	}
+}

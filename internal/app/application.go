@@ -1056,7 +1056,7 @@ func (a *Application) initRouter() error {
 	router.Use(logger.GinRecovery(true))
 	router.Use(middleware.RequestIDMiddleware())
 	router.Use(logger.GinLogger())
-	router.Use(middleware.SecurityHeadersMiddleware(a.services.Advertising))
+	router.Use(middleware.SecurityHeadersMiddleware(a.cfg, a.services.Advertising))
 	router.Use(middleware.MetricsMiddleware())
 	router.Use(middleware.RateLimitMiddleware(a.cfg))
 	router.Use(middleware.CSRFMiddleware())

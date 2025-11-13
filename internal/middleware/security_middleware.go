@@ -6,11 +6,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/models"
 )
 
 type ContentSecurityPolicySource interface {
 	ContentSecurityPolicyDirectives() models.ContentSecurityPolicyDirectives
+}
+
+type staticContentSecurityPolicySource struct {
+	directives models.ContentSecurityPolicyDirectives
+}
+
+func (s staticContentSecurityPolicySource) ContentSecurityPolicyDirectives() models.ContentSecurityPolicyDirectives {
+	return s.directives
 }
 
 var baseContentSecurityPolicy = map[string][]string{
@@ -71,10 +80,9 @@ var cspDirectiveOrder = []string{
 	"frame-src",
 }
 
-func SecurityHeadersMiddleware(sources ...ContentSecurityPolicySource) gin.HandlerFunc {
+func SecurityHeadersMiddleware(cfg *config.Config, sources ...ContentSecurityPolicySource) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("X-Content-Type-Options", "nosniff")
-		c.Header("X-Frame-Options", "DENY")
 		c.Header("X-XSS-Protection", "1; mode=block")
 		c.Header("X-DNS-Prefetch-Control", "off")
 		c.Header("X-Download-Options", "noopen")
@@ -92,13 +100,19 @@ func SecurityHeadersMiddleware(sources ...ContentSecurityPolicySource) gin.Handl
 			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
 
-		c.Header("Content-Security-Policy", buildContentSecurityPolicy(sources))
+		if value := deriveXFrameOptions(cfg); value != "" {
+			c.Header("X-Frame-Options", value)
+		} else {
+			c.Writer.Header().Del("X-Frame-Options")
+		}
+
+		c.Header("Content-Security-Policy", buildContentSecurityPolicy(cfg, sources))
 
 		c.Next()
 	}
 }
 
-func buildContentSecurityPolicy(sources []ContentSecurityPolicySource) string {
+func buildContentSecurityPolicy(cfg *config.Config, sources []ContentSecurityPolicySource) string {
 	directives := make(map[string]map[string]struct{}, len(baseContentSecurityPolicy))
 	for directive, values := range baseContentSecurityPolicy {
 		directives[directive] = make(map[string]struct{}, len(values))
@@ -107,7 +121,21 @@ func buildContentSecurityPolicy(sources []ContentSecurityPolicySource) string {
 		}
 	}
 
-	for _, source := range sources {
+	if cfg != nil && len(cfg.CSPFrameAncestors) > 0 {
+		directives["frame-ancestors"] = make(map[string]struct{}, len(cfg.CSPFrameAncestors))
+	}
+
+	effectiveSources := make([]ContentSecurityPolicySource, 0, len(sources)+1)
+	if frameAncestors := resolveFrameAncestors(cfg); len(frameAncestors) > 0 {
+		effectiveSources = append(effectiveSources, staticContentSecurityPolicySource{
+			directives: models.ContentSecurityPolicyDirectives{
+				"frame-ancestors": frameAncestors,
+			},
+		})
+	}
+	effectiveSources = append(effectiveSources, sources...)
+
+	for _, source := range effectiveSources {
 		if source == nil {
 			continue
 		}
@@ -200,4 +228,46 @@ func formatDirective(name string, values map[string]struct{}) string {
 	ordered = append(ordered, extras...)
 
 	return name + " " + strings.Join(ordered, " ")
+}
+
+func deriveXFrameOptions(cfg *config.Config) string {
+	ancestors := resolveFrameAncestors(cfg)
+	if len(ancestors) == 0 {
+		return "DENY"
+	}
+
+	if len(ancestors) == 1 {
+		switch ancestors[0] {
+		case "'none'":
+			return "DENY"
+		case "'self'":
+			return "SAMEORIGIN"
+		default:
+			ancestor := strings.Trim(ancestors[0], "'\"")
+			if ancestor == "" {
+				return "DENY"
+			}
+			return "ALLOW-FROM " + ancestor
+		}
+	}
+
+	return ""
+}
+
+func resolveFrameAncestors(cfg *config.Config) []string {
+	var ancestors []string
+	switch {
+	case cfg != nil && len(cfg.CSPFrameAncestors) > 0:
+		ancestors = cfg.CSPFrameAncestors
+	default:
+		ancestors = baseContentSecurityPolicy["frame-ancestors"]
+	}
+
+	if len(ancestors) == 0 {
+		return nil
+	}
+
+	result := make([]string, len(ancestors))
+	copy(result, ancestors)
+	return result
 }
