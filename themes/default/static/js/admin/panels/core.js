@@ -2102,6 +2102,17 @@
                         </p>
                     </div>
                     <div class="admin-panel__actions">
+                        <label class="admin-search" for="admin-archive-directories-search">
+                            <span class="admin-search__label">Search directories</span>
+                            <input
+                                id="admin-archive-directories-search"
+                                type="search"
+                                class="admin-search__input"
+                                placeholder="Search directories…"
+                                autocomplete="off"
+                                data-role="archive-directory-search"
+                            />
+                        </label>
                         <button type="button" class="admin-panel__reset" data-action="archive-directory-reset">
                             New directory
                         </button>
@@ -2109,11 +2120,22 @@
                 </header>
                 <div class="admin-card__body">
                     <div class="admin-panel__body admin-panel__body--split">
-                        <div class="admin-panel__list admin-archive__tree" data-role="archive-directory-tree">
-                            <p class="admin-card__description" data-role="archive-directory-empty">
-                                Create a directory to start building your archive structure.
-                            </p>
-                            <ul class="admin-archive__list" data-role="archive-directory-list"></ul>
+                        <div class="admin-panel__list" aria-live="polite">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Directory</th>
+                                        <th scope="col">Path</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Updated</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-archive-directories-table">
+                                    <tr class="admin-table__placeholder">
+                                        <td colspan="4">Create a directory to start building your archive structure.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                         <div class="admin-panel__details">
                             <form id="admin-archive-directory-form" class="admin-form" novalidate>
@@ -2170,6 +2192,17 @@
                         </p>
                     </div>
                     <div class="admin-panel__actions">
+                        <label class="admin-search" for="admin-archive-files-search">
+                            <span class="admin-search__label">Search files</span>
+                            <input
+                                id="admin-archive-files-search"
+                                type="search"
+                                class="admin-search__input"
+                                placeholder="Search files…"
+                                autocomplete="off"
+                                data-role="archive-file-search"
+                            />
+                        </label>
                         <button type="button" class="admin-panel__reset" data-action="archive-file-reset">
                             New file
                         </button>

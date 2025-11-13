@@ -93,6 +93,16 @@
         return value.replace(/\/+$/, '');
     };
 
+    const normalizeSearchTerm = (value) => {
+        if (typeof value === 'string') {
+            return value.toLowerCase().trim();
+        }
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value).toLowerCase().trim();
+    };
+
     layout.whenReady((context) => {
         if (!context || !context.archiveEnabled) {
             return;
@@ -115,9 +125,8 @@
         const treeEndpointRaw = (context.dataset?.endpointArchiveTree || '').trim();
         const treeEndpoint = treeEndpointRaw ? treeEndpointRaw : `${directoriesEndpoint}?tree=1`;
 
-        const directoryTreeContainer = panel.querySelector('[data-role="archive-directory-tree"]');
-        const directoryTreeList = panel.querySelector('[data-role="archive-directory-list"]');
-        const directoryTreeEmpty = panel.querySelector('[data-role="archive-directory-empty"]');
+        const directoriesTableBody = panel.querySelector('#admin-archive-directories-table');
+        const directorySearchInput = panel.querySelector('[data-role="archive-directory-search"]');
         const directoryForm = panel.querySelector('#admin-archive-directory-form');
         const directoryStatus = panel.querySelector('[data-role="archive-directory-status"]');
         const directoryParentSelect = panel.querySelector('[data-role="archive-directory-parent"]');
@@ -126,6 +135,7 @@
         const directoryResetButton = panel.querySelector('[data-action="archive-directory-reset"]');
 
         const filesTable = panel.querySelector('#admin-archive-files-table');
+        const fileSearchInput = panel.querySelector('[data-role="archive-file-search"]');
         const fileForm = panel.querySelector('#admin-archive-file-form');
         const fileStatus = panel.querySelector('[data-role="archive-file-status"]');
         const fileDirectorySelect = panel.querySelector('[data-role="archive-file-directory"]');
@@ -133,7 +143,7 @@
         const fileSubmitButton = panel.querySelector('[data-role="archive-file-submit"]');
         const fileResetButton = panel.querySelector('[data-action="archive-file-reset"]');
 
-        if (!directoryTreeContainer || !directoryTreeList || !directoryForm || !filesTable || !fileForm) {
+        if (!directoriesTableBody || !directoryForm || !filesTable || !fileForm) {
             return;
         }
 
@@ -143,8 +153,10 @@
             directoryMap: new Map(),
             directoryDescendants: new Map(),
             selectedDirectoryId: '',
+            directoryQuery: '',
             files: [],
             selectedFileId: '',
+            fileQuery: '',
         };
 
         const showAlert = (message, type = 'info') => {
@@ -177,6 +189,7 @@
                     const normalized = {
                         id,
                         name: item.name || item.Name || '',
+                        slug: item.slug || item.Slug || '',
                         path: item.path || item.Path || '',
                         parentId,
                         published: item.published !== false,
@@ -192,6 +205,7 @@
                     state.directoryList.push({
                         id,
                         name: normalized.name,
+                        slug: normalized.slug,
                         path: normalized.path,
                         published: normalized.published,
                         depth,
@@ -224,75 +238,82 @@
             });
         };
 
-        const renderDirectoryTree = () => {
-            if (!directoryTreeList) {
+        const getFilteredDirectories = () => {
+            if (!state.directoryQuery) {
+                return state.directoryList.slice();
+            }
+            const query = state.directoryQuery;
+            return state.directoryList.filter((entry) => {
+                const normalized = state.directoryMap.get(entry.id);
+                const values = [
+                    entry.name,
+                    entry.path,
+                    entry.slug,
+                    normalized?.description,
+                    normalized?.path,
+                ];
+                return values
+                    .filter(Boolean)
+                    .some((value) => value.toString().toLowerCase().includes(query));
+            });
+        };
+
+        const renderDirectoryTable = () => {
+            if (!directoriesTableBody) {
                 return;
             }
-            directoryTreeList.innerHTML = '';
+            directoriesTableBody.innerHTML = '';
+            const entries = getFilteredDirectories();
+            if (entries.length === 0) {
+                const row = document.createElement('tr');
+                row.className = 'admin-table__placeholder';
+                const cell = document.createElement('td');
+                cell.colSpan = 4;
+                if (state.directoryList.length === 0) {
+                    cell.textContent = 'Create a directory to start building your archive structure.';
+                } else if (state.directoryQuery) {
+                    cell.textContent = 'No directories match your search.';
+                } else {
+                    cell.textContent = 'No directories available.';
+                }
+                row.appendChild(cell);
+                directoriesTableBody.appendChild(row);
+                return;
+            }
+
             const fragment = document.createDocumentFragment();
-
-            const createNode = (entry) => {
-                const item = document.createElement('li');
-                item.className = 'admin-archive__item';
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'admin-archive__directory';
-                button.dataset.id = entry.id;
-                button.dataset.role = 'archive-directory-node';
-                const label = entry.name || entry.path || `Directory ${entry.id}`;
-                button.textContent = label;
-                if (!entry.published) {
-                    button.classList.add('is-unpublished');
-                }
+            entries.forEach((entry) => {
+                const normalized = state.directoryMap.get(entry.id) || {};
+                const row = document.createElement('tr');
+                row.dataset.id = entry.id;
+                row.dataset.role = 'archive-directory-row';
+                row.className = 'admin-archive__directory-row';
                 if (state.selectedDirectoryId === entry.id) {
-                    button.classList.add('is-active');
+                    row.classList.add('is-active');
                 }
-                item.appendChild(button);
 
-                const normalized = state.directoryMap.get(entry.id);
-                const children = normalized?.children || [];
-                if (children.length > 0) {
-                    const childList = document.createElement('ul');
-                    childList.className = 'admin-archive__list';
-                    children.forEach((child) => {
-                        const childId = String(child.id || child.ID || '');
-                        if (!childId) {
-                            return;
-                        }
-                        const childEntry = state.directoryMap.get(childId) || {
-                            id: childId,
-                            name: child.name || child.Name || '',
-                            path: child.path || child.Path || '',
-                            published: child.published !== false,
-                        };
-                        childList.appendChild(createNode(childEntry));
-                    });
-                    item.appendChild(childList);
-                }
-                return item;
-            };
+                const nameCell = document.createElement('td');
+                const indent = entry.depth > 0 ? `${'\u2014 '.repeat(entry.depth)}` : '';
+                const label = entry.name || normalized.path || `Directory ${entry.id}`;
+                nameCell.textContent = `${indent}${label}`;
+                row.appendChild(nameCell);
 
-            if (state.tree.length > 0) {
-                state.tree.forEach((entry) => {
-                    const id = String(entry.id || entry.ID || '');
-                    if (!id) {
-                        return;
-                    }
-                    const normalized = state.directoryMap.get(id) || {
-                        id,
-                        name: entry.name || entry.Name || '',
-                        path: entry.path || entry.Path || '',
-                        published: entry.published !== false,
-                        children: entry.children || [],
-                    };
-                    fragment.appendChild(createNode(normalized));
-                });
-            }
+                const pathCell = document.createElement('td');
+                pathCell.textContent = normalized.path || entry.path || '—';
+                row.appendChild(pathCell);
 
-            directoryTreeList.appendChild(fragment);
-            if (directoryTreeEmpty) {
-                directoryTreeEmpty.hidden = state.tree.length > 0;
-            }
+                const statusCell = document.createElement('td');
+                statusCell.textContent = normalized.published === false ? 'Unpublished' : 'Published';
+                row.appendChild(statusCell);
+
+                const updatedCell = document.createElement('td');
+                updatedCell.textContent = formatDateTime(normalized.updatedAt);
+                row.appendChild(updatedCell);
+
+                fragment.appendChild(row);
+            });
+
+            directoriesTableBody.appendChild(fragment);
         };
 
         const renderParentOptions = (selectedId, parentId) => {
@@ -402,16 +423,67 @@
             }
         };
 
-        const renderFilesTable = (entries) => {
+        const getFilteredFiles = () => {
+            const entries = Array.isArray(state.files) ? state.files : [];
+            if (!state.fileQuery) {
+                return entries.slice();
+            }
+            const query = state.fileQuery;
+            return entries.filter((file) => {
+                if (!file || typeof file !== 'object') {
+                    return false;
+                }
+                const values = [
+                    file.name ?? file.Name,
+                    file.slug ?? file.Slug,
+                    file.description ?? file.Description,
+                    file.file_url ?? file.fileUrl ?? file.FileUrl ?? file.FileURL,
+                    file.preview_url ?? file.previewUrl ?? file.PreviewUrl ?? file.PreviewURL,
+                    file.file_type ?? file.fileType ?? file.FileType,
+                    file.mime_type ?? file.mimeType ?? file.MimeType,
+                ];
+                return values
+                    .filter(Boolean)
+                    .some((value) => value.toString().toLowerCase().includes(query));
+            });
+        };
+
+        const renderFilesTable = () => {
             filesTable.innerHTML = '';
-            if (!Array.isArray(entries) || entries.length === 0) {
+            const hasDirectorySelected = Boolean(state.selectedDirectoryId);
+            if (fileSearchInput) {
+                fileSearchInput.disabled = !hasDirectorySelected;
+            }
+
+            if (!hasDirectorySelected) {
                 const row = document.createElement('tr');
                 row.className = 'admin-table__placeholder';
                 const cell = document.createElement('td');
                 cell.colSpan = 3;
-                cell.textContent = state.selectedDirectoryId
-                    ? 'No files found in this directory yet.'
-                    : 'Select a directory to view files.';
+                cell.textContent = 'Select a directory to view files.';
+                row.appendChild(cell);
+                filesTable.appendChild(row);
+                return;
+            }
+
+            const entries = getFilteredFiles();
+            if (!Array.isArray(state.files) || state.files.length === 0) {
+                const row = document.createElement('tr');
+                row.className = 'admin-table__placeholder';
+                const cell = document.createElement('td');
+                cell.colSpan = 3;
+                cell.textContent = 'No files found in this directory yet.';
+                row.appendChild(cell);
+                filesTable.appendChild(row);
+                return;
+            }
+
+            if (entries.length === 0) {
+                const row = document.createElement('tr');
+                row.className = 'admin-table__placeholder';
+                const cell = document.createElement('td');
+                cell.colSpan = 3;
+                cell.textContent = 'No files match your search.';
                 row.appendChild(cell);
                 filesTable.appendChild(row);
                 return;
@@ -435,15 +507,25 @@
                 }
 
                 const nameCell = document.createElement('td');
-                nameCell.textContent = file.name || file.Name || file.slug || file.Slug || `File ${id}`;
+                nameCell.textContent =
+                    file.name || file.Name || file.slug || file.Slug || `File ${id}`;
                 row.appendChild(nameCell);
 
                 const typeCell = document.createElement('td');
-                typeCell.textContent = file.file_type || file.FileType || file.mime_type || file.MimeType || '—';
+                typeCell.textContent =
+                    file.file_type ||
+                    file.FileType ||
+                    file.fileType ||
+                    file.mime_type ||
+                    file.mimeType ||
+                    file.MimeType ||
+                    '—';
                 row.appendChild(typeCell);
 
                 const updatedCell = document.createElement('td');
-                updatedCell.textContent = formatDateTime(file.updated_at || file.updatedAt || file.UpdatedAt);
+                updatedCell.textContent = formatDateTime(
+                    file.updated_at || file.updatedAt || file.UpdatedAt
+                );
                 row.appendChild(updatedCell);
 
                 fragment.appendChild(row);
@@ -456,7 +538,7 @@
             if (!directoryId) {
                 state.files = [];
                 state.selectedFileId = '';
-                renderFilesTable([]);
+                renderFilesTable();
                 resetFileForm({ directoryId: '', preserveDirectory: false });
                 return;
             }
@@ -477,7 +559,7 @@
                         state.selectedFileId = '';
                     }
                 }
-                renderFilesTable(files);
+                renderFilesTable();
                 resetFileForm({ directoryId: String(directoryId), preserveDirectory: true });
                 if (state.selectedFileId) {
                     await selectFile(state.selectedFileId, { preserveForm: true });
@@ -486,7 +568,7 @@
                 showAlert(error.message || 'Failed to load files', 'error');
                 state.files = [];
                 state.selectedFileId = '';
-                renderFilesTable([]);
+                renderFilesTable();
             }
         };
 
@@ -621,7 +703,7 @@
                 }
                 state.selectedFileId = String(file.id || file.ID || id);
                 populateFileForm(file, { preserveDirectory: preserveForm });
-                renderFilesTable(state.files);
+                renderFilesTable();
                 setFileFormEnabled(true);
             } catch (error) {
                 showAlert(error.message || 'Failed to load file', 'error');
@@ -645,7 +727,7 @@
                 }
                 state.selectedDirectoryId = String(directory.id || directory.ID || id);
                 populateDirectoryForm(directory);
-                renderDirectoryTree();
+                renderDirectoryTable();
                 await loadFiles(directory.id || id, { preserveSelection: preserveForm });
                 setFileFormEnabled(true);
             } catch (error) {
@@ -661,7 +743,7 @@
                 const directories = Array.isArray(response?.directories) ? response.directories : [];
                 state.tree = directories;
                 buildDirectoryMaps(directories);
-                renderDirectoryTree();
+                renderDirectoryTable();
                 renderParentOptions(state.selectedDirectoryId, '');
                 renderFileDirectoryOptions(state.selectedDirectoryId, state.selectedDirectoryId);
                 if (preserveSelection && state.selectedDirectoryId) {
@@ -673,36 +755,42 @@
                 }
                 state.selectedDirectoryId = '';
                 state.selectedFileId = '';
+                state.files = [];
                 resetDirectoryForm();
-                renderFilesTable([]);
+                renderFilesTable();
                 resetFileForm();
                 setFileFormEnabled(false);
             } catch (error) {
                 showAlert(error.message || 'Failed to load archive tree', 'error');
                 state.tree = [];
                 state.directoryList = [];
-                renderDirectoryTree();
+                renderDirectoryTable();
+                state.files = [];
                 resetDirectoryForm();
-                renderFilesTable([]);
+                renderFilesTable();
                 resetFileForm();
                 setFileFormEnabled(false);
             }
         };
 
-        directoryTreeContainer.addEventListener('click', (event) => {
-            const target = event.target;
-            if (!(target instanceof HTMLElement)) {
-                return;
-            }
-            const id = target.dataset.id;
-            if (!id) {
-                return;
-            }
-            if (target.dataset.role === 'archive-directory-node') {
+        if (directoriesTableBody) {
+            directoriesTableBody.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLElement)) {
+                    return;
+                }
+                const row = target.closest('tr[data-role="archive-directory-row"]');
+                if (!row) {
+                    return;
+                }
+                const id = row.dataset.id;
+                if (!id) {
+                    return;
+                }
                 event.preventDefault();
                 selectDirectory(id, { preserveForm: false });
-            }
-        });
+            });
+        }
 
         filesTable.addEventListener('click', (event) => {
             const target = event.target;
@@ -727,10 +815,11 @@
                 const parentId = state.selectedDirectoryId || '';
                 state.selectedDirectoryId = '';
                 resetDirectoryForm(parentId);
-                renderDirectoryTree();
+                renderDirectoryTable();
                 showAlert('Ready to create a new directory.', 'info');
                 setFileFormEnabled(false);
-                renderFilesTable([]);
+                state.files = [];
+                renderFilesTable();
                 resetFileForm({ directoryId: parentId, preserveDirectory: true });
             });
         }
@@ -740,9 +829,29 @@
                 event.preventDefault();
                 state.selectedFileId = '';
                 resetFileForm({ directoryId: state.selectedDirectoryId, preserveDirectory: true });
-                renderFilesTable(state.files);
+                renderFilesTable();
                 showAlert('Ready to create a new file.', 'info');
             });
+        }
+
+        if (directorySearchInput) {
+            const handleDirectorySearch = (event) => {
+                const { value } = event.target;
+                state.directoryQuery = normalizeSearchTerm(value);
+                renderDirectoryTable();
+            };
+            directorySearchInput.addEventListener('input', handleDirectorySearch);
+            directorySearchInput.addEventListener('search', handleDirectorySearch);
+        }
+
+        if (fileSearchInput) {
+            const handleFileSearch = (event) => {
+                const { value } = event.target;
+                state.fileQuery = normalizeSearchTerm(value);
+                renderFilesTable();
+            };
+            fileSearchInput.addEventListener('input', handleFileSearch);
+            fileSearchInput.addEventListener('search', handleFileSearch);
         }
 
         directoryForm.addEventListener('submit', async (event) => {

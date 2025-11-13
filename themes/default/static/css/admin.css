@@ -4016,6 +4016,23 @@
     font-weight: 400;
 }
 
+.admin-archive__directory-row:hover,
+.admin-archive__directory-row:focus-within {
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 60%,
+        var(--color-bg-top)
+    );
+}
+
+.admin-archive__directory-row.is-active {
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 80%,
+        var(--color-bg-top)
+    );
+}
+
 .admin-archive__file-row {
     cursor: pointer;
     transition: background-color 0.15s ease;
