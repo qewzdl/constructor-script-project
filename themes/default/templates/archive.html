@@ -55,23 +55,25 @@
 {{- $pageDescription := trim (default "Browse shared documents and downloadable files from a single archive." .Description) -}}
 
 <section class="archive" data-archive="overview">
-    <header class="archive__header">
-        <h1 class="archive__title">{{ $pageTitle }}</h1>
-        <p class="archive__description">{{ $pageDescription }}</p>
-    </header>
-    <div class="archive__body">
-        <section class="archive-tree" aria-labelledby="archive-tree-title">
-            <div>
-                <h2 id="archive-tree-title" class="archive-tree__title">Browse available resources</h2>
-                <p class="archive-tree__hint">
-                    Explore the directory structure to locate handbooks, documents, and media shared with the community.
-                </p>
-            </div>
-            {{- if .Directories }}
-            {{- template "archive-tree-list" .Directories -}}
-            {{- else }}
-            <p class="archive-tree__empty">The archive is currently empty. Check back soon for new resources.</p>
-            {{- end }}
-        </section>
+    <div class="archive__container">
+        <header class="archive__header">
+            <h1 class="archive__title">{{ $pageTitle }}</h1>
+            <p class="archive__description">{{ $pageDescription }}</p>
+        </header>
+        <div class="archive__body">
+            <section class="archive-tree" aria-labelledby="archive-tree-title">
+                <div>
+                    <h2 id="archive-tree-title" class="archive-tree__title">Browse available resources</h2>
+                    <p class="archive-tree__hint">
+                        Explore the directory structure to locate handbooks, documents, and media shared with the community.
+                    </p>
+                </div>
+                {{- if .Directories }}
+                {{- template "archive-tree-list" .Directories -}}
+                {{- else }}
+                <p class="archive-tree__empty">The archive is currently empty. Check back soon for new resources.</p>
+                {{- end }}
+            </section>
+        </div>
     </div>
 </section>
