@@ -116,14 +116,19 @@
         }
 
         const questionsEndpointRaw = (context.dataset?.endpointForumQuestions || '').trim();
+        const adminQuestionsEndpointRaw = (context.dataset?.endpointAdminForumQuestions || '').trim();
         if (!questionsEndpointRaw) {
             return;
         }
         const answersEndpointRaw = (context.dataset?.endpointForumAnswers || '').trim();
         const categoriesEndpointRaw = (context.dataset?.endpointForumCategories || '').trim();
         const questionsEndpoint = questionsEndpointRaw.replace(/\/+$/, '');
+        const adminQuestionsEndpoint = adminQuestionsEndpointRaw
+            ? adminQuestionsEndpointRaw.replace(/\/+$/, '')
+            : '';
         const answersEndpoint = answersEndpointRaw ? answersEndpointRaw.replace(/\/+$/, '') : '';
         const categoriesEndpoint = categoriesEndpointRaw ? categoriesEndpointRaw.replace(/\/+$/, '') : '';
+        const questionManageEndpoint = adminQuestionsEndpoint || questionsEndpoint;
 
         const questionTable = panel.querySelector('#admin-forum-questions-table');
         const questionForm = panel.querySelector('#admin-forum-question-form');
@@ -167,11 +172,16 @@
             setAlert(globalAlertId, message, type);
         };
 
-        const buildQuestionEndpoint = (id, suffix = '') => {
+        const buildQuestionEndpoint = (id, suffix = '', options = {}) => {
+            const useManagementEndpoint = Boolean(options?.useManagementEndpoint);
+            const baseEndpoint = useManagementEndpoint ? questionManageEndpoint : questionsEndpoint;
             if (!id) {
-                return questionsEndpoint;
+                return baseEndpoint;
             }
-            const base = `${questionsEndpoint}/${id}`;
+            if (!baseEndpoint) {
+                return '';
+            }
+            const base = `${baseEndpoint}/${id}`;
             if (!suffix) {
                 return base;
             }
@@ -727,7 +737,9 @@
                 }
                 const questionId = questionForm.dataset.id;
                 const method = questionId ? 'PUT' : 'POST';
-                const endpoint = questionId ? buildQuestionEndpoint(questionId) : questionsEndpoint;
+                const endpoint = questionId
+                    ? buildQuestionEndpoint(questionId, '', { useManagementEndpoint: true })
+                    : questionManageEndpoint;
                 const rawCategory = formData.get('category_id');
                 const categoryValue = rawCategory === null ? '' : String(rawCategory).trim();
                 let categoryId = null;
@@ -780,7 +792,7 @@
                 }
                 try {
                     toggleFormDisabled(questionForm, true);
-                    await apiClient(buildQuestionEndpoint(questionId), {
+                    await apiClient(buildQuestionEndpoint(questionId, '', { useManagementEndpoint: true }), {
                         method: 'DELETE',
                     });
                     showAlert('Question deleted successfully.', 'success');
@@ -985,7 +997,7 @@
                 const method = isUpdate ? 'PUT' : 'POST';
                 const endpoint = isUpdate
                     ? buildAnswerEndpoint(answerId)
-                    : `${buildQuestionEndpoint(questionId)}/answers`;
+                    : `${buildQuestionEndpoint(questionId, '', { useManagementEndpoint: true })}/answers`;
                 const payload = isUpdate ? { content } : { content };
                 try {
                     toggleFormDisabled(answerForm, true);

@@ -1225,6 +1225,7 @@ func (a *Application) initRouter() error {
 			content.POST("/forum/categories", a.handlers.ForumCategory.Create)
 			content.PUT("/forum/categories/:id", a.handlers.ForumCategory.Update)
 			content.DELETE("/forum/categories/:id", a.handlers.ForumCategory.Delete)
+			content.DELETE("/forum/questions/:id", a.handlers.ForumQuestion.AdminDelete)
 
 			content.POST("/courses/videos", a.handlers.CourseVideo.Create)
 			content.PUT("/courses/videos/:id", a.handlers.CourseVideo.Update)

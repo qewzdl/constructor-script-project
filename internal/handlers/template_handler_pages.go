@@ -1773,6 +1773,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 
 	if forumEnabled {
 		adminEndpoints["ForumQuestions"] = "/api/v1/forum/questions"
+		adminEndpoints["ForumQuestionsManage"] = "/api/v1/admin/forum/questions"
 		adminEndpoints["ForumAnswers"] = "/api/v1/forum/answers"
 		adminEndpoints["ForumCategories"] = "/api/v1/admin/forum/categories"
 	}

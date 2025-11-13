@@ -198,6 +198,28 @@ func (h *QuestionHandler) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+func (h *QuestionHandler) AdminDelete(c *gin.Context) {
+	if !h.ensureService(c) {
+		return
+	}
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid question id"})
+		return
+	}
+	userID := c.GetUint("user_id")
+	if err := h.service.Delete(uint(id), userID, true); err != nil {
+		switch {
+		case errors.Is(err, forumservice.ErrQuestionNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h *QuestionHandler) Vote(c *gin.Context) {
 	if !h.ensureService(c) {
 		return
