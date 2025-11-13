@@ -403,6 +403,15 @@ body.forum-question-modal-open {
     background-color: color-mix(in srgb, var(--color-primary-transparent) 35%, transparent);
 }
 
+.forum-table__row[role="link"] {
+    cursor: pointer;
+}
+
+.forum-table__row[role="link"]:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+}
+
 .forum-table__cell {
     padding: var(--size-base);
     border-bottom: 1px solid var(--color-border);
@@ -425,12 +434,6 @@ body.forum-question-modal-open {
     align-items: center;
     gap: var(--size-xs);
     width: 100%;
-}
-
-.forum-table__title:hover,
-.forum-table__title:focus-visible {
-    color: var(--color-primary);
-    outline: none;
 }
 
 .forum-table__excerpt {

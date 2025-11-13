@@ -250,6 +250,63 @@
 
     const focusableSelector =
         'a[href]:not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"]), input:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])';
+    const interactiveElementSelector =
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"]';
+
+    const initForumTableNavigation = (root) => {
+        const list = root.querySelector('[data-role="forum-list"]');
+        if (!list) {
+            return;
+        }
+
+        const rows = Array.from(list.querySelectorAll('.forum-table__row[data-question-url]'));
+        rows.forEach((row) => {
+            if (!(row instanceof HTMLElement)) {
+                return;
+            }
+
+            if (row.dataset.linkEnhanced === "true") {
+                return;
+            }
+
+            row.dataset.linkEnhanced = "true";
+
+            row.addEventListener("click", (event) => {
+                if (event.defaultPrevented) {
+                    return;
+                }
+
+                const target = event.target;
+                if (target instanceof Element && target.closest(interactiveElementSelector)) {
+                    return;
+                }
+
+                const url = row.dataset.questionUrl;
+                if (url) {
+                    window.location.href = url;
+                }
+            });
+
+            row.addEventListener("keydown", (event) => {
+                if (event.defaultPrevented) {
+                    return;
+                }
+
+                const target = event.target;
+                if (target instanceof Element && target !== row && target.closest(interactiveElementSelector)) {
+                    return;
+                }
+
+                if (event.key === "Enter" || event.key === " ") {
+                    const url = row.dataset.questionUrl;
+                    if (url) {
+                        event.preventDefault();
+                        window.location.href = url;
+                    }
+                }
+            });
+        });
+    };
 
     const initForumList = (root) => {
         const modal = root.querySelector('[data-role="question-modal"]');
@@ -760,6 +817,7 @@
         const forumListRoot = document.querySelector('[data-forum="list"]');
         if (forumListRoot) {
             initForumList(forumListRoot);
+            initForumTableNavigation(forumListRoot);
         }
         const forumQuestionRoot = document.querySelector('[data-forum="question"]');
         if (forumQuestionRoot) {

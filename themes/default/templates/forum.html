@@ -196,6 +196,10 @@
                             class="forum-table__row"
                             data-question-id="{{ .ID }}"
                             data-question-slug="{{ $slug }}"
+                            data-question-url="/forum/{{ $slug }}"
+                            role="link"
+                            tabindex="0"
+                            aria-label="View discussion: {{ .Title }}"
                         >
                             <th
                                 scope="row"
