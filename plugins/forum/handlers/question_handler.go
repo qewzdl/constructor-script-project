@@ -52,7 +52,22 @@ func (h *QuestionHandler) List(c *gin.Context) {
 		}
 	}
 
-	questions, total, err := h.service.List(page, limit, search, authorID)
+	var categoryID *uint
+	if categoryParam := strings.TrimSpace(c.Query("category_id")); categoryParam != "" {
+		if parsed, err := strconv.ParseUint(categoryParam, 10, 64); err == nil {
+			value := uint(parsed)
+			categoryID = &value
+		}
+	}
+
+	options := forumservice.QuestionListOptions{
+		Search:       search,
+		AuthorID:     authorID,
+		CategoryID:   categoryID,
+		CategorySlug: strings.TrimSpace(c.Query("category")),
+	}
+
+	questions, total, err := h.service.List(page, limit, options)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

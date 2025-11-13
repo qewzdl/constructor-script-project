@@ -253,6 +253,134 @@
     const interactiveElementSelector =
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="button"]';
 
+    const initForumFilters = (root) => {
+        const dropdown = root.querySelector('[data-role="forum-filter"]');
+        if (!dropdown) {
+            return;
+        }
+
+        const toggle = dropdown.querySelector('[data-role="forum-filter-toggle"]');
+        const menu = dropdown.querySelector('[data-role="forum-filter-menu"]');
+        if (!(toggle instanceof HTMLElement) || !(menu instanceof HTMLElement)) {
+            return;
+        }
+
+        const options = Array.from(menu.querySelectorAll('[role="option"]'));
+        let isOpen = false;
+
+        const closeMenu = (focusToggle = false) => {
+            isOpen = false;
+            dropdown.classList.remove("is-open");
+            menu.hidden = true;
+            toggle.setAttribute("aria-expanded", "false");
+            if (focusToggle) {
+                toggle.focus({ preventScroll: true });
+            }
+        };
+
+        const openMenu = () => {
+            if (isOpen) {
+                return;
+            }
+            isOpen = true;
+            dropdown.classList.add("is-open");
+            menu.hidden = false;
+            toggle.setAttribute("aria-expanded", "true");
+        };
+
+        const focusInitialOption = () => {
+            const active = menu.querySelector(".forum__filter-option.is-active");
+            const target = (active || options[0]);
+            if (target instanceof HTMLElement) {
+                target.focus({ preventScroll: true });
+            }
+        };
+
+        const handleDocumentClick = (event) => {
+            if (!dropdown.contains(event.target)) {
+                closeMenu(false);
+            }
+        };
+
+        toggle.addEventListener("click", (event) => {
+            event.preventDefault();
+            if (isOpen) {
+                closeMenu(false);
+            } else {
+                openMenu();
+                focusInitialOption();
+            }
+        });
+
+        toggle.addEventListener("keydown", (event) => {
+            if (event.defaultPrevented) {
+                return;
+            }
+            if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
+                event.preventDefault();
+                if (!isOpen) {
+                    openMenu();
+                }
+                focusInitialOption();
+            }
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeMenu(false);
+            }
+        });
+
+        const focusOptionByOffset = (offset) => {
+            if (!options.length) {
+                return;
+            }
+            const activeElement = document.activeElement;
+            const currentIndex = options.findIndex((option) => option === activeElement);
+            let nextIndex = currentIndex + offset;
+            if (currentIndex === -1) {
+                nextIndex = offset > 0 ? 0 : options.length - 1;
+            }
+            if (nextIndex < 0) {
+                nextIndex = options.length - 1;
+            }
+            if (nextIndex >= options.length) {
+                nextIndex = 0;
+            }
+            const target = options[nextIndex];
+            if (target instanceof HTMLElement) {
+                target.focus({ preventScroll: true });
+            }
+        };
+
+        menu.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeMenu(true);
+                return;
+            }
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                focusOptionByOffset(1);
+            }
+            if (event.key === "ArrowUp") {
+                event.preventDefault();
+                focusOptionByOffset(-1);
+            }
+        });
+
+        menu.addEventListener("click", () => {
+            closeMenu(false);
+        });
+
+        document.addEventListener("click", handleDocumentClick);
+        document.addEventListener("focusin", (event) => {
+            if (!dropdown.contains(event.target)) {
+                closeMenu(false);
+            }
+        });
+
+        closeMenu(false);
+    };
+
     const initForumTableNavigation = (root) => {
         const list = root.querySelector('[data-role="forum-list"]');
         if (!list) {
@@ -816,6 +944,7 @@
     const initialize = () => {
         const forumListRoot = document.querySelector('[data-forum="list"]');
         if (forumListRoot) {
+            initForumFilters(forumListRoot);
             initForumList(forumListRoot);
             initForumTableNavigation(forumListRoot);
         }

@@ -609,8 +609,8 @@ func (h *TemplateHandler) RenderSearch(c *gin.Context) {
 		"HasQuery":    hasQuery,
 		"Result":      result,
 		"SearchQuery": query,
-                "NoIndex":     true,
-        }
+		"NoIndex":     true,
+	}
 
 	if result != nil {
 		data["Total"] = result.Total
@@ -629,29 +629,66 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 		pageNumber = 1
 	}
 
+	limitParam := strings.TrimSpace(c.Query("limit"))
 	limit := 20
-	if limitParam := strings.TrimSpace(c.Query("limit")); limitParam != "" {
+	if limitParam != "" {
 		if parsed, parseErr := strconv.Atoi(limitParam); parseErr == nil && parsed > 0 && parsed <= 100 {
 			limit = parsed
 		}
 	}
 
 	search := strings.TrimSpace(c.Query("search"))
-
-	questions, total, listErr := h.forumQuestionSvc.List(pageNumber, limit, search, nil)
-	if listErr != nil {
-		logger.Error(listErr, "Failed to load forum questions", map[string]interface{}{"page": pageNumber, "search": search})
-		h.renderError(c, http.StatusInternalServerError, "Forum unavailable", "We couldn't load the forum questions right now.")
-		return
-	}
+	categorySlug := strings.TrimSpace(c.Query("category"))
 
 	var categories []models.ForumCategory
+	var activeCategory *models.ForumCategory
 	if h.forumCategorySvc != nil {
 		if list, err := h.forumCategorySvc.GetAll(); err != nil {
 			logger.Error(err, "Failed to load forum categories", nil)
 		} else {
 			categories = list
+			if categorySlug != "" {
+				for idx := range categories {
+					slug := strings.TrimSpace(categories[idx].Slug)
+					if strings.EqualFold(slug, categorySlug) {
+						activeCategory = &categories[idx]
+						break
+					}
+				}
+			}
 		}
+	}
+
+	var categoryID *uint
+	if activeCategory != nil {
+		id := activeCategory.ID
+		categoryID = &id
+	} else if categoryIDParam := strings.TrimSpace(c.Query("category_id")); categoryIDParam != "" {
+		if parsed, parseErr := strconv.ParseUint(categoryIDParam, 10, 64); parseErr == nil && parsed > 0 {
+			value := uint(parsed)
+			categoryID = &value
+			if activeCategory == nil {
+				for idx := range categories {
+					if categories[idx].ID == value {
+						activeCategory = &categories[idx]
+						break
+					}
+				}
+			}
+		}
+	}
+
+	options := forumservice.QuestionListOptions{
+		Search:       search,
+		CategoryID:   categoryID,
+		CategorySlug: categorySlug,
+	}
+
+	questions, total, listErr := h.forumQuestionSvc.List(pageNumber, limit, options)
+	if listErr != nil {
+		logger.Error(listErr, "Failed to load forum questions", map[string]interface{}{"page": pageNumber, "search": search, "category": categorySlug})
+		h.renderError(c, http.StatusInternalServerError, "Forum unavailable", "We couldn't load the forum questions right now.")
+		return
 	}
 
 	totalPages := 0
@@ -662,15 +699,40 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 		totalPages = 1
 	}
 
+	buildCategoryURL := func(slug string, id *uint) string {
+		params := url.Values{}
+		if search != "" {
+			params.Set("search", search)
+		}
+		if slug != "" {
+			params.Set("category", slug)
+		} else if id != nil {
+			params.Set("category_id", strconv.FormatUint(uint64(*id), 10))
+		}
+		if limitParam != "" && limitParam != strconv.Itoa(limit) {
+			params.Set("limit", limitParam)
+		}
+		base := "/forum"
+		if len(params) == 0 {
+			return base
+		}
+		return base + "?" + params.Encode()
+	}
+
 	pagination := h.buildPagination(pageNumber, totalPages, func(p int) string {
 		params := url.Values{}
 		if search != "" {
 			params.Set("search", search)
 		}
+		if categorySlug != "" {
+			params.Set("category", categorySlug)
+		} else if categoryID != nil {
+			params.Set("category_id", strconv.FormatUint(uint64(*categoryID), 10))
+		}
 		if p > 1 {
 			params.Set("page", strconv.Itoa(p))
 		}
-		if limitParam := strings.TrimSpace(c.Query("limit")); limitParam != "" && limitParam != strconv.Itoa(limit) {
+		if limitParam != "" && limitParam != strconv.Itoa(limit) {
 			params.Set("limit", limitParam)
 		}
 		base := "/forum"
@@ -682,7 +744,13 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 
 	pageTitle := "Community forum"
 	description := "Join the community forum to ask questions, share insights, and collaborate with other members."
-	if search != "" {
+	if activeCategory != nil && search == "" {
+		pageTitle = fmt.Sprintf("%s discussions", strings.TrimSpace(activeCategory.Name))
+		description = fmt.Sprintf("Community conversations in the %s category.", strings.TrimSpace(activeCategory.Name))
+	} else if activeCategory != nil && search != "" {
+		pageTitle = fmt.Sprintf("Results for \"%s\" in %s", search, strings.TrimSpace(activeCategory.Name))
+		description = fmt.Sprintf("Questions matching \"%s\" within the %s forum category.", search, strings.TrimSpace(activeCategory.Name))
+	} else if search != "" {
 		pageTitle = fmt.Sprintf("Forum results for \"%s\"", search)
 		description = fmt.Sprintf("Questions matching \"%s\" from the community discussion board.", search)
 	}
@@ -692,14 +760,53 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 	if search != "" {
 		params.Set("search", search)
 	}
+	if categorySlug != "" {
+		params.Set("category", categorySlug)
+	} else if categoryID != nil {
+		params.Set("category_id", strconv.FormatUint(uint64(*categoryID), 10))
+	}
 	if pageNumber > 1 {
 		params.Set("page", strconv.Itoa(pageNumber))
 	}
-	if limitParam := strings.TrimSpace(c.Query("limit")); limitParam != "" && limitParam != strconv.Itoa(limit) {
+	if limitParam != "" && limitParam != strconv.Itoa(limit) {
 		params.Set("limit", limitParam)
 	}
 	if len(params) > 0 {
 		canonicalPath = canonicalPath + "?" + params.Encode()
+	}
+
+	categoryFilters := make([]gin.H, 0, len(categories)+1)
+	activeFilterName := "All discussions"
+	defaultFilter := gin.H{
+		"Name":   "All discussions",
+		"Slug":   "",
+		"URL":    buildCategoryURL("", nil),
+		"Active": activeCategory == nil && categorySlug == "" && categoryID == nil,
+	}
+	if isActive, ok := defaultFilter["Active"].(bool); ok && isActive {
+		activeFilterName = defaultFilter["Name"].(string)
+	}
+	categoryFilters = append(categoryFilters, defaultFilter)
+	for i := range categories {
+		slug := strings.TrimSpace(categories[i].Slug)
+		id := categories[i].ID
+		isActive := false
+		if activeCategory != nil {
+			isActive = activeCategory.ID == categories[i].ID
+		} else if categorySlug != "" {
+			isActive = strings.EqualFold(slug, categorySlug)
+		}
+		name := strings.TrimSpace(categories[i].Name)
+		filter := gin.H{
+			"Name":   name,
+			"Slug":   slug,
+			"URL":    buildCategoryURL(slug, &id),
+			"Active": isActive,
+		}
+		if isActive && name != "" {
+			activeFilterName = name
+		}
+		categoryFilters = append(categoryFilters, filter)
 	}
 
 	extra := gin.H{
@@ -714,10 +821,14 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 		"ForumEndpoints": gin.H{
 			"Create": "/api/v1/forum/questions",
 		},
-		"Scripts":         []string{"/static/js/forum.js"},
-		"Canonical":       h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath),
-		"ForumPath":       "/forum",
-		"ForumCategories": categories,
+		"Scripts":                 []string{"/static/js/forum.js"},
+		"Canonical":               h.ensureAbsoluteURL(h.config.SiteURL, canonicalPath),
+		"ForumPath":               "/forum",
+		"ForumCategories":         categories,
+		"ForumActiveCategory":     activeCategory,
+		"ForumActiveCategorySlug": categorySlug,
+		"ForumCategoryFilters":    categoryFilters,
+		"ForumActiveCategoryName": activeFilterName,
 	}
 
 	if pagination != nil {
@@ -726,6 +837,9 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 
 	if search != "" {
 		extra["NoIndex"] = true
+	}
+	if activeCategory != nil && search == "" {
+		extra["PageType"] = "collection"
 	}
 
 	h.renderTemplate(c, "forum", pageTitle, description, extra)

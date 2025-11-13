@@ -42,7 +42,14 @@ func (s *QuestionService) SetRepositories(
 	s.voteRepo = voteRepo
 }
 
-func (s *QuestionService) List(page, limit int, search string, authorID *uint) ([]models.ForumQuestion, int64, error) {
+type QuestionListOptions struct {
+	Search       string
+	AuthorID     *uint
+	CategoryID   *uint
+	CategorySlug string
+}
+
+func (s *QuestionService) List(page, limit int, opts QuestionListOptions) ([]models.ForumQuestion, int64, error) {
 	if s == nil || s.questionRepo == nil {
 		return nil, 0, errors.New("question repository not configured")
 	}
@@ -53,7 +60,27 @@ func (s *QuestionService) List(page, limit int, search string, authorID *uint) (
 		limit = 20
 	}
 	offset := (page - 1) * limit
-	return s.questionRepo.List(offset, limit, search, authorID)
+
+	var categoryID *uint
+	if opts.CategoryID != nil {
+		categoryID = opts.CategoryID
+	} else if slug := strings.TrimSpace(opts.CategorySlug); slug != "" {
+		if s.categoryRepo == nil {
+			return nil, 0, errors.New("category repository not configured")
+		}
+		category, err := s.categoryRepo.GetBySlug(slug)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return []models.ForumQuestion{}, 0, nil
+			}
+			return nil, 0, err
+		}
+		id := category.ID
+		categoryID = &id
+	}
+
+	search := strings.TrimSpace(opts.Search)
+	return s.questionRepo.List(offset, limit, search, opts.AuthorID, categoryID)
 }
 
 func (s *QuestionService) GetByID(id uint) (*models.ForumQuestion, error) {

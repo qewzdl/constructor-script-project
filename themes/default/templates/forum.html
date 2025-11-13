@@ -4,6 +4,7 @@
 {{ $page := .ForumPage }}
 {{ $forumPath := default "/forum" .ForumPath }}
 {{ $categories := .ForumCategories }}
+{{ $categoryFilters := .ForumCategoryFilters }}
 {{ $loginURL := printf "/login?redirect=%s" (urlquery $forumPath) }}
 <section
     class="forum"
@@ -62,6 +63,36 @@
             </button>
             {{ else }}
             <a class="forum__cta forum__cta--ghost" href="{{ $loginURL }}">Sign in to ask</a>
+            {{ end }}
+            {{ if gt (len $categoryFilters) 0 }}
+            {{ $activeFilterName := default "All discussions" .ForumActiveCategoryName }}
+            <div class="forum__filter-dropdown" data-role="forum-filter">
+                <button
+                    class="forum__filter-toggle"
+                    type="button"
+                    data-role="forum-filter-toggle"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                >
+                    <span class="forum__filter-toggle-label">Category</span>
+                    <span class="forum__filter-toggle-value" data-role="forum-filter-value">
+                        {{ $activeFilterName }}
+                    </span>
+                </button>
+                <div class="forum__filter-menu" role="listbox" data-role="forum-filter-menu" hidden>
+                    {{ range $categoryFilters }}
+                    {{ $isActive := .Active }}
+                    <a
+                        class="forum__filter-option{{ if $isActive }} is-active{{ end }}"
+                        role="option"
+                        href="{{ .URL }}"
+                        {{- if $isActive }} aria-selected="true"{{ end }}
+                    >
+                        {{ .Name }}
+                    </a>
+                    {{ end }}
+                </div>
+            </div>
             {{ end }}
         </div>
 

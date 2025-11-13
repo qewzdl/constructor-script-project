@@ -14,7 +14,7 @@ type ForumQuestionRepository interface {
 	Delete(id uint) error
 	GetByID(id uint) (*models.ForumQuestion, error)
 	GetBySlug(slug string) (*models.ForumQuestion, error)
-	List(offset, limit int, search string, authorID *uint) ([]models.ForumQuestion, int64, error)
+	List(offset, limit int, search string, authorID *uint, categoryID *uint) ([]models.ForumQuestion, int64, error)
 	ExistsBySlug(slug string) (bool, error)
 	IncrementViews(id uint) error
 }
@@ -87,7 +87,7 @@ func (r *forumQuestionRepository) GetBySlug(slug string) (*models.ForumQuestion,
 	return &question, nil
 }
 
-func (r *forumQuestionRepository) List(offset, limit int, search string, authorID *uint) ([]models.ForumQuestion, int64, error) {
+func (r *forumQuestionRepository) List(offset, limit int, search string, authorID *uint, categoryID *uint) ([]models.ForumQuestion, int64, error) {
 	if r == nil || r.db == nil {
 		return nil, 0, gorm.ErrInvalidDB
 	}
@@ -103,6 +103,10 @@ func (r *forumQuestionRepository) List(offset, limit int, search string, authorI
 
 	if authorID != nil {
 		query = query.Where("author_id = ?", *authorID)
+	}
+
+	if categoryID != nil {
+		query = query.Where("category_id = ?", *categoryID)
 	}
 
 	var total int64
