@@ -905,9 +905,16 @@ func (h *TemplateHandler) RenderForumQuestion(c *gin.Context) {
 	site := h.siteSettings()
 	structuredData := h.buildForumStructuredData(question, site, canonicalURL)
 
-	canDeleteQuestion := false
+	var (
+		forumCurrentUserID       uint
+		forumCanManageAllAnswers bool
+		canDeleteQuestion        bool
+	)
+
 	if user, ok := h.currentUser(c); ok {
-		if user.ID == question.AuthorID || authorization.RoleHasPermission(user.Role, authorization.PermissionManageAllContent) {
+		forumCurrentUserID = user.ID
+		forumCanManageAllAnswers = authorization.RoleHasPermission(user.Role, authorization.PermissionManageAllContent)
+		if user.ID == question.AuthorID || forumCanManageAllAnswers {
 			canDeleteQuestion = true
 		}
 	}
@@ -927,15 +934,17 @@ func (h *TemplateHandler) RenderForumQuestion(c *gin.Context) {
 			"AnswerBase":   "/api/v1/forum/answers",
 			"AnswerVote":   "/api/v1/forum/answers",
 		},
-		"ForumQuestionCanDelete": canDeleteQuestion,
-		"ForumPath":              "/forum",
-		"Scripts":                []string{"/static/js/forum.js"},
-		"Canonical":              canonicalURL,
-		"StructuredData":         structuredData,
-		"OGType":                 "article",
-		"OGURL":                  canonicalURL,
-		"TwitterCard":            "summary_large_image",
-		"ForumLoginURL":          fmt.Sprintf("/login?redirect=%s", url.QueryEscape(loginRedirect)),
+		"ForumQuestionCanDelete":   canDeleteQuestion,
+		"ForumCanManageAllAnswers": forumCanManageAllAnswers,
+		"ForumCurrentUserID":       forumCurrentUserID,
+		"ForumPath":                "/forum",
+		"Scripts":                  []string{"/static/js/forum.js"},
+		"Canonical":                canonicalURL,
+		"StructuredData":           structuredData,
+		"OGType":                   "article",
+		"OGURL":                    canonicalURL,
+		"TwitterCard":              "summary_large_image",
+		"ForumLoginURL":            fmt.Sprintf("/login?redirect=%s", url.QueryEscape(loginRedirect)),
 	}
 
 	h.renderTemplate(c, "forum_question", question.Title, description, extra)

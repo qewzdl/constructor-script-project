@@ -1,6 +1,8 @@
 {{ $question := .Question }}
 {{ $answers := $question.Answers }}
 {{ $answerCount := or .ForumAnswerCount (len $answers) }}
+{{ $currentUser := .CurrentUser }}
+{{ $canManageAllAnswers := .ForumCanManageAllAnswers }}
 {{ $forumPath := default "/forum" .ForumPath }}
 <section
     class="forum-question"
@@ -11,6 +13,8 @@
     data-can-delete="{{ if .ForumQuestionCanDelete }}true{{ else }}false{{ end }}"
     data-login-url="{{ .ForumLoginURL }}"
     data-answer-count="{{ $answerCount }}"
+    data-current-user-id="{{ if .ForumCurrentUserID }}{{ .ForumCurrentUserID }}{{ end }}"
+    data-can-manage-all="{{ if $canManageAllAnswers }}true{{ else }}false{{ end }}"
     {{- with index .ForumEndpoints "Question" }}
     data-endpoint-question="{{ . }}"
     {{- end }}
@@ -104,7 +108,13 @@
             </p>
             <ol class="forum-answers__list" data-role="answer-list">
                 {{ range $answers }}
-                <li class="forum-answer" data-answer-id="{{ .ID }}">
+                {{ $canManage := or $canManageAllAnswers (and $currentUser (eq .AuthorID $currentUser.ID)) }}
+                <li
+                    class="forum-answer"
+                    data-answer-id="{{ .ID }}"
+                    data-answer-author-id="{{ .AuthorID }}"
+                    data-can-manage="{{ if $canManage }}true{{ else }}false{{ end }}"
+                >
                     <div class="forum-answer__votes">
                         <button
                             type="button"
@@ -136,6 +146,18 @@
                             </time>
                         </header>
                         <div class="forum-answer__content">{{ .Content }}</div>
+                        {{ if $canManage }}
+                        <footer class="forum-answer__actions">
+                            <button type="button" class="forum-answer__action" data-role="answer-edit">Edit</button>
+                            <button
+                                type="button"
+                                class="forum-answer__action forum-answer__action--danger"
+                                data-role="answer-delete"
+                            >
+                                Delete
+                            </button>
+                        </footer>
+                        {{ end }}
                     </article>
                 </li>
                 {{ end }}
@@ -160,7 +182,8 @@
                 ></textarea>
             </label>
             <div class="forum-answer-form__actions">
-                <button type="submit" class="forum__submit">Post answer</button>
+                <button type="submit" class="forum__submit" data-role="answer-submit">Post answer</button>
+                <button type="button" class="forum__reset" data-role="answer-cancel" hidden>Cancel</button>
             </div>
         </form>
         {{ else }}

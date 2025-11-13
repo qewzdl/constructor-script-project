@@ -175,20 +175,30 @@
         return { iso: date.toISOString(), label };
     };
 
-    const buildAnswerElement = (answer) => {
+    const buildAnswerElement = (answer, options = {}) => {
+        const { currentUserId: activeUserId = 0, canManageAll = false } = options;
         const answerId = getNumber(answer, "id", "ID");
         const rating = getNumber(answer, "rating", "Rating");
         const content = getString(answer, "content", "Content");
+        const authorId = getNumber(answer, "author_id", "AuthorID");
         const { iso, label } = formatDateTime(
             getString(answer, "created_at", "createdAt", "CreatedAt")
         );
         const authorName = getAuthorName(answer);
+
+        const canManage = Boolean(
+            canManageAll || (activeUserId > 0 && authorId > 0 && authorId === activeUserId)
+        );
 
         const item = document.createElement("li");
         item.className = "forum-answer";
         if (answerId) {
             item.dataset.answerId = String(answerId);
         }
+        if (authorId) {
+            item.dataset.answerAuthorId = String(authorId);
+        }
+        item.dataset.canManage = canManage ? "true" : "false";
 
         const votes = document.createElement("div");
         votes.className = "forum-answer__votes";
@@ -243,6 +253,27 @@
         contentElement.textContent = content;
 
         body.append(header, contentElement);
+
+        if (canManage) {
+            const actions = document.createElement("footer");
+            actions.className = "forum-answer__actions";
+
+            const editButton = document.createElement("button");
+            editButton.type = "button";
+            editButton.className = "forum-answer__action";
+            editButton.dataset.role = "answer-edit";
+            editButton.textContent = "Edit";
+
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.className = "forum-answer__action forum-answer__action--danger";
+            deleteButton.dataset.role = "answer-delete";
+            deleteButton.textContent = "Delete";
+
+            actions.append(editButton, deleteButton);
+            body.append(actions);
+        }
+
         item.append(votes, body);
 
         return item;
@@ -693,13 +724,19 @@
         const answerForm = root.querySelector('[data-role="answer-form"]');
         const answerTextarea = root.querySelector('[data-role="answer-content"]');
         const questionDeleteButton = root.querySelector('[data-role="question-delete"]');
+        const answerSubmitButton = answerForm?.querySelector('[data-role="answer-submit"]') || null;
+        const answerCancelButton = answerForm?.querySelector('[data-role="answer-cancel"]') || null;
 
         const loginURL = root.dataset.loginUrl || "/login";
         const questionEndpoint = normalizeEndpoint(root.dataset.endpointQuestion || "");
         const questionVoteEndpoint = normalizeEndpoint(root.dataset.endpointQuestionVote || "");
         const answerCreateEndpoint = normalizeEndpoint(root.dataset.endpointAnswerCreate || "");
+        const answerBaseEndpoint = normalizeEndpoint(root.dataset.endpointAnswerBase || "");
         const answerVoteEndpoint = normalizeEndpoint(root.dataset.endpointAnswerVote || "");
         const forumPath = root.dataset.forumPath || "/forum";
+        const currentUserId = Number(root.dataset.currentUserId || "0");
+        const canManageAllAnswers = root.dataset.canManageAll === "true";
+        const answerSubmitDefaultText = answerSubmitButton ? answerSubmitButton.textContent : "Post answer";
 
         const answerVotes = new Map();
         let questionVoteState = 0;
@@ -730,6 +767,60 @@
             container.querySelectorAll('[data-role="answer-vote"], [data-role="question-vote"]').forEach((button) => {
                 const value = Number(button.dataset.value || "0");
                 button.classList.toggle("is-active", currentValue !== 0 && value === currentValue);
+            });
+        };
+
+        const getAnswerElement = (answerId) => {
+            if (!answerList || !Number.isFinite(answerId) || answerId <= 0) {
+                return null;
+            }
+            return answerList.querySelector(`[data-answer-id="${answerId}"]`);
+        };
+
+        const canManageAnswer = (item) => {
+            if (!item) {
+                return false;
+            }
+            if (canManageAllAnswers) {
+                return true;
+            }
+            if (item.dataset.canManage === "true") {
+                return true;
+            }
+            const authorId = Number(item.dataset.answerAuthorId || "0");
+            return currentUserId > 0 && authorId > 0 && authorId === currentUserId;
+        };
+
+        const resetAnswerForm = () => {
+            if (!answerForm) {
+                return;
+            }
+            answerForm.reset();
+            delete answerForm.dataset.mode;
+            delete answerForm.dataset.answerId;
+            if (answerTextarea) {
+                answerTextarea.value = "";
+            }
+            if (answerSubmitButton) {
+                answerSubmitButton.textContent = answerSubmitDefaultText;
+            }
+            if (answerCancelButton) {
+                answerCancelButton.hidden = true;
+                answerCancelButton.disabled = false;
+            }
+        };
+
+        if (answerForm) {
+            resetAnswerForm();
+        }
+
+        const toggleAnswerItemDisabled = (item, disabled) => {
+            if (!item) {
+                return;
+            }
+            item.classList.toggle("is-disabled", disabled);
+            item.querySelectorAll("button").forEach((button) => {
+                button.disabled = disabled;
             });
         };
 
@@ -855,10 +946,118 @@
             }
         };
 
+        const startAnswerEdit = (item) => {
+            if (!item || !answerForm || !answerTextarea) {
+                return;
+            }
+            if (!canManageAnswer(item)) {
+                showAlert(alertElement, "You do not have permission to edit this answer.", "error");
+                return;
+            }
+            if (!isAuthenticated()) {
+                window.location.href = loginURL;
+                return;
+            }
+            const answerId = Number(item.dataset.answerId || "0");
+            if (!Number.isFinite(answerId) || answerId <= 0) {
+                return;
+            }
+
+            answerForm.reset();
+            answerForm.dataset.mode = "edit";
+            answerForm.dataset.answerId = String(answerId);
+            if (answerSubmitButton) {
+                answerSubmitButton.textContent = "Save changes";
+            }
+            if (answerCancelButton) {
+                answerCancelButton.hidden = false;
+            }
+
+            const contentElement = item.querySelector(".forum-answer__content");
+            const existingContent = contentElement ? contentElement.textContent || "" : "";
+            answerTextarea.value = existingContent;
+            try {
+                answerTextarea.focus({ preventScroll: false });
+            } catch (_error) {
+                answerTextarea.focus();
+            }
+            const length = answerTextarea.value.length;
+            if (typeof answerTextarea.setSelectionRange === "function") {
+                answerTextarea.setSelectionRange(length, length);
+            }
+            answerForm.scrollIntoView({ behavior: "smooth", block: "center" });
+        };
+
+        const handleAnswerDelete = async (item) => {
+            if (!item) {
+                return;
+            }
+            if (!answerBaseEndpoint) {
+                showAlert(alertElement, "Answer deletion is unavailable right now.", "error");
+                return;
+            }
+            if (!canManageAnswer(item)) {
+                showAlert(alertElement, "You do not have permission to delete this answer.", "error");
+                return;
+            }
+            if (!isAuthenticated()) {
+                window.location.href = loginURL;
+                return;
+            }
+
+            const answerId = Number(item.dataset.answerId || "0");
+            if (!Number.isFinite(answerId) || answerId <= 0) {
+                return;
+            }
+
+            const confirmation = window.confirm(
+                "Delete this answer? This action cannot be undone."
+            );
+            if (!confirmation) {
+                return;
+            }
+
+            toggleAnswerItemDisabled(item, true);
+            showAlert(alertElement, "");
+
+            try {
+                await apiRequest(`${answerBaseEndpoint}/${answerId}`, { method: "DELETE" });
+                if (answerForm && answerForm.dataset.answerId === String(answerId)) {
+                    resetAnswerForm();
+                }
+                answerVotes.delete(answerId);
+                const parent = item.parentElement;
+                item.remove();
+                updateAnswerCount(getCurrentAnswerCount() - 1);
+                if (answerEmpty && parent && parent.children.length === 0) {
+                    answerEmpty.hidden = false;
+                }
+                showAlert(alertElement, "Your answer has been deleted.", "success");
+            } catch (error) {
+                toggleAnswerItemDisabled(item, false);
+                if (error && error.status === 401) {
+                    window.location.href = loginURL;
+                    return;
+                }
+                showAlert(alertElement, error?.message || "Failed to delete answer.", "error");
+            }
+        };
+
         if (questionDeleteButton) {
             questionDeleteButton.addEventListener("click", (event) => {
                 event.preventDefault();
                 handleQuestionDelete();
+            });
+        }
+
+        if (answerCancelButton) {
+            answerCancelButton.addEventListener("click", (event) => {
+                event.preventDefault();
+                const wasEditing = answerForm?.dataset.mode === "edit";
+                resetAnswerForm();
+                if (wasEditing) {
+                    showAlert(alertElement, "Editing cancelled.", "info");
+                }
             });
         }
 
@@ -873,6 +1072,24 @@
                 handleQuestionVote(questionVoteButton);
                 return;
             }
+            const answerEditButton = target.closest('[data-role="answer-edit"]');
+            if (answerEditButton) {
+                event.preventDefault();
+                const item = answerEditButton.closest(".forum-answer");
+                if (item) {
+                    startAnswerEdit(item);
+                }
+                return;
+            }
+            const answerDeleteButton = target.closest('[data-role="answer-delete"]');
+            if (answerDeleteButton) {
+                event.preventDefault();
+                const item = answerDeleteButton.closest(".forum-answer");
+                if (item) {
+                    handleAnswerDelete(item);
+                }
+                return;
+            }
             const answerVoteButton = target.closest('[data-role="answer-vote"]');
             if (answerVoteButton) {
                 event.preventDefault();
@@ -885,13 +1102,26 @@
                 event.preventDefault();
                 showAlert(alertElement, "");
 
-                if (!answerCreateEndpoint) {
-                    showAlert(alertElement, "Answer submission is unavailable right now.", "error");
-                    return;
-                }
+                const isEditing = answerForm.dataset.mode === "edit";
+                const editingId = Number(answerForm.dataset.answerId || "0");
 
                 if (!isAuthenticated()) {
                     window.location.href = loginURL;
+                    return;
+                }
+
+                let endpoint = answerCreateEndpoint;
+                let method = "POST";
+
+                if (isEditing) {
+                    if (!answerBaseEndpoint || !Number.isFinite(editingId) || editingId <= 0) {
+                        showAlert(alertElement, "Answer editing is unavailable right now.", "error");
+                        return;
+                    }
+                    endpoint = `${answerBaseEndpoint}/${editingId}`;
+                    method = "PUT";
+                } else if (!answerCreateEndpoint) {
+                    showAlert(alertElement, "Answer submission is unavailable right now.", "error");
                     return;
                 }
 
@@ -903,37 +1133,76 @@
 
                 try {
                     toggleFormDisabled(answerForm, true);
-                    const payload = await apiRequest(answerCreateEndpoint, {
-                        method: "POST",
+                    const payload = await apiRequest(endpoint, {
+                        method,
                         body: JSON.stringify({ content }),
                     });
                     const answer = payload?.answer;
                     if (answer && answerList) {
-                        const element = buildAnswerElement(answer);
-                        if (answerList.firstChild) {
-                            answerList.prepend(element);
+                        if (isEditing) {
+                            const updatedElement = buildAnswerElement(answer, {
+                                currentUserId,
+                                canManageAll: canManageAllAnswers,
+                            });
+                            const existing = getAnswerElement(editingId);
+                            if (existing) {
+                                const previousVote = answerVotes.get(editingId) || 0;
+                                existing.replaceWith(updatedElement);
+                                answerVotes.set(editingId, previousVote);
+                                updateVoteIndicators(
+                                    updatedElement.querySelector(".forum-answer__votes"),
+                                    previousVote
+                                );
+                            } else if (answerList.firstChild) {
+                                answerList.prepend(updatedElement);
+                            } else {
+                                answerList.appendChild(updatedElement);
+                            }
+                            if (answerEmpty && answerList.children.length > 0) {
+                                answerEmpty.hidden = true;
+                            }
+                            resetAnswerForm();
+                            showAlert(alertElement, "Your answer has been updated.", "success");
                         } else {
-                            answerList.appendChild(element);
+                            const element = buildAnswerElement(answer, {
+                                currentUserId,
+                                canManageAll: canManageAllAnswers,
+                            });
+                            if (answerList.firstChild) {
+                                answerList.prepend(element);
+                            } else {
+                                answerList.appendChild(element);
+                            }
+                            const newAnswerId = getNumber(answer, "id", "ID");
+                            if (newAnswerId > 0) {
+                                answerVotes.set(newAnswerId, 0);
+                            }
+                            if (answerEmpty) {
+                                answerEmpty.hidden = true;
+                            }
+                            updateAnswerCount(getCurrentAnswerCount() + 1);
+                            resetAnswerForm();
+                            showAlert(alertElement, "Your answer has been posted.", "success");
                         }
-                        const newAnswerId = getNumber(answer, "id", "ID");
-                        if (newAnswerId > 0) {
-                            answerVotes.set(newAnswerId, 0);
-                        }
-                        if (answerEmpty) {
-                            answerEmpty.hidden = true;
-                        }
-                        updateAnswerCount(getCurrentAnswerCount() + 1);
-                        answerTextarea.value = "";
-                        showAlert(alertElement, "Your answer has been posted.", "success");
                     } else {
-                        showAlert(alertElement, "Answer saved, but the interface could not refresh automatically.", "info");
+                        showAlert(
+                            alertElement,
+                            "Answer saved, but the interface could not refresh automatically.",
+                            "info"
+                        );
+                        if (isEditing) {
+                            resetAnswerForm();
+                        }
                     }
                 } catch (error) {
                     if (error && error.status === 401) {
                         window.location.href = loginURL;
                         return;
                     }
-                    showAlert(alertElement, error?.message || "Failed to post answer.", "error");
+                    const message = isEditing
+                        ? error?.message || "Failed to update answer."
+                        : error?.message || "Failed to post answer.";
+                    showAlert(alertElement, message, "error");
                 } finally {
                     toggleFormDisabled(answerForm, false);
                 }
