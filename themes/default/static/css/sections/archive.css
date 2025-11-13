@@ -6,6 +6,36 @@
     gap: var(--size-max);
 }
 
+.archive__container,
+.archive-directory__container,
+.archive-file__container {
+    display: grid;
+    gap: var(--size-max);
+    max-width: var(--page-max-width);
+    margin-inline: auto;
+    padding-inline: var(--page-side-padding);
+    width: 100%;
+}
+
+.archive__header {
+    display: grid;
+    gap: var(--size-sm);
+    max-width: 56rem;
+}
+
+.archive__title,
+.archive-directory__title,
+.archive-file__title {
+    font-size: clamp(2rem, 3vw + 1rem, 2.5rem);
+    font-weight: 700;
+}
+
+.archive__description,
+.archive-file__description {
+    color: var(--color-secondary);
+    line-height: 1.6;
+}
+
 .archive__body {
     display: grid;
     gap: var(--size-max);

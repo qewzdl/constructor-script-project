@@ -4,150 +4,152 @@
 {{- $breadcrumbs := .Breadcrumbs -}}
 
 <section class="archive-directory" data-archive="directory">
-    <nav class="archive-breadcrumbs" aria-label="Breadcrumb">
-        <ol class="archive-breadcrumbs__list">
-            <li class="archive-breadcrumbs__item">
-                <a class="archive-breadcrumbs__link" href="/archive">Archive</a>
-            </li>
-            {{- $crumbCount := len $breadcrumbs -}}
-            {{- if gt $crumbCount 0 -}}
-            {{- $lastIndex := sub $crumbCount 1 -}}
-            {{- range $index, $crumb := $breadcrumbs -}}
-            {{- $crumbName := trim (default "" $crumb.Name) -}}
-            {{- $crumbPath := trim (default "" $crumb.Path) -}}
-            <li class="archive-breadcrumbs__item">
-                <span aria-hidden="true">›</span>
-                {{- if eq $index $lastIndex -}}
-                <span aria-current="page">
-                    {{- if $crumbName -}}
-                    {{ $crumbName }}
+    <div class="archive-directory__container">
+        <nav class="archive-breadcrumbs" aria-label="Breadcrumb">
+            <ol class="archive-breadcrumbs__list">
+                <li class="archive-breadcrumbs__item">
+                    <a class="archive-breadcrumbs__link" href="/archive">Archive</a>
+                </li>
+                {{- $crumbCount := len $breadcrumbs -}}
+                {{- if gt $crumbCount 0 -}}
+                {{- $lastIndex := sub $crumbCount 1 -}}
+                {{- range $index, $crumb := $breadcrumbs -}}
+                {{- $crumbName := trim (default "" $crumb.Name) -}}
+                {{- $crumbPath := trim (default "" $crumb.Path) -}}
+                <li class="archive-breadcrumbs__item">
+                    <span aria-hidden="true">›</span>
+                    {{- if eq $index $lastIndex -}}
+                    <span aria-current="page">
+                        {{- if $crumbName -}}
+                        {{ $crumbName }}
+                        {{- else -}}
+                        {{- if $crumbPath -}}
+                        {{ $crumbPath }}
+                        {{- else -}}
+                        Current directory
+                        {{- end -}}
+                        {{- end -}}
+                    </span>
                     {{- else -}}
                     {{- if $crumbPath -}}
-                    {{ $crumbPath }}
+                    <a class="archive-breadcrumbs__link" href="/archive/{{ $crumbPath }}">
+                        {{- if $crumbName -}}
+                        {{ $crumbName }}
+                        {{- else -}}
+                        {{ $crumbPath }}
+                        {{- end -}}
+                    </a>
                     {{- else -}}
-                    Current directory
+                    <span>
+                        {{- if $crumbName -}}
+                        {{ $crumbName }}
+                        {{- else -}}
+                        Directory
+                        {{- end -}}
+                    </span>
                     {{- end -}}
                     {{- end -}}
-                </span>
-                {{- else -}}
-                {{- if $crumbPath -}}
-                <a class="archive-breadcrumbs__link" href="/archive/{{ $crumbPath }}">
-                    {{- if $crumbName -}}
-                    {{ $crumbName }}
-                    {{- else -}}
-                    {{ $crumbPath }}
-                    {{- end -}}
-                </a>
-                {{- else -}}
-                <span>
-                    {{- if $crumbName -}}
-                    {{ $crumbName }}
-                    {{- else -}}
-                    Directory
-                    {{- end -}}
-                </span>
+                </li>
                 {{- end -}}
                 {{- end -}}
-            </li>
-            {{- end -}}
-            {{- end -}}
-        </ol>
-    </nav>
+            </ol>
+        </nav>
 
-    <header class="archive-directory__header">
-        <h1 class="archive-directory__title">{{ trim (default "Archive directory" $directory.Name) }}</h1>
-    </header>
+        <header class="archive-directory__header">
+            <h1 class="archive-directory__title">{{ trim (default "Archive directory" $directory.Name) }}</h1>
+        </header>
 
-    <div class="archive-directory__sections">
-        <section class="archive-directory__panel" aria-labelledby="archive-directory-files-title">
-            <div>
-                <h2 id="archive-directory-files-title" class="archive-directory__panel-title">Files</h2>
-                <p class="archive-tree__hint">
-                    View the documents stored in this directory. Download originals or open the detail view for a dedicated preview.
-                </p>
-            </div>
-            {{- if $files }}
-            <ul class="archive-directory__items">
-                {{- range $files }}
-                {{- $fileName := trim (default "" .Name) -}}
-                {{- $filePath := trim (default "" .Path) -}}
-                <li class="archive-directory__item">
-                    <h3 class="archive-directory__item-title">
-                        {{- if $fileName -}}
-                        {{ $fileName }}
-                        {{- else -}}
-                        {{- if $filePath -}}
-                        {{ $filePath }}
-                        {{- else -}}
-                        Archive file
-                        {{- end -}}
-                        {{- end -}}
-                    </h3>
-                    {{- with trim .Description }}
-                    <p class="archive-directory__item-description">{{ . }}</p>
-                    {{- end }}
-                    <div class="archive-directory__file-actions">
-                        {{- if $filePath }}
-                        <a class="archive-button archive-button--ghost" href="/archive/files/{{ $filePath }}">View details</a>
-                        {{- end }}
-                        {{- with trim (default "" .FileURL) }}
-                        <a class="archive-button" href="{{ . }}" target="_blank" rel="noopener">Download</a>
-                        {{- end }}
-                    </div>
-                    <p class="archive-directory__file-meta">
-                        {{- with trim .FileType -}}
-                        {{ . }}
-                        {{- else -}}
-                        {{- if trim .MimeType -}}
-                        {{ trim .MimeType }}
-                        {{- else -}}
-                        File
-                        {{- end -}}
-                        {{- end -}}
-                        {{- with .FileSize -}}
-                        · {{ . }} bytes
-                        {{- end -}}
+        <div class="archive-directory__sections">
+            <section class="archive-directory__panel" aria-labelledby="archive-directory-files-title">
+                <div>
+                    <h2 id="archive-directory-files-title" class="archive-directory__panel-title">Files</h2>
+                    <p class="archive-tree__hint">
+                        View the documents stored in this directory. Download originals or open the detail view for a dedicated preview.
                     </p>
-                </li>
+                </div>
+                {{- if $files }}
+                <ul class="archive-directory__items">
+                    {{- range $files }}
+                    {{- $fileName := trim (default "" .Name) -}}
+                    {{- $filePath := trim (default "" .Path) -}}
+                    <li class="archive-directory__item">
+                        <h3 class="archive-directory__item-title">
+                            {{- if $fileName -}}
+                            {{ $fileName }}
+                            {{- else -}}
+                            {{- if $filePath -}}
+                            {{ $filePath }}
+                            {{- else -}}
+                            Archive file
+                            {{- end -}}
+                            {{- end -}}
+                        </h3>
+                        {{- with trim .Description }}
+                        <p class="archive-directory__item-description">{{ . }}</p>
+                        {{- end }}
+                        <div class="archive-directory__file-actions">
+                            {{- if $filePath }}
+                            <a class="archive-button archive-button--ghost" href="/archive/files/{{ $filePath }}">View details</a>
+                            {{- end }}
+                            {{- with trim (default "" .FileURL) }}
+                            <a class="archive-button" href="{{ . }}" target="_blank" rel="noopener">Download</a>
+                            {{- end }}
+                        </div>
+                        <p class="archive-directory__file-meta">
+                            {{- with trim .FileType -}}
+                            {{ . }}
+                            {{- else -}}
+                            {{- if trim .MimeType -}}
+                            {{ trim .MimeType }}
+                            {{- else -}}
+                            File
+                            {{- end -}}
+                            {{- end -}}
+                            {{- with .FileSize -}}
+                            · {{ . }} bytes
+                            {{- end -}}
+                        </p>
+                    </li>
+                    {{- end }}
+                </ul>
+                {{- else }}
+                <p class="archive-tree__empty">No files have been published in this directory yet.</p>
                 {{- end }}
-            </ul>
-            {{- else }}
-            <p class="archive-tree__empty">No files have been published in this directory yet.</p>
-            {{- end }}
-        </section>
+            </section>
 
-        <section class="archive-directory__panel" aria-labelledby="archive-directory-children-title">
-            <div>
-                <h2 id="archive-directory-children-title" class="archive-directory__panel-title">Subdirectories</h2>
-                <p class="archive-tree__hint">
-                    Navigate into nested directories to explore additional collections of files and resources.
-                </p>
-            </div>
-            {{- if $children }}
-            <ul class="archive-directory__items">
-                {{- range $children }}
-                {{- $childName := trim (default "" .Name) -}}
-                {{- $childPath := trim (default "" .Path) -}}
-                <li class="archive-directory__item">
-                    <h3 class="archive-directory__item-title">
-                        <a class="archive-directory__item-link" href="{{- if $childPath -}}/archive/{{ $childPath }}{{- else -}}#{{- end }}">
-                            {{- if $childName -}}
-                            {{ $childName }}
-                            {{- else -}}
-                            {{- if $childPath -}}
-                            {{ $childPath }}
-                            {{- else -}}
-                            Subdirectory
-                            {{- end -}}
-                            {{- end -}}
-                        </a>
-                    </h3>
-                </li>
+            <section class="archive-directory__panel" aria-labelledby="archive-directory-children-title">
+                <div>
+                    <h2 id="archive-directory-children-title" class="archive-directory__panel-title">Subdirectories</h2>
+                    <p class="archive-tree__hint">
+                        Navigate into nested directories to explore additional collections of files and resources.
+                    </p>
+                </div>
+                {{- if $children }}
+                <ul class="archive-directory__items">
+                    {{- range $children }}
+                    {{- $childName := trim (default "" .Name) -}}
+                    {{- $childPath := trim (default "" .Path) -}}
+                    <li class="archive-directory__item">
+                        <h3 class="archive-directory__item-title">
+                            <a class="archive-directory__item-link" href="{{- if $childPath -}}/archive/{{ $childPath }}{{- else -}}#{{- end }}">
+                                {{- if $childName -}}
+                                {{ $childName }}
+                                {{- else -}}
+                                {{- if $childPath -}}
+                                {{ $childPath }}
+                                {{- else -}}
+                                Subdirectory
+                                {{- end -}}
+                                {{- end -}}
+                            </a>
+                        </h3>
+                    </li>
+                    {{- end }}
+                </ul>
+                {{- else }}
+                <p class="archive-tree__empty">This directory doesn’t contain any subdirectories.</p>
                 {{- end }}
-            </ul>
-            {{- else }}
-            <p class="archive-tree__empty">This directory doesn’t contain any subdirectories.</p>
-            {{- end }}
-        </section>
+            </section>
+        </div>
     </div>
 </section>
