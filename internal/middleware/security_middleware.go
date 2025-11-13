@@ -15,7 +15,7 @@ type ContentSecurityPolicySource interface {
 
 var baseContentSecurityPolicy = map[string][]string{
 	"default-src":     {"'self'"},
-	"object-src":      {"'none'"},
+	"object-src":      {"'self'"},
 	"base-uri":        {"'self'"},
 	"frame-ancestors": {"'none'"},
 	"form-action":     {"'self'"},
@@ -47,6 +47,7 @@ var baseContentSecurityPolicy = map[string][]string{
 		"https://ep2.adtrafficquality.google",
 	},
 	"frame-src": {
+		"'self'",
 		"https://adservice.google.com",
 		"https://googleads.g.doubleclick.net",
 		"https://tpc.googlesyndication.com",

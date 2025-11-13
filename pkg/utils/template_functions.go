@@ -33,10 +33,13 @@ func GetTemplateFuncs(assetModTime AssetModTimeFunc) template.FuncMap {
 		"gt": func(a, b int) bool { return a > b },
 		"ge": func(a, b int) bool { return a >= b },
 
-		"upper": strings.ToUpper,
-		"lower": strings.ToLower,
-		"title": strings.Title,
-		"trim":  strings.TrimSpace,
+		"upper":     strings.ToUpper,
+		"lower":     strings.ToLower,
+		"title":     strings.Title,
+		"trim":      strings.TrimSpace,
+		"hasPrefix": strings.HasPrefix,
+		"hasSuffix": strings.HasSuffix,
+		"contains":  strings.Contains,
 		"truncate": func(s string, length int) string {
 			if len(s) <= length {
 				return s

@@ -102,14 +102,31 @@
 
         <section class="archive-file__preview" aria-labelledby="archive-file-preview-title">
             <h2 id="archive-file-preview-title" class="archive-directory__panel-title">Preview</h2>
-            {{- with trim (default "" $file.PreviewURL) }}
+            {{- $explicitPreview := trim (default "" $file.PreviewURL) -}}
+            {{- $fileURL := trim (default "" $file.FileURL) -}}
+            {{- $mimeType := lower (trim (default "" $file.MimeType)) -}}
+            {{- $fileType := lower (trim (default "" $file.FileType)) -}}
+            {{- $fileURLLower := lower $fileURL -}}
+            {{- $isPdfByExtension := and (ne $fileURLLower "") (hasSuffix $fileURLLower ".pdf") -}}
+            {{- $isPdfByType := or (eq $fileType "application/pdf") (eq $fileType "pdf") -}}
+            {{- $isPdf := or (eq $mimeType "application/pdf") (or $isPdfByType $isPdfByExtension) -}}
+            {{- $canPreviewPDF := and (ne $fileURL "") $isPdf -}}
+            {{- if $explicitPreview }}
             <iframe
                 class="archive-file__iframe"
-                src="{{ . }}"
+                src="{{ $explicitPreview }}"
                 title="Preview of {{ trim (default "file" $file.Name) }}"
                 loading="lazy"
             ></iframe>
             <p class="archive-file__preview-hint">If the preview does not load, use the download button above to access the file.</p>
+            {{- else if $canPreviewPDF }}
+            <embed
+                class="archive-file__iframe"
+                src="{{ $fileURL }}"
+                type="application/pdf"
+                title="PDF preview of {{ trim (default "file" $file.Name) }}"
+            />
+            <p class="archive-file__preview-hint">The preview uses your browser's PDF viewer. If it does not load, use the download button above to access the file.</p>
             {{- else }}
             <p class="archive-file__preview-hint">A live preview is not available for this file. Use the download link above to view the original.</p>
             {{- end }}
