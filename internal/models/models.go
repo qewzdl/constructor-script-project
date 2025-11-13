@@ -152,7 +152,7 @@ type ForumQuestion struct {
 	Views  int `gorm:"default:0" json:"views"`
 
 	Answers      []ForumAnswer `gorm:"foreignKey:QuestionID;constraint:OnDelete:CASCADE" json:"answers,omitempty"`
-	AnswersCount int           `gorm:"-" json:"answers_count"`
+	AnswersCount int           `gorm:"->" json:"answers_count"`
 }
 
 type ForumAnswer struct {
