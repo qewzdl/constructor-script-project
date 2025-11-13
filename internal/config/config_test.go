@@ -51,12 +51,12 @@ func TestSubtitleGenerationRemainsDisabledWithoutAPIKey(t *testing.T) {
 	}
 }
 
-func TestFrameAncestorsDefaultsToNone(t *testing.T) {
+func TestFrameAncestorsDefaultsToSelf(t *testing.T) {
 	unsetEnv(t, "CSP_FRAME_ANCESTORS")
 
 	cfg := New()
-	if len(cfg.CSPFrameAncestors) != 1 || cfg.CSPFrameAncestors[0] != "'none'" {
-		t.Fatalf("expected frame ancestors to default to 'none', got %#v", cfg.CSPFrameAncestors)
+	if len(cfg.CSPFrameAncestors) != 1 || cfg.CSPFrameAncestors[0] != "'self'" {
+		t.Fatalf("expected frame ancestors to default to 'self', got %#v", cfg.CSPFrameAncestors)
 	}
 }
 

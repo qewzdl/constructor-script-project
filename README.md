@@ -23,7 +23,7 @@ This uses the bundled defaults (`bloguser`/`blogpassword`, a demo JWT secret and
 
 ## Security headers
 
-The backend sends restrictive defaults to prevent clickjacking. To embed the site in an iframe (for example inside an admin preview), set `CSP_FRAME_ANCESTORS` with a comma-separated list of allowed origins (e.g. `CSP_FRAME_ANCESTORS='self,http://localhost:8081'`). The middleware will mirror the same policy in the `Content-Security-Policy` header and adjust `X-Frame-Options` automatically.
+The backend allows same-origin framing by default and still sends restrictive defaults to prevent clickjacking from other origins. To embed the site in an iframe from additional hosts (for example inside an admin preview), set `CSP_FRAME_ANCESTORS` with a comma-separated list of allowed origins (e.g. `CSP_FRAME_ANCESTORS='self,http://localhost:8081'`). The middleware will mirror the same policy in the `Content-Security-Policy` header and adjust `X-Frame-Options` automatically.
 
 ## Automatic subtitle generation
 

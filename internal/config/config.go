@@ -462,7 +462,7 @@ func normalizeSupportedLanguages(defaultLanguage string, values []string) []stri
 
 func normalizeFrameAncestors(values []string) []string {
 	if len(values) == 0 {
-		return []string{"'none'"}
+		return []string{"'self'"}
 	}
 
 	normalized := make([]string, 0, len(values))
@@ -493,7 +493,7 @@ func normalizeFrameAncestors(values []string) []string {
 	}
 
 	if len(normalized) == 0 {
-		return []string{"'none'"}
+		return []string{"'self'"}
 	}
 
 	if len(normalized) == 1 {
@@ -509,7 +509,7 @@ func normalizeFrameAncestors(values []string) []string {
 	}
 
 	if len(filtered) == 0 {
-		return []string{"'none'"}
+		return []string{"'self'"}
 	}
 
 	return filtered
