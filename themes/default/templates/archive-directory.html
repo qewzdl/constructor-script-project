@@ -56,9 +56,6 @@
 
     <header class="archive-directory__header">
         <h1 class="archive-directory__title">{{ trim (default "Archive directory" $directory.Name) }}</h1>
-        {{- with trim $directory.Description }}
-        <p class="archive-directory__description">{{ . }}</p>
-        {{- end }}
     </header>
 
     <div class="archive-directory__sections">
@@ -145,9 +142,6 @@
                             {{- end -}}
                         </a>
                     </h3>
-                    {{- with trim .Description }}
-                    <p class="archive-directory__item-description">{{ . }}</p>
-                    {{- end }}
                 </li>
                 {{- end }}
             </ul>

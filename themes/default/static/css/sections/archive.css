@@ -83,11 +83,6 @@
     text-decoration: underline;
 }
 
-.archive-tree__entry-description {
-    color: var(--color-secondary);
-    line-height: 1.6;
-}
-
 .archive-tree__files {
     list-style: none;
     margin: 0;
@@ -162,7 +157,6 @@
     font-weight: 700;
 }
 
-.archive-directory__description,
 .archive-file__description {
     color: var(--color-secondary);
     line-height: 1.6;

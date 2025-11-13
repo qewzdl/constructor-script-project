@@ -1800,13 +1800,14 @@ func (h *TemplateHandler) renderArchiveDirectory(c *gin.Context, pathValue strin
 		return
 	}
 
-	title := strings.TrimSpace(directory.Name)
+	trimmedName := strings.TrimSpace(directory.Name)
+	title := trimmedName
 	if title == "" {
 		title = "Archive directory"
 	}
-	description := strings.TrimSpace(directory.Description)
-	if description == "" {
-		description = fmt.Sprintf("Browse files available in %s.", strings.TrimSpace(directory.Name))
+	description := "Browse files available in this directory."
+	if trimmedName != "" {
+		description = fmt.Sprintf("Browse files available in %s.", trimmedName)
 	}
 
 	canonicalPath := "/archive/" + directory.Path

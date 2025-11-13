@@ -16,9 +16,6 @@
                     {{- end -}}
                 </a>
             </h3>
-            {{- with trim .Description }}
-            <p class="archive-tree__entry-description">{{ . }}</p>
-            {{- end }}
             {{- with .Files }}
             <ul class="archive-tree__files">
                 {{- range . }}

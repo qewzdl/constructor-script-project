@@ -2081,7 +2081,7 @@
             <div>
                 <h2 class="admin-panel__title">Resource archive</h2>
                 <p class="admin-panel__description">
-                    Organize directories and files that appear in the public archive. Update structure, descriptions, and download links.
+                    Organize directories and files that appear in the public archive. Update structure and download links.
                 </p>
             </div>
         </header>
@@ -2131,10 +2131,6 @@
                                     <label class="admin-form__label">
                                         Parent directory
                                         <select name="parent_id" class="admin-form__input" data-role="archive-directory-parent"></select>
-                                    </label>
-                                    <label class="admin-form__label">
-                                        Description
-                                        <textarea name="description" rows="3" class="admin-form__input"></textarea>
                                     </label>
                                     <label class="admin-form__label">
                                         Display order

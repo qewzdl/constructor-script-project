@@ -34,6 +34,22 @@ func NewDirectoryService(directoryRepo repository.ArchiveDirectoryRepository, fi
 	}
 }
 
+func clearDirectoryDescription(directory *models.ArchiveDirectory) {
+	if directory == nil {
+		return
+	}
+	directory.Description = ""
+}
+
+func clearDirectoryDescriptions(directories []models.ArchiveDirectory) {
+	for i := range directories {
+		directories[i].Description = ""
+		if len(directories[i].Children) > 0 {
+			clearDirectoryDescriptions(directories[i].Children)
+		}
+	}
+}
+
 func (s *DirectoryService) Create(req models.CreateArchiveDirectoryRequest) (*models.ArchiveDirectory, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
@@ -79,7 +95,7 @@ func (s *DirectoryService) Create(req models.CreateArchiveDirectoryRequest) (*mo
 		Name:        name,
 		Slug:        uniqueSlug,
 		Path:        path,
-		Description: strings.TrimSpace(req.Description),
+		Description: "",
 		Order:       req.Order,
 		Published:   req.Published,
 	}
@@ -197,9 +213,7 @@ func (s *DirectoryService) Update(id uint, req models.UpdateArchiveDirectoryRequ
 	directory.Slug = slug
 	directory.Path = buildDirectoryPath(parent, slug)
 
-	if req.Description != nil {
-		directory.Description = strings.TrimSpace(*req.Description)
-	}
+	directory.Description = ""
 	if req.Published != nil {
 		directory.Published = *req.Published
 	}
@@ -265,6 +279,7 @@ func (s *DirectoryService) GetByID(id uint, includeUnpublished bool) (*models.Ar
 	if !includeUnpublished && !directory.Published {
 		return nil, ErrDirectoryNotFound
 	}
+	clearDirectoryDescription(directory)
 	return directory, nil
 }
 
@@ -279,6 +294,7 @@ func (s *DirectoryService) GetByPath(path string, includeUnpublished bool) (*mod
 	if !includeUnpublished && !directory.Published {
 		return nil, ErrDirectoryNotFound
 	}
+	clearDirectoryDescription(directory)
 	return directory, nil
 }
 
@@ -287,6 +303,7 @@ func (s *DirectoryService) ListByParent(parentID *uint, includeUnpublished bool)
 	if err != nil {
 		return nil, err
 	}
+	clearDirectoryDescriptions(directories)
 	return directories, nil
 }
 
@@ -299,6 +316,7 @@ func (s *DirectoryService) ListTree(includeUnpublished bool) ([]models.ArchiveDi
 	if s.cache != nil {
 		var cached []models.ArchiveDirectory
 		if err := s.cache.Get(cacheKey, &cached); err == nil {
+			clearDirectoryDescriptions(cached)
 			return cached, nil
 		}
 	}
@@ -307,6 +325,7 @@ func (s *DirectoryService) ListTree(includeUnpublished bool) ([]models.ArchiveDi
 	if err != nil {
 		return nil, err
 	}
+	clearDirectoryDescriptions(tree)
 
 	if s.cache != nil {
 		_ = s.cache.Set(cacheKey, tree, 30*time.Minute)
@@ -369,6 +388,7 @@ func (s *DirectoryService) buildTree(includeUnpublished bool) ([]models.ArchiveD
 	if err != nil {
 		return nil, err
 	}
+	clearDirectoryDescriptions(directories)
 	files, err := s.fileRepo.ListAll(includeUnpublished)
 	if err != nil {
 		return nil, err

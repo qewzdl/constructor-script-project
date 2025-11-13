@@ -178,7 +178,6 @@
                         id,
                         name: item.name || item.Name || '',
                         path: item.path || item.Path || '',
-                        description: item.description || item.Description || '',
                         parentId,
                         published: item.published !== false,
                         order: coerceNumber(item.order) ?? 0,
@@ -497,7 +496,6 @@
             }
             const nameInput = directoryForm.querySelector('[name="name"]');
             const slugInput = directoryForm.querySelector('[name="slug"]');
-            const descriptionInput = directoryForm.querySelector('[name="description"]');
             const orderInput = directoryForm.querySelector('[name="order"]');
             const publishedInput = directoryForm.querySelector('[name="published"]');
 
@@ -506,9 +504,6 @@
             }
             if (slugInput) {
                 slugInput.value = directory.slug || '';
-            }
-            if (descriptionInput) {
-                descriptionInput.value = directory.description || '';
             }
             if (orderInput) {
                 const value = coerceNumber(directory.order);
@@ -755,7 +750,6 @@
             const formData = new FormData(directoryForm);
             const payload = {
                 name: (formData.get('name') || '').toString().trim(),
-                description: (formData.get('description') || '').toString().trim(),
                 published: Boolean(formData.get('published')),
             };
             const slug = (formData.get('slug') || '').toString().trim();
