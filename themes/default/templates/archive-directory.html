@@ -18,11 +18,34 @@
             <li class="archive-breadcrumbs__item">
                 <span aria-hidden="true">›</span>
                 {{- if eq $index $lastIndex -}}
-                <span aria-current="page">{{ if $crumbName }}{{ $crumbName }}{{ else if $crumbPath }}{{ $crumbPath }}{{ else }}Current directory{{ end }}</span>
-                {{- else if $crumbPath -}}
-                <a class="archive-breadcrumbs__link" href="/archive/{{ $crumbPath }}">{{ if $crumbName }}{{ $crumbName }}{{ else }}{{ $crumbPath }}{{ end }}</a>
+                <span aria-current="page">
+                    {{- if $crumbName -}}
+                    {{ $crumbName }}
+                    {{- else -}}
+                    {{- if $crumbPath -}}
+                    {{ $crumbPath }}
+                    {{- else -}}
+                    Current directory
+                    {{- end -}}
+                    {{- end -}}
+                </span>
                 {{- else -}}
-                <span>{{ if $crumbName }}{{ $crumbName }}{{ else }}Directory{{ end }}</span>
+                {{- if $crumbPath -}}
+                <a class="archive-breadcrumbs__link" href="/archive/{{ $crumbPath }}">
+                    {{- if $crumbName -}}
+                    {{ $crumbName }}
+                    {{- else -}}
+                    {{ $crumbPath }}
+                    {{- end -}}
+                </a>
+                {{- else -}}
+                <span>
+                    {{- if $crumbName -}}
+                    {{ $crumbName }}
+                    {{- else -}}
+                    Directory
+                    {{- end -}}
+                </span>
                 {{- end -}}
             </li>
             {{- end -}}
@@ -51,7 +74,17 @@
                 {{- $fileName := trim (default "" .Name) -}}
                 {{- $filePath := trim (default "" .Path) -}}
                 <li class="archive-directory__item">
-                    <h3 class="archive-directory__item-title">{{ if $fileName }}{{ $fileName }}{{ else if $filePath }}{{ $filePath }}{{ else }}Archive file{{ end }}</h3>
+                    <h3 class="archive-directory__item-title">
+                        {{- if $fileName -}}
+                        {{ $fileName }}
+                        {{- else -}}
+                        {{- if $filePath -}}
+                        {{ $filePath }}
+                        {{- else -}}
+                        Archive file
+                        {{- end -}}
+                        {{- end -}}
+                    </h3>
                     {{- with trim .Description }}
                     <p class="archive-directory__item-description">{{ . }}</p>
                     {{- end }}
@@ -66,10 +99,12 @@
                     <p class="archive-directory__file-meta">
                         {{- with trim .FileType -}}
                         {{ . }}
-                        {{- else if trim .MimeType -}}
+                        {{- else -}}
+                        {{- if trim .MimeType -}}
                         {{ trim .MimeType }}
                         {{- else -}}
                         File
+                        {{- end -}}
                         {{- end -}}
                         {{- with .FileSize -}}
                         · {{ . }} bytes
@@ -95,15 +130,21 @@
                 {{- range $children }}
                 {{- $childName := trim (default "" .Name) -}}
                 {{- $childPath := trim (default "" .Path) -}}
+                {{- $childHref := "#" -}}
+                {{- if $childPath -}}
+                {{- $childHref = printf "/archive/%s" $childPath -}}
+                {{- end -}}
                 <li class="archive-directory__item">
                     <h3 class="archive-directory__item-title">
-                        <a class="archive-directory__item-link" href="{{ if $childPath }}/archive/{{ $childPath }}{{ else }}#{{ end }}">
+                        <a class="archive-directory__item-link" href="{{ $childHref }}">
                             {{- if $childName -}}
                             {{ $childName }}
-                            {{- else if $childPath -}}
+                            {{- else -}}
+                            {{- if $childPath -}}
                             {{ $childPath }}
                             {{- else -}}
                             Subdirectory
+                            {{- end -}}
                             {{- end -}}
                         </a>
                     </h3>
