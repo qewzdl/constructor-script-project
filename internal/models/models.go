@@ -52,8 +52,8 @@ type ForumCategory struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Name string `gorm:"uniqueIndex;not null" json:"name"`
-	Slug string `gorm:"uniqueIndex;not null" json:"slug"`
+	Name string `gorm:"not null;uniqueIndex:idx_forum_categories_name,where:deleted_at IS NULL" json:"name"`
+	Slug string `gorm:"not null;uniqueIndex:idx_forum_categories_slug,where:deleted_at IS NULL" json:"slug"`
 
 	QuestionCount int `gorm:"-" json:"question_count"`
 }

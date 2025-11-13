@@ -18,6 +18,8 @@ type ForumCategoryRepository interface {
 	ListWithQuestionCount() ([]models.ForumCategory, error)
 	ExistsBySlug(slug string) (bool, error)
 	ExistsBySlugExcludingID(slug string, excludeID uint) (bool, error)
+	ExistsByName(name string) (bool, error)
+	ExistsByNameExcludingID(name string, excludeID uint) (bool, error)
 	ClearCategoryAssignments(categoryID uint) error
 }
 
@@ -119,6 +121,40 @@ func (r *forumCategoryRepository) ExistsBySlugExcludingID(slug string, excludeID
 	}
 	var count int64
 	if err := r.db.Model(&models.ForumCategory{}).Where("slug = ? AND id <> ?", cleaned, excludeID).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *forumCategoryRepository) ExistsByName(name string) (bool, error) {
+	if r == nil || r.db == nil {
+		return false, gorm.ErrInvalidDB
+	}
+	cleaned := strings.TrimSpace(name)
+	if cleaned == "" {
+		return false, nil
+	}
+	var count int64
+	if err := r.db.Model(&models.ForumCategory{}).
+		Where("LOWER(name) = LOWER(?)", cleaned).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *forumCategoryRepository) ExistsByNameExcludingID(name string, excludeID uint) (bool, error) {
+	if r == nil || r.db == nil {
+		return false, gorm.ErrInvalidDB
+	}
+	cleaned := strings.TrimSpace(name)
+	if cleaned == "" {
+		return false, nil
+	}
+	var count int64
+	if err := r.db.Model(&models.ForumCategory{}).
+		Where("LOWER(name) = LOWER(?) AND id <> ?", cleaned, excludeID).
+		Count(&count).Error; err != nil {
 		return false, err
 	}
 	return count > 0, nil

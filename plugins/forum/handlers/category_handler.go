@@ -85,7 +85,12 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 	}
 	category, err := h.service.Create(req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, forumservice.ErrCategoryAlreadyExists):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"category": category})
@@ -110,6 +115,8 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 		switch {
 		case errors.Is(err, forumservice.ErrCategoryNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case errors.Is(err, forumservice.ErrCategoryAlreadyExists):
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}

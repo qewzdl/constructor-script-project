@@ -66,6 +66,13 @@ func (s *CategoryService) Create(req models.CreateForumCategoryRequest) (*models
 	if name == "" {
 		return nil, errors.New("category name is required")
 	}
+	exists, err := s.categoryRepo.ExistsByName(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify category name: %w", err)
+	}
+	if exists {
+		return nil, ErrCategoryAlreadyExists
+	}
 	slug, err := s.generateUniqueSlug(name, 0)
 	if err != nil {
 		return nil, err
@@ -95,6 +102,13 @@ func (s *CategoryService) Update(id uint, req models.UpdateForumCategoryRequest)
 		name := strings.TrimSpace(*req.Name)
 		if name == "" {
 			return nil, errors.New("category name cannot be empty")
+		}
+		exists, existsErr := s.categoryRepo.ExistsByNameExcludingID(name, id)
+		if existsErr != nil {
+			return nil, fmt.Errorf("failed to verify category name: %w", existsErr)
+		}
+		if exists {
+			return nil, ErrCategoryAlreadyExists
 		}
 		if !strings.EqualFold(name, category.Name) {
 			slug, slugErr := s.generateUniqueSlug(name, id)
