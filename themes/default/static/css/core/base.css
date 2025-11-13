@@ -1375,12 +1375,17 @@ textarea.form-field__input {
 
 @media (max-width: 1024px) {
     .course-player__layout {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column-reverse;
         gap: var(--common-gap);
     }
 
+    .course-player__content {
+        width: 100%;
+    }
+
     .course-player__sidebar {
-        position: static;
+        width: 100%;
         max-height: none;
     }
 }
