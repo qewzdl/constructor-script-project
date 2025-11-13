@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"constructor-script-backend/internal/models"
 )
@@ -100,8 +101,11 @@ func (r *archiveDirectoryRepository) ListAll(includeUnpublished bool) ([]models.
 	if !includeUnpublished {
 		query = query.Where("published = ?", true)
 	}
-	orderClause := "COALESCE(parent_id, 0) ASC, \"order\" ASC, LOWER(name) ASC"
-	err := query.Order(orderClause).Find(&directories).Error
+	err := query.
+		Order("COALESCE(parent_id, 0) ASC").
+		Order(clause.OrderByColumn{Column: clause.Column{Name: "order"}}).
+		Order("LOWER(name) ASC").
+		Find(&directories).Error
 	return directories, err
 }
 
@@ -116,7 +120,10 @@ func (r *archiveDirectoryRepository) ListByParent(parentID *uint, includeUnpubli
 	if !includeUnpublished {
 		query = query.Where("published = ?", true)
 	}
-	err := query.Order("\"order\" ASC, LOWER(name) ASC").Find(&directories).Error
+	err := query.
+		Order(clause.OrderByColumn{Column: clause.Column{Name: "order"}}).
+		Order("LOWER(name) ASC").
+		Find(&directories).Error
 	return directories, err
 }
 
@@ -216,7 +223,11 @@ func (r *archiveFileRepository) ListAll(includeUnpublished bool) ([]models.Archi
 	if !includeUnpublished {
 		query = query.Where("published = ?", true)
 	}
-	err := query.Order("directory_id ASC, \"order\" ASC, LOWER(name) ASC").Find(&files).Error
+	err := query.
+		Order(clause.OrderByColumn{Column: clause.Column{Name: "directory_id"}}).
+		Order(clause.OrderByColumn{Column: clause.Column{Name: "order"}}).
+		Order("LOWER(name) ASC").
+		Find(&files).Error
 	return files, err
 }
 
@@ -226,7 +237,10 @@ func (r *archiveFileRepository) ListByDirectory(directoryID uint, includeUnpubli
 	if !includeUnpublished {
 		query = query.Where("published = ?", true)
 	}
-	err := query.Order("\"order\" ASC, LOWER(name) ASC").Find(&files).Error
+	err := query.
+		Order(clause.OrderByColumn{Column: clause.Column{Name: "order"}}).
+		Order("LOWER(name) ASC").
+		Find(&files).Error
 	return files, err
 }
 
