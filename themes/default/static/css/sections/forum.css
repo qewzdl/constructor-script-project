@@ -374,7 +374,6 @@ body.forum-question-modal-open {
 .forum-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 720px;
 }
 
 .forum-table__header {
@@ -417,7 +416,6 @@ body.forum-question-modal-open {
 
 .forum-table__cell--question {
     width: 38%;
-    min-width: 320px;
 }
 
 .forum-table__title {
@@ -446,7 +444,7 @@ body.forum-question-modal-open {
 }
 
 .forum-table__meta {
-    margin-top: var(--size-xs);
+    margin-top: var(--size-sm);
     display: flex;
     flex-wrap: wrap;
     gap: var(--size-xs);
@@ -487,6 +485,7 @@ body.forum-question-modal-open {
 .forum-table__updated {
     color: var(--color-secondary);
     font-size: var(--font-size-sm);
+    white-space: nowrap;
 }
 
 .forum__pagination {
