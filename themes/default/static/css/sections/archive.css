@@ -139,11 +139,6 @@
     gap: var(--size-base);
 }
 
-.archive-directory__panel-title {
-    font-size: clamp(1.3rem, 2.6vw, 1.6rem);
-    font-weight: 600;
-}
-
 .archive-directory__items {
     display: grid;
     gap: var(--size-base);
@@ -223,15 +218,17 @@
 
 .archive-file__meta {
     display: flex;
-    gap: var(--size-sm);
+    gap: var(--size-base);
     font-size: var(--font-size-base);
     color: var(--color-secondary);
+    flex-wrap: wrap;
 }
 
 .archive-file__meta-item {
     flex: 1;
     display: grid;
     gap: var(--size-sm);
+    white-space: nowrap;
 }
 
 .archive-file__meta-label {
