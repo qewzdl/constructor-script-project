@@ -37,21 +37,29 @@
                 const storageKey = "theme";
                 const root = document.documentElement;
 
-                try {
-                    const storedTheme = localStorage.getItem(storageKey);
-                    if (storedTheme === "light" || storedTheme === "dark") {
-                        root.setAttribute("data-theme", storedTheme);
-                        return;
+                const getStoredTheme = () => {
+                    try {
+                        const storedTheme = localStorage.getItem(storageKey);
+                        if (storedTheme === "light" || storedTheme === "dark") {
+                            return storedTheme;
+                        }
+                    } catch (error) {
+                        /* no-op */
                     }
-                } catch (error) {}
+                    return null;
+                };
+
+                const storedTheme = getStoredTheme();
+                if (storedTheme) {
+                    root.setAttribute("data-theme", storedTheme);
+                    return;
+                }
 
                 const prefersDark =
                     window.matchMedia &&
                     window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-                if (prefersDark) {
-                    root.setAttribute("data-theme", "dark");
-                }
+                root.setAttribute("data-theme", prefersDark ? "dark" : "light");
             })();
         </script>
 

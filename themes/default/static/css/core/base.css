@@ -2367,13 +2367,11 @@ section[class*="__section--mv-128"] {
     width: 2.75rem;
     height: 2.75rem;
     border-radius: 50%;
-    background-color: var(--color-surface-raised);
     position: relative;
     color: inherit;
 }
 .footer__social-link:hover,
 .footer__social-link:focus-visible {
-    color: var(--color-text-primary);
     background-color: color-mix(in srgb, var(--color-primary) 10%, rgba(255, 255, 255, 0.1));
 }
 .footer__social-icon {
@@ -2501,7 +2499,6 @@ section[class*="__section--mv-128"] {
 .post-image-modal__image {
     max-width: min(90vw, 1200px);
     max-height: 90vh;
-    border-radius: var(--radius-lg);
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
     object-fit: contain;
 }
@@ -2608,7 +2605,6 @@ body.course-modal-open {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--color-lg);
     background-color: var(--modal-outside-bg);
     backdrop-filter: blur(3px);
     z-index: 1100;
@@ -2632,7 +2628,6 @@ body.course-modal-open {
     overflow: hidden auto;
     background-color: var(--color-bg-top);
     color: var(--color-text);
-    border-radius: var(--radius-lg);
     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
     padding: clamp(1.5rem, 4vw, 2.5rem);
     margin-inline: var(--size-base);
