@@ -10,7 +10,7 @@
 .archive-directory__container,
 .archive-file__container {
     display: grid;
-    gap: var(--size-max);
+    gap: var(--size-lg);
     max-width: var(--page-max-width);
     margin-inline: auto;
     padding-inline: var(--page-side-padding);
@@ -46,15 +46,15 @@
     gap: var(--size-base);
 }
 
-.archive-tree__title {
-    font-size: clamp(1.4rem, 3vw, 1.8rem);
-    font-weight: 600;
+.archive-tree-title,
+.archive-directory-files-title {
+    margin-bottom: var(--size-sm);
 }
 
 .archive-tree__hint,
 .archive-tree__empty {
     color: var(--color-secondary);
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-sm);
 }
 
 .archive-tree__list {
@@ -81,7 +81,7 @@
     align-items: center;
     gap: var(--size-xs);
     text-decoration: none;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
     font-weight: 600;
     padding: var(--size-sm) var(--size-base);
     border: 1px solid var(--color-border);
@@ -135,10 +135,6 @@
 }
 
 .archive-directory__panel {
-    border: 1px solid var(--color-border);
-    border-radius: 1rem;
-    background: var(--color-bg-top);
-    padding: var(--size-max);
     display: grid;
     gap: var(--size-base);
 }
@@ -149,20 +145,21 @@
 }
 
 .archive-directory__items {
-    list-style: none;
-    margin: 0;
-    padding: 0;
     display: grid;
     gap: var(--size-base);
+    border-top: 1px solid var(--color-border);
 }
 
 .archive-directory__item {
-    display: grid;
-    gap: var(--size-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--size-base);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--size-sm) 0;
 }
 
 .archive-directory__item-title {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-base);
     font-weight: 600;
 }
 
@@ -198,21 +195,19 @@
     align-items: center;
     justify-content: center;
     gap: var(--size-xs);
-    padding: 0.65rem 1.4rem;
+    padding: var(--size-sm) var(--size-base);
     border-radius: 999px;
     font-weight: 600;
     font-size: var(--font-size-sm);
     text-decoration: none;
     border: 1px solid var(--color-primary);
     background: var(--color-primary);
-    color: #ffffff;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    color: var(--color-primary-opposite);
 }
 
 .archive-button:hover,
 .archive-button:focus-visible {
     background: var(--color-primary-hover);
-    color: #ffffff;
     text-decoration: none;
 }
 
@@ -227,15 +222,16 @@
 }
 
 .archive-file__meta {
-    display: grid;
-    gap: var(--size-xs);
+    display: flex;
+    gap: var(--size-sm);
     font-size: var(--font-size-base);
     color: var(--color-secondary);
 }
 
 .archive-file__meta-item {
+    flex: 1;
     display: grid;
-    gap: 0.25rem;
+    gap: var(--size-sm);
 }
 
 .archive-file__meta-label {
@@ -245,7 +241,6 @@
 
 .archive-file__preview {
     border: 1px solid var(--color-border);
-    border-radius: 1rem;
     background: var(--color-bg-top);
     padding: var(--size-base);
     display: grid;
@@ -254,7 +249,7 @@
 
 .archive-file__iframe {
     width: 100%;
-    min-height: 22rem;
+    min-height: 75vh;
     border: none;
     border-radius: var(--radius-md);
     background: var(--color-bg);
@@ -270,21 +265,4 @@
 .archive-file__preview-hint {
     color: var(--color-secondary);
     font-size: var(--font-size-sm);
-}
-
-@media (min-width: 768px) {
-    .archive-directory__sections {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: var(--size-max);
-    }
-
-    .archive-directory__panel:last-child {
-        grid-column: 1 / -1;
-    }
-}
-
-@media (max-width: 767px) {
-    .archive-directory__panel {
-        padding: var(--size-base);
-    }
 }
