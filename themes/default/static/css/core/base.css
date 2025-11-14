@@ -2878,6 +2878,14 @@ body.course-modal-open {
     margin-top: var(--common-gap);
 }
 
+.tag-page {
+    padding-block: var(--size-max);
+}
+
+.tag-page__header {
+    margin-bottom: var(--size-mid);
+}
+
 .header > *,
 .page-view__header > *,
 .page-view__section-container,
@@ -2887,7 +2895,8 @@ body.course-modal-open {
 .search > *,
 .course-player__header > *:not(.course-player__figure),
 .course-player__layout,
-.course-player__header-content {
+.course-player__header-content,
+.tag-page__container {
     max-width: var(--page-max-width);
     padding-inline: var(--page-side-padding);
     margin-inline: auto;
