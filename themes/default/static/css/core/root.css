@@ -19,6 +19,7 @@
     --color-error: #ef4444;
     --color-error-transparent: color-mix(in srgb, var(--color-error) 12%, transparent);
     --color-border: #cccccc;
+    --color-border-hover: #dddddd;
     --color-bg-top-darker: #121212;
     --color-text-darker: #ffffff;
     --color-secondary-darker: #94a3b8;
@@ -43,6 +44,7 @@
     --color-error-light: #ef4444;
     --color-error-transparent-light: color-mix(in srgb, var(--color-error) 12%, transparent);
     --color-border-light: #cccccc;
+    --color-border-hover-light: #dddddd;
     --color-text-darker-light: #ffffff;
     --color-secondary-darker-light: #94a3b8;
     --color-border-darker-light: #374151;
@@ -64,6 +66,7 @@
     --color-error-dark: #ef4444;
     --color-error-transparent-dark: color-mix(in srgb, var(--color-error) 12%, transparent);
     --color-border-dark: #374151;
+    --color-border-hover-dark: #5b6982ff;
     --color-text-darker-dark: #ffffff;
     --color-secondary-darker-dark: #94a3b8;
     --color-border-darker-dark: #374151;
@@ -135,6 +138,7 @@
     --color-error: var(--color-error-light);
     --color-error-transparent: var(--color-error-transparent-light);
     --color-border: var(--color-border-light);
+    --color-border-hover: var(--color-border-hover-light);
     --color-text-darker: var(--color-text-darker-light);
     --color-secondary-darker: var(--color-secondary-darker-light);
     --color-border-darker: var(--color-border-darker-light);
@@ -158,6 +162,7 @@
     --color-error: var(--color-error-dark);
     --color-error-transparent: var(--color-error-transparent-dark);
     --color-border: var(--color-border-dark);
+    --color-border-hover: var(--color-border-hover-dark);
     --color-text-darker: var(--color-text-darker-dark);
     --color-secondary-darker: var(--color-secondary-darker-dark);
     --color-border-darker: var(--color-border-darker-dark);
