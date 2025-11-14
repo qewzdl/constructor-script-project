@@ -240,9 +240,6 @@
 }
 
 .archive-file__preview {
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-top);
-    padding: var(--size-base);
     display: grid;
     gap: var(--size-sm);
 }
@@ -251,7 +248,7 @@
     width: 100%;
     min-height: 75vh;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: var(--size-sm);
     background: var(--color-bg);
 }
 
