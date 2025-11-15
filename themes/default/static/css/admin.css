@@ -3599,6 +3599,8 @@
 }
 
 .admin-media-library__name {
+    display: flex;
+    justify-content: flex-start;
     margin: 0;
     font-size: var(--font-size-sm);
     font-weight: 600;
