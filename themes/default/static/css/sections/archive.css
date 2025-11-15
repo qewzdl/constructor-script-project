@@ -71,7 +71,6 @@
     flex: 1;
 }
 
-
 .archive-tree__entry {
     display: grid;
 }
@@ -147,17 +146,9 @@
 }
 
 .archive-directory__items {
+    list-style: none;
     display: grid;
     border-top: 1px solid var(--color-border);
-}
-
-.archive-directory__item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--size-base);
-    border-bottom: 1px solid var(--color-border);
-    padding: var(--size-sm) 0;
 }
 
 .archive-directory__item-title {
@@ -178,6 +169,15 @@
 .archive-directory__item-description {
     color: var(--color-secondary);
     line-height: 1.6;
+}
+
+.archive-directory__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-base);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--size-sm) 0;
 }
 
 .archive-directory__file-actions {
