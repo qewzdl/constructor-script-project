@@ -681,9 +681,11 @@ textarea.form-field__input {
 }
 
 .profile-card {
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     gap: var(--common-gap);
-    background-color: var(--color-bg-top);
+    height: 100%;
 }
 
 .profile-card__header {

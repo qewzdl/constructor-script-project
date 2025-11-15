@@ -94,8 +94,8 @@
 .entry-link__icon {
     height: calc((var(--size-mid) + var(--size-base)) / 2);
     width: calc((var(--size-mid) + var(--size-base)) / 2);
-    stroke: #ffffff;
-    fill: #ffffff;
+    stroke: var(--color-text);
+    fill: var(--color-text);
 }
 
 .archive-breadcrumbs {
