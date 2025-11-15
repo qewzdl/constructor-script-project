@@ -152,38 +152,11 @@
     };
 
     const buildPasswordStrengthError = (password) => {
-        if (typeof password !== "string") {
-            return "Password must be at least 12 characters long and include uppercase, lowercase, number, and symbol characters.";
+        if (typeof password !== "string" || password.length < 6) {
+            return "Password must be at least 6 characters long.";
         }
 
-        const requirements = [];
-
-        if (password.length < 12) {
-            requirements.push("be at least 12 characters long");
-        }
-        if (!/[A-Z]/.test(password)) {
-            requirements.push("include an uppercase letter");
-        }
-        if (!/[a-z]/.test(password)) {
-            requirements.push("include a lowercase letter");
-        }
-        if (!/\d/.test(password)) {
-            requirements.push("include a number");
-        }
-        if (!/[^A-Za-z0-9]/.test(password)) {
-            requirements.push("include a symbol");
-        }
-
-        if (requirements.length === 0) {
-            return "";
-        }
-
-        if (requirements.length === 1) {
-            return `Password must ${requirements[0]}.`;
-        }
-
-        const lastRequirement = requirements.pop();
-        return `Password must ${requirements.join(", ")}, and ${lastRequirement}.`;
+        return "";
     };
 
     const apiRequest = async (url, options = {}) => {

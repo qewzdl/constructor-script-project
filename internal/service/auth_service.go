@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -256,47 +255,8 @@ func (s *AuthService) UpdateUserStatus(userID uint, status string) error {
 }
 
 func validatePasswordStrength(password string) error {
-	var requirements []string
-
-	if len(password) < 12 {
-		requirements = append(requirements, "be at least 12 characters long")
-	}
-
-	var (
-		hasUpper   bool
-		hasLower   bool
-		hasNumber  bool
-		hasSpecial bool
-	)
-
-	for _, char := range password {
-		switch {
-		case unicode.IsUpper(char):
-			hasUpper = true
-		case unicode.IsLower(char):
-			hasLower = true
-		case unicode.IsDigit(char):
-			hasNumber = true
-		case unicode.IsPunct(char) || unicode.IsSymbol(char):
-			hasSpecial = true
-		}
-	}
-
-	if !hasUpper {
-		requirements = append(requirements, "contain at least one uppercase letter")
-	}
-	if !hasLower {
-		requirements = append(requirements, "contain at least one lowercase letter")
-	}
-	if !hasNumber {
-		requirements = append(requirements, "include at least one digit")
-	}
-	if !hasSpecial {
-		requirements = append(requirements, "include at least one special character")
-	}
-
-	if len(requirements) > 0 {
-		return newValidationError("password must " + strings.Join(requirements, ", "))
+	if len(password) < 6 {
+		return newValidationError("password must be at least 6 characters long")
 	}
 
 	return nil

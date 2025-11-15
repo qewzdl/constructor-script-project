@@ -384,7 +384,7 @@ type CourseCheckoutSession struct {
 type RegisterRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=50"`
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=12,max=128"`
+	Password string `json:"password" binding:"required,min=6,max=128"`
 }
 
 type LoginRequest struct {
@@ -1053,7 +1053,7 @@ func DetectFaviconType(favicon string) string {
 type SetupRequest struct {
 	AdminUsername string `json:"admin_username" binding:"required,min=3,max=50"`
 	AdminEmail    string `json:"admin_email" binding:"required,email"`
-	AdminPassword string `json:"admin_password" binding:"required,min=8"`
+	AdminPassword string `json:"admin_password" binding:"required,min=6"`
 
 	SiteName               string   `json:"site_name" binding:"required"`
 	SiteDescription        string   `json:"site_description"`

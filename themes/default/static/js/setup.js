@@ -176,8 +176,8 @@ document.addEventListener("DOMContentLoaded", () => {
             (code) => code && code !== defaultLanguage
         );
 
-        if (!payload.admin_password || payload.admin_password.length < 8) {
-            showAlert(alertElement, "Password must be at least 8 characters long");
+        if (!payload.admin_password || payload.admin_password.length < 6) {
+            showAlert(alertElement, "Password must be at least 6 characters long");
             return;
         }
 

@@ -50,16 +50,8 @@ func ValidateEmail(email string) bool {
 }
 
 func ValidatePassword(password string) (bool, string) {
-	if len(password) < 8 {
-		return false, "password must be at least 8 characters long"
-	}
-
-	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
-	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
-	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
-
-	if !hasUpper || !hasLower || !hasNumber {
-		return false, "password must contain uppercase, lowercase and numbers"
+	if len(password) < 6 {
+		return false, "password must be at least 6 characters long"
 	}
 
 	return true, ""
