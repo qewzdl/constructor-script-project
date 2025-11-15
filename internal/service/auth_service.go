@@ -20,6 +20,28 @@ type AuthService struct {
 	jwtSecret string
 }
 
+var (
+	ErrIncorrectOldPassword = errors.New("incorrect old password")
+	ErrUserNotFound         = errors.New("user not found")
+)
+
+type validationError struct {
+	message string
+}
+
+func (e validationError) Error() string {
+	return e.message
+}
+
+func newValidationError(message string) error {
+	return validationError{message: message}
+}
+
+func IsValidationError(err error) bool {
+	var vErr validationError
+	return errors.As(err, &vErr)
+}
+
 func NewAuthService(userRepo repository.UserRepository, jwtSecret string) *AuthService {
 	return &AuthService{
 		userRepo:  userRepo,
@@ -175,11 +197,14 @@ func (s *AuthService) UpdateProfile(userID uint, username, email string) (*model
 func (s *AuthService) ChangePassword(userID uint, oldPassword, newPassword string) error {
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrUserNotFound
+		}
 		return err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword)); err != nil {
-		return errors.New("incorrect old password")
+		return ErrIncorrectOldPassword
 	}
 
 	if err := validatePasswordStrength(newPassword); err != nil {
@@ -271,7 +296,7 @@ func validatePasswordStrength(password string) error {
 	}
 
 	if len(requirements) > 0 {
-		return errors.New("password must " + strings.Join(requirements, ", "))
+		return newValidationError("password must " + strings.Join(requirements, ", "))
 	}
 
 	return nil

@@ -56,8 +56,13 @@
                         class="form-field__input"
                         placeholder="Minimum 12 characters"
                         autocomplete="new-password"
+                        minlength="12"
+                        aria-describedby="register-password-requirements"
                         required
                     />
+                    <p class="form-field__hint" id="register-password-requirements">
+                        Use at least 12 characters with upper and lower case letters, a number, and a symbol.
+                    </p>
                 </div>
 
                 <div class="form-field">
@@ -69,6 +74,8 @@
                         class="form-field__input"
                         placeholder="Repeat your password"
                         autocomplete="new-password"
+                        minlength="12"
+                        aria-describedby="register-password-requirements"
                         required
                     />
                 </div>

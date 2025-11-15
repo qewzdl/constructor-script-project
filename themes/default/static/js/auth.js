@@ -151,6 +151,41 @@
         form.classList.toggle("is-disabled", disabled);
     };
 
+    const buildPasswordStrengthError = (password) => {
+        if (typeof password !== "string") {
+            return "Password must be at least 12 characters long and include uppercase, lowercase, number, and symbol characters.";
+        }
+
+        const requirements = [];
+
+        if (password.length < 12) {
+            requirements.push("be at least 12 characters long");
+        }
+        if (!/[A-Z]/.test(password)) {
+            requirements.push("include an uppercase letter");
+        }
+        if (!/[a-z]/.test(password)) {
+            requirements.push("include a lowercase letter");
+        }
+        if (!/\d/.test(password)) {
+            requirements.push("include a number");
+        }
+        if (!/[^A-Za-z0-9]/.test(password)) {
+            requirements.push("include a symbol");
+        }
+
+        if (requirements.length === 0) {
+            return "";
+        }
+
+        if (requirements.length === 1) {
+            return `Password must ${requirements[0]}.`;
+        }
+
+        const lastRequirement = requirements.pop();
+        return `Password must ${requirements.join(", ")}, and ${lastRequirement}.`;
+    };
+
     const apiRequest = async (url, options = {}) => {
         const headers = Object.assign({}, options.headers || {});
         const token = Auth.getToken();
@@ -283,6 +318,12 @@
             return;
         }
 
+        const passwordError = buildPasswordStrengthError(password);
+        if (passwordError) {
+            setAlert(alertId, passwordError, "error");
+            return;
+        }
+
         if (!acceptedTerms) {
             setAlert(alertId, "Please accept the terms to continue.", "error");
             return;
@@ -371,6 +412,12 @@
 
         if (newPassword !== confirmPassword) {
             setAlert(alertId, "New passwords do not match.", "error");
+            return;
+        }
+
+        const passwordError = buildPasswordStrengthError(newPassword);
+        if (passwordError) {
+            setAlert(alertId, passwordError, "error");
             return;
         }
 

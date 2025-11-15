@@ -1,9 +1,12 @@
 package handlers
 
 import (
-	"constructor-script-backend/internal/models"
+	"errors"
 	"net/http"
 	"strconv"
+
+	"constructor-script-backend/internal/models"
+	"constructor-script-backend/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -69,7 +72,16 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	}
 
 	if err := h.authService.ChangePassword(userID, req.OldPassword, req.NewPassword); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		switch {
+		case errors.Is(err, service.ErrIncorrectOldPassword):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case service.IsValidationError(err):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to change password"})
+		}
 		return
 	}
 

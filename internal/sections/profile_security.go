@@ -76,12 +76,13 @@ func renderProfileSecurity(ctx RenderContext, prefix string, elem models.Section
 	sb.WriteString(`<div class="form-grid">`)
 	sb.WriteString(`<div class="form-field">`)
 	sb.WriteString(`<label class="form-field__label" for="new-password">New password</label>`)
-	sb.WriteString(`<input id="new-password" name="new_password" type="password" class="form-field__input" autocomplete="new-password" required />`)
+	sb.WriteString(`<input id="new-password" name="new_password" type="password" class="form-field__input" autocomplete="new-password" minlength="12" aria-describedby="password-requirements" required />`)
+	sb.WriteString(`<p class="form-field__hint" id="password-requirements">Use at least 12 characters with upper and lower case letters, a number, and a symbol.</p>`)
 	sb.WriteString(`</div>`)
 
 	sb.WriteString(`<div class="form-field">`)
 	sb.WriteString(`<label class="form-field__label" for="confirm-password">Confirm password</label>`)
-	sb.WriteString(`<input id="confirm-password" name="confirm_password" type="password" class="form-field__input" autocomplete="new-password" required />`)
+	sb.WriteString(`<input id="confirm-password" name="confirm_password" type="password" class="form-field__input" autocomplete="new-password" minlength="12" aria-describedby="password-requirements" required />`)
 	sb.WriteString(`</div>`)
 	sb.WriteString(`</div>`)
 
