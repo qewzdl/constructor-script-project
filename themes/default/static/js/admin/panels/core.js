@@ -2249,7 +2249,24 @@
                                     </label>
                                     <label class="admin-form__label">
                                         File URL
-                                        <input type="url" name="file_url" required class="admin-form__input" placeholder="https://example.com/file.pdf" />
+                                        <input
+                                            type="url"
+                                            name="file_url"
+                                            required
+                                            class="admin-form__input"
+                                            id="admin-archive-file-url"
+                                            placeholder="https://example.com/file.pdf"
+                                        />
+                                        <div class="admin-form__upload-actions">
+                                            <button
+                                                type="button"
+                                                class="admin-form__upload-button"
+                                                data-action="open-media-library"
+                                                data-media-target="#admin-archive-file-url"
+                                            >
+                                                Browse uploads
+                                            </button>
+                                        </div>
                                     </label>
                                     <label class="admin-form__label">
                                         Preview URL
