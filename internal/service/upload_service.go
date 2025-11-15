@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"constructor-script-backend/pkg/logger"
 	"constructor-script-backend/pkg/media"
 	"constructor-script-backend/pkg/utils"
 	"constructor-script-backend/pkg/validator"
@@ -598,19 +599,22 @@ func (s *UploadService) uploadVideo(ctx context.Context, file *multipart.FileHea
 
 		subtitleResult, err := s.subtitleManager.Generate(ctx, request)
 		if err != nil {
-			cleanup()
-			return VideoUploadResult{}, fmt.Errorf("failed to generate subtitles: %w", err)
-		}
-		if subtitleResult != nil && len(subtitleResult.Data) > 0 {
+			logger.Error(err, "Failed to generate subtitles for uploaded video", map[string]interface{}{
+				"filename": upload.Filename,
+				"provider": request.Provider,
+			})
+		} else if subtitleResult != nil && len(subtitleResult.Data) > 0 {
 			info, subtitlePath, err := s.persistSubtitle(upload.Filename, subtitleResult)
 			if err != nil {
-				cleanup()
 				if subtitlePath != "" {
 					os.Remove(subtitlePath)
 				}
-				return VideoUploadResult{}, fmt.Errorf("failed to persist generated subtitles: %w", err)
+				logger.Error(err, "Failed to persist generated subtitles for uploaded video", map[string]interface{}{
+					"filename": upload.Filename,
+				})
+			} else {
+				result.Subtitle = info
 			}
-			result.Subtitle = info
 		}
 	}
 
