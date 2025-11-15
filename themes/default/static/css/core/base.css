@@ -791,6 +791,7 @@ textarea.form-field__input {
 }
 
 .course-player__header {
+    min-height: 210px;
     position: relative;
     display: flex;
     flex-direction: row;
