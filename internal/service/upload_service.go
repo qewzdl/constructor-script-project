@@ -85,7 +85,7 @@ func NewUploadService(uploadDir string) *UploadService {
 		uploadDir:         uploadDir,
 		maxSize:           10 * 1024 * 1024,
 		allowedTypes:      []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".ico", ".svg"},
-		videoMaxSize:      1024 * 1024 * 1024,
+		videoMaxSize:      2 * 1024 * 1024 * 1024,
 		videoAllowedTypes: []string{".mp4", ".m4v", ".mov"},
 		fileMaxSize:       50 * 1024 * 1024,
 		fileAllowedTypes: []string{
