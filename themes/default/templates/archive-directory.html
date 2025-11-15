@@ -108,24 +108,27 @@
                     </p>
                 </div>
                 {{- if $children }}
-                <ul class="archive-directory__items">
+                <ul class="archive-directory__items archive-directory__items--directories">
                     {{- range $children }}
                     {{- $childName := trim (default "" .Name) -}}
                     {{- $childPath := trim (default "" .Path) -}}
-                    <li class="archive-directory__item">
-                        <h3 class="archive-directory__item-title">
-                            <a class="archive-directory__item-link" href="{{- if $childPath -}}/archive/{{ $childPath }}{{- else -}}#{{- end }}">
-                                {{- if $childName -}}
-                                {{ $childName }}
-                                {{- else -}}
-                                {{- if $childPath -}}
-                                {{ $childPath }}
-                                {{- else -}}
-                                Subdirectory
-                                {{- end -}}
-                                {{- end -}}
+                    <li class="archive-directory__item archive-directory__item--directory archive-tree__item">
+                        <article class="archive-tree__entry">
+                            <a class="archive-tree__entry-link" href="{{- if $childPath -}}/archive/{{ $childPath }}{{- else -}}#{{- end }}">
+                                <svg class="entry-link__icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g><title>ionicons-v5-n</title><path d="M64,192V120a40,40,0,0,1,40-40h75.89a40,40,0,0,1,22.19,6.72l27.84,18.56A40,40,0,0,0,252.11,112H408a40,40,0,0,1,40,40v40" style="fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></path><path d="M479.9,226.55,463.68,392a40,40,0,0,1-39.93,40H88.25a40,40,0,0,1-39.93-40L32.1,226.55A32,32,0,0,1,64,192h384.1A32,32,0,0,1,479.9,226.55Z" style="fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px"></path></g></svg>
+                                <span class="archive-directory__item-title">
+                                    {{- if $childName -}}
+                                    {{ $childName }}
+                                    {{- else -}}
+                                    {{- if $childPath -}}
+                                    {{ $childPath }}
+                                    {{- else -}}
+                                    Subdirectory
+                                    {{- end -}}
+                                    {{- end -}}
+                                </span>
                             </a>
-                        </h3>
+                        </article>
                     </li>
                     {{- end }}
                 </ul>
