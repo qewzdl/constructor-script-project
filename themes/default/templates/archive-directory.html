@@ -84,9 +84,6 @@
                             {{- end -}}
                             {{- end -}}
                         </h3>
-                        {{- with trim .Description }}
-                        <p class="archive-directory__item-description">{{ . }}</p>
-                        {{- end }}
                         <div class="archive-directory__file-actions">
                             {{- if $filePath }}
                             <a class="archive-button archive-button--ghost" href="/archive/files/{{ $filePath }}">View details</a>
@@ -95,20 +92,6 @@
                             <a class="archive-button" href="{{ . }}" target="_blank" rel="noopener">Download</a>
                             {{- end }}
                         </div>
-                        <p class="archive-directory__file-meta">
-                            {{- with trim .FileType -}}
-                            {{ . }}
-                            {{- else -}}
-                            {{- if trim .MimeType -}}
-                            {{ trim .MimeType }}
-                            {{- else -}}
-                            File
-                            {{- end -}}
-                            {{- end -}}
-                            {{- with .FileSize -}}
-                            · {{ . }} bytes
-                            {{- end -}}
-                        </p>
                     </li>
                     {{- end }}
                 </ul>

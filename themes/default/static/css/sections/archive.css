@@ -148,13 +148,13 @@
 
 .archive-directory__items {
     display: grid;
-    gap: var(--size-base);
     border-top: 1px solid var(--color-border);
 }
 
 .archive-directory__item {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: var(--size-base);
     border-bottom: 1px solid var(--color-border);
     padding: var(--size-sm) 0;
