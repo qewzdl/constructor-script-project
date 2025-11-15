@@ -1,6 +1,7 @@
 .archive,
 .archive-directory,
 .archive-file {
+    --archive-entry-min-width: 16rem;
     padding-block: var(--size-max);
     display: grid;
     gap: var(--size-max);
@@ -61,22 +62,23 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
+    display: grid;
     gap: var(--size-sm);
-    flex-wrap: wrap;
+    grid-template-columns: repeat(auto-fit, minmax(var(--archive-entry-min-width), 1fr));
 }
 
 .archive-tree__item {
     gap: var(--size-sm);
-    flex: 1;
+    min-width: 0;
 }
 
 .archive-tree__entry {
-    display: grid;
+    display: flex;
+    height: 100%;
 }
 
 .archive-tree__entry-link {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: var(--size-sm);
     text-decoration: none;
@@ -84,6 +86,8 @@
     font-weight: 600;
     padding: var(--size-base);
     border: 1px solid var(--color-border);
+    height: 100%;
+    width: 100%;
 }
 
 .archive-tree__entry-link:hover {
@@ -154,9 +158,9 @@
 .archive-directory__items--directories {
     margin: 0;
     padding: 0;
-    display: flex;
+    display: grid;
     gap: var(--size-sm);
-    flex-wrap: wrap;
+    grid-template-columns: repeat(auto-fit, minmax(var(--archive-entry-min-width), 1fr));
     border-top: none;
 }
 
