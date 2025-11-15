@@ -794,6 +794,10 @@ type UpdatePageRequest struct {
 	PublishAt   OptionalTime `json:"publish_at"`
 }
 
+type UpdateAllPageSectionsPaddingRequest struct {
+	PaddingVertical int `json:"padding_vertical"`
+}
+
 type Setting struct {
 	Key       string    `gorm:"primaryKey;size:191" json:"key"`
 	Value     string    `gorm:"type:text" json:"value"`

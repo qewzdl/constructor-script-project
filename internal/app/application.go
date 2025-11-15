@@ -1233,6 +1233,7 @@ func (a *Application) initRouter() error {
 			content.PUT("/pages/:id", a.handlers.Page.Update)
 			content.DELETE("/pages/:id", a.handlers.Page.Delete)
 			content.GET("/pages", a.handlers.Page.GetAllAdmin)
+			content.POST("/pages/sections/padding", a.handlers.Page.UpdateAllSectionPadding)
 
 			content.POST("/upload", a.handlers.Upload.Upload)
 			content.GET("/uploads", a.handlers.Upload.List)

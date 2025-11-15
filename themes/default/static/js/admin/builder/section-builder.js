@@ -16,7 +16,7 @@
     ) {
         return;
     }
-    const createSectionBuilder = (form) => {
+    const createSectionBuilder = (form, options = {}) => {
         if (!form) {
             return null;
         }
@@ -171,6 +171,8 @@
             }
         }
         const state = stateModule.createManager(definitions, sectionDefinitions);
+        const { onApplyPaddingToAllSections } = options || {};
+
         const view = viewModule.createView({
             listElement: sectionList,
             emptyState,
@@ -178,6 +180,7 @@
             orderedTypes,
             sectionDefinitions,
             orderedSectionTypes,
+            applyPaddingToAllSections: onApplyPaddingToAllSections,
         });
 
         const render = () => {

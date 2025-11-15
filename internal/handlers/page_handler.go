@@ -118,6 +118,26 @@ func (h *PageHandler) GetAllAdmin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"pages": pages})
 }
 
+func (h *PageHandler) UpdateAllSectionPadding(c *gin.Context) {
+	var req models.UpdateAllPageSectionsPaddingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	pagesUpdated, sectionsUpdated, padding, err := h.pageService.UpdateAllSectionPadding(req.PaddingVertical)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"pages_updated":    pagesUpdated,
+		"sections_updated": sectionsUpdated,
+		"padding_vertical": padding,
+	})
+}
+
 func (h *PageHandler) PublishPage(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {

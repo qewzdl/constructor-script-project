@@ -314,6 +314,7 @@
             stats: root.dataset.endpointStats,
             posts: root.dataset.endpointPosts,
             pages: root.dataset.endpointPages,
+            pageSectionsPadding: root.dataset.endpointPageSectionsPadding,
             categories: root.dataset.endpointCategories,
             categoriesIndex: root.dataset.endpointCategoriesIndex,
             comments: root.dataset.endpointComments,
@@ -920,7 +921,68 @@
         const pagePathInput = pageForm?.querySelector('input[name="path"]');
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
         const postSectionsManager = createSectionBuilder(postForm);
-        const pageSectionsManager = createSectionBuilder(pageForm);
+        let pageSectionsManager = null;
+
+        const applyPaddingToAllPageSections = async (padding) => {
+            if (!endpoints.pageSectionsPadding) {
+                showAlert(
+                    'Bulk padding update is not available in this environment.',
+                    'error'
+                );
+                throw new Error('Page sections padding endpoint is not configured.');
+            }
+
+            const numericPadding = Number(padding);
+            if (!Number.isFinite(numericPadding)) {
+                showAlert('Invalid padding value.', 'error');
+                throw new Error('Invalid padding value');
+            }
+
+            try {
+                const response = await apiRequest(endpoints.pageSectionsPadding, {
+                    method: 'POST',
+                    body: JSON.stringify({ padding_vertical: numericPadding }),
+                });
+
+                const appliedPadding = Number(
+                    response?.padding_vertical ?? numericPadding
+                );
+                const pagesUpdated = Number(response?.pages_updated ?? 0);
+                const sectionsUpdated = Number(response?.sections_updated ?? 0);
+
+                if (sectionsUpdated > 0) {
+                    const pageLabel = pagesUpdated === 1 ? 'page' : 'pages';
+                    const sectionLabel = sectionsUpdated === 1 ? 'section' : 'sections';
+                    showAlert(
+                        `Applied ${appliedPadding}px vertical padding to ${sectionsUpdated} ${sectionLabel} across ${pagesUpdated} ${pageLabel}.`,
+                        'success'
+                    );
+                } else {
+                    showAlert(
+                        `All page sections already use ${appliedPadding}px vertical padding.`,
+                        'info'
+                    );
+                }
+
+                await loadPages();
+                if (pageForm?.dataset.id) {
+                    selectPage(pageForm.dataset.id);
+                }
+
+                return {
+                    pagesUpdated,
+                    sectionsUpdated,
+                    padding: appliedPadding,
+                };
+            } catch (error) {
+                handleRequestError(error);
+                throw error;
+            }
+        };
+
+        pageSectionsManager = createSectionBuilder(pageForm, {
+            onApplyPaddingToAllSections: applyPaddingToAllPageSections,
+        });
         const courseVideoSectionsManager = createSectionBuilder(courseVideoForm);
         const postContentField = postForm?.querySelector('[name="content"]');
         const pagePublishAtInput = pageForm?.querySelector(

@@ -408,6 +408,7 @@
         orderedTypes,
         sectionDefinitions,
         orderedSectionTypes,
+        applyPaddingToAllSections,
     }) => {
         const focusField = (selector) => {
             if (!selector) {
@@ -472,6 +473,7 @@
             sectionDefinition,
             onChange,
             onClose,
+            applyPaddingToAllSections: applyPaddingCallback,
         }) => {
             if (!sectionItem || !section) {
                 return () => {};
@@ -750,6 +752,61 @@
                 scheduleChange();
             });
             paddingField.append(paddingRangeWrapper);
+
+            if (typeof applyPaddingCallback === 'function') {
+                const defaultLabel = 'Apply to all page sections';
+                const loadingLabel = 'Applying…';
+
+                const bulkActions = createElement('div', {
+                    className: 'admin-builder__field-actions',
+                });
+                const applyAllButton = createElement('button', {
+                    className: 'admin-builder__button',
+                    type: 'button',
+                    textContent: defaultLabel,
+                });
+                bulkActions.append(applyAllButton);
+                paddingField.append(bulkActions);
+
+                paddingField.append(
+                    createElement('p', {
+                        className: 'admin-builder__hint',
+                        textContent:
+                            'Updates vertical padding for every section on every page.',
+                    })
+                );
+
+                applyAllButton.addEventListener('click', async (event) => {
+                    event.preventDefault();
+                    const targetPadding = clampPaddingValue(
+                        Number(section.paddingVertical)
+                    );
+                    const message =
+                        `Apply ${targetPadding}px vertical padding to all sections across every page? ` +
+                        'Existing values will be overwritten.';
+                    if (!window.confirm(message)) {
+                        return;
+                    }
+
+                    applyAllButton.disabled = true;
+                    applyAllButton.textContent = loadingLabel;
+
+                    try {
+                        await applyPaddingCallback(targetPadding);
+                        closeModal();
+                        scheduleChange();
+                    } catch (error) {
+                        console.error(
+                            'Failed to apply padding to all sections',
+                            error
+                        );
+                    } finally {
+                        applyAllButton.disabled = false;
+                        applyAllButton.textContent = defaultLabel;
+                    }
+                });
+            }
+
             appendField(paddingField);
 
             const marginValue = clampMarginValue(section.marginVertical);
@@ -1111,6 +1168,7 @@
                         sectionDefinition,
                         onChange: updateSettingsSummary,
                         onClose: updateSettingsSummary,
+                        applyPaddingToAllSections,
                     });
                 });
 

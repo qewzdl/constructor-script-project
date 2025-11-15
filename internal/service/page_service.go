@@ -387,6 +387,61 @@ func (s *PageService) Update(id uint, req models.UpdatePageRequest) (*models.Pag
 	return s.pageRepo.GetByID(page.ID)
 }
 
+func (s *PageService) UpdateAllSectionPadding(padding int) (int, int, int, error) {
+	normalized := clampSectionPaddingValue(padding)
+
+	pages, err := s.pageRepo.GetAllAdmin()
+	if err != nil {
+		return 0, 0, normalized, fmt.Errorf("failed to load pages: %w", err)
+	}
+
+	if len(pages) == 0 {
+		return 0, 0, normalized, nil
+	}
+
+	pagesUpdated := 0
+	sectionsUpdated := 0
+
+	for i := range pages {
+		page := &pages[i]
+		if len(page.Sections) == 0 {
+			continue
+		}
+
+		changed := false
+		for j := range page.Sections {
+			section := &page.Sections[j]
+			if section.PaddingVertical == nil || *section.PaddingVertical != normalized {
+				section.PaddingVertical = intPtr(normalized)
+				changed = true
+				sectionsUpdated++
+			}
+		}
+
+		if !changed {
+			continue
+		}
+
+		if err := s.pageRepo.Update(page); err != nil {
+			return pagesUpdated, sectionsUpdated, normalized, fmt.Errorf("failed to update page %d: %w", page.ID, err)
+		}
+
+		pagesUpdated++
+		if s.cache != nil {
+			s.cache.InvalidatePage(page.ID)
+			if page.Path != "" {
+				s.cache.Delete(fmt.Sprintf("page:path:%s", page.Path))
+			}
+		}
+	}
+
+	if pagesUpdated > 0 && s.cache != nil {
+		s.cache.Delete("pages:all")
+	}
+
+	return pagesUpdated, sectionsUpdated, normalized, nil
+}
+
 func (s *PageService) Delete(id uint) error {
 	page, err := s.pageRepo.GetByID(id)
 	if err != nil {
