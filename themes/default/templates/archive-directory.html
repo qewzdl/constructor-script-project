@@ -59,7 +59,11 @@
             <h1 class="archive-directory__title">{{ trim (default "Archive directory" $directory.Name) }}</h1>
         </header>
 
+        {{- $hasFiles := gt (len $files) 0 -}}
+        {{- $hasChildren := gt (len $children) 0 -}}
+        {{- if or $hasFiles $hasChildren }}
         <div class="archive-directory__sections">
+            {{- if $hasFiles }}
             <section class="archive-directory__panel" aria-labelledby="archive-directory-files-title">
                 <div>
                     <h2 id="archive-directory-files-title" class="archive-directory__panel-title">Files</h2>
@@ -67,7 +71,6 @@
                         View the documents stored in this directory. Download originals or open the detail view for a dedicated preview.
                     </p>
                 </div>
-                {{- if $files }}
                 <ul class="archive-directory__items">
                     {{- range $files }}
                     {{- $fileName := trim (default "" .Name) -}}
@@ -95,11 +98,10 @@
                     </li>
                     {{- end }}
                 </ul>
-                {{- else }}
-                <p class="archive-tree__empty">No files have been published in this directory yet.</p>
-                {{- end }}
             </section>
+            {{- end }}
 
+            {{- if $hasChildren }}
             <section class="archive-directory__panel" aria-labelledby="archive-directory-children-title">
                 <div>
                     <h2 id="archive-directory-children-title" class="archive-directory__panel-title">Subdirectories</h2>
@@ -107,7 +109,6 @@
                         Navigate into nested directories to explore additional collections of files and resources.
                     </p>
                 </div>
-                {{- if $children }}
                 <ul class="archive-directory__items archive-directory__items--directories">
                     {{- range $children }}
                     {{- $childName := trim (default "" .Name) -}}
@@ -132,10 +133,9 @@
                     </li>
                     {{- end }}
                 </ul>
-                {{- else }}
-                <p class="archive-tree__empty">This directory doesn’t contain any subdirectories.</p>
-                {{- end }}
             </section>
+            {{- end }}
         </div>
+        {{- end }}
     </div>
 </section>
