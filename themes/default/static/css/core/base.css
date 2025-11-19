@@ -68,13 +68,11 @@ textarea {
 .header {
     grid-area: header;
     height: var(--header-height);
-    border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
     justify-content: center;
     position: sticky;
     top: 0;
-    background-color: var(--color-bg-top);
     z-index: 1000;
 }
 
@@ -207,9 +205,7 @@ textarea {
 }
 
 .header__nav-link--active {
-    border-color: var(--color-primary);
     color: var(--color-primary);
-    background-color: var(--color-primary-transparent);
     font-weight: 600;
 }
 
