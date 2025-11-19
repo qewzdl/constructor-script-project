@@ -2868,7 +2868,7 @@ body.course-modal-open {
     display: grid;
 }
 
-.page-view__header, .footer, .post {
+.page-view__header, .footer, .post, .post__related {
     padding-block: var(--size-lg);
 }
 
@@ -2898,7 +2898,8 @@ body.course-modal-open {
 .course-player__header > *:not(.course-player__figure),
 .course-player__layout,
 .course-player__header-content,
-.tag-page__container {
+.tag-page__container,
+.post__related {
     max-width: var(--page-max-width);
     padding-inline: var(--page-side-padding);
     margin-inline: auto;
