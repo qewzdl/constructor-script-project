@@ -918,7 +918,7 @@
 
 .admin-panel__list {
     border: 1px solid var(--color-border);
-    border_bottom: none;
+    border-bottom: none;
     overflow-y: hidden;
     overflow-x: auto;
     background: var(--color-bg-top);
