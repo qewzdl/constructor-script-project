@@ -1378,6 +1378,7 @@ textarea.form-field__input {
 .course-player__empty {
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
+    padding-inline: var(--size-mid);
 }
 
 @media (max-width: 1024px) {
