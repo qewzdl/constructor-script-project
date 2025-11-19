@@ -35,13 +35,20 @@ var baseContentSecurityPolicy = map[string][]string{
 		"https://securepubads.g.doubleclick.net",
 		"https://www.googletagservices.com",
 		"https://ep2.adtrafficquality.google",
+		"https://cdn.jsdelivr.net",
 	},
 	"style-src": {
 		"'self'",
 		"'unsafe-inline'",
 		"https://fonts.googleapis.com",
+		"https://cdn.jsdelivr.net",
 	},
-	"font-src": {"'self'", "https://fonts.gstatic.com", "data:"},
+	"font-src": {
+		"'self'",
+		"https://fonts.gstatic.com",
+		"https://cdn.jsdelivr.net",
+		"data:",
+	},
 	"img-src": {
 		"'self'",
 		"data:",
