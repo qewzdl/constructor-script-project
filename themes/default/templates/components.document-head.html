@@ -103,13 +103,18 @@
         {{ end }}
 
         <!-- KaTeX -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-        
+        <script>
+        window.MathJax = {
+            loader: { load: ['[tex]/mhchem'] },
+            tex: {
+                packages: { '[+]': ['mhchem'] }, 
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+        </script>
+            
         <!-- mhchem -->
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"></script>
-
-        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 
         <!-- Open Graph and Twitter Card metadata for social media sharing -->
         <meta property="og:site_name" content="{{ $site.Name }}" />
