@@ -28,6 +28,11 @@ var baseContentSecurityPolicy = map[string][]string{
 	"base-uri":        {"'self'"},
 	"frame-ancestors": {"'self'"},
 	"form-action":     {"'self'"},
+	"media-src": {
+		"'self'",
+		"data:",
+		"blob:",
+	},
 	"script-src": {
 		"'self'",
 		"'unsafe-inline'",
@@ -78,6 +83,7 @@ var cspDirectiveOrder = []string{
 	"base-uri",
 	"frame-ancestors",
 	"form-action",
+	"media-src",
 	"script-src",
 	"style-src",
 	"font-src",
