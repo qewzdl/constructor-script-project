@@ -333,11 +333,10 @@
                                             autocomplete="off"
                                         />
                                     </div>
-                                    <div class="admin-tag-input__suggestions" data-role="tag-suggestions" aria-label="Tag suggestions"></div>
                                 </div>
                                 <input type="hidden" name="tags" id="admin-post-tags" />
                                 <small class="admin-card__description admin-form__hint">
-                                    Add tags individually. Use the suggestions to quickly reuse existing tags.
+                                    Add tags individually.
                                 </small>
                             </label>
                             <label class="admin-form__label">
