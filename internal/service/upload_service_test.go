@@ -83,6 +83,42 @@ func TestUploadVideoDurationFailureDoesNotDelete(t *testing.T) {
 	}
 }
 
+func TestUseExistingVideoSuccess(t *testing.T) {
+	uploadDir := t.TempDir()
+	svc := NewUploadService(uploadDir)
+
+	content := buildTestMP4(t, buildMvhdVersion0Payload(1000, 45*1000))
+	file := createMultipartFile(t, "intro.mp4", content)
+
+	uploaded, err := svc.UploadVideo(context.Background(), file, "Course Intro")
+	if err != nil {
+		t.Fatalf("unexpected error uploading seed video: %v", err)
+	}
+
+	result, err := svc.UseExistingVideo(context.Background(), uploaded.Video.URL, "Existing Intro")
+	if err != nil {
+		t.Fatalf("unexpected error using existing video: %v", err)
+	}
+
+	if result.Video.URL != uploaded.Video.URL {
+		t.Fatalf("unexpected url: %s", result.Video.URL)
+	}
+	if result.Video.Filename != uploaded.Video.Filename {
+		t.Fatalf("unexpected filename: %s", result.Video.Filename)
+	}
+	if result.Duration != uploaded.Duration {
+		t.Fatalf("unexpected duration: %v", result.Duration)
+	}
+
+	entries, err := os.ReadDir(uploadDir)
+	if err != nil {
+		t.Fatalf("failed to read upload dir: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected existing video to be reused without duplication, found %d entries", len(entries))
+	}
+}
+
 func TestUploadVideoWithSubtitles(t *testing.T) {
 	uploadDir := t.TempDir()
 	svc := NewUploadService(uploadDir)

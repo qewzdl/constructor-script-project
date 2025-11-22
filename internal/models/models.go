@@ -411,6 +411,7 @@ type CreateCourseVideoRequest struct {
 	Title       string                  `form:"title" binding:"required"`
 	Description string                  `form:"description"`
 	Preferred   string                  `form:"preferred_name"`
+	UploadURL   string                  `form:"upload_url" json:"upload_url"`
 	Sections    []Section               `form:"-" json:"sections"`
 	Attachments []CourseVideoAttachment `form:"-" json:"attachments"`
 }

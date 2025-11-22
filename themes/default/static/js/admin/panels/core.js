@@ -1516,14 +1516,27 @@
                                 <label class="admin-form__label">
                                     Video file
                                     <input
-                                        type="file"
-                                        name="video"
-                                        accept="video/mp4,video/m4v,video/quicktime"
+                                        type="url"
+                                        name="upload_url"
+                                        id="admin-course-video-upload-url"
                                         class="admin-form__input"
+                                        placeholder="/uploads/lesson.mp4"
+                                        data-role="course-video-upload-url"
                                         required
                                     />
+                                    <div class="admin-form__upload-actions">
+                                        <button
+                                            type="button"
+                                            class="admin-form__upload-button"
+                                            data-action="open-media-library"
+                                            data-media-target="#admin-course-video-upload-url"
+                                            data-media-allowed-types="video"
+                                        >
+                                            Browse media library
+                                        </button>
+                                    </div>
                                     <small class="admin-card__description admin-form__hint">
-                                        Accepted formats: MP4, M4V, MOV. Duration is stored automatically.
+                                        Select an existing upload or add a new file through the media library. Duration is stored automatically.
                                     </small>
                                 </label>
                             </div>

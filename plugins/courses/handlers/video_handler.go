@@ -46,25 +46,21 @@ func (h *VideoHandler) Create(c *gin.Context) {
 		return
 	}
 
-	if rawSections := c.PostForm("sections"); rawSections != "" {
+	if rawSections := c.PostForm("sections"); rawSections != "" && len(req.Sections) == 0 {
 		if err := json.Unmarshal([]byte(rawSections), &req.Sections); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sections payload"})
 			return
 		}
 	}
 
-	if rawAttachments := c.PostForm("attachments"); rawAttachments != "" {
+	if rawAttachments := c.PostForm("attachments"); rawAttachments != "" && len(req.Attachments) == 0 {
 		if err := json.Unmarshal([]byte(rawAttachments), &req.Attachments); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid attachments payload"})
 			return
 		}
 	}
 
-	file, err := c.FormFile("video")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "video file is required"})
-		return
-	}
+	file, _ := c.FormFile("video")
 
 	video, err := h.service.Create(c.Request.Context(), req, file)
 	if err != nil {

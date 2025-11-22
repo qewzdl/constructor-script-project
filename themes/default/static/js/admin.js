@@ -734,7 +734,9 @@
         const courseVideoPreview = courseVideoForm?.querySelector('[data-role="course-video-preview"]');
         const courseVideoUploadGroup = courseVideoForm?.querySelector('[data-role="course-video-upload-group"]');
         const courseVideoUploadHint = courseVideoForm?.querySelector('[data-role="course-video-upload-hint"]');
-        const courseVideoFileInput = courseVideoForm?.querySelector('input[name="video"]');
+        const courseVideoUploadUrlInput = courseVideoForm?.querySelector(
+            '[data-role="course-video-upload-url"]'
+        );
         const courseVideoSubmitButton = courseVideoForm?.querySelector('[data-role="course-video-submit"]');
         const courseVideoDeleteButton = courseVideoForm?.querySelector('[data-role="course-video-delete"]');
         const courseVideoAttachmentList = courseVideoForm?.querySelector(
@@ -6740,25 +6742,25 @@
             courseVideoPreviewWrapper.hidden = false;
         };
 
-        const handleCourseVideoFileInputChange = () => {
+        const handleCourseVideoUploadChange = () => {
             courseVideoPreviewRequestId += 1;
             const requestId = courseVideoPreviewRequestId;
             setCourseVideoDurationValue(null);
-            if (!courseVideoFileInput) {
+            const input = courseVideoUploadUrlInput;
+            if (!input) {
                 setCourseVideoSubmitState({ loading: false, disabled: false });
                 return;
             }
-            const file = courseVideoFileInput.files?.[0];
-            if (!file) {
+
+            const url = normaliseString(input.value).trim();
+            if (!url) {
                 setCourseVideoPreviewSource('');
                 setCourseVideoSubmitState({ loading: false, disabled: false });
                 return;
             }
 
-            const objectUrl = URL.createObjectURL(file);
             if (!courseVideoPreview) {
                 setCourseVideoSubmitState({ loading: false, disabled: false });
-                URL.revokeObjectURL(objectUrl);
                 return;
             }
 
@@ -6772,19 +6774,12 @@
                 setCourseVideoSubmitState({ loading: false, disabled: false });
             };
 
-            const handlePreviewError = (event) => {
+            const handlePreviewError = () => {
                 if (requestId !== courseVideoPreviewRequestId) {
                     return;
                 }
                 setCourseVideoSubmitState({ loading: false, disabled: false });
-                const errorCode = event?.target?.error?.code;
-                const cspBlockedPreview =
-                    typeof MediaError !== 'undefined' &&
-                    errorCode === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED;
-                const message = cspBlockedPreview
-                    ? 'Video preview was blocked by the browser security policy. Upload will still work, but consider allowing blob: URLs for previews.'
-                    : 'Unable to load the selected video. Please choose a different file.';
-                showAlert(message, cspBlockedPreview ? 'info' : 'error');
+                showAlert('Unable to load the selected video. Please choose a different file.', 'error');
                 setCourseVideoPreviewSource('');
             };
 
@@ -6794,7 +6789,7 @@
             courseVideoPreview.addEventListener('error', handlePreviewError, {
                 once: true,
             });
-            setCourseVideoPreviewSource(objectUrl, { objectUrl: true });
+            setCourseVideoPreviewSource(url);
         };
 
         const resetCourseVideoForm = () => {
@@ -6820,9 +6815,9 @@
             if (courseVideoUploadHint) {
                 courseVideoUploadHint.hidden = true;
             }
-            if (courseVideoFileInput) {
-                courseVideoFileInput.required = true;
-                courseVideoFileInput.value = '';
+            if (courseVideoUploadUrlInput) {
+                courseVideoUploadUrlInput.required = true;
+                courseVideoUploadUrlInput.value = '';
             }
             setCourseVideoDurationValue(null);
             setCourseVideoPreviewSource('');
@@ -6863,28 +6858,28 @@
             }
             setCourseVideoAttachments(getCourseVideoAttachments(video));
             prepareCourseVideoSubtitle(video);
+            const duration =
+                video?.duration_seconds ??
+                video?.durationSeconds ??
+                video?.DurationSeconds;
+            const source = normaliseString(
+                video?.file_url ?? video?.fileUrl ?? video?.FileURL ?? ''
+            ).trim();
             if (courseVideoUploadGroup) {
                 courseVideoUploadGroup.hidden = true;
             }
             if (courseVideoUploadHint) {
                 courseVideoUploadHint.hidden = false;
             }
-            if (courseVideoFileInput) {
-                courseVideoFileInput.required = false;
-                courseVideoFileInput.value = '';
+            if (courseVideoUploadUrlInput) {
+                courseVideoUploadUrlInput.required = false;
+                courseVideoUploadUrlInput.value = source;
             }
             if (courseVideoDeleteButton) {
                 courseVideoDeleteButton.hidden = false;
             }
             setCourseVideoSubmitState({ loading: false, disabled: false });
-            const duration =
-                video?.duration_seconds ??
-                video?.durationSeconds ??
-                video?.DurationSeconds;
             setCourseVideoDurationValue(duration);
-            const source = normaliseString(
-                video?.file_url ?? video?.fileUrl ?? video?.FileURL ?? ''
-            ).trim();
             setCourseVideoPreviewSource(source);
             highlightRow(tables.courseVideos, id);
             if (scroll) {
@@ -7131,6 +7126,7 @@
                 ? courseVideoSectionsManager.getSections()
                 : [];
             const attachments = buildCourseVideoAttachmentsPayload();
+            const uploadUrl = normaliseString(courseVideoUploadUrlInput?.value).trim();
             if (!title) {
                 showAlert('Please provide a video title.', 'error');
                 return;
@@ -7141,6 +7137,16 @@
             }
             const id = courseVideoForm.dataset.id;
             try {
+                const preferred = slugifyPreferredName(title);
+                const payload = {
+                    title,
+                    description,
+                    sections,
+                    attachments,
+                };
+                if (preferred) {
+                    payload.preferred_name = preferred;
+                }
                 if (id) {
                     await apiRequest(
                         buildCourseEndpoint(endpoints.coursesVideos, id),
@@ -7149,36 +7155,24 @@
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            body: JSON.stringify({
-                                title,
-                                description,
-                                sections,
-                                attachments,
-                            }),
+                            body: JSON.stringify(payload),
                         }
                     );
                     showAlert('Video updated successfully.', 'success');
                 } else {
-                    const file = courseVideoFileInput?.files?.[0];
-                    if (!file) {
-                        showAlert('Select a video file to upload.', 'error');
+                    if (!uploadUrl) {
+                        showAlert('Select a video from the media library.', 'error');
                         return;
                     }
-                    const formData = new FormData();
-                    formData.append('title', title);
-                    if (description) {
-                        formData.append('description', description);
-                    }
-                    formData.append('sections', JSON.stringify(sections));
-                    formData.append('attachments', JSON.stringify(attachments));
-                    const preferred = slugifyPreferredName(title);
-                    if (preferred) {
-                        formData.append('preferred_name', preferred);
-                    }
-                    formData.append('video', file);
                     const response = await apiRequest(endpoints.coursesVideos, {
                         method: 'POST',
-                        body: formData,
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            ...payload,
+                            upload_url: uploadUrl,
+                        }),
                     });
                     showAlert('Video uploaded successfully.', 'success');
                     const created = response?.video;
@@ -13335,7 +13329,8 @@
         userDeleteButton?.addEventListener('click', handleUserDelete);
         courseVideoForm?.addEventListener('submit', handleCourseVideoSubmit);
         courseVideoDeleteButton?.addEventListener('click', handleCourseVideoDelete);
-        courseVideoFileInput?.addEventListener('change', handleCourseVideoFileInputChange);
+        courseVideoUploadUrlInput?.addEventListener('input', handleCourseVideoUploadChange);
+        courseVideoUploadUrlInput?.addEventListener('change', handleCourseVideoUploadChange);
         courseVideoAttachmentAddButton?.addEventListener(
             'click',
             handleCourseVideoAttachmentAdd

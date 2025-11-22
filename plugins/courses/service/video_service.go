@@ -58,16 +58,26 @@ func (s *VideoService) Create(ctx context.Context, req models.CreateCourseVideoR
 	if s.uploadService == nil {
 		return nil, errors.New("upload service is not configured")
 	}
-	if file == nil {
-		return nil, newValidationError("video file is required")
-	}
 
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
 		return nil, newValidationError("video title is required")
 	}
 
-	result, err := s.uploadService.UploadVideo(ctx, file, req.Preferred)
+	uploadURL := strings.TrimSpace(req.UploadURL)
+
+	var result service.VideoUploadResult
+	var err error
+
+	switch {
+	case file != nil:
+		result, err = s.uploadService.UploadVideo(ctx, file, req.Preferred)
+	case uploadURL != "":
+		result, err = s.uploadService.UseExistingVideo(ctx, uploadURL, req.Preferred)
+	default:
+		return nil, newValidationError("video file is required")
+	}
+
 	if err != nil {
 		return nil, err
 	}

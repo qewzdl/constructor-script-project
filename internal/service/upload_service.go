@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -187,6 +188,110 @@ func (s *UploadService) UploadVideo(ctx context.Context, file *multipart.FileHea
 	}
 
 	return s.uploadVideo(ctx, file, preferredName)
+}
+
+// UseExistingVideo promotes an existing uploaded video into the video workflow
+// by validating it and extracting metadata.
+func (s *UploadService) UseExistingVideo(ctx context.Context, source string, preferredName string) (VideoUploadResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if s == nil {
+		return VideoUploadResult{}, errUploadServiceMissing
+	}
+
+	trimmed := strings.TrimSpace(source)
+	if trimmed == "" {
+		return VideoUploadResult{}, ErrUploadMissing
+	}
+
+	if parsed, err := url.Parse(trimmed); err == nil && parsed.Path != "" {
+		trimmed = parsed.Path
+	}
+
+	filename := filepath.Base(trimmed)
+	if filename == "" || filename == "." || filename == string(filepath.Separator) {
+		return VideoUploadResult{}, ErrUploadNotFound
+	}
+
+	ext := strings.ToLower(filepath.Ext(filename))
+	if !s.isAllowedType(ext, s.videoAllowedTypes) {
+		return VideoUploadResult{}, ErrUnsupportedUpload
+	}
+
+	uploadDirAbs, err := filepath.Abs(s.uploadDir)
+	if err != nil {
+		return VideoUploadResult{}, err
+	}
+
+	sourcePath := filepath.Join(s.uploadDir, filename)
+	sourceAbs, err := filepath.Abs(sourcePath)
+	if err != nil {
+		return VideoUploadResult{}, err
+	}
+
+	if !strings.HasPrefix(sourceAbs, uploadDirAbs) {
+		return VideoUploadResult{}, ErrUploadNotFound
+	}
+
+	info, err := os.Stat(sourceAbs)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return VideoUploadResult{}, ErrUploadNotFound
+		}
+		return VideoUploadResult{}, err
+	}
+
+	result := VideoUploadResult{
+		Video: UploadInfo{
+			URL:      "/uploads/" + filename,
+			Filename: filename,
+			Size:     info.Size(),
+			ModTime:  info.ModTime(),
+			Type:     string(UploadCategoryVideo),
+		},
+	}
+
+	duration, err := media.MP4Duration(sourceAbs)
+	if err != nil {
+		logger.Warn("Failed to parse existing video duration; storing without duration", map[string]interface{}{
+			"filename": filename,
+			"error":    err.Error(),
+		})
+	} else {
+		result.Duration = duration
+	}
+
+	if s.subtitleManager != nil {
+		request := SubtitleGenerationRequest{
+			SourcePath:    sourceAbs,
+			Provider:      s.subtitleConfig.Provider,
+			PreferredName: s.subtitleConfig.PreferredName,
+			Language:      s.subtitleConfig.Language,
+			Prompt:        s.subtitleConfig.Prompt,
+		}
+		if s.subtitleConfig.Temperature != nil {
+			value := *s.subtitleConfig.Temperature
+			request.Temperature = &value
+		}
+
+		subtitleResult, err := s.subtitleManager.Generate(ctx, request)
+		if err != nil {
+			return VideoUploadResult{}, err
+		} else if subtitleResult != nil && len(subtitleResult.Data) > 0 {
+			info, subtitlePath, err := s.persistSubtitle(filename, subtitleResult)
+			if err != nil {
+				if subtitlePath != "" {
+					os.Remove(subtitlePath)
+				}
+				return VideoUploadResult{}, err
+			} else {
+				result.Subtitle = info
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // SaveSubtitle persists subtitle content for a video and returns the stored asset metadata.
@@ -597,19 +702,16 @@ func (s *UploadService) uploadVideo(ctx context.Context, file *multipart.FileHea
 
 		subtitleResult, err := s.subtitleManager.Generate(ctx, request)
 		if err != nil {
-			logger.Error(err, "Failed to generate subtitles for uploaded video", map[string]interface{}{
-				"filename": upload.Filename,
-				"provider": request.Provider,
-			})
+			_ = s.DeleteUpload(upload.URL)
+			return VideoUploadResult{}, err
 		} else if subtitleResult != nil && len(subtitleResult.Data) > 0 {
 			info, subtitlePath, err := s.persistSubtitle(upload.Filename, subtitleResult)
 			if err != nil {
 				if subtitlePath != "" {
 					os.Remove(subtitlePath)
 				}
-				logger.Error(err, "Failed to persist generated subtitles for uploaded video", map[string]interface{}{
-					"filename": upload.Filename,
-				})
+				_ = s.DeleteUpload(upload.URL)
+				return VideoUploadResult{}, err
 			} else {
 				result.Subtitle = info
 			}
