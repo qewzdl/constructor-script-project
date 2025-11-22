@@ -1130,6 +1130,50 @@
     border-color: var(--color-primary);
 }
 
+.admin-tag-input__suggestions {
+    display: grid;
+    gap: var(--size-xs);
+    border-top: 1px dashed var(--color-border);
+    padding-top: var(--size-sm);
+}
+
+.admin-tag-input__suggestions-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--size-xs);
+    color: var(--color-secondary);
+    font-size: var(--font-size-xs);
+}
+
+.admin-tag-input__suggestions-title {
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.admin-tag-input__suggestions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-xs);
+}
+
+.admin-tag-input__suggestion {
+    border: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-primary-transparent) 35%, var(--color-bg-top));
+    color: var(--color-text);
+    padding: 0.35rem 0.6rem;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.admin-tag-input__suggestion:hover,
+.admin-tag-input__suggestion:focus-visible {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    outline: none;
+}
+
 .admin-languages {
     display: grid;
     gap: var(--size-sm);

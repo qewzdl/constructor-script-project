@@ -1927,17 +1927,27 @@
                 }
             };
 
-            const setSuggestions = (names) => {
+            const setSuggestions = (
+                names,
+                emptyMessage = 'No tag suggestions yet.'
+            ) => {
                 suggestionContainer.innerHTML = '';
                 if (!Array.isArray(names) || !names.length) {
                     suggestionContainer.appendChild(
                         createElement('span', {
                             className: 'admin-tag-input__empty',
-                            textContent: 'No tag suggestions yet.',
+                            textContent: emptyMessage,
                         })
                     );
                     return;
                 }
+
+                const handleSuggestionSelect = (name) => {
+                    if (addTag(name)) {
+                        entryField.value = '';
+                        entryField.focus();
+                    }
+                };
 
                 names.forEach((name) => {
                     const suggestion = createElement('button', {
@@ -1946,11 +1956,12 @@
                         textContent: `Add #${name}`,
                         ariaLabel: `Add tag ${name}`,
                     });
+                    suggestion.addEventListener('pointerdown', (event) => {
+                        event.preventDefault();
+                        handleSuggestionSelect(name);
+                    });
                     suggestion.addEventListener('click', () => {
-                        if (addTag(name)) {
-                            entryField.value = '';
-                            entryField.focus();
-                        }
+                        handleSuggestionSelect(name);
                     });
                     suggestionContainer.appendChild(suggestion);
                 });
@@ -2456,7 +2467,7 @@
                 extractTagNames(post).forEach(addSuggestion);
             });
 
-            const draft = postTagEditor.getDraft();
+            const draft = postTagEditor.getDraft() || '';
             if (draft) {
                 parseTags(draft).forEach(addSuggestion);
             }
@@ -2465,7 +2476,18 @@
                 a.localeCompare(b, undefined, { sensitivity: 'base' })
             );
 
-            postTagEditor.setSuggestions(ordered);
+            const query = draft.trim().toLowerCase();
+            const filtered = query
+                ? ordered.filter((name) =>
+                      name.toLowerCase().includes(query)
+                  )
+                : ordered;
+            const limited = filtered.slice(0, 12);
+            const emptyMessage = query
+                ? 'No matching tags. Press Enter to create a new one.'
+                : 'No tag suggestions yet. Add your first tag above.';
+
+            postTagEditor.setSuggestions(limited, emptyMessage);
         };
 
         const extractTagId = (tag) => {

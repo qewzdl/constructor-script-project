@@ -333,10 +333,21 @@
                                             autocomplete="off"
                                         />
                                     </div>
+                                    <div class="admin-tag-input__suggestions">
+                                        <div class="admin-tag-input__suggestions-header">
+                                            <span class="admin-tag-input__suggestions-title">Suggestions</span>
+                                            <span class="admin-tag-input__suggestions-hint">Click to add or type to filter.</span>
+                                        </div>
+                                        <div
+                                            class="admin-tag-input__suggestions-list"
+                                            data-role="tag-suggestions"
+                                            aria-live="polite"
+                                        ></div>
+                                    </div>
                                 </div>
                                 <input type="hidden" name="tags" id="admin-post-tags" />
                                 <small class="admin-card__description admin-form__hint">
-                                    Add tags individually.
+                                    Add tags individually or reuse existing ones from suggestions.
                                 </small>
                             </label>
                             <label class="admin-form__label">
