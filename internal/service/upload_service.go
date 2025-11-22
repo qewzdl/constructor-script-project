@@ -569,14 +569,12 @@ func (s *UploadService) uploadVideo(ctx context.Context, file *multipart.FileHea
 		return VideoUploadResult{}, err
 	}
 
-	cleanup := func() {
-		os.Remove(filePath)
-	}
-
 	duration, err := media.MP4Duration(filePath)
 	if err != nil {
-		cleanup()
-		return VideoUploadResult{}, err
+		logger.Warn("Failed to parse uploaded video duration; storing without duration", map[string]interface{}{
+			"filename": upload.Filename,
+			"error":    err.Error(),
+		})
 	}
 
 	result := VideoUploadResult{

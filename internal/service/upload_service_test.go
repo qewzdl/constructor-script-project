@@ -57,7 +57,7 @@ func TestUploadVideoInvalidExtension(t *testing.T) {
 	}
 }
 
-func TestUploadVideoInvalidMediaRemoved(t *testing.T) {
+func TestUploadVideoDurationFailureDoesNotDelete(t *testing.T) {
 	uploadDir := t.TempDir()
 	svc := NewUploadService(uploadDir)
 
@@ -65,17 +65,21 @@ func TestUploadVideoInvalidMediaRemoved(t *testing.T) {
 	content := []byte("invalid data")
 	file := createMultipartFile(t, "intro.mp4", content)
 
-	if _, err := svc.UploadVideo(context.Background(), file, "Course Intro"); err == nil {
-		t.Fatal("expected error for invalid media")
+	result, err := svc.UploadVideo(context.Background(), file, "Course Intro")
+	if err != nil {
+		t.Fatalf("unexpected error for media with unreadable duration: %v", err)
 	}
 
-	// The upload should have been removed after the duration parsing failed.
+	if result.Duration != 0 {
+		t.Fatalf("expected zero duration when parsing fails, got %v", result.Duration)
+	}
+
 	entries, err := os.ReadDir(uploadDir)
 	if err != nil {
 		t.Fatalf("failed to read upload dir: %v", err)
 	}
-	if len(entries) != 0 {
-		t.Fatalf("expected upload directory to be empty, found %d entries", len(entries))
+	if len(entries) != 1 {
+		t.Fatalf("expected uploaded file to remain, found %d entries", len(entries))
 	}
 }
 
