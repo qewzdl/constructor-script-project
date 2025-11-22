@@ -1058,6 +1058,100 @@
     line-height: 1.5;
 }
 
+.admin-tag-input {
+    display: grid;
+    gap: var(--size-sm);
+    padding: 0.65rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+}
+
+.admin-tag-input:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-focus-outline);
+}
+
+.admin-tag-input__selected {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.4rem;
+}
+
+.admin-tag-input__empty {
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.admin-tag-input__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-primary-transparent) 45%, var(--color-bg-top));
+    color: var(--color-secondary);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.admin-tag-input__remove {
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    padding: var(--size-xs);
+    line-height: 1;
+}
+
+.admin-tag-input__remove:hover,
+.admin-tag-input__remove:focus-visible {
+    color: var(--color-primary);
+}
+
+.admin-tag-input__control {
+    display: flex;
+    align-items: center;
+    gap: var(--size-xs);
+}
+
+.admin-tag-input__input {
+    flex: 1 1 auto;
+    border: 1px dashed var(--color-border);
+    background: var(--color-bg-top);
+    padding: 0.6rem 0.75rem;
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+}
+
+.admin-tag-input__input:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.admin-tag-input__suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.admin-tag-input__suggestion {
+    border: 1px dashed var(--color-border);
+    background: var(--color-bg-top);
+    color: var(--color-secondary);
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+}
+
+.admin-tag-input__suggestion:hover,
+.admin-tag-input__suggestion:focus-visible {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    outline: none;
+}
+
 .admin-languages {
     display: grid;
     gap: var(--size-sm);

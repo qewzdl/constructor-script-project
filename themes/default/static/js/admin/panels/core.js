@@ -322,17 +322,23 @@
                             </label>
                             <label class="admin-form__label">
                                 Tags
-                                <input
-                                    type="text"
-                                    name="tags"
-                                    class="admin-form__input"
-                                    id="admin-post-tags"
-                                    placeholder="e.g. go, backend, database"
-                                    list="admin-post-tags-list"
-                                    autocomplete="off"
-                                />
-                                <small class="admin-card__description admin-form__hint">Separate tags with commas. Existing tags appear as suggestions.</small>
-                                <datalist id="admin-post-tags-list"></datalist>
+                                <div class="admin-tag-input" data-role="tag-editor">
+                                    <div class="admin-tag-input__selected" data-role="tag-list" aria-live="polite"></div>
+                                    <div class="admin-tag-input__control">
+                                        <input
+                                            type="text"
+                                            class="admin-tag-input__input"
+                                            data-role="tag-entry"
+                                            placeholder="Add a tag and press Enter"
+                                            autocomplete="off"
+                                        />
+                                    </div>
+                                    <div class="admin-tag-input__suggestions" data-role="tag-suggestions" aria-label="Tag suggestions"></div>
+                                </div>
+                                <input type="hidden" name="tags" id="admin-post-tags" />
+                                <small class="admin-card__description admin-form__hint">
+                                    Add tags individually. Use the suggestions to quickly reuse existing tags.
+                                </small>
                             </label>
                             <label class="admin-form__label">
                                 Publish at

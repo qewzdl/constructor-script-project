@@ -911,7 +911,7 @@
             '[data-role="post-published-at"]'
         );
         const tagList = document.getElementById('admin-tags-list');
-        const postTagsList = document.getElementById('admin-post-tags-list');
+        let postTagEditor = null;
         const userUsernameField = userForm?.querySelector('input[name="username"]');
         const userEmailField = userForm?.querySelector('input[name="email"]');
         const userRoleField = userForm?.querySelector('[data-role="user-role"]');
@@ -1802,6 +1802,194 @@
             return Array.from(unique.values());
         };
 
+        const createTagEditor = (hiddenInput, callbacks = {}) => {
+            if (!hiddenInput) {
+                return null;
+            }
+            const container =
+                hiddenInput
+                    .closest('.admin-form__label')
+                    ?.querySelector('[data-role="tag-editor"]');
+            if (!container) {
+                return null;
+            }
+            const tagListContainer = container.querySelector('[data-role="tag-list"]');
+            const entryField = container.querySelector('[data-role="tag-entry"]');
+            const suggestionContainer = container.querySelector(
+                '[data-role="tag-suggestions"]'
+            );
+
+            if (!tagListContainer || !entryField || !suggestionContainer) {
+                return null;
+            }
+
+            let tags = parseTags(hiddenInput.value);
+
+            const emitChange = () => {
+                if (typeof callbacks.onChange === 'function') {
+                    callbacks.onChange({
+                        tags: tags.slice(),
+                        draft: entryField.value.trim(),
+                    });
+                }
+            };
+
+            const syncInput = () => {
+                hiddenInput.value = tags.join(', ');
+                emitChange();
+            };
+
+            const renderTags = () => {
+                tagListContainer.innerHTML = '';
+                if (!tags.length) {
+                    tagListContainer.appendChild(
+                        createElement('span', {
+                            className: 'admin-tag-input__empty',
+                            textContent: 'No tags yet.',
+                        })
+                    );
+                    return;
+                }
+
+                tags.forEach((name) => {
+                    const tag = createElement('span', {
+                        className: 'admin-tag-input__tag',
+                    });
+                    tag.appendChild(
+                        createElement('span', {
+                            textContent: `#${name}`,
+                        })
+                    );
+                    const remove = createElement('button', {
+                        type: 'button',
+                        className: 'admin-tag-input__remove',
+                        ariaLabel: `Remove tag ${name}`,
+                        textContent: '×',
+                    });
+                    remove.addEventListener('click', () => {
+                        removeTag(name);
+                        entryField.focus();
+                    });
+                    tag.appendChild(remove);
+                    tagListContainer.appendChild(tag);
+                });
+            };
+
+            const setTags = (nextTags) => {
+                const unique = new Map();
+                nextTags
+                    .map((value) => normaliseTagName(value))
+                    .filter(Boolean)
+                    .forEach((name) => {
+                        const key = name.toLowerCase();
+                        if (!unique.has(key)) {
+                            unique.set(key, name);
+                        }
+                    });
+                tags = Array.from(unique.values());
+                renderTags();
+                syncInput();
+            };
+
+            const addTag = (name) => {
+                const cleaned = normaliseTagName(name);
+                if (!cleaned) {
+                    return false;
+                }
+                const key = cleaned.toLowerCase();
+                if (tags.some((existing) => existing.toLowerCase() === key)) {
+                    return false;
+                }
+                setTags([...tags, cleaned]);
+                return true;
+            };
+
+            const removeTag = (name) => {
+                const key = normaliseTagName(name).toLowerCase();
+                const filtered = tags.filter(
+                    (entry) => entry.toLowerCase() !== key
+                );
+                if (filtered.length !== tags.length) {
+                    setTags(filtered);
+                }
+            };
+
+            const commitDraft = () => {
+                const pending = parseTags(entryField.value);
+                let updated = false;
+                pending.forEach((tag) => {
+                    if (addTag(tag)) {
+                        updated = true;
+                    }
+                });
+                if (updated) {
+                    entryField.value = '';
+                }
+            };
+
+            const setSuggestions = (names) => {
+                suggestionContainer.innerHTML = '';
+                if (!Array.isArray(names) || !names.length) {
+                    suggestionContainer.appendChild(
+                        createElement('span', {
+                            className: 'admin-tag-input__empty',
+                            textContent: 'No tag suggestions yet.',
+                        })
+                    );
+                    return;
+                }
+
+                names.forEach((name) => {
+                    const suggestion = createElement('button', {
+                        type: 'button',
+                        className: 'admin-tag-input__suggestion',
+                        textContent: `Add #${name}`,
+                        ariaLabel: `Add tag ${name}`,
+                    });
+                    suggestion.addEventListener('click', () => {
+                        if (addTag(name)) {
+                            entryField.value = '';
+                            entryField.focus();
+                        }
+                    });
+                    suggestionContainer.appendChild(suggestion);
+                });
+            };
+
+            entryField.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ',') {
+                    event.preventDefault();
+                    commitDraft();
+                    return;
+                }
+                if (event.key === 'Backspace' && !entryField.value && tags.length) {
+                    removeTag(tags[tags.length - 1]);
+                }
+            });
+
+            entryField.addEventListener('blur', commitDraft);
+            entryField.addEventListener('input', () => {
+                if (typeof callbacks.onInput === 'function') {
+                    callbacks.onInput({
+                        tags: tags.slice(),
+                        draft: entryField.value.trim(),
+                    });
+                }
+            });
+
+            setTags(tags);
+
+            return {
+                setTags,
+                addTag,
+                removeTag,
+                getTags: () => tags.slice(),
+                getDraft: () => entryField.value.trim(),
+                focus: () => entryField.focus(),
+                setSuggestions,
+            };
+        };
+
         const languageCodePattern = /^[a-z]{2,8}(?:-[A-Za-z]{2,3})?$/;
 
         const normaliseLanguageCode = (value) => {
@@ -2239,9 +2427,17 @@
         ];
 
         const renderTagSuggestions = () => {
-            if (!postTagsList) {
+            if (!postTagEditor) {
                 return;
             }
+
+            const selected = new Set(
+                postTagEditor
+                    .getTags()
+                    .map((name) => normaliseTagName(name).toLowerCase())
+                    .filter(Boolean)
+            );
+
             const suggestions = new Map();
             const addSuggestion = (name) => {
                 const cleaned = normaliseTagName(name);
@@ -2249,29 +2445,27 @@
                     return;
                 }
                 const key = cleaned.toLowerCase();
-                if (!suggestions.has(key)) {
-                    suggestions.set(key, cleaned);
+                if (selected.has(key) || suggestions.has(key)) {
+                    return;
                 }
+                suggestions.set(key, cleaned);
             };
 
             state.tags.forEach((tag) => addSuggestion(tag?.name || tag?.Name));
             state.posts.forEach((post) => {
                 extractTagNames(post).forEach(addSuggestion);
             });
-            if (postTagsInput && postTagsInput.value) {
-                parseTags(postTagsInput.value).forEach(addSuggestion);
+
+            const draft = postTagEditor.getDraft();
+            if (draft) {
+                parseTags(draft).forEach(addSuggestion);
             }
 
             const ordered = Array.from(suggestions.values()).sort((a, b) =>
                 a.localeCompare(b, undefined, { sensitivity: 'base' })
             );
 
-            postTagsList.innerHTML = '';
-            ordered.forEach((name) => {
-                const option = document.createElement('option');
-                option.value = name;
-                postTagsList.appendChild(option);
-            });
+            postTagEditor.setSuggestions(ordered);
         };
 
         const extractTagId = (tag) => {
@@ -8025,7 +8219,9 @@
                     ensureDefaultCategorySelection();
                 }
             }
-            if (postTagsInput) {
+            if (postTagEditor) {
+                postTagEditor.setTags(extractTagNames(post));
+            } else if (postTagsInput) {
                 postTagsInput.value = extractTagNames(post).join(', ');
             }
             postForm.dataset.published = String(Boolean(post.published));
@@ -8097,7 +8293,9 @@
                 postFeaturedImageInput.value = '';
             }
             ensureDefaultCategorySelection();
-            if (postTagsInput) {
+            if (postTagEditor) {
+                postTagEditor.setTags([]);
+            } else if (postTagsInput) {
                 postTagsInput.value = '';
             }
             if (postContentField) {
@@ -12394,7 +12592,9 @@
             if (categoryValue) {
                 payload.category_id = Number(categoryValue);
             }
-            if (postTagsInput) {
+            if (postTagEditor) {
+                payload.tags = postTagEditor.getTags();
+            } else if (postTagsInput) {
                 payload.tags = parseTags(postTagsInput.value);
             }
             disableForm(postForm, true);
@@ -13452,6 +13652,12 @@
                 }
             });
         }
+        postTagEditor = createTagEditor(postTagsInput, {
+            onChange: renderTagSuggestions,
+            onInput: renderTagSuggestions,
+        });
+        renderTagSuggestions();
+
         defaultLanguageInput?.addEventListener('blur', handleDefaultLanguageBlur);
         defaultLanguageInput?.addEventListener('change', handleDefaultLanguageBlur);
         defaultLanguageInput?.addEventListener('input', () => {
@@ -13487,7 +13693,6 @@
         menuCancelButton?.addEventListener('click', handleMenuCancelEdit);
         menuLocationField?.addEventListener('change', handleMenuLocationChange);
         menuList?.addEventListener('click', handleMenuListClick);
-        postTagsInput?.addEventListener('input', renderTagSuggestions);
         homepageForm?.addEventListener('submit', handleHomepageSubmit);
 
         if (languageForm) {
