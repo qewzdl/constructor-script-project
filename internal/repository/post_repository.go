@@ -95,6 +95,10 @@ func (r *postRepository) Delete(id uint) error {
 			return err
 		}
 
+		if err := tx.Unscoped().Where("post_id = ?", id).Delete(&models.PostViewStat{}).Error; err != nil {
+			return err
+		}
+
 		if err := tx.Unscoped().Where("post_id = ?", id).Delete(&models.Comment{}).Error; err != nil {
 			return err
 		}
