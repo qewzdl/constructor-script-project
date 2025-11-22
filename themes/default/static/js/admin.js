@@ -910,7 +910,6 @@
         const postPublishedAtNote = postForm?.querySelector(
             '[data-role="post-published-at"]'
         );
-        const tagList = document.getElementById('admin-tags-list');
         let postTagEditor = null;
         const userUsernameField = userForm?.querySelector('input[name="username"]');
         const userEmailField = userForm?.querySelector('input[name="email"]');
@@ -2490,150 +2489,6 @@
             postTagEditor.setSuggestions(limited, emptyMessage);
         };
 
-        const extractTagId = (tag) => {
-            if (!tag) {
-                return '';
-            }
-            if (typeof tag.id !== 'undefined' && tag.id !== null) {
-                return String(tag.id);
-            }
-            if (typeof tag.ID !== 'undefined' && tag.ID !== null) {
-                return String(tag.ID);
-            }
-            return '';
-        };
-
-        const extractTagSlug = (tag) => {
-            if (!tag) {
-                return '';
-            }
-            return normaliseSlug(
-                tag.slug || tag.Slug || tag.name || tag.Name || ''
-            );
-        };
-
-        const handleTagDelete = async (tag, button, usageCount = 0) => {
-            if (!endpoints.tagsAdmin) {
-                return;
-            }
-            const id = extractTagId(tag);
-            if (!id) {
-                return;
-            }
-            const name = normaliseTagName(tag?.name || tag?.Name);
-            const label = name ? `"${name}"` : 'this tag';
-            const usageText =
-                usageCount === 1 ? '1 post' : `${usageCount} posts`;
-            const confirmMessage =
-                usageCount > 0
-                    ? `The tag ${label} is used by ${usageText}. Deleting it will remove the tag from those posts. Continue?`
-                    : `Delete the tag ${label}?`;
-            if (!window.confirm(confirmMessage)) {
-                return;
-            }
-            if (button) {
-                button.disabled = true;
-            }
-            clearAlert();
-            try {
-                await apiRequest(`${endpoints.tagsAdmin}/${id}`, {
-                    method: 'DELETE',
-                });
-                showAlert('Tag deleted successfully.', 'success');
-                await loadTags();
-                await loadPosts();
-            } catch (error) {
-                handleRequestError(error);
-            } finally {
-                if (button) {
-                    button.disabled = false;
-                }
-            }
-        };
-
-        const renderTagList = () => {
-            if (!tagList) {
-                return;
-            }
-            tagList.innerHTML = '';
-            if (!state.tags.length) {
-                const empty = createElement('li', {
-                    className: 'admin-tags__item admin-tags__item--empty',
-                    textContent: 'No tags available.',
-                });
-                tagList.appendChild(empty);
-                return;
-            }
-
-            const usage = new Map();
-            state.posts.forEach((post) => {
-                const tags = post?.tags || post?.Tags;
-                if (!Array.isArray(tags)) {
-                    return;
-                }
-                tags.forEach((entry) => {
-                    const slug = extractTagSlug(entry);
-                    if (!slug) {
-                        return;
-                    }
-                    usage.set(slug, (usage.get(slug) || 0) + 1);
-                });
-            });
-
-            const sorted = state.tags.slice().sort((a, b) => {
-                const nameA = normaliseTagName(a?.name || a?.Name);
-                const nameB = normaliseTagName(b?.name || b?.Name);
-                return nameA.localeCompare(nameB, undefined, {
-                    sensitivity: 'base',
-                });
-            });
-
-            sorted.forEach((tag) => {
-                const id = extractTagId(tag);
-                const slug = extractTagSlug(tag);
-                const name = normaliseTagName(tag?.name || tag?.Name);
-                const count = usage.get(slug) || 0;
-
-                const item = createElement('li', {
-                    className: 'admin-tags__item',
-                });
-                item.dataset.id = id;
-
-                const info = createElement('div', {
-                    className: 'admin-tags__info',
-                });
-                info.appendChild(
-                    createElement('span', {
-                        className: 'admin-tags__name',
-                        textContent: name ? `#${name}` : '(untitled)',
-                    })
-                );
-                info.appendChild(
-                    createElement('span', {
-                        className: 'admin-tags__meta',
-                        textContent: count === 1 ? '1 post' : `${count} posts`,
-                    })
-                );
-                item.appendChild(info);
-
-                const actions = createElement('div', {
-                    className: 'admin-tags__actions',
-                });
-                const button = createElement('button', {
-                    className: 'admin-tags__delete',
-                    textContent: 'Delete',
-                });
-                button.type = 'button';
-                button.addEventListener('click', () =>
-                    handleTagDelete(tag, button, count)
-                );
-                actions.appendChild(button);
-                item.appendChild(actions);
-
-                tagList.appendChild(item);
-            });
-        };
-
         const highlightRow = (table, id) => {
             if (!table) {
                 return;
@@ -3391,7 +3246,6 @@
                 cell.colSpan = 5;
                 row.appendChild(cell);
                 table.appendChild(row);
-                renderTagList();
                 return;
             }
             posts.forEach((post) => {
@@ -3430,7 +3284,6 @@
                 table.appendChild(row);
             });
             highlightRow(table, postForm?.dataset.id);
-            renderTagList();
         };
 
         const renderPages = () => {
@@ -8661,7 +8514,6 @@
                 const payload = await apiRequest(endpoints.tags);
                 state.tags = payload?.tags || [];
                 renderTagSuggestions();
-                renderTagList();
             } catch (error) {
                 handleRequestError(error);
             }

@@ -446,18 +446,6 @@
                             Select a published post to view analytics.
                         </p>
                     </section>
-                    <section class="admin-panel__aside admin-tags" aria-labelledby="admin-tags-title">
-                        <header class="admin-tags__header">
-                            <h3 id="admin-tags-title" class="admin-tags__title">Tags</h3>
-                            <p class="admin-tags__description">
-                                Remove unused tags to keep the suggestions list tidy. Deleting a tag also detaches it from
-                                any posts.
-                            </p>
-                        </header>
-                        <ul class="admin-tags__list" id="admin-tags-list">
-                            <li class="admin-tags__item admin-tags__item--empty">No tags available.</li>
-                        </ul>
-                    </section>
                 </div>
             </div>
         </section>

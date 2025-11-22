@@ -910,12 +910,6 @@
     gap: var(--size-sm);
 }
 
-.admin-panel__aside.admin-tags {
-    border: none;
-    padding: 0;
-    background: transparent;
-}
-
 .admin-panel__list {
     border: 1px solid var(--color-border);
     border-bottom: none;
@@ -2821,92 +2815,6 @@
     grid-template-columns: auto 1fr;
     align-items: center;
     gap: var(--size-sm);
-}
-
-.admin-tags {
-    display: grid;
-    gap: var(--size-sm);
-    border: 1px solid var(--color-border);
-    padding: var(--size-mid);
-    background: var(--color-bg-top);
-}
-
-.admin-tags__header {
-    display: grid;
-    gap: var(--size-xs);
-}
-
-.admin-tags__title {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-}
-
-.admin-tags__description {
-    color: var(--color-secondary);
-    font-size: var(--font-size-sm);
-    line-height: 1.6;
-}
-
-.admin-tags__list {
-    display: grid;
-    gap: var(--size-xs);
-}
-
-.admin-tags__item {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--size-base);
-    align-items: center;
-    border: 1px solid var(--color-border);
-    padding: var(--size-sm) var(--size-base);
-    background: color-mix(
-        in srgb,
-        var(--color-border) 15%,
-        var(--color-bg-top)
-    );
-}
-
-.admin-tags__item--empty {
-    justify-content: center;
-    color: var(--color-secondary);
-    font-style: italic;
-}
-
-.admin-tags__info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--size-min);
-}
-
-.admin-tags__name {
-    font-weight: 600;
-    font-size: var(--font-size-sm);
-    white-space: nowrap;
-}
-
-.admin-tags__meta {
-    font-size: var(--font-size-xs);
-    color: var(--color-secondary);
-}
-
-.admin-tags__actions {
-    display: flex;
-    gap: var(--size-xs);
-}
-
-.admin-tags__delete {
-    border: 1px solid var(--color-error);
-    background: transparent;
-    padding: var(--size-xs) var(--size-sm);
-    font-size: var(--font-size-xs);
-    color: var(--color-error);
-}
-
-.admin-tags__delete:hover,
-.admin-tags__delete:focus-visible {
-    background: var(--color-error);
-    color: var(--color-bg-top);
-    outline: none;
 }
 
 .admin-comment-list {
