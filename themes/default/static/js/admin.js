@@ -6670,10 +6670,138 @@
             }
         };
 
+        let courseVideoPreviewObjectUrl = '';
+        let courseVideoPreviewRequestId = 0;
+
+        const getCourseVideoSubmitLabel = () =>
+            courseVideoForm?.dataset.id ? 'Update video' : 'Upload video';
+
+        const setCourseVideoSubmitState = ({ loading = false, disabled } = {}) => {
+            if (!courseVideoSubmitButton) {
+                return;
+            }
+            courseVideoSubmitButton.textContent = loading
+                ? 'Loading preview…'
+                : getCourseVideoSubmitLabel();
+            if (typeof disabled === 'boolean') {
+                courseVideoSubmitButton.disabled = disabled;
+            } else {
+                courseVideoSubmitButton.disabled = Boolean(loading);
+            }
+        };
+
+        const setCourseVideoDurationValue = (durationSeconds) => {
+            if (!courseVideoDurationField) {
+                return;
+            }
+            const formatted =
+                Number.isFinite(durationSeconds) && durationSeconds > 0
+                    ? formatVideoDuration(durationSeconds)
+                    : '—';
+            courseVideoDurationField.textContent = formatted;
+        };
+
+        const revokeCourseVideoPreviewUrl = () => {
+            if (courseVideoPreviewObjectUrl) {
+                URL.revokeObjectURL(courseVideoPreviewObjectUrl);
+                courseVideoPreviewObjectUrl = '';
+            }
+        };
+
+        const setCourseVideoPreviewSource = (source, options = {}) => {
+            if (!courseVideoPreview || !courseVideoPreviewWrapper) {
+                revokeCourseVideoPreviewUrl();
+                return;
+            }
+            const { objectUrl = false } = options;
+            try {
+                courseVideoPreview.pause();
+            } catch (error) {
+                /* no-op */
+            }
+            courseVideoPreview.removeAttribute('src');
+            if (typeof courseVideoPreview.load === 'function') {
+                courseVideoPreview.load();
+            }
+            courseVideoPreviewWrapper.hidden = true;
+            revokeCourseVideoPreviewUrl();
+
+            const safeSource = typeof source === 'string' ? source.trim() : '';
+            if (!safeSource) {
+                return;
+            }
+            if (objectUrl) {
+                courseVideoPreviewObjectUrl = safeSource;
+            }
+            courseVideoPreview.src = safeSource;
+            if (typeof courseVideoPreview.load === 'function') {
+                courseVideoPreview.load();
+            }
+            courseVideoPreviewWrapper.hidden = false;
+        };
+
+        const handleCourseVideoFileInputChange = () => {
+            courseVideoPreviewRequestId += 1;
+            const requestId = courseVideoPreviewRequestId;
+            setCourseVideoDurationValue(null);
+            if (!courseVideoFileInput) {
+                setCourseVideoSubmitState({ loading: false, disabled: false });
+                return;
+            }
+            const file = courseVideoFileInput.files?.[0];
+            if (!file) {
+                setCourseVideoPreviewSource('');
+                setCourseVideoSubmitState({ loading: false, disabled: false });
+                return;
+            }
+
+            const objectUrl = URL.createObjectURL(file);
+            if (!courseVideoPreview) {
+                setCourseVideoSubmitState({ loading: false, disabled: false });
+                URL.revokeObjectURL(objectUrl);
+                return;
+            }
+
+            setCourseVideoSubmitState({ loading: true });
+
+            const handleLoadedMetadata = () => {
+                if (requestId !== courseVideoPreviewRequestId) {
+                    return;
+                }
+                setCourseVideoDurationValue(courseVideoPreview.duration);
+                setCourseVideoSubmitState({ loading: false, disabled: false });
+            };
+
+            const handlePreviewError = (event) => {
+                if (requestId !== courseVideoPreviewRequestId) {
+                    return;
+                }
+                setCourseVideoSubmitState({ loading: false, disabled: false });
+                const errorCode = event?.target?.error?.code;
+                const cspBlockedPreview =
+                    typeof MediaError !== 'undefined' &&
+                    errorCode === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED;
+                const message = cspBlockedPreview
+                    ? 'Video preview was blocked by the browser security policy. Upload will still work, but consider allowing blob: URLs for previews.'
+                    : 'Unable to load the selected video. Please choose a different file.';
+                showAlert(message, cspBlockedPreview ? 'info' : 'error');
+                setCourseVideoPreviewSource('');
+            };
+
+            courseVideoPreview.addEventListener('loadedmetadata', handleLoadedMetadata, {
+                once: true,
+            });
+            courseVideoPreview.addEventListener('error', handlePreviewError, {
+                once: true,
+            });
+            setCourseVideoPreviewSource(objectUrl, { objectUrl: true });
+        };
+
         const resetCourseVideoForm = () => {
             if (!courseVideoForm) {
                 return;
             }
+            courseVideoPreviewRequestId += 1;
             courseVideoForm.reset();
             delete courseVideoForm.dataset.id;
             state.courses.selectedVideoId = '';
@@ -6682,9 +6810,7 @@
             if (courseVideoSectionsManager) {
                 courseVideoSectionsManager.reset();
             }
-            if (courseVideoSubmitButton) {
-                courseVideoSubmitButton.textContent = 'Upload video';
-            }
+            setCourseVideoSubmitState({ loading: false, disabled: false });
             if (courseVideoDeleteButton) {
                 courseVideoDeleteButton.hidden = true;
             }
@@ -6698,23 +6824,8 @@
                 courseVideoFileInput.required = true;
                 courseVideoFileInput.value = '';
             }
-            if (courseVideoDurationField) {
-                courseVideoDurationField.textContent = '—';
-            }
-            if (courseVideoPreview) {
-                try {
-                    courseVideoPreview.pause();
-                } catch (error) {
-                    /* no-op */
-                }
-                courseVideoPreview.removeAttribute('src');
-                if (typeof courseVideoPreview.load === 'function') {
-                    courseVideoPreview.load();
-                }
-            }
-            if (courseVideoPreviewWrapper) {
-                courseVideoPreviewWrapper.hidden = true;
-            }
+            setCourseVideoDurationValue(null);
+            setCourseVideoPreviewSource('');
             highlightRow(tables.courseVideos);
             bringFormIntoView(courseVideoForm);
         };
@@ -6723,6 +6834,7 @@
             if (!courseVideoForm || !video) {
                 return;
             }
+            courseVideoPreviewRequestId += 1;
             const id = extractCourseVideoId(video);
             if (id) {
                 courseVideoForm.dataset.id = id;
@@ -6764,39 +6876,16 @@
             if (courseVideoDeleteButton) {
                 courseVideoDeleteButton.hidden = false;
             }
-            if (courseVideoSubmitButton) {
-                courseVideoSubmitButton.textContent = 'Update video';
-            }
+            setCourseVideoSubmitState({ loading: false, disabled: false });
             const duration =
                 video?.duration_seconds ??
                 video?.durationSeconds ??
                 video?.DurationSeconds;
-            if (courseVideoDurationField) {
-                courseVideoDurationField.textContent = formatVideoDuration(duration);
-            }
-            if (courseVideoPreview && courseVideoPreviewWrapper) {
-                const source = normaliseString(
-                    video?.file_url ?? video?.fileUrl ?? video?.FileURL ?? ''
-                ).trim();
-                if (source) {
-                    courseVideoPreview.src = source;
-                    if (typeof courseVideoPreview.load === 'function') {
-                        courseVideoPreview.load();
-                    }
-                    courseVideoPreviewWrapper.hidden = false;
-                } else {
-                    try {
-                        courseVideoPreview.pause();
-                    } catch (error) {
-                        /* no-op */
-                    }
-                    courseVideoPreview.removeAttribute('src');
-                    if (typeof courseVideoPreview.load === 'function') {
-                        courseVideoPreview.load();
-                    }
-                    courseVideoPreviewWrapper.hidden = true;
-                }
-            }
+            setCourseVideoDurationValue(duration);
+            const source = normaliseString(
+                video?.file_url ?? video?.fileUrl ?? video?.FileURL ?? ''
+            ).trim();
+            setCourseVideoPreviewSource(source);
             highlightRow(tables.courseVideos, id);
             if (scroll) {
                 bringFormIntoView(courseVideoForm);
@@ -13246,6 +13335,7 @@
         userDeleteButton?.addEventListener('click', handleUserDelete);
         courseVideoForm?.addEventListener('submit', handleCourseVideoSubmit);
         courseVideoDeleteButton?.addEventListener('click', handleCourseVideoDelete);
+        courseVideoFileInput?.addEventListener('change', handleCourseVideoFileInputChange);
         courseVideoAttachmentAddButton?.addEventListener(
             'click',
             handleCourseVideoAttachmentAdd
