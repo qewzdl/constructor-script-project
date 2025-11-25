@@ -1123,6 +1123,7 @@
                 selectedPackageId: '',
                 topicSteps: [],
                 selectedContentStepId: '',
+                contentEditorDirty: false,
                 packageTopicIds: [],
                 testQuestions: [],
                 videoSearchQuery: '',
@@ -4553,6 +4554,8 @@
             return `content-${Date.now()}-${topicContentStepNonce}`;
         };
 
+        let isSyncingCourseTopicContent = false;
+
         const ensureContentStepId = (step) => {
             if (!step) {
                 return '';
@@ -4568,11 +4571,14 @@
 
         const resetCourseTopicContentEditor = () => {
             state.courses.selectedContentStepId = '';
+            state.courses.contentEditorDirty = false;
             if (courseTopicContentTitleInput) {
                 courseTopicContentTitleInput.value = '';
             }
             if (courseTopicContentSectionsManager) {
+                isSyncingCourseTopicContent = true;
                 courseTopicContentSectionsManager.setSections([]);
+                isSyncingCourseTopicContent = false;
             }
             if (courseTopicContentSaveButton) {
                 courseTopicContentSaveButton.disabled = true;
@@ -4593,15 +4599,38 @@
             }
             const id = ensureContentStepId(step);
             state.courses.selectedContentStepId = id;
+            state.courses.contentEditorDirty = false;
             if (courseTopicContentTitleInput) {
                 courseTopicContentTitleInput.value = normaliseString(step.title || '');
             }
             if (courseTopicContentSectionsManager) {
+                isSyncingCourseTopicContent = true;
                 const sections = Array.isArray(step.sections)
                     ? step.sections
                     : [];
                 courseTopicContentSectionsManager.setSections(sections);
+                isSyncingCourseTopicContent = false;
             }
+            if (courseTopicContentSaveButton) {
+                courseTopicContentSaveButton.disabled = true;
+            }
+            if (courseTopicContentCancelButton) {
+                courseTopicContentCancelButton.disabled = false;
+            }
+            if (courseTopicContentHint) {
+                courseTopicContentHint.textContent =
+                    'Editing a content block. Save to keep changes before switching items.';
+            }
+        };
+
+        const markCourseTopicContentDirty = () => {
+            if (!state.courses.selectedContentStepId) {
+                return;
+            }
+            if (isSyncingCourseTopicContent) {
+                return;
+            }
+            state.courses.contentEditorDirty = true;
             if (courseTopicContentSaveButton) {
                 courseTopicContentSaveButton.disabled = false;
             }
@@ -7582,6 +7611,14 @@
                 return;
             }
             persistCourseTopicContentEditor();
+            state.courses.contentEditorDirty = false;
+            if (courseTopicContentHint) {
+                courseTopicContentHint.textContent =
+                    'Content block saved. Save steps to update the topic.';
+            }
+            if (courseTopicContentSaveButton) {
+                courseTopicContentSaveButton.disabled = true;
+            }
             renderCourseTopicStepList();
             showAlert('Content block saved. Save steps to update the topic.', 'success');
         };
@@ -13736,6 +13773,13 @@
             'click',
             handleCourseTopicContentCancel
         );
+        courseTopicContentTitleInput?.addEventListener(
+            'input',
+            markCourseTopicContentDirty
+        );
+        courseTopicContentSectionsManager?.onChange(() => {
+            markCourseTopicContentDirty();
+        });
         courseTopicStepSaveButton?.addEventListener(
             'click',
             handleCourseTopicStepSave
