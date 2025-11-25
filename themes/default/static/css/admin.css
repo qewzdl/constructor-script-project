@@ -2608,7 +2608,7 @@
     gap: var(--size-sm);
 }
 
-.list-items__list {
+.list-items__list, .admin-builder__group-items {
     display: grid;
     gap: var(--size-sm);
     padding: var(--size-sm);
@@ -2630,7 +2630,7 @@
     gap: var(--size-xs);
 }
 
-.list-item {
+.list-item, .admin-builder__group-item {
     border: 1px solid var(--color-border);
     border-left: 4px solid var(--color-primary);
     background: var(--color-bg-top);
@@ -2737,14 +2737,12 @@
     border-color: var(--color-primary);
 }
 
-.image-group-list,
-.admin-builder__group-list {
+.image-group-list {
     display: grid;
     gap: var(--size-sm);
 }
 
-.image-group-item,
-.admin-builder__group-item {
+.image-group-item {
     border: 1px dashed var(--color-border);
     padding: var(--size-base);
     display: grid;
