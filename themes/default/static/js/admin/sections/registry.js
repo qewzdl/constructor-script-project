@@ -144,6 +144,13 @@
             'Displays content blocks in a responsive grid. Add at least two elements for a balanced layout.',
     });
 
+    ensureRegistered('file_list', {
+        label: 'File list',
+        order: 17,
+        supportsElements: true,
+        description: 'Display downloadable files with optional grouping.',
+    });
+
     if (blogEnabled) {
         ensureRegistered('categories_list', {
             label: 'Categories list',

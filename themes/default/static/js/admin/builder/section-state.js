@@ -11,6 +11,7 @@
         normaliseString,
         randomId,
         createImageState,
+        createFileState,
     } = utils;
 
     const parseInteger = (value) => {
@@ -534,6 +535,35 @@
             );
         };
 
+        const addGroupFile = (sectionClientId, elementClientId) => {
+            const section = findSection(sectionClientId);
+            const element = findElement(section, elementClientId);
+            if (!element || element.type !== 'file_group') {
+                return null;
+            }
+            if (!Array.isArray(element.content.files)) {
+                element.content.files = [];
+            }
+            const file = createFileState({});
+            element.content.files.push(file);
+            return file;
+        };
+
+        const removeGroupFile = (
+            sectionClientId,
+            elementClientId,
+            fileClientId
+        ) => {
+            const section = findSection(sectionClientId);
+            const element = findElement(section, elementClientId);
+            if (!element || element.type !== 'file_group') {
+                return;
+            }
+            element.content.files = ensureArray(element.content.files).filter(
+                (file) => file.clientId !== fileClientId
+            );
+        };
+
         const updateSectionField = (sectionClientId, field, value) => {
             const section = findSection(sectionClientId);
             if (!section) {
@@ -596,7 +626,7 @@
             elementClientId,
             field,
             value,
-            imageClientId
+            nestedClientId
         ) => {
             const section = findSection(sectionClientId);
             if (!section) {
@@ -613,7 +643,7 @@
                         element,
                         field,
                         value,
-                        imageClientId
+                        nestedClientId
                     )
                 );
             }
@@ -643,6 +673,8 @@
             removeElementFromSection,
             addGroupImage,
             removeGroupImage,
+            addGroupFile,
+            removeGroupFile,
             updateSectionField,
             updateElementField,
             subscribe,

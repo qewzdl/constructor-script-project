@@ -2028,6 +2028,7 @@ func (h *TemplateHandler) builderScripts() []string {
 			"/static/js/admin/elements/paragraph.js",
 			"/static/js/admin/elements/image.js",
 			"/static/js/admin/elements/image-group.js",
+			"/static/js/admin/elements/file-group.js",
 			"/static/js/admin/elements/list.js",
 			"/static/js/admin/elements/search.js",
 			"/static/js/admin/elements/profile-account-details.js",

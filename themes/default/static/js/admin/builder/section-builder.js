@@ -289,6 +289,28 @@
             emitChange();
         };
 
+        const addGroupFile = (sectionClientId, elementClientId) => {
+            const file = state.addGroupFile(sectionClientId, elementClientId);
+            if (!file) {
+                return;
+            }
+            render();
+            emitChange();
+            view.focusField(
+                `[data-section-client="${sectionClientId}"] [data-element-client="${elementClientId}"] [data-group-file-client="${file.clientId}"] [data-field="group-file-url"]`
+            );
+        };
+
+        const removeGroupFile = (
+            sectionClientId,
+            elementClientId,
+            fileClientId
+        ) => {
+            state.removeGroupFile(sectionClientId, elementClientId, fileClientId);
+            render();
+            emitChange();
+        };
+
         const updateSectionField = (sectionClientId, field, value) => {
             state.updateSectionField(sectionClientId, field, value);
             if (field === 'section-type') {
@@ -302,14 +324,14 @@
             elementClientId,
             field,
             value,
-            imageClientId
+            nestedClientId
         ) => {
             state.updateElementField(
                 sectionClientId,
                 elementClientId,
                 field,
                 value,
-                imageClientId
+                nestedClientId
             );
         };
 
@@ -325,6 +347,8 @@
             onElementAdd: addElementToSection,
             onGroupImageAdd: addGroupImage,
             onGroupImageRemove: removeGroupImage,
+            onGroupFileAdd: addGroupFile,
+            onGroupFileRemove: removeGroupFile,
             onSectionFieldChange: (sectionClientId, field, value) => {
                 updateSectionField(sectionClientId, field, value);
                 emitChange();

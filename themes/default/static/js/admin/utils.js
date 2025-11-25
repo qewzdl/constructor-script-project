@@ -180,6 +180,12 @@
         caption: normaliseString(image.caption ?? image.Caption ?? ''),
     });
 
+    const createFileState = (file = {}) => ({
+        clientId: randomId(),
+        url: normaliseString(file.url ?? file.URL ?? ''),
+        label: normaliseString(file.label ?? file.Label ?? file.name ?? file.Name ?? ''),
+    });
+
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const createSvgElement = (tag, attributes = {}) => {
         const element = document.createElementNS(SVG_NS, tag);
@@ -266,6 +272,7 @@
         normaliseString,
         ensureArray,
         createImageState,
+        createFileState,
         createSvgElement,
         formatNumber,
         formatPeriodLabel,

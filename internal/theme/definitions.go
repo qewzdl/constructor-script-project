@@ -445,6 +445,13 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Description:      "Displays content blocks in a responsive grid layout.",
 			SupportsElements: &standardSupports,
 		},
+		"file_list": {
+			Type:             "file_list",
+			Label:            "File list",
+			Order:            17,
+			Description:      "Showcase downloadable files with optional grouping.",
+			SupportsElements: &standardSupports,
+		},
 		"posts_list": {
 			Type:             "posts_list",
 			Label:            "Posts list",
@@ -523,6 +530,12 @@ func defaultElementDefinitions() map[string]ElementDefinition {
 			Label:       "List",
 			Order:       40,
 			Description: "Bulleted or numbered list of key points.",
+		},
+		"file_group": {
+			Type:        "file_group",
+			Label:       "File group",
+			Order:       45,
+			Description: "Group of downloadable files with optional title.",
 		},
 		"search": {
 			Type:        "search",

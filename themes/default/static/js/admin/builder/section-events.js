@@ -8,6 +8,8 @@
         onElementAdd,
         onGroupImageAdd,
         onGroupImageRemove,
+        onGroupFileAdd,
+        onGroupFileRemove,
         onSectionFieldChange,
         onElementFieldChange,
     }) => {
@@ -81,6 +83,31 @@
                     elementNode.dataset.elementClient,
                     imageNode.dataset.groupImageClient
                 );
+                return;
+            }
+
+            if (target.matches('[data-action="group-file-add"]')) {
+                event.preventDefault();
+                const elementNode = target.closest('[data-element-client]');
+                if (!elementNode) {
+                    return;
+                }
+                onGroupFileAdd?.(sectionClientId, elementNode.dataset.elementClient);
+                return;
+            }
+
+            if (target.matches('[data-action="group-file-remove"]')) {
+                event.preventDefault();
+                const elementNode = target.closest('[data-element-client]');
+                const fileNode = target.closest('[data-group-file-client]');
+                if (!elementNode || !fileNode) {
+                    return;
+                }
+                onGroupFileRemove?.(
+                    sectionClientId,
+                    elementNode.dataset.elementClient,
+                    fileNode.dataset.groupFileClient
+                );
             }
         };
 
@@ -143,15 +170,16 @@
             if (elementNode) {
                 const elementClientId = elementNode.dataset.elementClient;
                 const imageNode = target.closest('[data-group-image-client]');
-                const imageClientId = imageNode
+                const fileNode = target.closest('[data-group-file-client]');
+                const nestedClientId = imageNode
                     ? imageNode.dataset.groupImageClient
-                    : undefined;
+                    : fileNode?.dataset.groupFileClient;
                 onElementFieldChange?.(
                     sectionClientId,
                     elementClientId,
                     field,
                     value,
-                    imageClientId
+                    nestedClientId
                 );
                 return;
             }

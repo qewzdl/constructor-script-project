@@ -16,6 +16,7 @@ func RegisterDefaults(reg *Registry) {
 	RegisterParagraph(reg)
 	RegisterImage(reg)
 	RegisterImageGroup(reg)
+	RegisterFileGroup(reg)
 	RegisterList(reg)
 	RegisterSearch(reg)
 	RegisterProfileAccount(reg)
