@@ -374,6 +374,12 @@ func (a *Application) runMigrations() error {
 		if err := a.db.Exec("ALTER TABLE course_topic_steps ADD COLUMN IF NOT EXISTS test_id bigint").Error; err != nil {
 			return fmt.Errorf("failed to ensure course topic step test reference: %w", err)
 		}
+		if err := a.db.Exec("ALTER TABLE course_topic_steps ADD COLUMN IF NOT EXISTS sections jsonb").Error; err != nil {
+			return fmt.Errorf("failed to ensure course topic step sections column: %w", err)
+		}
+		if err := a.db.Exec("ALTER TABLE course_topic_steps ADD COLUMN IF NOT EXISTS title text").Error; err != nil {
+			return fmt.Errorf("failed to ensure course topic step title column: %w", err)
+		}
 	}
 
 	if err := a.ensureCourseSlugs(migrator); err != nil {

@@ -1647,21 +1647,37 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		topic := &pkg.Topics[topicIndex]
 		for stepIndex := range topic.Steps {
 			step := &topic.Steps[stepIndex]
-			if step.StepType != models.CourseTopicStepTypeVideo || step.Video == nil {
-				continue
+			switch step.StepType {
+			case models.CourseTopicStepTypeVideo:
+				if step.Video == nil {
+					continue
+				}
+				sections := step.Video.Sections
+				if len(sections) == 0 {
+					step.Video.SectionsHTML = ""
+					continue
+				}
+				html, scripts := h.renderSectionsWithPrefix(sections, "course-player")
+				if html != "" {
+					step.Video.SectionsHTML = string(html)
+				} else {
+					step.Video.SectionsHTML = ""
+				}
+				sectionScripts = appendScripts(sectionScripts, scripts)
+			case models.CourseTopicStepTypeContent:
+				sections := step.Sections
+				if len(sections) == 0 {
+					step.SectionsHTML = ""
+					continue
+				}
+				html, scripts := h.renderSectionsWithPrefix(sections, "course-player")
+				if html != "" {
+					step.SectionsHTML = string(html)
+				} else {
+					step.SectionsHTML = ""
+				}
+				sectionScripts = appendScripts(sectionScripts, scripts)
 			}
-			sections := step.Video.Sections
-			if len(sections) == 0 {
-				step.Video.SectionsHTML = ""
-				continue
-			}
-			html, scripts := h.renderSectionsWithPrefix(sections, "course-player")
-			if html != "" {
-				step.Video.SectionsHTML = string(html)
-			} else {
-				step.Video.SectionsHTML = ""
-			}
-			sectionScripts = appendScripts(sectionScripts, scripts)
 		}
 	}
 

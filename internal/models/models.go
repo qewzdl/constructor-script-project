@@ -192,8 +192,9 @@ type ForumAnswerVote struct {
 }
 
 const (
-	CourseTopicStepTypeVideo = "video"
-	CourseTopicStepTypeTest  = "test"
+	CourseTopicStepTypeVideo   = "video"
+	CourseTopicStepTypeTest    = "test"
+	CourseTopicStepTypeContent = "content"
 )
 
 const (
@@ -349,12 +350,16 @@ type CourseTopicStep struct {
 	TopicID  uint   `gorm:"not null;index" json:"topic_id"`
 	StepType string `gorm:"type:varchar(32);not null;index" json:"type"`
 	Position int    `gorm:"not null;default:0" json:"position"`
+	Title    string `gorm:"type:text" json:"title"`
 
-	VideoID *uint `gorm:"index" json:"video_id,omitempty"`
-	TestID  *uint `gorm:"index" json:"test_id,omitempty"`
+	VideoID  *uint        `gorm:"index" json:"video_id,omitempty"`
+	TestID   *uint        `gorm:"index" json:"test_id,omitempty"`
+	Sections PostSections `gorm:"type:jsonb" json:"sections"`
 
 	Video *CourseVideo `gorm:"-" json:"video,omitempty"`
 	Test  *CourseTest  `gorm:"-" json:"test,omitempty"`
+
+	SectionsHTML string `gorm:"-" json:"sections_html,omitempty"`
 }
 
 type CourseTestResult struct {
@@ -485,8 +490,10 @@ type GrantCoursePackageRequest struct {
 }
 
 type CourseTopicStepReference struct {
-	Type string `json:"type" binding:"required,oneof=video test"`
-	ID   uint   `json:"id" binding:"required,gt=0"`
+	Type     string    `json:"type" binding:"required"`
+	ID       uint      `json:"id"`
+	Title    string    `json:"title"`
+	Sections []Section `json:"sections"`
 }
 
 type UpdateCourseTopicStepsRequest struct {

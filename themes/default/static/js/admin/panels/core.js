@@ -1681,29 +1681,9 @@
                             <fieldset class="admin-form__fieldset admin-courses__fieldset">
                                 <legend class="admin-form__legend">Topic steps</legend>
                                 <p class="admin-card__description admin-form__hint">
-                                    Mix videos and tests to build the sequence students will follow. Reorder steps to match the
-                                    desired flow.
+                                    Build and reorder steps in the new <strong>Content</strong> tab inside the Courses panel.
+                                    Video, test, and content blocks are managed together there.
                                 </p>
-                                <div class="admin-courses__picker">
-                                    <label class="admin-form__label">
-                                        Add step
-                                        <select class="admin-form__input" data-role="course-topic-step-select">
-                                            <option value="">Select a step…</option>
-                                        </select>
-                                    </label>
-                                    <button type="button" class="admin-navigation__button" data-role="course-topic-step-add">
-                                        Add step
-                                    </button>
-                                </div>
-                                <ul
-                                    class="admin-courses__selection-list"
-                                    data-role="course-topic-step-list"
-                                    aria-live="polite"
-                                >
-                                    <li class="admin-courses__selection-empty" data-role="course-topic-step-empty">
-                                        No steps added yet.
-                                    </li>
-                                </ul>
                             </fieldset>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="course-topic-submit">
@@ -1719,11 +1699,112 @@
             </section>
             <section
                 class="admin-card admin-courses admin__section"
+                aria-labelledby="admin-course-content-title"
+                id="admin-course-content-section"
+                data-nav-child-of="courses"
+                data-nav-child-label="Content"
+                data-nav-child-order="3"
+            >
+                <header class="admin-card__header admin-courses__header">
+                    <div>
+                        <h3 id="admin-course-content-title" class="admin-card__title">Content blocks</h3>
+                        <p class="admin-card__description">
+                            Add informational steps built with the section constructor. These blocks appear alongside videos
+                            and tests in each topic's flow.
+                        </p>
+                    </div>
+                    <p class="admin-card__description admin-courses__hint">
+                        Select a topic from the Topics tab, then manage its steps here.
+                    </p>
+                </header>
+                <div class="admin-card__body">
+                    <div class="admin-panel__details admin-panel__details--stacked">
+                        <form id="admin-course-content-form" class="admin-form admin-courses__form" novalidate>
+                            <fieldset class="admin-form__fieldset admin-courses__fieldset">
+                                <legend class="admin-form__legend">Step sequence</legend>
+                                <p class="admin-card__description admin-form__hint">
+                                    Combine content blocks with existing videos and tests. Reorder steps to match the desired
+                                    learner journey.
+                                </p>
+                                <div class="admin-courses__picker">
+                                    <label class="admin-form__label">
+                                        Add existing item
+                                        <select class="admin-form__input" data-role="course-topic-step-select">
+                                            <option value="">Select a step…</option>
+                                        </select>
+                                    </label>
+                                    <button type="button" class="admin-navigation__button" data-role="course-topic-step-add">
+                                        Add to topic
+                                    </button>
+                                    <button type="button" class="admin-navigation__button" data-action="course-topic-content-add">
+                                        New content block
+                                    </button>
+                                </div>
+                                <ul
+                                    class="admin-courses__selection-list"
+                                    data-role="course-topic-step-list"
+                                    aria-live="polite"
+                                >
+                                    <li class="admin-courses__selection-empty" data-role="course-topic-step-empty">
+                                        No steps added yet.
+                                    </li>
+                                </ul>
+                                <div class="admin-form__actions">
+                                    <button type="button" class="admin-form__submit admin-form__submit--secondary" data-role="course-topic-step-save">
+                                        Save steps
+                                    </button>
+                                </div>
+                            </fieldset>
+                        </form>
+                        <form id="admin-course-topic-content-form" class="admin-form admin-courses__form" novalidate>
+                            <fieldset class="admin-form__fieldset admin-form__fieldset--sections">
+                                <legend class="admin-form__legend">Content editor</legend>
+                                <p class="admin-card__description admin-form__hint" data-role="course-topic-content-hint">
+                                    Choose a content block from the list above to edit its title and sections.
+                                </p>
+                                <label class="admin-form__label">
+                                    Content title
+                                    <input
+                                        type="text"
+                                        class="admin-form__input"
+                                        name="content_title"
+                                        data-role="course-topic-content-title"
+                                        placeholder="Optional heading for this block"
+                                        autocomplete="off"
+                                    />
+                                </label>
+                                <div class="section-builder" data-section-builder="course-topic-content">
+                                    <ol class="section-builder__list" data-role="section-list">
+                                        <li class="section-builder__empty" data-role="section-empty">
+                                            No sections added yet.
+                                        </li>
+                                    </ol>
+                                    <div class="section-builder__actions">
+                                        <button type="button" class="section-builder__add" data-role="section-add">
+                                            Add section
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="admin-form__actions">
+                                    <button type="button" class="admin-form__submit" data-role="course-topic-content-save" disabled>
+                                        Save content block
+                                    </button>
+                                    <button type="button" class="admin-form__delete admin-form__delete--ghost" data-role="course-topic-content-cancel" disabled>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </fieldset>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            <section
+                class="admin-card admin-courses admin__section"
                 aria-labelledby="admin-course-tests-title"
                 id="admin-course-tests-section"
                 data-nav-child-of="courses"
                 data-nav-child-label="Tests"
-                data-nav-child-order="3"
+                data-nav-child-order="4"
             >
                 <header class="admin-card__header admin-courses__header">
                     <div>
@@ -1819,7 +1900,7 @@
                 id="admin-course-packages-section"
                 data-nav-child-of="courses"
                 data-nav-child-label="Packages"
-                data-nav-child-order="4"
+                data-nav-child-order="5"
             >
                 <header class="admin-card__header admin-courses__header">
                     <div>

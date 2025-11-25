@@ -780,10 +780,18 @@
         const courseTopicDescriptionInput = courseTopicForm?.querySelector('textarea[name="description"]');
         const courseTopicMetaTitleInput = courseTopicForm?.querySelector('input[name="meta_title"]');
         const courseTopicMetaDescriptionInput = courseTopicForm?.querySelector('textarea[name="meta_description"]');
-        const courseTopicStepSelect = courseTopicForm?.querySelector('[data-role="course-topic-step-select"]');
-        const courseTopicStepAddButton = courseTopicForm?.querySelector('[data-role="course-topic-step-add"]');
-        const courseTopicStepList = courseTopicForm?.querySelector('[data-role="course-topic-step-list"]');
-        const courseTopicStepEmpty = courseTopicForm?.querySelector('[data-role="course-topic-step-empty"]');
+        const courseContentForm = root.querySelector('#admin-course-content-form');
+        const courseTopicContentForm = root.querySelector('#admin-course-topic-content-form');
+        const courseTopicStepSelect = courseContentForm?.querySelector('[data-role="course-topic-step-select"]');
+        const courseTopicStepAddButton = courseContentForm?.querySelector('[data-role="course-topic-step-add"]');
+        const courseTopicStepList = courseContentForm?.querySelector('[data-role="course-topic-step-list"]');
+        const courseTopicStepEmpty = courseContentForm?.querySelector('[data-role="course-topic-step-empty"]');
+        const courseTopicStepSaveButton = courseContentForm?.querySelector('[data-role="course-topic-step-save"]');
+        const courseTopicContentAddButton = courseContentForm?.querySelector('[data-action="course-topic-content-add"]');
+        const courseTopicContentHint = courseTopicContentForm?.querySelector('[data-role="course-topic-content-hint"]');
+        const courseTopicContentTitleInput = courseTopicContentForm?.querySelector('[data-role="course-topic-content-title"]');
+        const courseTopicContentSaveButton = courseTopicContentForm?.querySelector('[data-role="course-topic-content-save"]');
+        const courseTopicContentCancelButton = courseTopicContentForm?.querySelector('[data-role="course-topic-content-cancel"]');
         const courseTopicSubmitButton = courseTopicForm?.querySelector('[data-role="course-topic-submit"]');
         const courseTopicDeleteButton = courseTopicForm?.querySelector('[data-role="course-topic-delete"]');
 
@@ -985,6 +993,9 @@
             onApplyPaddingToAllSections: applyPaddingToAllPageSections,
         });
         const courseVideoSectionsManager = createSectionBuilder(courseVideoForm);
+        const courseTopicContentSectionsManager = createSectionBuilder(
+            courseTopicContentForm
+        );
         const postContentField = postForm?.querySelector('[name="content"]');
         const pagePublishAtInput = pageForm?.querySelector(
             'input[name="publish_at"]'
@@ -1111,6 +1122,7 @@
                 selectedTestId: '',
                 selectedPackageId: '',
                 topicSteps: [],
+                selectedContentStepId: '',
                 packageTopicIds: [],
                 testQuestions: [],
                 videoSearchQuery: '',
@@ -4426,14 +4438,18 @@
             if (!value && value !== 0) {
                 return null;
             }
-            const [typePart, idPart] = String(value)
+            const [typePart, idPartRaw = ''] = String(value)
                 .split(':')
                 .map((part) => part.trim());
             const type = typePart?.toLowerCase();
+            if (type === 'content') {
+                const idValue = idPartRaw ? idPartRaw : '';
+                return { type, id: String(idValue) };
+            }
             if (type !== 'video' && type !== 'test') {
                 return null;
             }
-            const idNumber = Number.parseInt(idPart || '', 10);
+            const idNumber = Number.parseInt(idPartRaw || '', 10);
             if (!Number.isFinite(idNumber) || idNumber <= 0) {
                 return null;
             }
@@ -4466,6 +4482,19 @@
                     step?.Test?.id ??
                     step?.test?.ID ??
                     step?.Test?.ID;
+            } else if (type === 'content') {
+                idSource = step?.id ?? step?.ID ?? step?.step_id ?? step?.StepID;
+                const sections = Array.isArray(step?.sections)
+                    ? step.sections
+                    : Array.isArray(step?.Sections)
+                    ? step.Sections
+                    : [];
+                return {
+                    type,
+                    id: idSource ? String(idSource) : '',
+                    title: normaliseString(step?.title ?? step?.Title ?? ''),
+                    sections,
+                };
             } else {
                 return null;
             }
@@ -4504,7 +4533,105 @@
                     ? 'Includes 1 question'
                     : `Includes ${questionCount} questions`;
             }
+            if (step.type === 'content') {
+                const sections = Array.isArray(step.sections)
+                    ? step.sections
+                    : [];
+                if (!sections.length) {
+                    return 'No sections yet';
+                }
+                return sections.length === 1
+                    ? 'Includes 1 section'
+                    : `Includes ${sections.length} sections`;
+            }
             return '';
+        };
+
+        let topicContentStepNonce = 0;
+        const createTopicContentStepId = () => {
+            topicContentStepNonce += 1;
+            return `content-${Date.now()}-${topicContentStepNonce}`;
+        };
+
+        const ensureContentStepId = (step) => {
+            if (!step) {
+                return '';
+            }
+            if (step.id) {
+                step.id = String(step.id);
+                return step.id;
+            }
+            const generated = createTopicContentStepId();
+            step.id = generated;
+            return generated;
+        };
+
+        const resetCourseTopicContentEditor = () => {
+            state.courses.selectedContentStepId = '';
+            if (courseTopicContentTitleInput) {
+                courseTopicContentTitleInput.value = '';
+            }
+            if (courseTopicContentSectionsManager) {
+                courseTopicContentSectionsManager.setSections([]);
+            }
+            if (courseTopicContentSaveButton) {
+                courseTopicContentSaveButton.disabled = true;
+            }
+            if (courseTopicContentCancelButton) {
+                courseTopicContentCancelButton.disabled = true;
+            }
+            if (courseTopicContentHint) {
+                courseTopicContentHint.textContent =
+                    'Choose a content block from the list above to edit its title and sections.';
+            }
+        };
+
+        const populateCourseTopicContentEditor = (step) => {
+            if (!step) {
+                resetCourseTopicContentEditor();
+                return;
+            }
+            const id = ensureContentStepId(step);
+            state.courses.selectedContentStepId = id;
+            if (courseTopicContentTitleInput) {
+                courseTopicContentTitleInput.value = normaliseString(step.title || '');
+            }
+            if (courseTopicContentSectionsManager) {
+                const sections = Array.isArray(step.sections)
+                    ? step.sections
+                    : [];
+                courseTopicContentSectionsManager.setSections(sections);
+            }
+            if (courseTopicContentSaveButton) {
+                courseTopicContentSaveButton.disabled = false;
+            }
+            if (courseTopicContentCancelButton) {
+                courseTopicContentCancelButton.disabled = false;
+            }
+            if (courseTopicContentHint) {
+                courseTopicContentHint.textContent =
+                    'Editing a content block. Save to keep changes before switching items.';
+            }
+        };
+
+        const persistCourseTopicContentEditor = () => {
+            if (!state.courses.selectedContentStepId) {
+                return;
+            }
+            const currentStep = state.courses.topicSteps.find(
+                (entry) =>
+                    entry.type === 'content' &&
+                    String(entry.id) === String(state.courses.selectedContentStepId)
+            );
+            if (!currentStep) {
+                return;
+            }
+            if (courseTopicContentTitleInput) {
+                currentStep.title = normaliseString(courseTopicContentTitleInput.value || '');
+            }
+            if (courseTopicContentSectionsManager) {
+                currentStep.sections = courseTopicContentSectionsManager.getSections();
+            }
         };
 
         const renderCourseTopicStepOptions = () => {
@@ -4569,6 +4696,12 @@
             if (!courseTopicStepList || !courseTopicStepEmpty) {
                 return;
             }
+            if (courseTopicStepSaveButton) {
+                courseTopicStepSaveButton.disabled = !state.courses.selectedTopicId;
+            }
+            if (courseTopicContentAddButton) {
+                courseTopicContentAddButton.disabled = !state.courses.selectedTopicId;
+            }
             courseTopicStepList.innerHTML = '';
             const validSteps = state.courses.topicSteps.filter((step) => {
                 if (!step || !step.type) {
@@ -4580,12 +4713,20 @@
                 if (step.type === 'test') {
                     return Boolean(findCourseTest(step.id));
                 }
+                if (step.type === 'content') {
+                    ensureContentStepId(step);
+                    if (!Array.isArray(step.sections)) {
+                        step.sections = [];
+                    }
+                    return true;
+                }
                 return false;
             });
             state.courses.topicSteps = validSteps.slice();
             if (!state.courses.topicSteps.length) {
                 courseTopicStepEmpty.hidden = false;
                 courseTopicStepList.appendChild(courseTopicStepEmpty);
+                resetCourseTopicContentEditor();
                 return;
             }
             courseTopicStepEmpty.hidden = true;
@@ -4597,6 +4738,12 @@
                         id: String(step.id),
                     },
                 });
+                if (
+                    step.type === 'content' &&
+                    String(step.id) === String(state.courses.selectedContentStepId)
+                ) {
+                    item.classList.add('is-active');
+                }
                 const info = createElement('div', {
                     className: 'admin-courses__selection-info',
                 });
@@ -4611,11 +4758,18 @@
                     label = test
                         ? getCourseTestTitle(test)
                         : 'Missing test';
+                } else if (step.type === 'content') {
+                    label = normaliseString(step.title) || 'Content block';
                 }
                 info.appendChild(
                     createElement('span', {
                         className: 'admin-courses__selection-label',
-                        textContent: `${step.type === 'video' ? 'Video' : 'Test'} · ${label}`,
+                        textContent:
+                            step.type === 'video'
+                                ? `Video · ${label}`
+                                : step.type === 'test'
+                                ? `Test · ${label}`
+                                : `Content · ${label}`,
                     })
                 );
                 const meta = formatTopicStepMeta(step);
@@ -4631,6 +4785,16 @@
                     className: 'admin-courses__selection-actions',
                 });
                 const key = `${step.type}:${String(step.id)}`;
+                if (step.type === 'content') {
+                    const editButton = createElement('button', {
+                        className: 'admin-navigation__button admin-navigation__button--ghost',
+                        textContent: 'Edit content',
+                    });
+                    editButton.type = 'button';
+                    editButton.dataset.action = 'edit';
+                    editButton.dataset.step = key;
+                    actions.appendChild(editButton);
+                }
                 const upButton = createElement('button', {
                     className: 'admin-navigation__reorder-button',
                     textContent: 'Move up',
@@ -4662,6 +4826,15 @@
                 item.appendChild(actions);
                 courseTopicStepList.appendChild(item);
             });
+
+            const selectedContentStep = state.courses.topicSteps.find(
+                (step) =>
+                    step.type === 'content' &&
+                    String(step.id) === String(state.courses.selectedContentStepId)
+            );
+            if (!selectedContentStep) {
+                resetCourseTopicContentEditor();
+            }
         };
 
         const ensureChoiceOptions = (question) => {
@@ -7009,9 +7182,11 @@
                     topic?.meta_description ?? topic?.MetaDescription ?? ''
                 );
             }
+            state.courses.selectedContentStepId = '';
             state.courses.topicSteps = getCourseTopicSteps(topic)
                 .map((step) => mapTopicStepModelToState(step))
                 .filter(Boolean);
+            resetCourseTopicContentEditor();
             if (courseTopicSubmitButton) {
                 courseTopicSubmitButton.textContent = 'Update topic';
             }
@@ -7137,12 +7312,14 @@
             delete courseTopicForm.dataset.id;
             state.courses.selectedTopicId = '';
             state.courses.topicSteps = [];
+            state.courses.selectedContentStepId = '';
             if (courseTopicSubmitButton) {
                 courseTopicSubmitButton.textContent = 'Create topic';
             }
             if (courseTopicDeleteButton) {
                 courseTopicDeleteButton.hidden = true;
             }
+            resetCourseTopicContentEditor();
             renderCourseTopicStepOptions();
             renderCourseTopicStepList();
             highlightRow(tables.courseTopics);
@@ -7311,6 +7488,7 @@
             if (!courseTopicStepSelect) {
                 return;
             }
+            persistCourseTopicContentEditor();
             const value = parseTopicStepValue(courseTopicStepSelect.value);
             if (!value) {
                 showAlert('Select a step to add.', 'info');
@@ -7352,8 +7530,16 @@
             if (index === -1) {
                 return;
             }
+            persistCourseTopicContentEditor();
             const action = button.dataset.action;
             if (action === 'remove') {
+                if (
+                    state.courses.topicSteps[index].type === 'content' &&
+                    String(state.courses.topicSteps[index].id) ===
+                        String(state.courses.selectedContentStepId)
+                ) {
+                    resetCourseTopicContentEditor();
+                }
                 state.courses.topicSteps.splice(index, 1);
             } else if (action === 'move-up' && index > 0) {
                 const [entry] = state.courses.topicSteps.splice(index, 1);
@@ -7364,9 +7550,119 @@
             ) {
                 const [entry] = state.courses.topicSteps.splice(index, 1);
                 state.courses.topicSteps.splice(index + 1, 0, entry);
+            } else if (action === 'edit') {
+                populateCourseTopicContentEditor(
+                    state.courses.topicSteps[index]
+                );
             }
             renderCourseTopicStepOptions();
             renderCourseTopicStepList();
+        };
+
+        const handleCourseTopicContentAdd = () => {
+            if (!state.courses.selectedTopicId) {
+                showAlert('Select a topic to add steps to first.', 'info');
+                return;
+            }
+            const step = {
+                type: 'content',
+                id: createTopicContentStepId(),
+                title: '',
+                sections: [],
+            };
+            state.courses.topicSteps.push(step);
+            renderCourseTopicStepOptions();
+            renderCourseTopicStepList();
+            populateCourseTopicContentEditor(step);
+        };
+
+        const handleCourseTopicContentSave = () => {
+            if (!state.courses.selectedContentStepId) {
+                showAlert('Select a content block to save.', 'info');
+                return;
+            }
+            persistCourseTopicContentEditor();
+            renderCourseTopicStepList();
+            showAlert('Content block saved. Save steps to update the topic.', 'success');
+        };
+
+        const handleCourseTopicContentCancel = () => {
+            if (!state.courses.selectedContentStepId) {
+                resetCourseTopicContentEditor();
+                return;
+            }
+            const step = state.courses.topicSteps.find(
+                (entry) =>
+                    entry.type === 'content' &&
+                    String(entry.id) === String(state.courses.selectedContentStepId)
+            );
+            if (!step) {
+                resetCourseTopicContentEditor();
+                return;
+            }
+            populateCourseTopicContentEditor(step);
+        };
+
+        const buildCourseTopicStepRefs = () => {
+            persistCourseTopicContentEditor();
+            return state.courses.topicSteps
+                .map((step) => {
+                    if (step.type === 'video' || step.type === 'test') {
+                        const idValue = Number.parseInt(String(step?.id ?? ''), 10);
+                        if (!Number.isFinite(idValue) || idValue <= 0) {
+                            return null;
+                        }
+                        return { type: step.type, id: idValue };
+                    }
+                    if (step.type === 'content') {
+                        const sections = Array.isArray(step.sections)
+                            ? step.sections
+                            : [];
+                        return {
+                            type: 'content',
+                            title: normaliseString(step.title || ''),
+                            sections,
+                        };
+                    }
+                    return null;
+                })
+                .filter(Boolean);
+        };
+
+        const handleCourseTopicStepSave = async () => {
+            if (!state.courses.selectedTopicId) {
+                showAlert('Select a topic to save its steps.', 'info');
+                return;
+            }
+            if (!endpoints.coursesTopics) {
+                showAlert('Topic management is not configured.', 'error');
+                return;
+            }
+            const stepRefs = buildCourseTopicStepRefs();
+            try {
+                await apiRequest(
+                    buildCourseEndpoint(
+                        endpoints.coursesTopics,
+                        state.courses.selectedTopicId,
+                        'steps'
+                    ),
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ steps: stepRefs }),
+                    }
+                );
+                showAlert('Steps updated successfully.', 'success');
+                await loadCourseTopics(true);
+                const refreshed = findCourseTopic(state.courses.selectedTopicId);
+                if (refreshed) {
+                    populateCourseTopicForm(refreshed, { scroll: false });
+                }
+            } catch (error) {
+                handleRequestError(error);
+            }
         };
 
         const handleCourseTopicSubmit = async (event) => {
@@ -7398,18 +7694,7 @@
             }
             const metaTitle = normaliseString(courseTopicMetaTitleInput?.value).trim();
             const metaDescription = normaliseString(courseTopicMetaDescriptionInput?.value).trim();
-            const stepRefs = state.courses.topicSteps
-                .map((step) => {
-                    const idValue = Number.parseInt(String(step?.id ?? ''), 10);
-                    if (!Number.isFinite(idValue) || idValue <= 0) {
-                        return null;
-                    }
-                    if (step.type !== 'video' && step.type !== 'test') {
-                        return null;
-                    }
-                    return { type: step.type, id: idValue };
-                })
-                .filter(Boolean);
+            const stepRefs = buildCourseTopicStepRefs();
             const videoIds = stepRefs
                 .filter((step) => step.type === 'video')
                 .map((step) => step.id);
@@ -13438,6 +13723,22 @@
         courseTopicStepAddButton?.addEventListener(
             'click',
             handleCourseTopicStepAdd
+        );
+        courseTopicContentAddButton?.addEventListener(
+            'click',
+            handleCourseTopicContentAdd
+        );
+        courseTopicContentSaveButton?.addEventListener(
+            'click',
+            handleCourseTopicContentSave
+        );
+        courseTopicContentCancelButton?.addEventListener(
+            'click',
+            handleCourseTopicContentCancel
+        );
+        courseTopicStepSaveButton?.addEventListener(
+            'click',
+            handleCourseTopicStepSave
         );
         courseTopicStepList?.addEventListener(
             'click',

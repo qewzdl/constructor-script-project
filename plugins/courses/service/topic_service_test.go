@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"gorm.io/gorm"
@@ -62,5 +63,39 @@ func TestTopicServiceGetByIdentifierRequiresIdentifier(t *testing.T) {
 
 	if _, err := svc.GetByIdentifier(" "); err == nil || !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("expected not found error for empty identifier")
+	}
+}
+
+func TestTopicServiceUpdateStepsSupportsContent(t *testing.T) {
+	topicID := uint(7)
+	repo := &mockTopicRepo{topics: map[uint]models.CourseTopic{topicID: {ID: topicID, Title: "Basics", Slug: "basics"}}}
+
+	svc := NewTopicService(repo, &mockVideoRepo{}, &mockTestRepo{})
+	sections := []models.Section{{Title: "Overview", Type: "hero"}}
+	steps := []models.CourseTopicStepReference{
+		{Type: models.CourseTopicStepTypeContent, Title: "Intro", Sections: sections},
+	}
+
+	updated, err := svc.UpdateSteps(topicID, steps)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if updated == nil {
+		t.Fatalf("expected updated topic")
+	}
+
+	savedSteps := repo.steps[topicID]
+	if len(savedSteps) != 1 {
+		t.Fatalf("expected 1 saved step, got %d", len(savedSteps))
+	}
+	saved := savedSteps[0]
+	if saved.StepType != models.CourseTopicStepTypeContent {
+		t.Fatalf("expected content step type, got %s", saved.StepType)
+	}
+	if strings.TrimSpace(saved.Title) != "Intro" {
+		t.Fatalf("expected step title to be preserved")
+	}
+	if len(saved.Sections) != len(sections) {
+		t.Fatalf("expected sections to be stored")
 	}
 }

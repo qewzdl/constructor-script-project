@@ -146,9 +146,26 @@ func (m *mockTopicRepo) GetByIDs(ids []uint) ([]models.CourseTopic, error) {
 	}
 	return result, nil
 }
-func (m *mockTopicRepo) List() ([]models.CourseTopic, error)                         { return []models.CourseTopic{}, nil }
-func (m *mockTopicRepo) Exists(id uint) (bool, error)                                { return false, nil }
-func (m *mockTopicRepo) SetSteps(topicID uint, steps []models.CourseTopicStep) error { return nil }
+func (m *mockTopicRepo) List() ([]models.CourseTopic, error) { return []models.CourseTopic{}, nil }
+func (m *mockTopicRepo) Exists(id uint) (bool, error) {
+	if m == nil {
+		return false, nil
+	}
+	if m.topics == nil {
+		return false, nil
+	}
+	_, ok := m.topics[id]
+	return ok, nil
+}
+func (m *mockTopicRepo) SetSteps(topicID uint, steps []models.CourseTopicStep) error {
+	if m.steps == nil {
+		m.steps = make(map[uint][]models.CourseTopicStep)
+	}
+	cloned := make([]models.CourseTopicStep, len(steps))
+	copy(cloned, steps)
+	m.steps[topicID] = cloned
+	return nil
+}
 func (m *mockTopicRepo) ListStepLinks(topicIDs []uint) (map[uint][]models.CourseTopicStep, error) {
 	result := make(map[uint][]models.CourseTopicStep, len(topicIDs))
 	if m.steps == nil {

@@ -10,12 +10,15 @@ import (
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/internal/service"
+	"constructor-script-backend/internal/theme"
 )
 
 type TopicService struct {
 	topicRepo repository.CourseTopicRepository
 	videoRepo repository.CourseVideoRepository
 	testRepo  repository.CourseTestRepository
+	themes    *theme.Manager
 }
 
 func NewTopicService(
@@ -41,6 +44,13 @@ func (s *TopicService) SetRepositories(
 	s.topicRepo = topicRepo
 	s.videoRepo = videoRepo
 	s.testRepo = testRepo
+}
+
+func (s *TopicService) SetThemeManager(manager *theme.Manager) {
+	if s == nil {
+		return
+	}
+	s.themes = manager
 }
 
 func (s *TopicService) Create(req models.CreateCourseTopicRequest) (*models.CourseTopic, error) {
@@ -266,19 +276,32 @@ func (s *TopicService) buildSteps(refs []models.CourseTopicStepReference) ([]mod
 		stepType := strings.ToLower(strings.TrimSpace(ref.Type))
 		switch stepType {
 		case models.CourseTopicStepTypeVideo:
+			if ref.ID == 0 {
+				return nil, newValidationError("video step id is required")
+			}
 			videoIDSet[ref.ID] = struct{}{}
 		case models.CourseTopicStepTypeTest:
+			if ref.ID == 0 {
+				return nil, newValidationError("test step id is required")
+			}
 			testIDSet[ref.ID] = struct{}{}
+		case models.CourseTopicStepTypeContent:
 		default:
 			return nil, newValidationError("invalid step type: %s", ref.Type)
 		}
 
-		key := fmt.Sprintf("%s:%d", stepType, ref.ID)
-		if _, exists := seen[key]; exists {
-			continue
+		title := strings.TrimSpace(ref.Title)
+		normalizedRef := models.CourseTopicStepReference{Type: stepType, ID: ref.ID, Title: title, Sections: ref.Sections}
+
+		if stepType != models.CourseTopicStepTypeContent {
+			key := fmt.Sprintf("%s:%d", stepType, ref.ID)
+			if _, exists := seen[key]; exists {
+				continue
+			}
+			seen[key] = struct{}{}
 		}
-		seen[key] = struct{}{}
-		normalized = append(normalized, models.CourseTopicStepReference{Type: stepType, ID: ref.ID})
+
+		normalized = append(normalized, normalizedRef)
 	}
 
 	if len(videoIDSet) > 0 {
@@ -318,6 +341,7 @@ func (s *TopicService) buildSteps(refs []models.CourseTopicStepReference) ([]mod
 	for _, ref := range normalized {
 		step := models.CourseTopicStep{
 			StepType: ref.Type,
+			Title:    strings.TrimSpace(ref.Title),
 		}
 		switch ref.Type {
 		case models.CourseTopicStepTypeVideo:
@@ -326,6 +350,15 @@ func (s *TopicService) buildSteps(refs []models.CourseTopicStepReference) ([]mod
 		case models.CourseTopicStepTypeTest:
 			testID := ref.ID
 			step.TestID = &testID
+		case models.CourseTopicStepTypeContent:
+			sections, err := service.PrepareSections(ref.Sections, s.themes, service.PrepareSectionsOptions{NormaliseSpacing: true})
+			if err != nil {
+				return nil, err
+			}
+			step.Sections = sections
+			if step.Title == "" {
+				step.Title = deriveStepTitleFromSections(sections)
+			}
 		}
 		steps = append(steps, step)
 	}
@@ -346,6 +379,16 @@ func (s *TopicService) assignVideos(topicID uint, videoIDs []uint) error {
 		return err
 	}
 	return s.topicRepo.SetSteps(topicID, steps)
+}
+
+func deriveStepTitleFromSections(sections []models.Section) string {
+	for _, section := range sections {
+		title := strings.TrimSpace(section.Title)
+		if title != "" {
+			return title
+		}
+	}
+	return "Content"
 }
 
 func (s *TopicService) populateSteps(topics []models.CourseTopic) error {

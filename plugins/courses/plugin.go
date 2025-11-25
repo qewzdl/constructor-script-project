@@ -93,6 +93,7 @@ func (f *Feature) Activate() error {
 	} else {
 		topicService.SetRepositories(topicRepo, videoRepo, testRepo)
 	}
+	topicService.SetThemeManager(f.host.ThemeManager())
 
 	var packageService *courseservice.PackageService
 	if value, ok := services.Get(courseapi.ServicePackage).(*courseservice.PackageService); ok {

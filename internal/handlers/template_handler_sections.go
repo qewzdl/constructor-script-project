@@ -424,13 +424,13 @@ func (h *TemplateHandler) renderCatalogCoursesList(prefix string, section models
 		headingID := fmt.Sprintf("%s-course-%d-title", prefix, index)
 		courseID := strconv.FormatUint(uint64(pkg.ID), 10)
 
-                description := strings.TrimSpace(pkg.Summary)
-                if description == "" {
-                        description = strings.TrimSpace(pkg.Description)
-                }
-                sanitizedDescription := strings.TrimSpace(h.SanitizeHTML(description))
-                descriptionID := ""
-                descriptionHTML := template.HTML("")
+		description := strings.TrimSpace(pkg.Summary)
+		if description == "" {
+			description = strings.TrimSpace(pkg.Description)
+		}
+		sanitizedDescription := strings.TrimSpace(h.SanitizeHTML(description))
+		descriptionID := ""
+		descriptionHTML := template.HTML("")
 		if sanitizedDescription != "" {
 			descriptionID = fmt.Sprintf("%s-course-%d-description", prefix, index)
 			descriptionHTML = template.HTML(sanitizedDescription)
@@ -574,11 +574,11 @@ func (h *TemplateHandler) renderOwnedCoursesList(prefix string, section models.S
 		pkg := courses[i].Package
 
 		headingID := fmt.Sprintf("%s-course-%d-title", prefix, i+1)
-                description := strings.TrimSpace(pkg.Summary)
-                if description == "" {
-                        description = strings.TrimSpace(pkg.Description)
-                }
-                sanitizedDescription := strings.TrimSpace(h.SanitizeHTML(description))
+		description := strings.TrimSpace(pkg.Summary)
+		if description == "" {
+			description = strings.TrimSpace(pkg.Description)
+		}
+		sanitizedDescription := strings.TrimSpace(h.SanitizeHTML(description))
 		descriptionHTML := template.HTML("")
 		descriptionID := ""
 		if sanitizedDescription != "" {
@@ -704,19 +704,19 @@ func buildCourseModalTopics(topics []models.CourseTopic, h *TemplateHandler) []c
 			continue
 		}
 
-                descriptionHTML := ""
-                if h != nil {
-                        descriptionText := strings.TrimSpace(topic.Summary)
-                        if descriptionText == "" {
-                                descriptionText = strings.TrimSpace(topic.Description)
-                        }
-                        if descriptionText != "" {
-                                sanitized := strings.TrimSpace(h.SanitizeHTML(descriptionText))
-                                if sanitized != "" {
-                                        descriptionHTML = sanitized
-                                }
-                        }
-                }
+		descriptionHTML := ""
+		if h != nil {
+			descriptionText := strings.TrimSpace(topic.Summary)
+			if descriptionText == "" {
+				descriptionText = strings.TrimSpace(topic.Description)
+			}
+			if descriptionText != "" {
+				sanitized := strings.TrimSpace(h.SanitizeHTML(descriptionText))
+				if sanitized != "" {
+					descriptionHTML = sanitized
+				}
+			}
+		}
 
 		lessonCount := countTopicLessons(topic)
 		totalDuration := 0
@@ -750,6 +750,12 @@ func buildCourseModalTopics(topics []models.CourseTopic, h *TemplateHandler) []c
 						if name != "" {
 							lessonTitle = fmt.Sprintf("Test: %s", name)
 						}
+					}
+					lessons = append(lessons, courseModalLesson{Title: lessonTitle})
+				case models.CourseTopicStepTypeContent:
+					lessonTitle := strings.TrimSpace(step.Title)
+					if lessonTitle == "" {
+						lessonTitle = "Lesson"
 					}
 					lessons = append(lessons, courseModalLesson{Title: lessonTitle})
 				}
@@ -899,7 +905,8 @@ func countTopicLessons(topic models.CourseTopic) int {
 	for _, step := range topic.Steps {
 		switch step.StepType {
 		case models.CourseTopicStepTypeVideo,
-			models.CourseTopicStepTypeTest:
+			models.CourseTopicStepTypeTest,
+			models.CourseTopicStepTypeContent:
 			count++
 		}
 	}
@@ -967,6 +974,8 @@ func coursePackageStats(pkg models.CoursePackage) (topics int, lessons int, dura
 					duration += video.DurationSeconds
 					lessons++
 				case models.CourseTopicStepTypeTest:
+					lessons++
+				case models.CourseTopicStepTypeContent:
 					lessons++
 				}
 			}
