@@ -1324,7 +1324,9 @@
         shouldRender: (context) =>
             Boolean(
                 context?.dataset?.endpointCoursesVideos ||
+                    context?.dataset?.endpointCoursesContents ||
                     context?.dataset?.endpointCoursesTopics ||
+                    context?.dataset?.endpointCoursesTests ||
                     context?.dataset?.endpointCoursesPackages
             ),
         markup: String.raw`
@@ -1586,11 +1588,102 @@
             </section>
             <section
                 class="admin-card admin-courses admin__section"
+                aria-labelledby="admin-course-contents-title"
+                id="admin-course-contents-section"
+                data-nav-child-of="courses"
+                data-nav-child-label="Content"
+                data-nav-child-order="2"
+            >
+                <header class="admin-card__header admin-courses__header">
+                    <div>
+                        <h3 id="admin-course-contents-title" class="admin-card__title">Course content</h3>
+                        <p class="admin-card__description">
+                            Create text-first lessons with rich sections. These content blocks can be mixed with videos and tests
+                            inside topics.
+                        </p>
+                    </div>
+                    <div class="admin-panel__actions admin-courses__actions">
+                        <label class="admin-search" for="admin-course-contents-search">
+                            <span class="admin-search__label">Search content</span>
+                            <input
+                                id="admin-course-contents-search"
+                                type="search"
+                                class="admin-search__input"
+                                placeholder="Search content…"
+                                autocomplete="off"
+                                data-role="course-content-search"
+                            />
+                        </label>
+                        <button type="button" class="admin-panel__reset" data-action="course-content-reset">
+                            New content
+                        </button>
+                    </div>
+                </header>
+                <div class="admin-card__body">
+                    <div class="admin-panel__list admin-courses__list" aria-live="polite">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Title</th>
+                                    <th scope="col">Sections</th>
+                                    <th scope="col">Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-course-contents-table">
+                                <tr class="admin-table__placeholder">
+                                    <td colspan="3">Loading content…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="admin-panel__details">
+                        <form id="admin-course-content-form" class="admin-form admin-courses__form" novalidate>
+                            <label class="admin-form__label">
+                                Title
+                                <input type="text" name="title" required class="admin-form__input" />
+                            </label>
+                            <label class="admin-form__label">
+                                Description <span class="admin-form__hint">Optional</span>
+                                <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                            </label>
+                            <fieldset class="admin-form__fieldset admin-courses__fieldset">
+                                <legend class="admin-form__legend">Lesson sections</legend>
+                                <p class="admin-card__description admin-form__hint">
+                                    Build rich content with text, images, lists, and more. These sections will appear directly in
+                                    the course player.
+                                </p>
+                                <div class="section-builder" data-section-builder="course-content">
+                                    <ol class="section-builder__list" data-role="section-list">
+                                        <li class="section-builder__empty" data-role="section-empty">
+                                            No sections added yet.
+                                        </li>
+                                    </ol>
+                                    <div class="section-builder__actions">
+                                        <button type="button" class="section-builder__add" data-role="section-add">
+                                            Add section
+                                        </button>
+                                    </div>
+                                </div>
+                            </fieldset>
+                            <div class="admin-form__actions">
+                                <button type="submit" class="admin-form__submit" data-role="course-content-submit">
+                                    Save content
+                                </button>
+                                <button type="button" class="admin-form__delete" data-role="course-content-delete" hidden>
+                                    Delete content
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            <section
+                class="admin-card admin-courses admin__section"
                 aria-labelledby="admin-course-topics-title"
                 id="admin-course-topics-section"
                 data-nav-child-of="courses"
                 data-nav-child-label="Topics"
-                data-nav-child-order="2"
+                data-nav-child-order="3"
             >
                 <header class="admin-card__header admin-courses__header">
                     <div>
@@ -1723,7 +1816,7 @@
                 id="admin-course-tests-section"
                 data-nav-child-of="courses"
                 data-nav-child-label="Tests"
-                data-nav-child-order="3"
+                data-nav-child-order="4"
             >
                 <header class="admin-card__header admin-courses__header">
                     <div>
@@ -1819,7 +1912,7 @@
                 id="admin-course-packages-section"
                 data-nav-child-of="courses"
                 data-nav-child-label="Packages"
-                data-nav-child-order="4"
+                data-nav-child-order="5"
             >
                 <header class="admin-card__header admin-courses__header">
                     <div>

@@ -48,6 +48,9 @@
     {{- with index $endpoints "CourseVideos" }}
     data-endpoint-courses-videos="{{ . }}"
     {{- end }}
+    {{- with index $endpoints "CourseContents" }}
+    data-endpoint-courses-contents="{{ . }}"
+    {{- end }}
     {{- with index $endpoints "CourseTopics" }}
     data-endpoint-courses-topics="{{ . }}"
     {{- end }}
