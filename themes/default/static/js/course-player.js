@@ -597,6 +597,8 @@
                             label.textContent = step.test.title;
                         } else if (step?.type === "video" && step?.video?.title) {
                             label.textContent = step.video.title;
+                        } else if (step?.type === "content" && step?.content?.title) {
+                            label.textContent = step.content.title;
                         } else {
                             label.textContent = `Lesson ${stepIndex + 1}`;
                         }
@@ -619,6 +621,15 @@
                                     return `Test • ${pluralize(questionCount, "question", "questions")}`;
                                 }
                                 return "Test";
+                            }
+                            if (step?.type === "content") {
+                                const sectionCount = Array.isArray(step?.content?.sections)
+                                    ? step.content.sections.length
+                                    : 0;
+                                if (sectionCount > 0) {
+                                    return `Content • ${pluralize(sectionCount, "section", "sections")}`;
+                                }
+                                return "Content";
                             }
                             return "";
                         })();
@@ -757,6 +768,40 @@
 
                 resources.appendChild(list);
                 container.appendChild(resources);
+            }
+
+            const fragment = document.createDocumentFragment();
+            fragment.appendChild(container);
+            return fragment;
+        };
+
+
+        const renderContent = (step) => {
+            const content = step?.content || {};
+            const container = document.createElement("div");
+            container.className = "course-player__lesson-content";
+
+            if (content?.description) {
+                const description = document.createElement("p");
+                description.className = "course-player__lesson-description";
+                description.textContent = content.description;
+                container.appendChild(description);
+            }
+
+            const sectionsHTML =
+                content?.sections_html ?? content?.sectionsHtml ?? content?.SectionsHTML;
+            if (sectionsHTML) {
+                const sections = document.createElement("div");
+                sections.className = "course-player__lesson-sections";
+                sections.innerHTML = sectionsHTML;
+                container.appendChild(sections);
+            }
+
+            if (container.childElementCount === 0) {
+                const message = document.createElement("p");
+                message.className = "course-player__lesson-description";
+                message.textContent = "This lesson doesn't have any content yet.";
+                container.appendChild(message);
             }
 
             const fragment = document.createDocumentFragment();
@@ -1210,6 +1255,8 @@
                 title.textContent = step.test.title;
             } else if (step?.type === "video" && step?.video?.title) {
                 title.textContent = step.video.title;
+            } else if (step?.type === "content" && step?.content?.title) {
+                title.textContent = step.content.title;
             } else {
                 title.textContent = `Lesson ${stepIndex + 1}`;
             }
@@ -1228,6 +1275,8 @@
                 elements.content.appendChild(renderVideo(topic, step));
             } else if (step.type === "test") {
                 elements.content.appendChild(renderTest(topicIndex, stepIndex));
+            } else if (step.type === "content") {
+                elements.content.appendChild(renderContent(step));
             } else {
                 const message = document.createElement("p");
                 message.className = "course-player__lesson-description";
