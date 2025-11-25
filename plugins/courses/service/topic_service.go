@@ -10,23 +10,27 @@ import (
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/internal/service"
 )
 
 type TopicService struct {
-	topicRepo repository.CourseTopicRepository
-	videoRepo repository.CourseVideoRepository
-	testRepo  repository.CourseTestRepository
+	topicRepo   repository.CourseTopicRepository
+	videoRepo   repository.CourseVideoRepository
+	testRepo    repository.CourseTestRepository
+	contentRepo repository.CourseContentRepository
 }
 
 func NewTopicService(
 	topicRepo repository.CourseTopicRepository,
 	videoRepo repository.CourseVideoRepository,
 	testRepo repository.CourseTestRepository,
+	contentRepo repository.CourseContentRepository,
 ) *TopicService {
 	return &TopicService{
-		topicRepo: topicRepo,
-		videoRepo: videoRepo,
-		testRepo:  testRepo,
+		topicRepo:   topicRepo,
+		videoRepo:   videoRepo,
+		testRepo:    testRepo,
+		contentRepo: contentRepo,
 	}
 }
 
@@ -34,6 +38,7 @@ func (s *TopicService) SetRepositories(
 	topicRepo repository.CourseTopicRepository,
 	videoRepo repository.CourseVideoRepository,
 	testRepo repository.CourseTestRepository,
+	contentRepo repository.CourseContentRepository,
 ) {
 	if s == nil {
 		return
@@ -41,6 +46,7 @@ func (s *TopicService) SetRepositories(
 	s.topicRepo = topicRepo
 	s.videoRepo = videoRepo
 	s.testRepo = testRepo
+	s.contentRepo = contentRepo
 }
 
 func (s *TopicService) Create(req models.CreateCourseTopicRequest) (*models.CourseTopic, error) {
@@ -261,6 +267,7 @@ func (s *TopicService) buildSteps(refs []models.CourseTopicStepReference) ([]mod
 	normalized := make([]models.CourseTopicStepReference, 0, len(refs))
 	videoIDSet := make(map[uint]struct{})
 	testIDSet := make(map[uint]struct{})
+	contentIDSet := make(map[uint]struct{})
 
 	for _, ref := range refs {
 		stepType := strings.ToLower(strings.TrimSpace(ref.Type))
@@ -269,6 +276,8 @@ func (s *TopicService) buildSteps(refs []models.CourseTopicStepReference) ([]mod
 			videoIDSet[ref.ID] = struct{}{}
 		case models.CourseTopicStepTypeTest:
 			testIDSet[ref.ID] = struct{}{}
+		case models.CourseTopicStepTypeContent:
+			contentIDSet[ref.ID] = struct{}{}
 		default:
 			return nil, newValidationError("invalid step type: %s", ref.Type)
 		}
@@ -315,6 +324,23 @@ func (s *TopicService) buildSteps(refs []models.CourseTopicStepReference) ([]mod
 		}
 	}
 
+	if len(contentIDSet) > 0 {
+		if s.contentRepo == nil {
+			return nil, errors.New("course content repository is not configured")
+		}
+		ids := make([]uint, 0, len(contentIDSet))
+		for id := range contentIDSet {
+			ids = append(ids, id)
+		}
+		contents, err := s.contentRepo.GetByIDs(ids)
+		if err != nil {
+			return nil, err
+		}
+		if len(contents) != len(contentIDSet) {
+			return nil, newValidationError("one or more content blocks do not exist")
+		}
+	}
+
 	for _, ref := range normalized {
 		step := models.CourseTopicStep{
 			StepType: ref.Type,
@@ -326,6 +352,9 @@ func (s *TopicService) buildSteps(refs []models.CourseTopicStepReference) ([]mod
 		case models.CourseTopicStepTypeTest:
 			testID := ref.ID
 			step.TestID = &testID
+		case models.CourseTopicStepTypeContent:
+			contentID := ref.ID
+			step.ContentID = &contentID
 		}
 		steps = append(steps, step)
 	}
@@ -373,6 +402,7 @@ func (s *TopicService) populateSteps(topics []models.CourseTopic) error {
 
 	videoIDSet := make(map[uint]struct{})
 	testIDSet := make(map[uint]struct{})
+	contentIDSet := make(map[uint]struct{})
 	for _, links := range linksByTopic {
 		for _, link := range links {
 			if link.StepType == models.CourseTopicStepTypeVideo && link.VideoID != nil {
@@ -380,6 +410,9 @@ func (s *TopicService) populateSteps(topics []models.CourseTopic) error {
 			}
 			if link.StepType == models.CourseTopicStepTypeTest && link.TestID != nil {
 				testIDSet[*link.TestID] = struct{}{}
+			}
+			if link.StepType == models.CourseTopicStepTypeContent && link.ContentID != nil {
+				contentIDSet[*link.ContentID] = struct{}{}
 			}
 		}
 	}
@@ -430,6 +463,25 @@ func (s *TopicService) populateSteps(topics []models.CourseTopic) error {
 		}
 	}
 
+	contentMap := make(map[uint]models.CourseContent, len(contentIDSet))
+	if len(contentIDSet) > 0 {
+		if s.contentRepo == nil {
+			return errors.New("course content repository is not configured")
+		}
+		ids := make([]uint, 0, len(contentIDSet))
+		for id := range contentIDSet {
+			ids = append(ids, id)
+		}
+		contents, err := s.contentRepo.GetByIDs(ids)
+		if err != nil {
+			return err
+		}
+		for _, content := range contents {
+			content.Sections = service.NormaliseSections(content.Sections)
+			contentMap[content.ID] = content
+		}
+	}
+
 	topicMap := make(map[uint]*models.CourseTopic, len(topics))
 	for i := range topics {
 		topicMap[topics[i].ID] = &topics[i]
@@ -445,6 +497,7 @@ func (s *TopicService) populateSteps(topics []models.CourseTopic) error {
 			step := link
 			step.Video = nil
 			step.Test = nil
+			step.Content = nil
 			if link.StepType == models.CourseTopicStepTypeVideo && link.VideoID != nil {
 				if video, exists := videoMap[*link.VideoID]; exists {
 					videoCopy := video
@@ -456,6 +509,12 @@ func (s *TopicService) populateSteps(topics []models.CourseTopic) error {
 				if test, exists := testMap[*link.TestID]; exists {
 					testCopy := test
 					step.Test = &testCopy
+				}
+			}
+			if link.StepType == models.CourseTopicStepTypeContent && link.ContentID != nil {
+				if content, exists := contentMap[*link.ContentID]; exists {
+					contentCopy := content
+					step.Content = &contentCopy
 				}
 			}
 			ordered = append(ordered, step)

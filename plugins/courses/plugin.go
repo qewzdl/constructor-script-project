@@ -45,13 +45,14 @@ func (f *Feature) Activate() error {
 	handlers := f.host.Handlers(courseapi.Namespace)
 
 	videoRepo := repos.CourseVideo()
+	contentRepo := repos.CourseContent()
 	topicRepo := repos.CourseTopic()
 	packageRepo := repos.CoursePackage()
 	accessRepo := repos.CoursePackageAccess()
 	userRepo := repos.User()
 	testRepo := repos.CourseTest()
 
-	if videoRepo == nil || topicRepo == nil || packageRepo == nil || accessRepo == nil || userRepo == nil || testRepo == nil {
+	if videoRepo == nil || contentRepo == nil || topicRepo == nil || packageRepo == nil || accessRepo == nil || userRepo == nil || testRepo == nil {
 		return fmt.Errorf("course repositories are not configured")
 	}
 
@@ -83,15 +84,26 @@ func (f *Feature) Activate() error {
 		testService.SetRepository(testRepo)
 	}
 
+	var contentService *courseservice.ContentService
+	if value, ok := services.Get(courseapi.ServiceContent).(*courseservice.ContentService); ok {
+		contentService = value
+	}
+	if contentService == nil {
+		contentService = courseservice.NewContentService(contentRepo, f.host.ThemeManager())
+		services.Set(courseapi.ServiceContent, contentService)
+	} else {
+		contentService.SetThemeManager(f.host.ThemeManager())
+	}
+
 	var topicService *courseservice.TopicService
 	if value, ok := services.Get(courseapi.ServiceTopic).(*courseservice.TopicService); ok {
 		topicService = value
 	}
 	if topicService == nil {
-		topicService = courseservice.NewTopicService(topicRepo, videoRepo, testRepo)
+		topicService = courseservice.NewTopicService(topicRepo, videoRepo, testRepo, contentRepo)
 		services.Set(courseapi.ServiceTopic, topicService)
 	} else {
-		topicService.SetRepositories(topicRepo, videoRepo, testRepo)
+		topicService.SetRepositories(topicRepo, videoRepo, testRepo, contentRepo)
 	}
 
 	var packageService *courseservice.PackageService
@@ -99,10 +111,10 @@ func (f *Feature) Activate() error {
 		packageService = value
 	}
 	if packageService == nil {
-		packageService = courseservice.NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, accessRepo, userRepo)
+		packageService = courseservice.NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, contentRepo, accessRepo, userRepo)
 		services.Set(courseapi.ServicePackage, packageService)
 	} else {
-		packageService.SetRepositories(packageRepo, topicRepo, videoRepo, testRepo, accessRepo, userRepo)
+		packageService.SetRepositories(packageRepo, topicRepo, videoRepo, testRepo, contentRepo, accessRepo, userRepo)
 	}
 
 	cfg := f.host.Config()
@@ -199,6 +211,12 @@ func (f *Feature) Activate() error {
 		handlers.Set(courseapi.HandlerVideo, coursehandlers.NewVideoHandler(videoService))
 	} else {
 		handler.SetService(videoService)
+	}
+
+	if handler, ok := handlers.Get(courseapi.HandlerContent).(*coursehandlers.ContentHandler); handler == nil || !ok {
+		handlers.Set(courseapi.HandlerContent, coursehandlers.NewContentHandler(contentService))
+	} else {
+		handler.SetService(contentService)
 	}
 
 	if handler, ok := handlers.Get(courseapi.HandlerTopic).(*coursehandlers.TopicHandler); handler == nil || !ok {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -287,4 +288,56 @@ func absInt(value int) int {
 		return -value
 	}
 	return value
+}
+
+// NormaliseSections ensures section fields are consistently populated and ordered without requiring theme definitions.
+func NormaliseSections(sections models.PostSections) models.PostSections {
+	if len(sections) == 0 {
+		return sections
+	}
+
+	normalised := make(models.PostSections, 0, len(sections))
+
+	for i, section := range sections {
+		section.Type = strings.TrimSpace(strings.ToLower(section.Type))
+		if section.Type == "" {
+			section.Type = "standard"
+		}
+
+		if section.ID == "" {
+			section.ID = uuid.New().String()
+		}
+		if section.Order == 0 {
+			section.Order = i + 1
+		}
+
+		section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical)
+		section.MarginVertical = normaliseSectionMargin(section.MarginVertical)
+
+		if len(section.Elements) > 0 {
+			elements := make([]models.SectionElement, 0, len(section.Elements))
+			for j, element := range section.Elements {
+				element.Type = strings.TrimSpace(strings.ToLower(element.Type))
+				if element.ID == "" {
+					element.ID = uuid.New().String()
+				}
+				if element.Order == 0 {
+					element.Order = j + 1
+				}
+				elements = append(elements, element)
+			}
+			sort.SliceStable(elements, func(a, b int) bool {
+				return elements[a].Order < elements[b].Order
+			})
+			section.Elements = elements
+		}
+
+		normalised = append(normalised, section)
+	}
+
+	sort.SliceStable(normalised, func(i, j int) bool {
+		return normalised[i].Order < normalised[j].Order
+	})
+
+	return normalised
 }

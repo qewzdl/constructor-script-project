@@ -44,8 +44,9 @@ type RepositoryAccess interface {
 	Search() repository.SearchRepository
 	Setting() repository.SettingRepository
 	User() repository.UserRepository
-	CourseVideo() repository.CourseVideoRepository
-	CourseTopic() repository.CourseTopicRepository
+CourseVideo() repository.CourseVideoRepository
+CourseContent() repository.CourseContentRepository
+CourseTopic() repository.CourseTopicRepository
 	CoursePackage() repository.CoursePackageRepository
 	CoursePackageAccess() repository.CoursePackageAccessRepository
 	CourseTest() repository.CourseTestRepository

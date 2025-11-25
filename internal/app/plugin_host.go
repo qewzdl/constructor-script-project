@@ -303,6 +303,13 @@ func (r applicationRepositoryAccess) CourseVideo() repository.CourseVideoReposit
 	return r.app.repositories.CourseVideo
 }
 
+func (r applicationRepositoryAccess) CourseContent() repository.CourseContentRepository {
+	if r.app == nil {
+		return nil
+	}
+	return r.app.repositories.CourseContent
+}
+
 func (r applicationRepositoryAccess) CourseTopic() repository.CourseTopicRepository {
 	if r.app == nil {
 		return nil
@@ -633,6 +640,30 @@ func (a *Application) registerPluginServiceBindings() {
 			}
 			if svc, ok := value.(*courseservice.VideoService); ok {
 				a.services.CourseVideo = svc
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindServices,
+		courseapi.Namespace,
+		courseapi.ServiceContent,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.services.CourseContent
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.services.CourseContent = nil
+				return
+			}
+			if svc, ok := value.(*courseservice.ContentService); ok {
+				a.services.CourseContent = svc
 			}
 		},
 	)
@@ -972,6 +1003,30 @@ func (a *Application) registerPluginHandlerBindings() {
 			}
 			if handler, ok := value.(*coursehandlers.VideoHandler); ok {
 				a.handlers.CourseVideo = handler
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindHandlers,
+		courseapi.Namespace,
+		courseapi.HandlerContent,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.CourseContent
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.CourseContent = nil
+				return
+			}
+			if handler, ok := value.(*coursehandlers.ContentHandler); ok {
+				a.handlers.CourseContent = handler
 			}
 		},
 	)

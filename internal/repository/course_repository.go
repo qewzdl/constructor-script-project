@@ -21,6 +21,16 @@ type CourseVideoRepository interface {
 	GetByIDs(ids []uint) ([]models.CourseVideo, error)
 }
 
+type CourseContentRepository interface {
+	Create(content *models.CourseContent) error
+	Update(content *models.CourseContent) error
+	Delete(id uint) error
+	GetByID(id uint) (*models.CourseContent, error)
+	List() ([]models.CourseContent, error)
+	Exists(id uint) (bool, error)
+	GetByIDs(ids []uint) ([]models.CourseContent, error)
+}
+
 type CourseTopicRepository interface {
 	Create(topic *models.CourseTopic) error
 	Update(topic *models.CourseTopic) error
@@ -71,6 +81,10 @@ type courseVideoRepository struct {
 	db *gorm.DB
 }
 
+type courseContentRepository struct {
+	db *gorm.DB
+}
+
 type courseTopicRepository struct {
 	db *gorm.DB
 }
@@ -89,6 +103,10 @@ type courseTestRepository struct {
 
 func NewCourseVideoRepository(db *gorm.DB) CourseVideoRepository {
 	return &courseVideoRepository{db: db}
+}
+
+func NewCourseContentRepository(db *gorm.DB) CourseContentRepository {
+	return &courseContentRepository{db: db}
 }
 
 func NewCourseTopicRepository(db *gorm.DB) CourseTopicRepository {
@@ -142,6 +160,38 @@ func (r *courseVideoRepository) Delete(id uint) error {
 	})
 }
 
+func (r *courseContentRepository) Create(content *models.CourseContent) error {
+	if r == nil || r.db == nil {
+		return errors.New("course content repository is not initialised")
+	}
+	if content == nil {
+		return errors.New("content is required")
+	}
+	return r.db.Create(content).Error
+}
+
+func (r *courseContentRepository) Update(content *models.CourseContent) error {
+	if r == nil || r.db == nil {
+		return errors.New("course content repository is not initialised")
+	}
+	if content == nil {
+		return errors.New("content is required")
+	}
+	return r.db.Save(content).Error
+}
+
+func (r *courseContentRepository) Delete(id uint) error {
+	if r == nil || r.db == nil {
+		return errors.New("course content repository is not initialised")
+	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("content_id = ?", id).Delete(&models.CourseTopicStep{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&models.CourseContent{}, id).Error
+	})
+}
+
 func (r *courseVideoRepository) GetByID(id uint) (*models.CourseVideo, error) {
 	if r == nil || r.db == nil {
 		return nil, errors.New("course video repository is not initialised")
@@ -151,6 +201,17 @@ func (r *courseVideoRepository) GetByID(id uint) (*models.CourseVideo, error) {
 		return nil, err
 	}
 	return &video, nil
+}
+
+func (r *courseContentRepository) GetByID(id uint) (*models.CourseContent, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course content repository is not initialised")
+	}
+	var content models.CourseContent
+	if err := r.db.First(&content, id).Error; err != nil {
+		return nil, err
+	}
+	return &content, nil
 }
 
 func (r *courseVideoRepository) List() ([]models.CourseVideo, error) {
@@ -164,12 +225,34 @@ func (r *courseVideoRepository) List() ([]models.CourseVideo, error) {
 	return videos, nil
 }
 
+func (r *courseContentRepository) List() ([]models.CourseContent, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course content repository is not initialised")
+	}
+	var contents []models.CourseContent
+	if err := r.db.Order("created_at DESC").Find(&contents).Error; err != nil {
+		return nil, err
+	}
+	return contents, nil
+}
+
 func (r *courseVideoRepository) Exists(id uint) (bool, error) {
 	if r == nil || r.db == nil {
 		return false, errors.New("course video repository is not initialised")
 	}
 	var count int64
 	if err := r.db.Model(&models.CourseVideo{}).Where("id = ?", id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *courseContentRepository) Exists(id uint) (bool, error) {
+	if r == nil || r.db == nil {
+		return false, errors.New("course content repository is not initialised")
+	}
+	var count int64
+	if err := r.db.Model(&models.CourseContent{}).Where("id = ?", id).Count(&count).Error; err != nil {
 		return false, err
 	}
 	return count > 0, nil
@@ -187,6 +270,20 @@ func (r *courseVideoRepository) GetByIDs(ids []uint) ([]models.CourseVideo, erro
 		return nil, err
 	}
 	return videos, nil
+}
+
+func (r *courseContentRepository) GetByIDs(ids []uint) ([]models.CourseContent, error) {
+	if r == nil || r.db == nil {
+		return nil, errors.New("course content repository is not initialised")
+	}
+	if len(ids) == 0 {
+		return []models.CourseContent{}, nil
+	}
+	var contents []models.CourseContent
+	if err := r.db.Where("id IN ?", ids).Find(&contents).Error; err != nil {
+		return nil, err
+	}
+	return contents, nil
 }
 
 func (r *courseTopicRepository) Create(topic *models.CourseTopic) error {

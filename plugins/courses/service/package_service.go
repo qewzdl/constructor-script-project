@@ -10,6 +10,7 @@ import (
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/internal/service"
 )
 
 type PackageService struct {
@@ -17,6 +18,7 @@ type PackageService struct {
 	topicRepo   repository.CourseTopicRepository
 	videoRepo   repository.CourseVideoRepository
 	testRepo    repository.CourseTestRepository
+	contentRepo repository.CourseContentRepository
 	accessRepo  repository.CoursePackageAccessRepository
 	userRepo    repository.UserRepository
 }
@@ -26,6 +28,7 @@ func NewPackageService(
 	topicRepo repository.CourseTopicRepository,
 	videoRepo repository.CourseVideoRepository,
 	testRepo repository.CourseTestRepository,
+	contentRepo repository.CourseContentRepository,
 	accessRepo repository.CoursePackageAccessRepository,
 	userRepo repository.UserRepository,
 ) *PackageService {
@@ -34,6 +37,7 @@ func NewPackageService(
 		topicRepo:   topicRepo,
 		videoRepo:   videoRepo,
 		testRepo:    testRepo,
+		contentRepo: contentRepo,
 		accessRepo:  accessRepo,
 		userRepo:    userRepo,
 	}
@@ -44,6 +48,7 @@ func (s *PackageService) SetRepositories(
 	topicRepo repository.CourseTopicRepository,
 	videoRepo repository.CourseVideoRepository,
 	testRepo repository.CourseTestRepository,
+	contentRepo repository.CourseContentRepository,
 	accessRepo repository.CoursePackageAccessRepository,
 	userRepo repository.UserRepository,
 ) {
@@ -54,6 +59,7 @@ func (s *PackageService) SetRepositories(
 	s.topicRepo = topicRepo
 	s.videoRepo = videoRepo
 	s.testRepo = testRepo
+	s.contentRepo = contentRepo
 	s.accessRepo = accessRepo
 	s.userRepo = userRepo
 }
@@ -579,6 +585,7 @@ func (s *PackageService) populateTopicSteps(topics map[uint]*models.CourseTopic)
 
 	videoIDSet := make(map[uint]struct{})
 	testIDSet := make(map[uint]struct{})
+	contentIDSet := make(map[uint]struct{})
 	for _, links := range linksByTopic {
 		for _, link := range links {
 			if link.StepType == models.CourseTopicStepTypeVideo && link.VideoID != nil {
@@ -586,6 +593,9 @@ func (s *PackageService) populateTopicSteps(topics map[uint]*models.CourseTopic)
 			}
 			if link.StepType == models.CourseTopicStepTypeTest && link.TestID != nil {
 				testIDSet[*link.TestID] = struct{}{}
+			}
+			if link.StepType == models.CourseTopicStepTypeContent && link.ContentID != nil {
+				contentIDSet[*link.ContentID] = struct{}{}
 			}
 		}
 	}
@@ -636,6 +646,25 @@ func (s *PackageService) populateTopicSteps(topics map[uint]*models.CourseTopic)
 		}
 	}
 
+	contentMap := make(map[uint]models.CourseContent, len(contentIDSet))
+	if len(contentIDSet) > 0 {
+		if s.contentRepo == nil {
+			return errors.New("course content repository is not configured")
+		}
+		ids := make([]uint, 0, len(contentIDSet))
+		for id := range contentIDSet {
+			ids = append(ids, id)
+		}
+		contents, err := s.contentRepo.GetByIDs(ids)
+		if err != nil {
+			return err
+		}
+		for _, content := range contents {
+			content.Sections = service.NormaliseSections(content.Sections)
+			contentMap[content.ID] = content
+		}
+	}
+
 	for topicID, links := range linksByTopic {
 		topic, ok := topics[topicID]
 		if !ok {
@@ -646,6 +675,7 @@ func (s *PackageService) populateTopicSteps(topics map[uint]*models.CourseTopic)
 			step := link
 			step.Video = nil
 			step.Test = nil
+			step.Content = nil
 			if link.StepType == models.CourseTopicStepTypeVideo && link.VideoID != nil {
 				if video, exists := videoMap[*link.VideoID]; exists {
 					videoCopy := video
@@ -657,6 +687,12 @@ func (s *PackageService) populateTopicSteps(topics map[uint]*models.CourseTopic)
 				if test, exists := testMap[*link.TestID]; exists {
 					testCopy := test
 					step.Test = &testCopy
+				}
+			}
+			if link.StepType == models.CourseTopicStepTypeContent && link.ContentID != nil {
+				if content, exists := contentMap[*link.ContentID]; exists {
+					contentCopy := content
+					step.Content = &contentCopy
 				}
 			}
 			ordered = append(ordered, step)

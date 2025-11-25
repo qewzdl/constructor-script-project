@@ -104,6 +104,10 @@ type mockVideoRepo struct {
 	videos map[uint]models.CourseVideo
 }
 
+type mockContentRepo struct {
+	contents map[uint]models.CourseContent
+}
+
 type mockTestRepo struct {
 	tests      map[uint]models.CourseTest
 	structures map[uint][]models.CourseTestQuestion
@@ -188,6 +192,42 @@ func (m *mockVideoRepo) GetByIDs(ids []uint) ([]models.CourseVideo, error) {
 		if video, ok := m.videos[id]; ok {
 			copy := video
 			result = append(result, copy)
+		}
+	}
+	return result, nil
+}
+
+func (m *mockContentRepo) Create(content *models.CourseContent) error { return nil }
+func (m *mockContentRepo) Update(content *models.CourseContent) error { return nil }
+func (m *mockContentRepo) Delete(id uint) error                       { return nil }
+func (m *mockContentRepo) GetByID(id uint) (*models.CourseContent, error) {
+	if m == nil || m.contents == nil {
+		return nil, gorm.ErrRecordNotFound
+	}
+	if content, ok := m.contents[id]; ok {
+		copy := content
+		return &copy, nil
+	}
+	return nil, gorm.ErrRecordNotFound
+}
+func (m *mockContentRepo) List() ([]models.CourseContent, error) {
+	return []models.CourseContent{}, nil
+}
+func (m *mockContentRepo) Exists(id uint) (bool, error) {
+	if m == nil || m.contents == nil {
+		return false, nil
+	}
+	_, ok := m.contents[id]
+	return ok, nil
+}
+func (m *mockContentRepo) GetByIDs(ids []uint) ([]models.CourseContent, error) {
+	result := make([]models.CourseContent, 0, len(ids))
+	for _, id := range ids {
+		if m != nil && m.contents != nil {
+			if content, ok := m.contents[id]; ok {
+				copy := content
+				result = append(result, copy)
+			}
 		}
 	}
 	return result, nil
@@ -474,7 +514,7 @@ func TestPackageServiceGetByIdentifierWithSlug(t *testing.T) {
 	videoRepo := &mockVideoRepo{}
 	testRepo := &mockTestRepo{}
 
-	svc := NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, nil, nil)
+	svc := NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, &mockContentRepo{}, nil, nil)
 
 	result, err := svc.GetByIdentifier("Architecting-Go")
 	if err != nil {
@@ -499,7 +539,7 @@ func TestPackageServiceGetByIdentifierWithNumericID(t *testing.T) {
 	videoRepo := &mockVideoRepo{}
 	testRepo := &mockTestRepo{}
 
-	svc := NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, nil, nil)
+	svc := NewPackageService(packageRepo, topicRepo, videoRepo, testRepo, &mockContentRepo{}, nil, nil)
 
 	result, err := svc.GetByIdentifier("77")
 	if err != nil {

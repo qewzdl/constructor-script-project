@@ -86,6 +86,7 @@ type repositoryContainer struct {
 	Menu                repository.MenuRepository
 	Plugin              repository.PluginRepository
 	CourseVideo         repository.CourseVideoRepository
+	CourseContent       repository.CourseContentRepository
 	CourseTopic         repository.CourseTopicRepository
 	CoursePackage       repository.CoursePackageRepository
 	CoursePackageAccess repository.CoursePackageAccessRepository
@@ -118,6 +119,7 @@ type serviceContainer struct {
 	Plugin           *service.PluginService
 	Font             *service.FontService
 	CourseVideo      *courseservice.VideoService
+	CourseContent    *courseservice.ContentService
 	CourseTopic      *courseservice.TopicService
 	CoursePackage    *courseservice.PackageService
 	CourseTest       *courseservice.TestService
@@ -148,6 +150,7 @@ type handlerContainer struct {
 	Plugin           *handlers.PluginHandler
 	Font             *handlers.FontHandler
 	CourseVideo      *coursehandlers.VideoHandler
+	CourseContent    *coursehandlers.ContentHandler
 	CourseTopic      *coursehandlers.TopicHandler
 	CourseTest       *coursehandlers.TestHandler
 	CoursePackage    *coursehandlers.PackageHandler
@@ -374,6 +377,9 @@ func (a *Application) runMigrations() error {
 		if err := a.db.Exec("ALTER TABLE course_topic_steps ADD COLUMN IF NOT EXISTS test_id bigint").Error; err != nil {
 			return fmt.Errorf("failed to ensure course topic step test reference: %w", err)
 		}
+		if err := a.db.Exec("ALTER TABLE course_topic_steps ADD COLUMN IF NOT EXISTS content_id bigint").Error; err != nil {
+			return fmt.Errorf("failed to ensure course topic step content reference: %w", err)
+		}
 	}
 
 	if err := a.ensureCourseSlugs(migrator); err != nil {
@@ -403,6 +409,7 @@ func (a *Application) runMigrations() error {
 		&models.ForumAnswerVote{},
 		&models.CourseVideo{},
 		&models.CourseTopic{},
+		&models.CourseContent{},
 		&models.CoursePackage{},
 		&models.CourseTopicVideo{},
 		&models.CoursePackageTopic{},
@@ -423,6 +430,9 @@ func (a *Application) runMigrations() error {
 	if migrator.HasTable(&models.CourseTopicStep{}) {
 		if err := a.db.Exec("CREATE INDEX IF NOT EXISTS idx_course_topic_steps_test_id ON course_topic_steps(test_id)").Error; err != nil {
 			return fmt.Errorf("failed to ensure course topic step test index: %w", err)
+		}
+		if err := a.db.Exec("CREATE INDEX IF NOT EXISTS idx_course_topic_steps_content_id ON course_topic_steps(content_id)").Error; err != nil {
+			return fmt.Errorf("failed to ensure course topic step content index: %w", err)
 		}
 	}
 
@@ -776,6 +786,7 @@ func (a *Application) initRepositories() {
 		Menu:                repository.NewMenuRepository(a.db),
 		Plugin:              repository.NewPluginRepository(a.db),
 		CourseVideo:         repository.NewCourseVideoRepository(a.db),
+		CourseContent:       repository.NewCourseContentRepository(a.db),
 		CourseTopic:         repository.NewCourseTopicRepository(a.db),
 		CoursePackage:       repository.NewCoursePackageRepository(a.db),
 		CoursePackageAccess: repository.NewCoursePackageAccessRepository(a.db),
@@ -953,6 +964,7 @@ func (a *Application) initServices() {
 		Plugin:         pluginService,
 		Font:           fontService,
 		CourseVideo:    nil,
+		CourseContent:  nil,
 		CourseTopic:    nil,
 		CoursePackage:  nil,
 		CourseTest:     nil,
@@ -987,6 +999,7 @@ func (a *Application) initHandlers() error {
 		Advertising:      handlers.NewAdvertisingHandler(a.services.Advertising),
 		Plugin:           handlers.NewPluginHandler(a.services.Plugin),
 		CourseVideo:      coursehandlers.NewVideoHandler(nil),
+		CourseContent:    coursehandlers.NewContentHandler(nil),
 		CourseTopic:      coursehandlers.NewTopicHandler(nil),
 		CourseTest:       coursehandlers.NewTestHandler(nil),
 		CoursePackage:    coursehandlers.NewPackageHandler(nil),
@@ -1257,6 +1270,11 @@ func (a *Application) initRouter() error {
 			content.DELETE("/courses/videos/:id", a.handlers.CourseVideo.Delete)
 			content.GET("/courses/videos", a.handlers.CourseVideo.List)
 			content.GET("/courses/videos/:id", a.handlers.CourseVideo.Get)
+			content.POST("/courses/contents", a.handlers.CourseContent.Create)
+			content.PUT("/courses/contents/:id", a.handlers.CourseContent.Update)
+			content.DELETE("/courses/contents/:id", a.handlers.CourseContent.Delete)
+			content.GET("/courses/contents", a.handlers.CourseContent.List)
+			content.GET("/courses/contents/:id", a.handlers.CourseContent.Get)
 
 			content.POST("/courses/topics", a.handlers.CourseTopic.Create)
 			content.PUT("/courses/topics/:id", a.handlers.CourseTopic.Update)

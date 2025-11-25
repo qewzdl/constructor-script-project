@@ -192,8 +192,9 @@ type ForumAnswerVote struct {
 }
 
 const (
-	CourseTopicStepTypeVideo = "video"
-	CourseTopicStepTypeTest  = "test"
+	CourseTopicStepTypeVideo   = "video"
+	CourseTopicStepTypeTest    = "test"
+	CourseTopicStepTypeContent = "content"
 )
 
 const (
@@ -217,6 +218,18 @@ type CourseVideo struct {
 	Sections     PostSections           `gorm:"type:jsonb" json:"sections"`
 	Attachments  CourseVideoAttachments `gorm:"type:jsonb" json:"attachments"`
 	SectionsHTML string                 `gorm:"-" json:"sections_html,omitempty"`
+}
+
+type CourseContent struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Title        string       `gorm:"not null" json:"title"`
+	Description  string       `json:"description"`
+	Sections     PostSections `gorm:"type:jsonb" json:"sections"`
+	SectionsHTML string       `gorm:"-" json:"sections_html,omitempty"`
 }
 
 type CourseTopic struct {
@@ -350,11 +363,13 @@ type CourseTopicStep struct {
 	StepType string `gorm:"type:varchar(32);not null;index" json:"type"`
 	Position int    `gorm:"not null;default:0" json:"position"`
 
-	VideoID *uint `gorm:"index" json:"video_id,omitempty"`
-	TestID  *uint `gorm:"index" json:"test_id,omitempty"`
+	VideoID   *uint `gorm:"index" json:"video_id,omitempty"`
+	TestID    *uint `gorm:"index" json:"test_id,omitempty"`
+	ContentID *uint `gorm:"index" json:"content_id,omitempty"`
 
-	Video *CourseVideo `gorm:"-" json:"video,omitempty"`
-	Test  *CourseTest  `gorm:"-" json:"test,omitempty"`
+	Video   *CourseVideo   `gorm:"-" json:"video,omitempty"`
+	Test    *CourseTest    `gorm:"-" json:"test,omitempty"`
+	Content *CourseContent `gorm:"-" json:"content,omitempty"`
 }
 
 type CourseTestResult struct {
@@ -485,12 +500,24 @@ type GrantCoursePackageRequest struct {
 }
 
 type CourseTopicStepReference struct {
-	Type string `json:"type" binding:"required,oneof=video test"`
+	Type string `json:"type" binding:"required,oneof=video test content"`
 	ID   uint   `json:"id" binding:"required,gt=0"`
 }
 
 type UpdateCourseTopicStepsRequest struct {
 	Steps []CourseTopicStepReference `json:"steps" binding:"required"`
+}
+
+type CreateCourseContentRequest struct {
+	Title       string    `json:"title" binding:"required"`
+	Description string    `json:"description"`
+	Sections    []Section `json:"sections"`
+}
+
+type UpdateCourseContentRequest struct {
+	Title       *string    `json:"title"`
+	Description *string    `json:"description"`
+	Sections    *[]Section `json:"sections"`
 }
 
 type CourseTestQuestionOptionRequest struct {

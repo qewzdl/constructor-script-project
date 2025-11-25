@@ -15,8 +15,9 @@ func TestTopicServiceGetByIdentifierWithSlug(t *testing.T) {
 	topicRepo := &mockTopicRepo{topics: map[uint]models.CourseTopic{topic.ID: topic}}
 	videoRepo := &mockVideoRepo{}
 	testRepo := &mockTestRepo{}
+	contentRepo := &mockContentRepo{}
 
-	svc := NewTopicService(topicRepo, videoRepo, testRepo)
+	svc := NewTopicService(topicRepo, videoRepo, testRepo, contentRepo)
 
 	result, err := svc.GetByIdentifier("Intro")
 	if err != nil {
@@ -39,8 +40,9 @@ func TestTopicServiceGetByIdentifierWithNumericID(t *testing.T) {
 	topicRepo := &mockTopicRepo{topics: map[uint]models.CourseTopic{topic.ID: topic}}
 	videoRepo := &mockVideoRepo{}
 	testRepo := &mockTestRepo{}
+	contentRepo := &mockContentRepo{}
 
-	svc := NewTopicService(topicRepo, videoRepo, testRepo)
+	svc := NewTopicService(topicRepo, videoRepo, testRepo, contentRepo)
 
 	result, err := svc.GetByIdentifier("21")
 	if err != nil {
@@ -58,7 +60,7 @@ func TestTopicServiceGetByIdentifierWithNumericID(t *testing.T) {
 }
 
 func TestTopicServiceGetByIdentifierRequiresIdentifier(t *testing.T) {
-	svc := NewTopicService(&mockTopicRepo{}, &mockVideoRepo{}, &mockTestRepo{})
+	svc := NewTopicService(&mockTopicRepo{}, &mockVideoRepo{}, &mockTestRepo{}, &mockContentRepo{})
 
 	if _, err := svc.GetByIdentifier(" "); err == nil || !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatalf("expected not found error for empty identifier")

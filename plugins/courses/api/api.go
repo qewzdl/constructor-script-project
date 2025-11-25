@@ -8,6 +8,7 @@ const (
 	ServicePackage  = "package"
 	ServiceTest     = "test"
 	ServiceCheckout = "checkout"
+	ServiceContent  = "content"
 )
 
 const (
@@ -16,4 +17,5 @@ const (
 	HandlerTest     = "test"
 	HandlerPackage  = "package"
 	HandlerCheckout = "checkout"
+	HandlerContent  = "content"
 )

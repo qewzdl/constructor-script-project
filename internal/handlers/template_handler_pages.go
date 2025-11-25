@@ -1647,21 +1647,40 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		topic := &pkg.Topics[topicIndex]
 		for stepIndex := range topic.Steps {
 			step := &topic.Steps[stepIndex]
-			if step.StepType != models.CourseTopicStepTypeVideo || step.Video == nil {
-				continue
+			switch step.StepType {
+			case models.CourseTopicStepTypeVideo:
+				if step.Video == nil {
+					continue
+				}
+				sections := step.Video.Sections
+				if len(sections) == 0 {
+					step.Video.SectionsHTML = ""
+					continue
+				}
+				html, scripts := h.renderSectionsWithPrefix(sections, "course-player")
+				if html != "" {
+					step.Video.SectionsHTML = string(html)
+				} else {
+					step.Video.SectionsHTML = ""
+				}
+				sectionScripts = appendScripts(sectionScripts, scripts)
+			case models.CourseTopicStepTypeContent:
+				if step.Content == nil {
+					continue
+				}
+				sections := step.Content.Sections
+				if len(sections) == 0 {
+					step.Content.SectionsHTML = ""
+					continue
+				}
+				html, scripts := h.renderSectionsWithPrefix(sections, "course-player")
+				if html != "" {
+					step.Content.SectionsHTML = string(html)
+				} else {
+					step.Content.SectionsHTML = ""
+				}
+				sectionScripts = appendScripts(sectionScripts, scripts)
 			}
-			sections := step.Video.Sections
-			if len(sections) == 0 {
-				step.Video.SectionsHTML = ""
-				continue
-			}
-			html, scripts := h.renderSectionsWithPrefix(sections, "course-player")
-			if html != "" {
-				step.Video.SectionsHTML = string(html)
-			} else {
-				step.Video.SectionsHTML = ""
-			}
-			sectionScripts = appendScripts(sectionScripts, scripts)
 		}
 	}
 
@@ -1945,6 +1964,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 
 	if coursesEnabled {
 		adminEndpoints["CourseVideos"] = "/api/v1/admin/courses/videos"
+		adminEndpoints["CourseContents"] = "/api/v1/admin/courses/contents"
 		adminEndpoints["CourseTopics"] = "/api/v1/admin/courses/topics"
 		adminEndpoints["CourseTests"] = "/api/v1/admin/courses/tests"
 		adminEndpoints["CoursePackages"] = "/api/v1/admin/courses/packages"
