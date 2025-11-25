@@ -1,8 +1,6 @@
 .post__file-group,
 .page-view__file-group {
     margin: var(--size-mid) 0;
-    padding: var(--size-sm) var(--size-base);
-    border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     background-color: var(--color-surface);
 }
@@ -10,7 +8,7 @@
 .post__file-group-title,
 .page-view__file-group-title {
     margin: 0 0 var(--size-sm);
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-xl);
 }
 
 .post__file-group-description,
@@ -32,23 +30,27 @@
     display: flex;
     align-items: center;
     gap: var(--size-xs);
-    padding: var(--size-xs) 0;
-    border-top: 1px solid var(--color-border);
-}
-
-.post__file-list-item:first-child,
-.page-view__file-list-item:first-child {
-    border-top: none;
+    padding: var(--size-sm) 0;
 }
 
 .post__file-link,
 .page-view__file-link {
     color: var(--color-primary);
-    font-weight: 600;
+    font-size: var(--font-size-base);
     text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: var(--size-sm);
 }
 
 .post__file-link:hover,
 .page-view__file-link:hover {
     text-decoration: underline;
+}
+
+.post__file-link-icon,
+.page-view__file-link-icon {
+    width: calc(var(--size-base) + var(--size-xs));
+    height: calc(var(--size-base) + var(--size-xs));
+    fill: var(--color-primary);
 }

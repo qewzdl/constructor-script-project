@@ -1102,17 +1102,20 @@ textarea.form-field__input {
     gap: var(--size-lg);
 }
 
-.course-player__section {
+.course-player__section,
+.page-view__section--context-course-player {
     display: flex;
     flex-direction: column;
     gap: var(--size-base);
 }
 
-.course-player__section-title {
+.course-player__section-title,
+.page-view__section--context-course-player .page-view__section-title {
     margin-bottom: var(--size-base);
 }
 
-.course-player__section > *:last-child {
+.course-player__section > *:last-child,
+.page-view__section--context-course-player > *:last-child {
     margin-bottom: 0 !important;
 }
 
@@ -1675,14 +1678,17 @@ body.post-image-modal-open .post-progress {
     }
 }
 
-.post__section > *:first-child {
+.post__section > *:first-child,
+.page-view__section > *:first-child {
     margin-top: 0 !important;
 }
-.post__section > *:last-child {
+.post__section > *:last-child,
+.page-view__section > *:last-child {
     margin-bottom: 0 !important;
 }
 
-.post__section-title {
+.post__section-title,
+.page-view__section-title {
     margin-bottom: var(--size-base);
 }
 

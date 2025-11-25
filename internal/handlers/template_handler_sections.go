@@ -14,6 +14,8 @@ import (
 	"constructor-script-backend/pkg/logger"
 )
 
+const pageViewClassPrefix = "page-view"
+
 func (h *TemplateHandler) renderSections(sections models.PostSections) (template.HTML, []string) {
 	return h.renderSectionsWithPrefix(sections, "post")
 }
@@ -26,7 +28,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 	var sb strings.Builder
 	var scripts []string
 
-	wrapWithContainer := prefix == "page-view"
+	wrapWithContainer := prefix == pageViewClassPrefix
 
 	for _, section := range sections {
 		sectionType := strings.TrimSpace(strings.ToLower(section.Type))
@@ -45,17 +47,20 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		title := strings.TrimSpace(section.Title)
 		escapedTitle := template.HTMLEscapeString(title)
 
-		baseClass := fmt.Sprintf("%s__section", prefix)
-		sectionClasses := []string{baseClass, fmt.Sprintf("%s__section--%s", prefix, sectionType)}
-		if paddingClass := buildSectionPaddingClass(prefix, section.PaddingVertical); paddingClass != "" {
+		baseClass := fmt.Sprintf("%s__section", pageViewClassPrefix)
+		sectionClasses := []string{baseClass, fmt.Sprintf("%s__section--%s", pageViewClassPrefix, sectionType)}
+		if prefix != pageViewClassPrefix {
+			sectionClasses = append(sectionClasses, fmt.Sprintf("%s__section--context-%s", pageViewClassPrefix, prefix))
+		}
+		if paddingClass := buildSectionPaddingClass(pageViewClassPrefix, section.PaddingVertical); paddingClass != "" {
 			sectionClasses = append(sectionClasses, paddingClass)
 		}
-		if marginClass := buildSectionMarginClass(prefix, section.MarginVertical); marginClass != "" {
+		if marginClass := buildSectionMarginClass(pageViewClassPrefix, section.MarginVertical); marginClass != "" {
 			sectionClasses = append(sectionClasses, marginClass)
 		}
-		sectionTitleClass := fmt.Sprintf("%s__section-title", prefix)
-		sectionImageWrapperClass := fmt.Sprintf("%s__section-image", prefix)
-		sectionImageClass := fmt.Sprintf("%s__section-img", prefix)
+		sectionTitleClass := fmt.Sprintf("%s__section-title", pageViewClassPrefix)
+		sectionImageWrapperClass := fmt.Sprintf("%s__section-image", pageViewClassPrefix)
+		sectionImageClass := fmt.Sprintf("%s__section-img", pageViewClassPrefix)
 
 		sb.WriteString(`<section class="` + strings.Join(sectionClasses, " ") + `" id="section-` + template.HTMLEscapeString(section.ID) + `">`)
 		if wrapWithContainer {
@@ -77,10 +82,10 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			skipElements = true
 		case "posts_list":
 			skipElements = true
-			sb.WriteString(h.renderPostsListSection(prefix, section))
+			sb.WriteString(h.renderPostsListSection(pageViewClassPrefix, section))
 		case "categories_list":
 			skipElements = true
-			sb.WriteString(h.renderCategoriesListSection(prefix, section))
+			sb.WriteString(h.renderCategoriesListSection(pageViewClassPrefix, section))
 		case "courses_list":
 			skipElements = true
 			mode := strings.TrimSpace(strings.ToLower(section.Mode))
@@ -88,7 +93,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			if mode != constants.CourseListModeOwned && h.courseCheckoutEnabled() {
 				scripts = appendScripts(scripts, []string{"/static/js/courses-checkout.js"})
 			}
-			sb.WriteString(h.renderCoursesListSection(prefix, section))
+			sb.WriteString(h.renderCoursesListSection(pageViewClassPrefix, section))
 		}
 
 		if !skipElements {
@@ -96,8 +101,8 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			gridItemClass := ""
 			gridOpened := false
 			if sectionType == "grid" {
-				gridWrapperClass = fmt.Sprintf("%s__section-grid", prefix)
-				gridItemClass = fmt.Sprintf("%s__section-grid-item", prefix)
+				gridWrapperClass = fmt.Sprintf("%s__section-grid", pageViewClassPrefix)
+				gridItemClass = fmt.Sprintf("%s__section-grid-item", pageViewClassPrefix)
 
 				styleGridItems := true
 				if section.StyleGridItems != nil {
@@ -105,12 +110,12 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 				}
 
 				if !styleGridItems {
-					gridItemClass = gridItemClass + " " + fmt.Sprintf("%s__section-grid-item--plain", prefix)
+					gridItemClass = gridItemClass + " " + fmt.Sprintf("%s__section-grid-item--plain", pageViewClassPrefix)
 				}
 			}
 
 			for _, elem := range section.Elements {
-				html, elemScripts := h.renderSectionElement(prefix, elem)
+				html, elemScripts := h.renderSectionElement(pageViewClassPrefix, elem)
 				scripts = appendScripts(scripts, elemScripts)
 				if html == "" {
 					continue
