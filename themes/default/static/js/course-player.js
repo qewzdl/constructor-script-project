@@ -287,6 +287,21 @@
         return correct.join(", ");
     };
 
+    const typesetMath = (rootElement) => {
+        const mathJax = window.MathJax;
+        if (!mathJax || (!mathJax.typeset && !mathJax.typesetPromise)) {
+            return;
+        }
+        const elements = rootElement ? [rootElement] : undefined;
+        if (typeof mathJax.typesetPromise === "function") {
+            mathJax.typesetPromise(elements).catch(() => {});
+            return;
+        }
+        if (typeof mathJax.typeset === "function") {
+            mathJax.typeset(elements);
+        }
+    };
+
     const createQuestionElement = (question, index) => {
         const wrapper = document.createElement("div");
         wrapper.className = "course-player__question course-player__question--active";
@@ -945,6 +960,7 @@
                 progress.hidden = false;
                 updateProgress(index);
                 clearFeedback();
+                typesetMath(questionContainer);
                 window.requestAnimationFrame(() => {
                     currentQuestionUI?.focus();
                 });
@@ -1072,6 +1088,7 @@
                     }
 
                     result.appendChild(fragment);
+                    typesetMath(result);
                     result.hidden = false;
                 } catch (requestError) {
                     if (requestError && requestError.status === 401) {
