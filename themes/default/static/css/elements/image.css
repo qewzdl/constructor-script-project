@@ -1,15 +1,11 @@
-.post__content .post__image,
 .page-view__body .page-view__image {
     margin: var(--size-sm) 0;
 }
 
-.post__section-image,
 .page-view__section-image {
     margin: var(--size-sm) 0;
 }
 
-.post__content img,
-.post__content video,
 .page-view__body img,
 .page-view__body video {
     display: block;

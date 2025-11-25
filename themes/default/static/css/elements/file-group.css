@@ -1,31 +1,26 @@
-.post__file-group,
 .page-view__file-group {
     margin: var(--size-mid) 0;
     border-radius: var(--radius-md);
     background-color: var(--color-surface);
 }
 
-.post__file-group-title,
 .page-view__file-group-title {
     margin: 0 0 var(--size-sm);
     font-size: var(--font-size-xl);
 }
 
-.post__file-group-description,
 .page-view__file-group-description {
     margin: 0 0 var(--size-sm);
     color: var(--color-secondary);
     line-height: 1.5;
 }
 
-.post__file-list,
 .page-view__file-list {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-.post__file-list-item,
 .page-view__file-list-item {
     display: flex;
     align-items: center;
@@ -33,7 +28,6 @@
     padding: var(--size-sm) 0;
 }
 
-.post__file-link,
 .page-view__file-link {
     color: var(--color-primary);
     font-size: var(--font-size-base);
@@ -43,12 +37,10 @@
     gap: var(--size-sm);
 }
 
-.post__file-link:hover,
 .page-view__file-link:hover {
     text-decoration: underline;
 }
 
-.post__file-link-icon,
 .page-view__file-link-icon {
     width: calc(var(--size-base) + var(--size-xs));
     height: calc(var(--size-base) + var(--size-xs));
