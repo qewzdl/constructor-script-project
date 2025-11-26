@@ -1765,6 +1765,7 @@ body.post-image-modal-open .post-progress {
 .post__image-wrapper {
     overflow: hidden;
     background-color: var(--color-bg-top);
+    margin-bottom: var(--size-base);
 }
 
 .post__image-wrapper img {
@@ -1780,14 +1781,15 @@ body.post-image-modal-open .post-progress {
 }
 
 .post__title {
-    font-size: clamp(2rem, 5vw, 2.5rem);
+    font-size: clamp(1.5rem, 5vw, 2rem);
     font-weight: 900;
-    margin-top: var(--size-base);
 }
 
 .post__description {
     font-size: var(--font-size-base);
     color: var(--color-secondary);
+    padding-top: var(--size-base);
+    line-height: 1.6;
 }
 
 .post__meta {
