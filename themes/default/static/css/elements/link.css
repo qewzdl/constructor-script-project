@@ -1,4 +1,4 @@
-.page-view__body a {
+.page-view__body a, .post__content a {
     color: var(--color-primary);
     text-decoration: underline;
     text-decoration-thickness: 2px;

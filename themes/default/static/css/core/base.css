@@ -1764,7 +1764,6 @@ body.post-image-modal-open .post-progress {
 
 .post__image-wrapper {
     overflow: hidden;
-    border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
 }
 
@@ -1777,6 +1776,7 @@ body.post-image-modal-open .post-progress {
     width: 100%;
     display: block;
     border: 1px solid var(--color-border);
+    border-radius: var(--size-xs);
 }
 
 .post__title {
@@ -2024,6 +2024,14 @@ body.post-image-modal-open .post-progress {
 .post__related-date {
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
+}
+
+.post__content {
+    display: grid;
+    gap: var(--size-mid);
+    padding: var(--size-mid);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-top);
 }
 
 @media (min-width: 1024px) {

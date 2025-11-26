@@ -18,6 +18,6 @@
     line-height: 1.6;
 }
 
-.page-view__body li {
+.page-view__body li, .post__content li {
     position: relative;
 }

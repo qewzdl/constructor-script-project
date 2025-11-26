@@ -1,16 +1,16 @@
+.post__content,
 .page-view__body {
     display: grid;
     gap: var(--size-mid);
-    font-size: var(--font-size-lg);
-    padding: var(--size-mid);
-    border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
 }
 
+.post__content > *,
 .page-view__body > * {
     max-width: 100%;
 }
 
+.post__content figcaption,
 .page-view__body figcaption {
     display: none;
 }

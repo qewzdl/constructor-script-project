@@ -1,4 +1,4 @@
-.page-view__body .page-view__image {
+.page-view__image {
     margin: var(--size-sm) 0;
 }
 
@@ -6,8 +6,16 @@
     margin: var(--size-sm) 0;
 }
 
+.page-view__image-img {
+    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: var(--size-xs);
+}
+
 .page-view__body img,
-.page-view__body video {
+.page-view__body video,
+.post__content img,
+.post__content video {
     display: block;
     max-width: 100%;
 }
