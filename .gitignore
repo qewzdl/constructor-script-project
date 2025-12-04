@@ -1,4 +1,5 @@
 .env
+.jwt_secret
 tmp/
 air-build.log
 uploads/

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -412,24 +413,84 @@ func generateSecureRandomString(length int) string {
 	bytes := make([]byte, length)
 	if _, err := rand.Read(bytes); err != nil {
 		// Fallback to deterministic string to avoid returning empty secret
-		return "constructor-script-auto-generated-secret"
+		log.Printf("ERROR: Failed to generate secure random string: %v. Using fallback.", err)
+		return "constructor-script-auto-generated-secret-fallback-do-not-use-in-production"
 	}
 
 	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 
+// persistentSecretPath returns the path to the persisted JWT secret file
+func persistentSecretPath() string {
+	// Use a hidden file in the current directory
+	return ".jwt_secret"
+}
+
+// loadPersistedSecret loads a previously saved JWT secret from disk
+func loadPersistedSecret() (string, bool) {
+	path := persistentSecretPath()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", false
+	}
+	
+	secret := strings.TrimSpace(string(data))
+	if len(secret) >= 32 {
+		return secret, true
+	}
+	
+	return "", false
+}
+
+// persistSecret saves a JWT secret to disk for persistence across restarts
+func persistSecret(secret string) error {
+	path := persistentSecretPath()
+	
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(path)
+	if dir != "." && dir != "" {
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			return fmt.Errorf("failed to create directory for JWT secret: %w", err)
+		}
+	}
+	
+	// Write with restricted permissions (read/write for owner only)
+	if err := os.WriteFile(path, []byte(secret), 0600); err != nil {
+		return fmt.Errorf("failed to persist JWT secret: %w", err)
+	}
+	
+	return nil
+}
+
 func resolveJWTSecret() (string, bool, string) {
+	// First, check environment variable
 	if secret, ok := getEnvWithPresence("JWT_SECRET"); ok {
 		if len(secret) >= 32 {
 			return secret, false, ""
 		}
-		log.Printf("WARNING: Provided JWT_SECRET is too short (< 32 characters). Auto-generating a secure secret instead.")
-		return generateSecureRandomString(48), true, "provided secret too short"
+		log.Printf("WARNING: Provided JWT_SECRET is too short (< 32 characters). Falling back to auto-generated secret.")
+		// Don't return here - fall through to load or generate
 	}
 
-	log.Printf("WARNING: JWT_SECRET environment variable not set. Auto-generating a secure secret. For production, set JWT_SECRET to a strong, unique value.")
+	// Try to load persisted secret from previous run
+	if secret, ok := loadPersistedSecret(); ok {
+		log.Printf("INFO: Loaded JWT secret from persistent storage. All existing tokens remain valid.")
+		return secret, true, "loaded from persistent storage"
+	}
+
+	// Generate new secret and persist it
+	log.Printf("WARNING: JWT_SECRET not set and no persisted secret found. Generating and persisting a new secret.")
+	log.Printf("WARNING: For production, set JWT_SECRET environment variable to a strong, unique value (min 32 characters).")
+	
 	generated := generateSecureRandomString(48)
-	return generated, true, "missing JWT_SECRET environment variable"
+	
+	if err := persistSecret(generated); err != nil {
+		log.Printf("ERROR: Failed to persist JWT secret: %v. Secret will be lost on restart!", err)
+		return generated, true, "failed to persist generated secret"
+	}
+	
+	log.Printf("INFO: JWT secret persisted to %s. It will be reused on future restarts.", persistentSecretPath())
+	return generated, true, "generated and persisted new secret"
 }
 
 func getEnvAsBool(key string, defaultValue bool) bool {
