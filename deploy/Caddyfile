@@ -4,8 +4,26 @@
 
 {$SITE_DOMAIN} {
         encode gzip zstd
-        reverse_proxy api:8080
         header {
                 Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         }
+
+        # Serve static files (CSS, JS, icons)
+        @static {
+                path /static/*
+        }
+        file_server @static {
+                root /app/static
+        }
+
+        # Serve uploads
+        @uploads {
+                path /uploads/*
+        }
+        file_server @uploads {
+                root /app/uploads
+        }
+
+        # Everything else goes to API
+        reverse_proxy api:8080
 }
