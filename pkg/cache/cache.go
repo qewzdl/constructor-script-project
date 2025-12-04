@@ -9,9 +9,13 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
+const (
+	// defaultOperationTimeout is the timeout for individual Redis operations
+	defaultOperationTimeout = 5 * time.Second
+)
+
 type Cache struct {
 	client  *redis.Client
-	ctx     context.Context
 	enabled bool
 }
 
@@ -31,7 +35,8 @@ func NewCache(addr string, enable bool) (*Cache, error) {
 		WriteTimeout: 3 * time.Second,
 	})
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
 	if _, err := client.Ping(ctx).Result(); err != nil {
 		_ = client.Close()
@@ -40,27 +45,39 @@ func NewCache(addr string, enable bool) (*Cache, error) {
 
 	return &Cache{
 		client:  client,
-		ctx:     ctx,
 		enabled: true,
 	}, nil
+}
+
+// operationContext creates a context with timeout for Redis operations
+func (c *Cache) operationContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), defaultOperationTimeout)
 }
 
 func (c *Cache) Set(key string, value interface{}, expiration time.Duration) error {
 	if !c.enabled {
 		return nil
 	}
+
+	ctx, cancel := c.operationContext()
+	defer cancel()
+
 	jsonData, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	return c.client.Set(c.ctx, key, jsonData, expiration).Err()
+	return c.client.Set(ctx, key, jsonData, expiration).Err()
 }
 
 func (c *Cache) Get(key string, dest interface{}) error {
 	if !c.enabled {
 		return fmt.Errorf("cache disabled")
 	}
-	val, err := c.client.Get(c.ctx, key).Result()
+
+	ctx, cancel := c.operationContext()
+	defer cancel()
+
+	val, err := c.client.Get(ctx, key).Result()
 	if err == redis.Nil {
 		return fmt.Errorf("key not found")
 	} else if err != nil {
@@ -73,16 +90,24 @@ func (c *Cache) Delete(key string) error {
 	if !c.enabled {
 		return nil
 	}
-	return c.client.Del(c.ctx, key).Err()
+
+	ctx, cancel := c.operationContext()
+	defer cancel()
+
+	return c.client.Del(ctx, key).Err()
 }
 
 func (c *Cache) DeletePattern(pattern string) error {
 	if !c.enabled {
 		return nil
 	}
-	iter := c.client.Scan(c.ctx, 0, pattern, 0).Iterator()
-	for iter.Next(c.ctx) {
-		if err := c.client.Del(c.ctx, iter.Val()).Err(); err != nil {
+
+	ctx, cancel := c.operationContext()
+	defer cancel()
+
+	iter := c.client.Scan(ctx, 0, pattern, 0).Iterator()
+	for iter.Next(ctx) {
+		if err := c.client.Del(ctx, iter.Val()).Err(); err != nil {
 			return err
 		}
 	}
@@ -93,7 +118,11 @@ func (c *Cache) Exists(key string) (bool, error) {
 	if !c.enabled {
 		return false, nil
 	}
-	val, err := c.client.Exists(c.ctx, key).Result()
+
+	ctx, cancel := c.operationContext()
+	defer cancel()
+
+	val, err := c.client.Exists(ctx, key).Result()
 	return val > 0, err
 }
 
@@ -101,21 +130,33 @@ func (c *Cache) Increment(key string) (int64, error) {
 	if !c.enabled {
 		return 0, nil
 	}
-	return c.client.Incr(c.ctx, key).Result()
+
+	ctx, cancel := c.operationContext()
+	defer cancel()
+
+	return c.client.Incr(ctx, key).Result()
 }
 
 func (c *Cache) Expire(key string, expiration time.Duration) error {
 	if !c.enabled {
 		return nil
 	}
-	return c.client.Expire(c.ctx, key, expiration).Err()
+
+	ctx, cancel := c.operationContext()
+	defer cancel()
+
+	return c.client.Expire(ctx, key, expiration).Err()
 }
 
 func (c *Cache) FlushAll() error {
 	if !c.enabled {
 		return nil
 	}
-	return c.client.FlushAll(c.ctx).Err()
+
+	ctx, cancel := c.operationContext()
+	defer cancel()
+
+	return c.client.FlushAll(ctx).Err()
 }
 
 func (c *Cache) Close() error {
@@ -169,7 +210,11 @@ func (c *Cache) GetViews(postID uint) (int64, error) {
 	if !c.enabled {
 		return 0, nil
 	}
-	val, err := c.client.Get(c.ctx, fmt.Sprintf("views:%d", postID)).Int64()
+
+	ctx, cancel := c.operationContext()
+	defer cancel()
+
+	val, err := c.client.Get(ctx, fmt.Sprintf("views:%d", postID)).Int64()
 	if err == redis.Nil {
 		return 0, nil
 	}
