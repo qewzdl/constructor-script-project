@@ -47,18 +47,21 @@ func (h *BackupHandler) UpdateSettings(c *gin.Context) {
 
 	var req models.UpdateBackupSettingsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to parse backup settings request", nil)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
 	settings, err := h.service.UpdateAutoSettings(req)
 	if err != nil {
 		status := http.StatusInternalServerError
+		errorMsg := "Failed to update backup settings"
 		if errors.Is(err, service.ErrInvalidBackupSettings) {
 			status = http.StatusBadRequest
+			errorMsg = "Invalid backup settings provided"
 		}
 		logger.Error(err, "Failed to update backup settings", nil)
-		c.JSON(status, gin.H{"error": err.Error()})
+		c.JSON(status, gin.H{"error": errorMsg})
 		return
 	}
 
@@ -147,11 +150,19 @@ func (h *BackupHandler) Import(c *gin.Context) {
 	summary, restoreErr := h.service.RestoreArchive(c.Request.Context(), uploaded, fileHeader.Size)
 	if restoreErr != nil {
 		status := http.StatusInternalServerError
-		if errors.Is(restoreErr, service.ErrInvalidBackup) || errors.Is(restoreErr, service.ErrBackupVersion) || errors.Is(restoreErr, service.ErrBackupEncrypted) {
+		errorMsg := "Failed to restore backup"
+		if errors.Is(restoreErr, service.ErrInvalidBackup) {
 			status = http.StatusBadRequest
+			errorMsg = "Invalid backup file format"
+		} else if errors.Is(restoreErr, service.ErrBackupVersion) {
+			status = http.StatusBadRequest
+			errorMsg = "Backup version is not supported"
+		} else if errors.Is(restoreErr, service.ErrBackupEncrypted) {
+			status = http.StatusBadRequest
+			errorMsg = "Backup file is encrypted"
 		}
 		logger.Error(restoreErr, "Failed to restore backup", nil)
-		c.JSON(status, gin.H{"error": restoreErr.Error()})
+		c.JSON(status, gin.H{"error": errorMsg})
 		return
 	}
 

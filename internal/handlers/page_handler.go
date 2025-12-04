@@ -3,6 +3,7 @@ package handlers
 import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
+	"constructor-script-backend/pkg/logger"
 	"net/http"
 	"strconv"
 
@@ -20,13 +21,15 @@ func NewPageHandler(pageService *service.PageService) *PageHandler {
 func (h *PageHandler) Create(c *gin.Context) {
 	var req models.CreatePageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to parse create page request", nil)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
 	page, err := h.pageService.Create(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to create page", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create page"})
 		return
 	}
 
@@ -42,13 +45,15 @@ func (h *PageHandler) Update(c *gin.Context) {
 
 	var req models.UpdatePageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to parse update page request", nil)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
 	page, err := h.pageService.Update(uint(id), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to update page", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update page"})
 		return
 	}
 
@@ -63,7 +68,8 @@ func (h *PageHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.pageService.Delete(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to delete page", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete page"})
 		return
 	}
 
@@ -101,7 +107,8 @@ func (h *PageHandler) GetBySlug(c *gin.Context) {
 func (h *PageHandler) GetAll(c *gin.Context) {
 	pages, err := h.pageService.GetAll()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to retrieve all pages", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve pages"})
 		return
 	}
 
@@ -111,7 +118,8 @@ func (h *PageHandler) GetAll(c *gin.Context) {
 func (h *PageHandler) GetAllAdmin(c *gin.Context) {
 	pages, err := h.pageService.GetAllAdmin()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to retrieve all admin pages", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve pages"})
 		return
 	}
 
@@ -121,13 +129,15 @@ func (h *PageHandler) GetAllAdmin(c *gin.Context) {
 func (h *PageHandler) UpdateAllSectionPadding(c *gin.Context) {
 	var req models.UpdateAllPageSectionsPaddingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to parse update section padding request", nil)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
 	pagesUpdated, sectionsUpdated, padding, err := h.pageService.UpdateAllSectionPadding(req.PaddingVertical)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to update all section padding", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update section padding"})
 		return
 	}
 
@@ -146,7 +156,8 @@ func (h *PageHandler) PublishPage(c *gin.Context) {
 	}
 
 	if err := h.pageService.PublishPage(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to publish page", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to publish page"})
 		return
 	}
 
@@ -161,7 +172,8 @@ func (h *PageHandler) UnpublishPage(c *gin.Context) {
 	}
 
 	if err := h.pageService.UnpublishPage(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.Error(err, "Failed to unpublish page", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unpublish page"})
 		return
 	}
 
