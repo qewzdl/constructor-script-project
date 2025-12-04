@@ -102,11 +102,11 @@ func UploadRateLimitMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 		if !limiter.Allow() {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":            "upload rate limit exceeded",
-				"message":          "Too many upload requests. Please try again later.",
-				"retry_after":      int(windowSeconds),
-				"max_requests":     requestsPerWindow,
-				"window_seconds":   windowSeconds,
+				"error":          "upload rate limit exceeded",
+				"message":        "Too many upload requests. Please try again later.",
+				"retry_after":    int(windowSeconds),
+				"max_requests":   requestsPerWindow,
+				"window_seconds": windowSeconds,
 			})
 			c.Abort()
 			return
@@ -136,11 +136,11 @@ func BackupRateLimitMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 		if !limiter.Allow() {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":            "backup rate limit exceeded",
-				"message":          "Too many backup requests. Please try again later.",
-				"retry_after":      int(windowSeconds),
-				"max_requests":     requestsPerWindow,
-				"window_seconds":   windowSeconds,
+				"error":          "backup rate limit exceeded",
+				"message":        "Too many backup requests. Please try again later.",
+				"retry_after":    int(windowSeconds),
+				"max_requests":   requestsPerWindow,
+				"window_seconds": windowSeconds,
 			})
 			c.Abort()
 			return

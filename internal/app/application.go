@@ -308,6 +308,13 @@ func (a *Application) Shutdown(ctx context.Context) error {
 		a.services.Backup.ShutdownAutoBackups()
 	}
 
+	// Clean up plugin runtime to free memory
+	if a.pluginRuntime != nil {
+		if err := a.pluginRuntime.Clear(); err != nil {
+			logger.Error(err, "Failed to clear plugin runtime", nil)
+		}
+	}
+
 	if a.cache != nil {
 		if err := a.cache.Close(); err != nil {
 			logger.Error(err, "Failed to close cache connection", nil)

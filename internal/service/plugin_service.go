@@ -538,6 +538,13 @@ func (s *PluginService) Delete(slug string) (models.PluginInfo, error) {
 			}
 		}
 
+		// Clean up runtime memory by unregistering the feature
+		if s.runtime != nil {
+			if err := s.runtime.Unregister(cleaned); err != nil {
+				return models.PluginInfo{}, err
+			}
+		}
+
 		installedAt := record.InstalledAt
 		info = models.PluginInfo{
 			Slug:           cleaned,
