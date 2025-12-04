@@ -19,6 +19,7 @@
 	# UPLOADS
 	handle_path /uploads/* {
 		root * /app/uploads
+		try_files {path}
 		file_server
 	}
 
