@@ -23,15 +23,19 @@ import (
 )
 
 type UploadService struct {
-	uploadDir         string
-	maxSize           int64
-	allowedTypes      []string
-	videoMaxSize      int64
-	videoAllowedTypes []string
-	fileMaxSize       int64
-	fileAllowedTypes  []string
-	subtitleManager   *SubtitleManager
-	subtitleConfig    SubtitleGenerationConfig
+	uploadDir             string
+	maxSize               int64
+	allowedTypes          []string
+	allowedMimeTypes      []string
+	videoMaxSize          int64
+	videoAllowedTypes     []string
+	videoAllowedMimeTypes []string
+	fileMaxSize           int64
+	fileAllowedTypes      []string
+	fileAllowedMimeTypes  []string
+	subtitleManager       *SubtitleManager
+	subtitleConfig        SubtitleGenerationConfig
+	validateMimeType      bool
 }
 
 type UploadInfo struct {
@@ -84,17 +88,38 @@ func NewUploadService(uploadDir string) *UploadService {
 	}
 
 	return &UploadService{
-		uploadDir:         uploadDir,
-		maxSize:           10 * 1024 * 1024,
-		allowedTypes:      []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".ico", ".svg"},
-		videoMaxSize:      2 * 1024 * 1024 * 1024,
-		videoAllowedTypes: []string{".mp4", ".m4v", ".mov"},
-		fileMaxSize:       50 * 1024 * 1024,
+		uploadDir:             uploadDir,
+		maxSize:               10 * 1024 * 1024,
+		allowedTypes:          []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".ico", ".svg"},
+		allowedMimeTypes:      []string{"image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml", "image/x-icon"},
+		videoMaxSize:          2 * 1024 * 1024 * 1024,
+		videoAllowedTypes:     []string{".mp4", ".m4v", ".mov"},
+		videoAllowedMimeTypes: []string{"video/mp4", "video/quicktime", "video/x-m4v"},
+		fileMaxSize:           50 * 1024 * 1024,
 		fileAllowedTypes: []string{
 			".pdf", ".txt", ".csv", ".json", ".xml", ".md", ".vtt",
 			".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
 			".zip", ".tar", ".gz", ".tgz", ".rar", ".7z",
 		},
+		fileAllowedMimeTypes: []string{
+			"application/pdf",
+			"text/plain",
+			"text/csv",
+			"application/json",
+			"text/xml",
+			"application/xml",
+			"text/markdown",
+			"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+			"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+			"application/zip",
+			"application/gzip",
+			"application/x-tar",
+			"application/x-rar-compressed",
+			"application/x-7z-compressed",
+			"text/vtt",
+		},
+		validateMimeType: true,
 	}
 }
 
@@ -392,6 +417,46 @@ func (s *UploadService) isAllowedType(ext string, allowed []string) bool {
 	return false
 }
 
+// validateMIMEType validates the MIME type from file content
+// It reads first 2KB to detect the actual file type using magic numbers
+func (s *UploadService) validateMIMEType(file *multipart.FileHeader, allowedMimeTypes []string) error {
+	if !s.validateMimeType || len(allowedMimeTypes) == 0 {
+		return nil
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("failed to open file for MIME validation: %w", err)
+	}
+	defer src.Close()
+
+	// Read first 2KB to detect file type
+	buf := make([]byte, 2048)
+	n, err := src.Read(buf)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("failed to read file content: %w", err)
+	}
+
+	// Detect actual file type from content
+	detectedMimeType := validator.DetectFileType(buf[:n])
+	if detectedMimeType == "" {
+		// Fall back to Content-Type header if magic number detection fails
+		detectedMimeType = strings.ToLower(strings.TrimSpace(file.Header.Get("Content-Type")))
+	}
+
+	detectedMimeType = strings.ToLower(detectedMimeType)
+	if detectedMimeType == "" {
+		return errors.New("unable to determine file type - invalid or corrupt file")
+	}
+
+	// Validate against allowed MIME types
+	if !validator.ValidateContentType(detectedMimeType, allowedMimeTypes) {
+		return fmt.Errorf("file type '%s' not allowed - expected one of: %s", detectedMimeType, strings.Join(allowedMimeTypes, ", "))
+	}
+
+	return nil
+}
+
 func (s *UploadService) generateFilename(originalName, preferredName, ext string) string {
 
 	baseName := strings.TrimSpace(preferredName)
@@ -652,6 +717,11 @@ func (s *UploadService) uploadImage(file *multipart.FileHeader, preferredName st
 		return UploadInfo{}, ErrUnsupportedUpload
 	}
 
+	// Validate MIME type from file content
+	if err := s.validateMIMEType(file, s.allowedMimeTypes); err != nil {
+		return UploadInfo{}, err
+	}
+
 	info, _, err := s.persistUpload(file, preferredName, ext, s.maxSize, UploadCategoryImage)
 	return info, err
 }
@@ -667,6 +737,11 @@ func (s *UploadService) uploadVideo(ctx context.Context, file *multipart.FileHea
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if !s.isAllowedType(ext, s.videoAllowedTypes) {
 		return VideoUploadResult{}, ErrUnsupportedUpload
+	}
+
+	// Validate MIME type from file content
+	if err := s.validateMIMEType(file, s.videoAllowedMimeTypes); err != nil {
+		return VideoUploadResult{}, err
 	}
 
 	upload, filePath, err := s.persistUpload(file, preferredName, ext, s.videoMaxSize, UploadCategoryVideo)
@@ -729,6 +804,11 @@ func (s *UploadService) uploadDocument(file *multipart.FileHeader, preferredName
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if !s.isAllowedType(ext, s.fileAllowedTypes) {
 		return UploadInfo{}, ErrUnsupportedUpload
+	}
+
+	// Validate MIME type from file content
+	if err := s.validateMIMEType(file, s.fileAllowedMimeTypes); err != nil {
+		return UploadInfo{}, err
 	}
 
 	info, _, err := s.persistUpload(file, preferredName, ext, s.fileMaxSize, UploadCategoryFile)

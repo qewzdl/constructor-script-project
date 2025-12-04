@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"constructor-script-backend/internal/service"
+	"constructor-script-backend/pkg/validator"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,6 +29,14 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 		}
 	}
 
+	// Validate Content-Type header
+	contentType := file.Header.Get("Content-Type")
+	if contentType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing Content-Type header"})
+		return
+	}
+
+	// Validate file content against allowed types
 	preferredName := strings.TrimSpace(c.PostForm("name"))
 
 	upload, err := h.uploadService.Upload(file, preferredName)
@@ -62,6 +71,21 @@ func (h *UploadHandler) UploadMultiple(c *gin.Context) {
 	if len(files) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no files uploaded"})
 		return
+	}
+
+	// Validate Content-Type headers for all files
+	for _, file := range files {
+		contentType := file.Header.Get("Content-Type")
+		if contentType == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "missing Content-Type header for one or more files"})
+			return
+		}
+
+		// Validate it's an image MIME type
+		if !validator.ValidateImageContentType(contentType) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid Content-Type header - images only"})
+			return
+		}
 	}
 
 	urls, err := h.uploadService.UploadMultipleImages(files)
