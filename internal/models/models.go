@@ -122,14 +122,14 @@ type Comment struct {
 	Approved bool   `gorm:"default:true" json:"approved"`
 
 	PostID uint `gorm:"not null" json:"post_id"`
-	Post   Post `gorm:"foreignKey:PostID" json:"post,omitempty"`
+	Post   Post `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE" json:"post,omitempty"`
 
 	AuthorID uint `gorm:"not null" json:"author_id"`
-	Author   User `gorm:"foreignKey:AuthorID" json:"author"`
+	Author   User `gorm:"foreignKey:AuthorID;constraint:OnDelete:CASCADE" json:"author"`
 
 	ParentID *uint      `json:"parent_id"`
-	Parent   *Comment   `gorm:"foreignKey:ParentID" json:"parent,omitempty"`
-	Replies  []*Comment `gorm:"foreignKey:ParentID" json:"replies,omitempty"`
+	Parent   *Comment   `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE" json:"parent,omitempty"`
+	Replies  []*Comment `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE" json:"replies,omitempty"`
 }
 
 type ForumQuestion struct {

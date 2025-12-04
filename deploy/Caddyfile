@@ -3,7 +3,6 @@
 }
 
 {$SITE_DOMAIN} {
-
 	encode gzip zstd
 
 	header {

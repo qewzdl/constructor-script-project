@@ -373,6 +373,20 @@ func (a *Application) runMigrations() error {
 		}
 	}
 
+	// Fix comment foreign key constraints to cascade delete
+	if migrator.HasTable(&models.Comment{}) {
+		// Drop old constraints without cascade
+		if err := a.db.Migrator().DropConstraint(&models.Comment{}, "fk_users_comments"); err == nil {
+			logger.Info("Dropped old foreign key constraint fk_users_comments", nil)
+		}
+		if err := a.db.Migrator().DropConstraint(&models.Comment{}, "fk_posts_comments"); err == nil {
+			logger.Info("Dropped old foreign key constraint fk_posts_comments", nil)
+		}
+		if err := a.db.Migrator().DropConstraint(&models.Comment{}, "fk_comments_parent_id"); err == nil {
+			logger.Info("Dropped old foreign key constraint fk_comments_parent_id", nil)
+		}
+	}
+
 	if migrator.HasTable(&models.CourseTopicStep{}) {
 		if err := a.db.Exec("ALTER TABLE course_topic_steps ADD COLUMN IF NOT EXISTS test_id bigint").Error; err != nil {
 			return fmt.Errorf("failed to ensure course topic step test reference: %w", err)
