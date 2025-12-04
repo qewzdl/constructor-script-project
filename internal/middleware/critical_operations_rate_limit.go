@@ -3,7 +3,6 @@ package middleware
 import (
 	"constructor-script-backend/internal/config"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,71 +13,6 @@ import (
 type criticalOperationVisitor struct {
 	limiter  *rate.Limiter
 	lastSeen time.Time
-}
-
-var (
-	// uploadLimiters tracks rate limits per IP for upload operations
-	uploadLimiters   = make(map[string]*criticalOperationVisitor)
-	uploadLimitersMu sync.RWMutex
-
-	// backupLimiters tracks rate limits per IP for backup operations
-	backupLimiters   = make(map[string]*criticalOperationVisitor)
-	backupLimitersMu sync.RWMutex
-)
-
-func getCriticalOperationLimiter(ip string, limiters map[string]*criticalOperationVisitor, mu *sync.RWMutex, requestsPerWindow int, windowSeconds int) *rate.Limiter {
-	mu.Lock()
-	defer mu.Unlock()
-
-	if requestsPerWindow <= 0 {
-		return nil
-	}
-
-	v, exists := limiters[ip]
-	if !exists {
-		if windowSeconds <= 0 {
-			windowSeconds = 60
-		}
-
-		limitPerSecond := float64(requestsPerWindow) / float64(windowSeconds)
-		limit := rate.Limit(limitPerSecond)
-		if limitPerSecond <= 0 {
-			limit = rate.Inf
-		}
-
-		limiter := rate.NewLimiter(limit, requestsPerWindow)
-		limiters[ip] = &criticalOperationVisitor{limiter, time.Now()}
-		return limiter
-	}
-
-	v.lastSeen = time.Now()
-	return v.limiter
-}
-
-func cleanupCriticalOperationVisitors() {
-	for {
-		time.Sleep(5 * time.Minute)
-
-		uploadLimitersMu.Lock()
-		for ip, v := range uploadLimiters {
-			if time.Since(v.lastSeen) > 10*time.Minute {
-				delete(uploadLimiters, ip)
-			}
-		}
-		uploadLimitersMu.Unlock()
-
-		backupLimitersMu.Lock()
-		for ip, v := range backupLimiters {
-			if time.Since(v.lastSeen) > 10*time.Minute {
-				delete(backupLimiters, ip)
-			}
-		}
-		backupLimitersMu.Unlock()
-	}
-}
-
-func init() {
-	go cleanupCriticalOperationVisitors()
 }
 
 // UploadRateLimitMiddleware limits file upload operations per IP
@@ -94,7 +28,26 @@ func UploadRateLimitMiddleware(cfg *config.Config) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		limiter := getCriticalOperationLimiter(c.ClientIP(), uploadLimiters, &uploadLimitersMu, requestsPerWindow, windowSeconds)
+		// Get manager from context
+		managerVal, exists := c.Get("rateLimitManager")
+		if !exists {
+			c.Next()
+			return
+		}
+
+		manager, ok := managerVal.(*RateLimitManager)
+		if !ok || manager == nil {
+			c.Next()
+			return
+		}
+
+		limiter := manager.GetCriticalOperationLimiter(
+			c.ClientIP(),
+			"upload",
+			requestsPerWindow,
+			windowSeconds,
+		)
+
 		if limiter == nil {
 			c.Next()
 			return
@@ -128,7 +81,26 @@ func BackupRateLimitMiddleware(cfg *config.Config) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		limiter := getCriticalOperationLimiter(c.ClientIP(), backupLimiters, &backupLimitersMu, requestsPerWindow, windowSeconds)
+		// Get manager from context
+		managerVal, exists := c.Get("rateLimitManager")
+		if !exists {
+			c.Next()
+			return
+		}
+
+		manager, ok := managerVal.(*RateLimitManager)
+		if !ok || manager == nil {
+			c.Next()
+			return
+		}
+
+		limiter := manager.GetCriticalOperationLimiter(
+			c.ClientIP(),
+			"backup",
+			requestsPerWindow,
+			windowSeconds,
+		)
+
 		if limiter == nil {
 			c.Next()
 			return

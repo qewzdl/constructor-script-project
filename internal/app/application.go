@@ -65,12 +65,13 @@ type Application struct {
 	handlers       handlerContainer
 	pluginBindings pluginBindingContainer
 
-	themeManager    *theme.Manager
-	pluginManager   *plugin.Manager
-	pluginRuntime   *pluginruntime.Runtime
-	templateHandler *handlers.TemplateHandler
-	router          *gin.Engine
-	server          *http.Server
+	themeManager     *theme.Manager
+	pluginManager    *plugin.Manager
+	pluginRuntime    *pluginruntime.Runtime
+	rateLimitManager *middleware.RateLimitManager
+	templateHandler  *handlers.TemplateHandler
+	router           *gin.Engine
+	server           *http.Server
 }
 
 type repositoryContainer struct {
@@ -207,6 +208,9 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 	app.initCache()
 	app.initRepositories()
 
+	// Initialize rate limit manager with application context
+	app.rateLimitManager = middleware.NewRateLimitManager(context.Background())
+
 	app.scheduler = background.NewScheduler(background.SchedulerConfig{})
 	app.scheduler.Start(context.Background())
 
@@ -214,6 +218,11 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 	defer func() {
 		if !cleanupNeeded {
 			return
+		}
+		if app.rateLimitManager != nil {
+			if err := app.rateLimitManager.Shutdown(); err != nil {
+				logger.Error(err, "Failed to shutdown rate limit manager during initialization", nil)
+			}
 		}
 		if app.scheduler != nil {
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -295,6 +304,12 @@ func (a *Application) Shutdown(ctx context.Context) error {
 	if a.server != nil {
 		if err := a.server.Shutdown(ctx); err != nil {
 			return err
+		}
+	}
+
+	if a.rateLimitManager != nil {
+		if err := a.rateLimitManager.Shutdown(); err != nil {
+			logger.Error(err, "Failed to shutdown rate limit manager", nil)
 		}
 	}
 
@@ -1092,6 +1107,15 @@ func (a *Application) initRouter() error {
 	router.Use(logger.GinLogger())
 	router.Use(middleware.SecurityHeadersMiddleware(a.cfg, a.services.Advertising))
 	router.Use(middleware.MetricsMiddleware())
+
+	// Set rate limit manager in context for all requests
+	router.Use(func(c *gin.Context) {
+		if a.rateLimitManager != nil {
+			c.Set("rateLimitManager", a.rateLimitManager)
+		}
+		c.Next()
+	})
+
 	router.Use(middleware.RateLimitMiddleware(a.cfg))
 	router.Use(middleware.CSRFMiddleware())
 

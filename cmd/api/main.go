@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -30,29 +30,35 @@ func main() {
 	application, err := app.New(cfg, app.Options{ThemesDir: "./themes", DefaultTheme: "default", PluginsDir: "./plugins"})
 	if err != nil {
 		logger.Error(err, "Failed to initialize application", nil)
-		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	serverErr := make(chan error, 1)
 	go func() {
 		if err := application.Run(); err != nil && err != http.ErrServerClosed {
 			logger.Error(err, "Failed to start server", nil)
-			log.Fatal(err)
+			serverErr <- err
 		}
 	}()
 
-	<-ctx.Done()
-
-	logger.Info("Shutting down server...", nil)
+	// Wait for either interrupt signal or server error
+	select {
+	case <-ctx.Done():
+		logger.Info("Shutting down server...", nil)
+	case err := <-serverErr:
+		logger.Error(err, "Server error occurred, initiating shutdown", nil)
+		stop()
+	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := application.Shutdown(shutdownCtx); err != nil {
 		logger.Error(err, "Server forced to shutdown", nil)
-		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	logger.Info("Server exited gracefully", nil)
