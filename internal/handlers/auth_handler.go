@@ -36,6 +36,14 @@ const (
 	csrfTokenBytes      = 32
 )
 
+// cookieConfig holds cookie configuration
+type cookieConfig struct {
+	name     string
+	value    string
+	maxAge   int
+	httpOnly bool
+}
+
 func generateCSRFToken() (string, error) {
 	token := make([]byte, csrfTokenBytes)
 	if _, err := rand.Read(token); err != nil {
@@ -44,28 +52,47 @@ func generateCSRFToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(token), nil
 }
 
-func (h *AuthHandler) setAuthCookie(c *gin.Context, token string, maxAge int) {
+// setCookie is a unified method for setting cookies with proper security settings
+func (h *AuthHandler) setCookie(c *gin.Context, cfg cookieConfig) {
 	secure := c.Request.TLS != nil
 	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(constants.AuthTokenCookieName, token, maxAge, "/", "", secure, true)
+	c.SetCookie(cfg.name, cfg.value, cfg.maxAge, "/", "", secure, cfg.httpOnly)
+}
+
+func (h *AuthHandler) setAuthCookie(c *gin.Context, token string, maxAge int) {
+	h.setCookie(c, cookieConfig{
+		name:     constants.AuthTokenCookieName,
+		value:    token,
+		maxAge:   maxAge,
+		httpOnly: true,
+	})
 }
 
 func (h *AuthHandler) setCSRFCookie(c *gin.Context, token string, maxAge int) {
-	secure := c.Request.TLS != nil
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(constants.CSRFTokenCookieName, token, maxAge, "/", "", secure, false)
+	h.setCookie(c, cookieConfig{
+		name:     constants.CSRFTokenCookieName,
+		value:    token,
+		maxAge:   maxAge,
+		httpOnly: false,
+	})
 }
 
 func (h *AuthHandler) clearAuthCookie(c *gin.Context) {
-	secure := c.Request.TLS != nil
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(constants.AuthTokenCookieName, "", -1, "/", "", secure, true)
+	h.setCookie(c, cookieConfig{
+		name:     constants.AuthTokenCookieName,
+		value:    "",
+		maxAge:   -1,
+		httpOnly: true,
+	})
 }
 
 func (h *AuthHandler) clearCSRFCookie(c *gin.Context) {
-	secure := c.Request.TLS != nil
-	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie(constants.CSRFTokenCookieName, "", -1, "/", "", secure, false)
+	h.setCookie(c, cookieConfig{
+		name:     constants.CSRFTokenCookieName,
+		value:    "",
+		maxAge:   -1,
+		httpOnly: false,
+	})
 }
 
 func bindAuthRequest(c *gin.Context, req interface{}) error {
