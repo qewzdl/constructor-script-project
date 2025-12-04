@@ -66,6 +66,12 @@ type Config struct {
 	RateLimitWindow   int
 	RateLimitBurst    int
 
+	// Critical Operations Rate Limiting
+	UploadRateLimitRequests int
+	UploadRateLimitWindow   int
+	BackupRateLimitRequests int
+	BackupRateLimitWindow   int
+
 	// Comment Safety
 	CommentRateLimitRequests        int
 	CommentRateLimitWindow          int
@@ -177,6 +183,12 @@ func New() *Config {
 		RateLimitRequests: getEnvAsInt("RATE_LIMIT_REQUESTS", 100),
 		RateLimitWindow:   getEnvAsInt("RATE_LIMIT_WINDOW", 60),
 		RateLimitBurst:    getEnvAsInt("RATE_LIMIT_BURST", 0),
+
+		// Critical Operations Rate Limiting
+		UploadRateLimitRequests: getEnvAsInt("UPLOAD_RATE_LIMIT_REQUESTS", 10),
+		UploadRateLimitWindow:   getEnvAsInt("UPLOAD_RATE_LIMIT_WINDOW", 300),
+		BackupRateLimitRequests: getEnvAsInt("BACKUP_RATE_LIMIT_REQUESTS", 5),
+		BackupRateLimitWindow:   getEnvAsInt("BACKUP_RATE_LIMIT_WINDOW", 3600),
 
 		// Comment Safety
 		CommentRateLimitRequests:        getEnvAsInt("COMMENT_RATE_LIMIT_REQUESTS", 12),

@@ -1262,7 +1262,12 @@ func (a *Application) initRouter() error {
 			content.GET("/pages", a.handlers.Page.GetAllAdmin)
 			content.POST("/pages/sections/padding", a.handlers.Page.UpdateAllSectionPadding)
 
-			content.POST("/upload", a.handlers.Upload.Upload)
+			// Upload operations with rate limiting
+			uploads := content.Group("")
+			uploads.Use(middleware.UploadRateLimitMiddleware(a.cfg))
+			{
+				uploads.POST("/upload", a.handlers.Upload.Upload)
+			}
 			content.GET("/uploads", a.handlers.Upload.List)
 			content.DELETE("/uploads", a.handlers.Upload.Delete)
 			content.PUT("/uploads/rename", a.handlers.Upload.Rename)
@@ -1362,8 +1367,15 @@ func (a *Application) initRouter() error {
 			settings.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
 			settings.GET("/settings/homepage", a.handlers.Homepage.Get)
 			settings.PUT("/settings/homepage", a.handlers.Homepage.Update)
-			settings.POST("/settings/favicon", a.handlers.Setup.UploadFavicon)
-			settings.POST("/settings/logo", a.handlers.Setup.UploadLogo)
+
+			// Settings file upload operations with rate limiting
+			settingsUploads := settings.Group("")
+			settingsUploads.Use(middleware.UploadRateLimitMiddleware(a.cfg))
+			{
+				settingsUploads.POST("/settings/favicon", a.handlers.Setup.UploadFavicon)
+				settingsUploads.POST("/settings/logo", a.handlers.Setup.UploadLogo)
+			}
+
 			settings.GET("/settings/advertising", a.handlers.Advertising.Get)
 			settings.PUT("/settings/advertising", a.handlers.Advertising.Update)
 
@@ -1414,8 +1426,14 @@ func (a *Application) initRouter() error {
 		{
 			backups.GET("/backups/settings", a.handlers.Backup.GetSettings)
 			backups.PUT("/backups/settings", a.handlers.Backup.UpdateSettings)
-			backups.GET("/backups/export", a.handlers.Backup.Export)
-			backups.POST("/backups/import", a.handlers.Backup.Import)
+
+			// Backup export/import operations with rate limiting
+			backupOps := backups.Group("")
+			backupOps.Use(middleware.BackupRateLimitMiddleware(a.cfg))
+			{
+				backupOps.GET("/backups/export", a.handlers.Backup.Export)
+				backupOps.POST("/backups/import", a.handlers.Backup.Import)
+			}
 		}
 	}
 
