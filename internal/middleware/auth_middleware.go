@@ -13,34 +13,47 @@ import (
 	"constructor-script-backend/internal/constants"
 )
 
+// extractTokenFromHeader extracts JWT token from Authorization header
+// Returns empty string if header is missing or invalid
+func extractTokenFromHeader(c *gin.Context) string {
+	authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+	if authHeader == "" {
+		return ""
+	}
+
+	bearerToken := strings.SplitN(authHeader, " ", 2)
+	if len(bearerToken) != 2 || !strings.EqualFold(bearerToken[0], "Bearer") {
+		return ""
+	}
+
+	return strings.TrimSpace(bearerToken[1])
+}
+
+// extractTokenFromCookie extracts JWT token from cookie
+// Returns empty string if cookie is missing or empty
+func extractTokenFromCookie(c *gin.Context) string {
+	cookieToken, err := c.Cookie(constants.AuthTokenCookieName)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(cookieToken)
+}
+
 func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var tokenString string
+		// Extract token from Authorization header first (priority)
+		tokenString := extractTokenFromHeader(c)
 
-		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
-		if authHeader != "" {
-			bearerToken := strings.SplitN(authHeader, " ", 2)
-			if len(bearerToken) == 2 && strings.EqualFold(bearerToken[0], "Bearer") {
-				tokenString = strings.TrimSpace(bearerToken[1])
-			} else {
-				if cookieToken, err := c.Cookie(constants.AuthTokenCookieName); err == nil && strings.TrimSpace(cookieToken) != "" {
-					tokenString = cookieToken
-				} else {
-					c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
-					c.Abort()
-					return
-				}
-			}
+		// If no valid token in header, try cookie
+		if tokenString == "" {
+			tokenString = extractTokenFromCookie(c)
 		}
 
+		// If still no token found, return unauthorized
 		if tokenString == "" {
-			if cookieToken, err := c.Cookie(constants.AuthTokenCookieName); err == nil && strings.TrimSpace(cookieToken) != "" {
-				tokenString = cookieToken
-			} else {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization credentials required"})
-				c.Abort()
-				return
-			}
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization credentials required"})
+			c.Abort()
+			return
 		}
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
