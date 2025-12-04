@@ -8,6 +8,7 @@ func DefaultRegistry() *Registry {
 }
 
 // RegisterDefaults adds the built-in section renderers to the provided registry.
+// Registration errors are silently ignored to prevent panics in production.
 func RegisterDefaults(reg *Registry) {
 	if reg == nil {
 		return

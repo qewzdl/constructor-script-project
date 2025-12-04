@@ -12,7 +12,7 @@ func RegisterList(reg *Registry) {
 	if reg == nil {
 		return
 	}
-	reg.MustRegister("list", renderList)
+	reg.RegisterSafe("list", renderList)
 }
 
 func renderList(ctx RenderContext, prefix string, elem models.SectionElement) (string, []string) {

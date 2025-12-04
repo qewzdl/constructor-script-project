@@ -12,7 +12,7 @@ func RegisterParagraph(reg *Registry) {
 	if reg == nil {
 		return
 	}
-	reg.MustRegister("paragraph", renderParagraph)
+	reg.RegisterSafe("paragraph", renderParagraph)
 }
 
 func renderParagraph(ctx RenderContext, prefix string, elem models.SectionElement) (string, []string) {

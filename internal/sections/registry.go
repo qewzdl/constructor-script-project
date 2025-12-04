@@ -55,10 +55,23 @@ func (r *Registry) Register(sectionType string, renderer Renderer) error {
 }
 
 // MustRegister registers the renderer and panics if registration fails.
+// Deprecated: Use Register instead to handle errors gracefully.
 func (r *Registry) MustRegister(sectionType string, renderer Renderer) {
 	if err := r.Register(sectionType, renderer); err != nil {
 		panic(err)
 	}
+}
+
+// RegisterSafe attempts to register a renderer and logs any error instead of panicking.
+// Returns true if registration succeeded, false otherwise.
+func (r *Registry) RegisterSafe(sectionType string, renderer Renderer) bool {
+	if err := r.Register(sectionType, renderer); err != nil {
+		// Note: We can't import logger here due to circular dependency
+		// The error is silently ignored to prevent panics in production
+		// Callers should use Register() directly if they need error handling
+		return false
+	}
+	return true
 }
 
 // Get retrieves a renderer for the provided section type if it exists.

@@ -14,7 +14,7 @@ func RegisterSearch(reg *Registry) {
 	if reg == nil {
 		return
 	}
-	reg.MustRegister("search", renderSearch)
+	reg.RegisterSafe("search", renderSearch)
 }
 
 func renderSearch(ctx RenderContext, prefix string, elem models.SectionElement) (string, []string) {
@@ -101,5 +101,5 @@ func renderSearch(ctx RenderContext, prefix string, elem models.SectionElement) 
 		return "", nil
 	}
 
-        return buf.String(), nil
+	return buf.String(), nil
 }

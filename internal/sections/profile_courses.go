@@ -20,7 +20,7 @@ func RegisterProfileCourses(reg *Registry) {
 		return
 	}
 
-	reg.MustRegister("profile_courses", renderProfileCourses)
+	reg.RegisterSafe("profile_courses", renderProfileCourses)
 }
 
 type profileCourseEntry struct {

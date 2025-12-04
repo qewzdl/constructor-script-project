@@ -19,7 +19,7 @@ func RegisterProfileAccount(reg *Registry) {
 		return
 	}
 
-	reg.MustRegister("profile_account_details", renderProfileAccount)
+	reg.RegisterSafe("profile_account_details", renderProfileAccount)
 }
 
 func renderProfileAccount(ctx RenderContext, prefix string, elem models.SectionElement) (string, []string) {

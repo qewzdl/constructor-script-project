@@ -13,7 +13,7 @@ func RegisterFileGroup(reg *Registry) {
 	if reg == nil {
 		return
 	}
-	reg.MustRegister("file_group", renderFileGroup)
+	reg.RegisterSafe("file_group", renderFileGroup)
 }
 
 func renderFileGroup(ctx RenderContext, prefix string, elem models.SectionElement) (string, []string) {

@@ -19,7 +19,7 @@ func RegisterProfileSecurity(reg *Registry) {
 		return
 	}
 
-	reg.MustRegister("profile_security", renderProfileSecurity)
+	reg.RegisterSafe("profile_security", renderProfileSecurity)
 }
 
 func renderProfileSecurity(ctx RenderContext, prefix string, elem models.SectionElement) (string, []string) {

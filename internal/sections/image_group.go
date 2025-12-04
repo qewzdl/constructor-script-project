@@ -13,7 +13,7 @@ func RegisterImageGroup(reg *Registry) {
 	if reg == nil {
 		return
 	}
-	reg.MustRegister("image_group", renderImageGroup)
+	reg.RegisterSafe("image_group", renderImageGroup)
 }
 
 func renderImageGroup(ctx RenderContext, prefix string, elem models.SectionElement) (string, []string) {
