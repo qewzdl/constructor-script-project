@@ -279,12 +279,30 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 		return nil, err
 	}
 
+	// Configure server timeouts based on config
+	// Default values allow for large file uploads (up to 2GB)
+	readTimeout := time.Duration(cfg.ServerReadTimeout) * time.Second
+	writeTimeout := time.Duration(cfg.ServerWriteTimeout) * time.Second
+	idleTimeout := time.Duration(cfg.ServerIdleTimeout) * time.Second
+
+	// Fallback to reasonable defaults if config values are invalid
+	if readTimeout <= 0 {
+		readTimeout = 5 * time.Minute
+	}
+	if writeTimeout <= 0 {
+		writeTimeout = 5 * time.Minute
+	}
+	if idleTimeout <= 0 {
+		idleTimeout = 2 * time.Minute
+	}
+
 	app.server = &http.Server{
 		Addr:           ":" + cfg.Port,
 		Handler:        app.router,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+		ReadTimeout:    readTimeout,
+		WriteTimeout:   writeTimeout,
+		IdleTimeout:    idleTimeout,
+		MaxHeaderBytes: 1 << 20, // 1MB for headers
 	}
 
 	cleanupNeeded = false
@@ -1101,6 +1119,10 @@ func (a *Application) initRouter() error {
 	if err := router.SetTrustedProxies(nil); err != nil {
 		return fmt.Errorf("failed to configure trusted proxies: %w", err)
 	}
+
+	// Set max multipart memory to handle large file uploads
+	// Files larger than this will be written to disk temporarily
+	router.MaxMultipartMemory = 32 << 20 // 32MB in memory, rest on disk
 
 	router.Use(logger.GinRecovery(true))
 	router.Use(middleware.RequestIDMiddleware())
