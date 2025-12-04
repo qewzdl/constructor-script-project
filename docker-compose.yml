@@ -5,15 +5,15 @@ services:
         image: postgres:15-alpine
         container_name: blog-postgres
         environment:
-            POSTGRES_USER: bloguser
-            POSTGRES_PASSWORD: blogpassword
-            POSTGRES_DB: blogdb
+            POSTGRES_USER: ${DB_USER:-devuser}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:-devpassword}
+            POSTGRES_DB: ${DB_NAME:-constructor}
         ports:
             - '5432:5432'
         volumes:
             - postgres_data:/var/lib/postgresql/data
         healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U bloguser -d blogdb']
+            test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-devuser} -d ${DB_NAME:-constructor}']
             interval: 10s
             timeout: 5s
             retries: 5
@@ -24,8 +24,8 @@ services:
             dockerfile: Dockerfile
         container_name: blog-api
         environment:
-            DATABASE_URL: postgres://bloguser:blogpassword@postgres:5432/blogdb?sslmode=disable
-            JWT_SECRET: your-super-secret-jwt-key-change-in-production
+            DATABASE_URL: postgres://${DB_USER:-devuser}:${DB_PASSWORD:-devpassword}@postgres:5432/${DB_NAME:-constructor}?sslmode=disable
+            JWT_SECRET: ${JWT_SECRET:-development-secret-change-in-production}
             PORT: 8080
         ports:
             - '8080:8080'

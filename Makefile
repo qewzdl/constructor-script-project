@@ -26,7 +26,7 @@ deps: ## Install dependencies
 
 docker-up: ## Start PostgreSQL in Docker
 	@echo "Starting PostgreSQL container..."
-	@docker run --name blog-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_USER=bloguser -e POSTGRES_DB=blogdb -p 5432:5432 -d postgres:15-alpine
+	@docker run --name blog-postgres -e POSTGRES_PASSWORD=devpassword -e POSTGRES_USER=devuser -e POSTGRES_DB=constructor -p 5432:5432 -d postgres:15-alpine
 
 docker-down: ## Stop PostgreSQL container
 	@echo "Stopping PostgreSQL container..."

@@ -6,20 +6,19 @@ This repository contains the Constructor Script CMS backend written in Go.
 
 For a turnkey setup on a public server with automatic HTTPS certificates, see [Production Deployment Quickstart](docs/production-deployment.md).
 
-To quickly verify the stack with the bundled defaults run:
+To quickly verify the stack run:
 
 ```bash
 docker compose -f deploy/docker-compose.prod.yml up -d --build
 ```
 
-This uses the bundled defaults (`bloguser`/`blogpassword`, a demo JWT secret and
-`https://localhost`). For public deployments generate a dedicated
-`deploy/.env.production` via `deploy/quickstart.sh`.
+This will use environment variables for database credentials and JWT secret. For a complete production setup, generate a dedicated
+`deploy/.env.production` via `deploy/quickstart.sh` which will create secure credentials.
 
 ## Local development
 
 - `make run` – run the API locally.
-- `docker-compose up` – start the PostgreSQL + API stack defined for development.
+- `docker-compose up` – start the PostgreSQL + API stack defined for development. Credentials can be customized via `.env` file.
 
 ## Security headers
 

@@ -28,24 +28,39 @@ The script performs the following:
 
 Once the containers are up, the site becomes available at `https://<your-domain>` as soon as DNS resolves to the server.
 
+## Required environment variables
+
+The following environment variables **must** be set before deploying to production:
+
+- `DB_USER` – PostgreSQL username (must be provided, no default)
+- `DB_PASSWORD` – PostgreSQL password (must be provided, no default)
+- `JWT_SECRET` – Secret key for JWT token signing (must be provided, no default, minimum 32 characters recommended)
+- `SITE_DOMAIN` – Your domain name (e.g., `blog.example.com`)
+- `SITE_EMAIL` – Email for Let's Encrypt certificate notifications
+
+Generate these securely using:
+```bash
+openssl rand -base64 32  # for DB_PASSWORD
+openssl rand -base64 48  # for JWT_SECRET
+```
+
+Never hardcode secrets or reuse default values. Always use the `./deploy/quickstart.sh` script which generates secure credentials automatically.
+
 ### Quick smoke-test without configuration
 
 For staging or verification you can also run the stack without generating an
-environment file. The compose definition now ships with safe defaults (`bloguser`
- / `blogpassword` for PostgreSQL and a temporary JWT secret), so the following
-command will launch the CMS on `https://localhost` using the bundled
-credentials:
+environment file. The compose definition will use environment variables from the system or `.env` file, so the following
+command will launch the CMS on `https://localhost`:
 
 ```bash
 docker compose -f deploy/docker-compose.prod.yml up -d --build
 ```
 
-You should still generate a unique `.env.production` before exposing the stack
-to the public internet.
+**Important:** You must provide secure database credentials and JWT secret via environment variables or `.env` file before running in production. Never use default credentials on public servers.
 
 ## Customisation
 
-- To change environment values, edit `deploy/.env.production` and re-run `docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml up -d`.
+- To change environment values, create or edit `deploy/.env.production` and re-run `docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml up -d`.
 - Uploaded media is stored in the `uploads_data` volume. You can back it up with `docker run --rm -v constructor-script-project_uploads_data:/data busybox tar -czf - -C /data . > uploads.tgz`.
 - Stop the stack with `docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml down`. Add `-v` to remove the volumes (this deletes the database and uploads).
 

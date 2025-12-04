@@ -6,15 +6,15 @@ services:
     container_name: constructor-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: "${DB_USER:-bloguser}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD:-blogpassword}"
-      POSTGRES_DB: "${DB_NAME:-blogdb}"
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: "${DB_NAME:-constructor}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - backend
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-bloguser} -d ${DB_NAME:-blogdb}']
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME:-constructor}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,9 +31,9 @@ services:
     environment:
       DB_HOST: "${DB_HOST:-postgres}"
       DB_PORT: "${DB_PORT:-5432}"
-      DB_USER: "${DB_USER:-bloguser}"
-      DB_PASSWORD: "${DB_PASSWORD:-blogpassword}"
-      DB_NAME: "${DB_NAME:-blogdb}"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_NAME: "${DB_NAME:-constructor}"
       DB_SSLMODE: "${DB_SSLMODE:-disable}"
       PORT: "${PORT:-8080}"
       ENVIRONMENT: "${ENVIRONMENT:-production}"
@@ -43,7 +43,7 @@ services:
       ENABLE_METRICS: "${ENABLE_METRICS:-false}"
       ENABLE_COMPRESSION: "${ENABLE_COMPRESSION:-true}"
       UPLOAD_DIR: "${UPLOAD_DIR:-./uploads}"
-      JWT_SECRET: "${JWT_SECRET:-development-secret-change-me}"
+      JWT_SECRET: "${JWT_SECRET}"
       SITE_URL: "${SITE_URL:-https://localhost}"
       SITE_NAME: "${SITE_NAME:-Constructor Script}"
       SITE_DESCRIPTION: "${SITE_DESCRIPTION:-Powered by Constructor Script CMS}"

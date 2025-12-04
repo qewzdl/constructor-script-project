@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -134,9 +135,9 @@ func New() *Config {
 		// Database
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnvFirst([]string{"DB_USER", "POSTGRES_USER"}, "bloguser"),
-		DBPassword: getEnvFirst([]string{"DB_PASSWORD", "POSTGRES_PASSWORD"}, "blogpassword"),
-		DBName:     getEnvFirst([]string{"DB_NAME", "POSTGRES_DB"}, "blogdb"),
+		DBUser:     getEnv("DB_USER", "postgres"),
+		DBPassword: getEnv("DB_PASSWORD", ""),
+		DBName:     getEnv("DB_NAME", "constructor"),
 		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 
 		// Redis
@@ -404,9 +405,11 @@ func resolveJWTSecret() (string, bool, string) {
 		if len(secret) >= 32 {
 			return secret, false, ""
 		}
+		log.Printf("WARNING: Provided JWT_SECRET is too short (< 32 characters). Auto-generating a secure secret instead.")
 		return generateSecureRandomString(48), true, "provided secret too short"
 	}
 
+	log.Printf("WARNING: JWT_SECRET environment variable not set. Auto-generating a secure secret. For production, set JWT_SECRET to a strong, unique value.")
 	generated := generateSecureRandomString(48)
 	return generated, true, "missing JWT_SECRET environment variable"
 }
