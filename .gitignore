@@ -5,3 +5,4 @@ uploads/
 vendor/
 deploy/.env.production
 deploy/.env
+*.exe
