@@ -38,6 +38,7 @@ services:
       PORT: "${PORT:-8080}"
       ENVIRONMENT: "${ENVIRONMENT:-production}"
       ENABLE_REDIS: "${ENABLE_REDIS:-false}"
+      ENABLE_CACHE: "${ENABLE_CACHE:-false}"
       ENABLE_EMAIL: "${ENABLE_EMAIL:-false}"
       ENABLE_METRICS: "${ENABLE_METRICS:-false}"
       UPLOAD_DIR: "${UPLOAD_DIR:-./uploads}"
