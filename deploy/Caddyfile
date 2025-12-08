@@ -9,12 +9,6 @@
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 	}
 
-	# STATIC
-	handle_path /static/* {
-		root * /app/static
-		file_server
-	}
-
 	# UPLOADS
 	handle_path /uploads/* {
 		root * /app/uploads
@@ -22,7 +16,7 @@
 		file_server
 	}
 
-	# API
+	# API (including static files served by Go app)
 	handle {
 		reverse_proxy api:8080
 	}

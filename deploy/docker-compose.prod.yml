@@ -50,7 +50,6 @@ services:
       CORS_ORIGINS: "${CORS_ORIGINS:-https://localhost}"
     volumes:
       - uploads_data:/app/uploads
-      - static_data:/app/static
     networks:
       - backend
 
@@ -68,7 +67,6 @@ services:
       - caddy_config:/config
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - uploads_data:/app/uploads:ro
-      - static_data:/app/static:ro
     ports:
       - '80:80'
       - '443:443'
@@ -82,6 +80,5 @@ networks:
 volumes:
   postgres_data:
   uploads_data:
-  static_data:
   caddy_data:
   caddy_config:
