@@ -1085,11 +1085,11 @@ func DetectFaviconType(favicon string) string {
 type SetupRequest struct {
 	AdminUsername string `json:"admin_username" binding:"required,min=3,max=50"`
 	AdminEmail    string `json:"admin_email" binding:"required,email"`
-	AdminPassword string `json:"admin_password" binding:"required,min=6"`
+	AdminPassword string `json:"admin_password" binding:"required,min=8,max=128"`
 
-	SiteName               string   `json:"site_name" binding:"required"`
-	SiteDescription        string   `json:"site_description"`
-	SiteURL                string   `json:"site_url" binding:"required"`
+	SiteName               string   `json:"site_name" binding:"required,max=255"`
+	SiteDescription        string   `json:"site_description" binding:"max=1000"`
+	SiteURL                string   `json:"site_url" binding:"required,url"`
 	SiteFavicon            string   `json:"site_favicon"`
 	SiteLogo               string   `json:"site_logo"`
 	SiteDefaultLanguage    string   `json:"site_default_language"`

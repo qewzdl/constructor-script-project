@@ -27,7 +27,23 @@ var (
 	// ErrSetupAlreadyCompleted is returned when setup has already been completed.
 	ErrSetupAlreadyCompleted = errors.New("setup already completed")
 	currencyCodePattern      = regexp.MustCompile(`^[a-z]{3}$`)
+	emailPattern             = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 )
+
+type ValidationError struct {
+	Field   string
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if e.Field != "" {
+		return fmt.Sprintf("%s: %s", e.Field, e.Message)
+	}
+	return e.Message
+}
 
 type InvalidFaviconError struct {
 	Reason string
@@ -58,6 +74,7 @@ type SetupService struct {
 	settingRepo   repository.SettingRepository
 	uploadService *UploadService
 	language      *languageservice.LanguageService
+	db            *gorm.DB
 }
 
 func NewSetupService(userRepo repository.UserRepository, settingRepo repository.SettingRepository, uploadService *UploadService, languageService *languageservice.LanguageService) *SetupService {
@@ -111,9 +128,14 @@ func (s *SetupService) CompleteSetup(req models.SetupRequest, defaults models.Si
 		return nil, errors.New("user repository not configured")
 	}
 
+	// Validate setup request
+	if err := s.validateSetupRequest(req); err != nil {
+		return nil, err
+	}
+
 	count, err := s.userRepo.Count()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to check user count: %w", err)
 	}
 
 	if count > 0 {
@@ -122,29 +144,34 @@ func (s *SetupService) CompleteSetup(req models.SetupRequest, defaults models.Si
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.AdminPassword), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	user := &models.User{
-		Username: req.AdminUsername,
-		Email:    req.AdminEmail,
+		Username: strings.TrimSpace(req.AdminUsername),
+		Email:    strings.ToLower(strings.TrimSpace(req.AdminEmail)),
 		Password: string(hashedPassword),
 		Role:     authorization.RoleAdmin,
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create admin user: %w", err)
 	}
 
 	if s.settingRepo != nil {
 		if err := s.saveSiteSettings(req, defaults); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to save site settings: %w", err)
 		}
 
 		if err := s.settingRepo.Set(settingKeySetupComplete, "true"); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to mark setup as complete: %w", err)
 		}
 	}
+
+	logger.Info("Setup completed successfully", map[string]interface{}{
+		"admin_username": user.Username,
+		"admin_email":    user.Email,
+	})
 
 	return user, nil
 }
@@ -865,6 +892,83 @@ func (s *SetupService) getSettingValue(key string) (string, error) {
 	}
 
 	return setting.Value, nil
+}
+
+// validateSetupRequest validates the setup request data
+func (s *SetupService) validateSetupRequest(req models.SetupRequest) error {
+	// Validate username
+	username := strings.TrimSpace(req.AdminUsername)
+	if len(username) < 3 {
+		return &ValidationError{Field: "admin_username", Message: "must be at least 3 characters"}
+	}
+	if len(username) > 50 {
+		return &ValidationError{Field: "admin_username", Message: "must not exceed 50 characters"}
+	}
+
+	// Validate email
+	email := strings.TrimSpace(req.AdminEmail)
+	if email == "" {
+		return &ValidationError{Field: "admin_email", Message: "is required"}
+	}
+	if !emailPattern.MatchString(email) {
+		return &ValidationError{Field: "admin_email", Message: "is invalid"}
+	}
+
+	// Validate password strength
+	if len(req.AdminPassword) < 8 {
+		return &ValidationError{Field: "admin_password", Message: "must be at least 8 characters"}
+	}
+	if len(req.AdminPassword) > 128 {
+		return &ValidationError{Field: "admin_password", Message: "must not exceed 128 characters"}
+	}
+
+	// Check password complexity
+	hasUpper := false
+	hasLower := false
+	hasDigit := false
+	for _, char := range req.AdminPassword {
+		switch {
+		case char >= 'A' && char <= 'Z':
+			hasUpper = true
+		case char >= 'a' && char <= 'z':
+			hasLower = true
+		case char >= '0' && char <= '9':
+			hasDigit = true
+		}
+	}
+	if !hasUpper || !hasLower || !hasDigit {
+		return &ValidationError{
+			Field:   "admin_password",
+			Message: "must contain at least one uppercase letter, one lowercase letter, and one digit",
+		}
+	}
+
+	// Validate site name
+	siteName := strings.TrimSpace(req.SiteName)
+	if siteName == "" {
+		return &ValidationError{Field: "site_name", Message: "is required"}
+	}
+	if len(siteName) > 255 {
+		return &ValidationError{Field: "site_name", Message: "must not exceed 255 characters"}
+	}
+
+	// Validate site URL if provided
+	if req.SiteURL != "" {
+		siteURL := strings.TrimSpace(req.SiteURL)
+		parsedURL, err := url.Parse(siteURL)
+		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+			return &ValidationError{Field: "site_url", Message: "must be a valid HTTP or HTTPS URL"}
+		}
+	}
+
+	// Validate language settings
+	if req.SiteDefaultLanguage != "" {
+		if _, err := lang.Normalize(req.SiteDefaultLanguage); err != nil {
+			return &ValidationError{Field: "site_default_language", Message: "is not a valid language code"}
+		}
+	}
+
+	return nil
 }
 
 const (

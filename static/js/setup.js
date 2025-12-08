@@ -116,6 +116,50 @@ const disableForm = (form, disabled) => {
     });
 };
 
+const validatePassword = (password) => {
+    const errors = [];
+    
+    if (password.length < 8) {
+        errors.push("at least 8 characters");
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+        errors.push("one uppercase letter");
+    }
+    
+    if (!/[a-z]/.test(password)) {
+        errors.push("one lowercase letter");
+    }
+    
+    if (!/[0-9]/.test(password)) {
+        errors.push("one digit");
+    }
+    
+    if (errors.length > 0) {
+        return `Password must contain ${errors.join(", ")}`;
+    }
+    
+    return null;
+};
+
+const validateEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+        return "Please enter a valid email address";
+    }
+    return null;
+};
+
+const validateUsername = (username) => {
+    if (username.length < 3) {
+        return "Username must be at least 3 characters";
+    }
+    if (username.length > 50) {
+        return "Username must not exceed 50 characters";
+    }
+    return null;
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     const root = document.querySelector('[data-page="setup"]');
     if (!root) {
@@ -163,6 +207,27 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        // Validate username
+        const usernameError = validateUsername(payload.admin_username || '');
+        if (usernameError) {
+            showAlert(alertElement, usernameError, 'error');
+            return;
+        }
+
+        // Validate email
+        const emailError = validateEmail(payload.admin_email || '');
+        if (emailError) {
+            showAlert(alertElement, emailError, 'error');
+            return;
+        }
+
+        // Validate password
+        const passwordError = validatePassword(payload.admin_password || '');
+        if (passwordError) {
+            showAlert(alertElement, passwordError, 'error');
+            return;
+        }
+
         const defaultLanguage = normaliseLanguageCode(payload.site_default_language || '');
         if (!defaultLanguage || !languageCodePattern.test(defaultLanguage)) {
             showAlert(alertElement, 'Please provide a valid default language code (e.g. "en" or "en-GB").', 'error');
@@ -175,11 +240,6 @@ document.addEventListener("DOMContentLoaded", () => {
         payload.site_supported_languages = payload.site_supported_languages.filter(
             (code) => code && code !== defaultLanguage
         );
-
-        if (!payload.admin_password || payload.admin_password.length < 6) {
-            showAlert(alertElement, "Password must be at least 6 characters long");
-            return;
-        }
 
         disableForm(form, true);
 

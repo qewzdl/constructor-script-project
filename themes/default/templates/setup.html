@@ -75,9 +75,12 @@
                         class="form-field__input"
                         placeholder="Create a strong password"
                         autocomplete="new-password"
-                        minlength="6"
+                        minlength="8"
                         required
                     />
+                    <small class="form-helper">
+                        Must be at least 8 characters and contain uppercase, lowercase, and a digit
+                    </small>
                 </div>
             </fieldset>
 
@@ -173,7 +176,7 @@
                     <input
                         id="setup-site-favicon"
                         name="site_favicon"
-                        type="url"
+                        type="text"
                         class="form-field__input"
                         placeholder="/favicon.ico"
                     />
@@ -186,7 +189,7 @@
                     <input
                         id="setup-site-logo"
                         name="site_logo"
-                        type="url"
+                        type="text"
                         class="form-field__input"
                         placeholder="/static/icons/logo.svg"
                     />

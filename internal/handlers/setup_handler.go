@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"constructor-script-backend/internal/config"
@@ -71,6 +72,12 @@ func (h *SetupHandler) Complete(c *gin.Context) {
 
 	var req models.SetupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		h.handleValidationError(c, err)
+		return
+	}
+
+	// Validate request data
+	if err := h.validateSetupRequest(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -87,7 +94,13 @@ func (h *SetupHandler) Complete(c *gin.Context) {
 	_, err := h.setupService.CompleteSetup(req, defaults)
 	if err != nil {
 		if errors.Is(err, service.ErrSetupAlreadyCompleted) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Setup has already been completed"})
+			c.JSON(http.StatusConflict, gin.H{"error": "Setup has already been completed"})
+			return
+		}
+
+		var validationErr *service.ValidationError
+		if errors.As(err, &validationErr) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
 			return
 		}
 
@@ -96,7 +109,7 @@ func (h *SetupHandler) Complete(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Setup completed"})
+	c.JSON(http.StatusOK, gin.H{"message": "Setup completed successfully"})
 }
 
 func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
@@ -333,5 +346,53 @@ func (h *SetupHandler) UploadLogo(c *gin.Context) {
 		"message": "Logo updated successfully",
 		"logo":    url,
 		"site":    settings,
+	})
+}
+
+// validateSetupRequest validates the setup request data
+func (h *SetupHandler) validateSetupRequest(req *models.SetupRequest) error {
+	if req == nil {
+		return errors.New("request cannot be nil")
+	}
+
+	// Validate username
+	if len(strings.TrimSpace(req.AdminUsername)) < 3 {
+		return errors.New("username must be at least 3 characters")
+	}
+
+	// Validate email format
+	if !strings.Contains(req.AdminEmail, "@") {
+		return errors.New("invalid email address")
+	}
+
+	// Validate password strength
+	if len(req.AdminPassword) < 8 {
+		return errors.New("password must be at least 8 characters")
+	}
+
+	// Validate site URL
+	if req.SiteURL != "" {
+		if _, err := url.Parse(req.SiteURL); err != nil {
+			return errors.New("invalid site URL")
+		}
+	}
+
+	return nil
+}
+
+// handleValidationError processes validation errors and returns user-friendly messages
+func (h *SetupHandler) handleValidationError(c *gin.Context, err error) {
+	if err == nil {
+		return
+	}
+
+	// Extract field-specific errors from gin binding errors
+	message := "Validation failed"
+	if err.Error() != "" {
+		message = err.Error()
+	}
+
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": message,
 	})
 }
