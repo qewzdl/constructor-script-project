@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+    <head>
+        <!-- Define character encoding and responsive viewport -->
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="Content-Language" content="en" />
+
+        <!-- Dynamic page title -->
+        <title>{{ .Title }}</title>
+
+        <!-- Unique SEO description -->
+        {{ if .Description }}
+        <meta name="description" content="{{ .Description }}" />
+        {{ end }}
+
+        <!-- Control search engine indexing -->
+        <meta name="robots" content="noindex, nofollow" />
+
+        <script>
+            (function () {
+                const storageKey = "theme";
+                const root = document.documentElement;
+
+                const getStoredTheme = () => {
+                    try {
+                        const storedTheme = localStorage.getItem(storageKey);
+                        if (storedTheme === "light" || storedTheme === "dark") {
+                            return storedTheme;
+                        }
+                    } catch (error) {
+                        /* no-op */
+                    }
+                    return null;
+                };
+
+                const storedTheme = getStoredTheme();
+                if (storedTheme) {
+                    root.setAttribute("data-theme", storedTheme);
+                    return;
+                }
+
+                const prefersDark =
+                    window.matchMedia &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+                root.setAttribute("data-theme", prefersDark ? "dark" : "light");
+            })();
+        </script>
+
+        <!-- Setup standalone CSS -->
+        <link rel="stylesheet" href="{{ asset "/static/css/setup.css" }}" />
+
+        <!-- Favicon -->
+        <link rel="icon" href="/static/icons/logo.svg" type="image/svg+xml" />
+
+        <!-- Font preconnects for performance -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        
+        <!-- Google Fonts -->
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+    </head>
+
+    <body>
+        <main id="main-content" role="main">{{ .Content }}</main>
+
+        {{ if .Scripts }} 
+        {{ range .Scripts }}
+        <script src="{{ asset . }}" defer></script>
+        {{ end }} 
+        {{ end }}
+    </body>
+</html>

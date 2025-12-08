@@ -1303,6 +1303,7 @@ func (h *TemplateHandler) RenderSetup(c *gin.Context) {
 		"SetupStatus": "/api/v1/setup/status",
 		"HideChrome":  true,
 		"NoIndex":     true,
+		"Layout":      "setup_base.html",
 	})
 }
 
