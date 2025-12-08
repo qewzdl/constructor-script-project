@@ -456,7 +456,7 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Type:             "posts_list",
 			Label:            "Posts list",
 			Order:            20,
-			Description:      "Automatically displays the most recent blog posts.",
+			Description:      "Automatically displays the most recent posts.",
 			SupportsElements: &postsSupports,
 			Settings: map[string]SectionSettingDefinition{
 				"limit": {
@@ -471,7 +471,7 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Type:             "categories_list",
 			Label:            "Categories list",
 			Order:            18,
-			Description:      "Displays a list of blog categories for quick topic navigation.",
+			Description:      "Displays a list of categories for quick topic navigation.",
 			SupportsElements: &categoriesSupports,
 			Settings: map[string]SectionSettingDefinition{
 				"limit": {

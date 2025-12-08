@@ -3,7 +3,7 @@ version: '3.8'
 services:
     postgres:
         image: postgres:15-alpine
-        container_name: blog-postgres
+        container_name: cms-postgres
         environment:
             POSTGRES_USER: ${DB_USER:-devuser}
             POSTGRES_PASSWORD: ${DB_PASSWORD:-devpassword}
@@ -22,7 +22,7 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        container_name: blog-api
+        container_name: cms-api
         environment:
             DATABASE_URL: postgres://${DB_USER:-devuser}:${DB_PASSWORD:-devpassword}@postgres:5432/${DB_NAME:-constructor}?sslmode=disable
             JWT_SECRET: ${JWT_SECRET:-development-secret-change-in-production}

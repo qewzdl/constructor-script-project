@@ -274,7 +274,7 @@ func (h *TemplateHandler) renderPostsListSection(prefix string, section models.S
 }
 
 func (h *TemplateHandler) renderCategoriesListSection(prefix string, section models.Section) string {
-	emptyClass := fmt.Sprintf("%s__category-list-empty blog__empty", prefix)
+	emptyClass := fmt.Sprintf("%s__category-list-empty content__empty", prefix)
 
 	limit := section.Limit
 	if limit <= 0 {
@@ -310,7 +310,7 @@ func (h *TemplateHandler) renderCategoriesListSection(prefix string, section mod
 		filtered = filtered[:limit]
 	}
 
-	navClass := fmt.Sprintf("%s__categories blog__categories", prefix)
+	navClass := fmt.Sprintf("%s__categories content__categories", prefix)
 
 	var sb strings.Builder
 	sb.WriteString(`<nav class="` + navClass + `" aria-label="Browse by category">`)

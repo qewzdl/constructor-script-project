@@ -441,12 +441,12 @@ func (h *TemplateHandler) renderBlogWithPage(c *gin.Context, page *models.Page) 
 
 	title := page.Title
 	if strings.TrimSpace(title) == "" {
-		title = "Blog"
+		title = "Posts"
 	}
 
 	description := page.Description
 	if strings.TrimSpace(description) == "" {
-		description = h.config.SiteName + " Blog — insights about Go programming, web technologies, performance, and best practices in backend design."
+		description = h.config.SiteName + " — insights, articles, and updates about various topics."
 	}
 
 	templateName := strings.TrimSpace(page.Template)
@@ -484,8 +484,8 @@ func (h *TemplateHandler) renderLegacyBlog(c *gin.Context) {
 	})
 
 	page := &models.Page{
-		Title:       "Blog",
-		Description: h.config.SiteName + " Blog — insights about Go programming, web technologies, performance, and best practices in backend design.",
+		Title:       "Posts",
+		Description: h.config.SiteName + " — insights, articles, and updates about various topics.",
 		Path:        "/blog",
 		Template:    "page",
 	}

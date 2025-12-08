@@ -5,7 +5,7 @@ help: ## Show help
 
 build: ## Build the application
 	@echo "Building application..."
-	@go build -o bin/blog-api cmd/api/main.go
+	@go build -o bin/cms-api cmd/api/main.go
 
 run: ## Run the application
 	@echo "Starting application..."
@@ -26,15 +26,15 @@ deps: ## Install dependencies
 
 docker-up: ## Start PostgreSQL in Docker
 	@echo "Starting PostgreSQL container..."
-	@docker run --name blog-postgres -e POSTGRES_PASSWORD=devpassword -e POSTGRES_USER=devuser -e POSTGRES_DB=constructor -p 5432:5432 -d postgres:15-alpine
+	@docker run --name cms-postgres -e POSTGRES_PASSWORD=devpassword -e POSTGRES_USER=devuser -e POSTGRES_DB=constructor -p 5432:5432 -d postgres:15-alpine
 
 docker-down: ## Stop PostgreSQL container
 	@echo "Stopping PostgreSQL container..."
-	@docker stop blog-postgres || true
-	@docker rm blog-postgres || true
+	@docker stop cms-postgres || true
+	@docker rm cms-postgres || true
 
 docker-logs: ## Show PostgreSQL logs
-	@docker logs -f blog-postgres
+	@docker logs -f cms-postgres
 
 migrate-up: ## Run migrations
 	@echo "Running migrations..."

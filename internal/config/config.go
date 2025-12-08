@@ -185,7 +185,7 @@ func New() *Config {
 		SMTPPort:     getEnv("SMTP_PORT", "587"),
 		SMTPUsername: getEnv("SMTP_USERNAME", ""),
 		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
-		SMTPFrom:     getEnv("SMTP_FROM", "noreply@blog.com"),
+		SMTPFrom:     getEnv("SMTP_FROM", "noreply@constructor-script.com"),
 
 		// Rate Limiting
 		RateLimitRequests: getEnvAsInt("RATE_LIMIT_REQUESTS", 100),
@@ -433,19 +433,19 @@ func loadPersistedSecret() (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	
+
 	secret := strings.TrimSpace(string(data))
 	if len(secret) >= 32 {
 		return secret, true
 	}
-	
+
 	return "", false
 }
 
 // persistSecret saves a JWT secret to disk for persistence across restarts
 func persistSecret(secret string) error {
 	path := persistentSecretPath()
-	
+
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(path)
 	if dir != "." && dir != "" {
@@ -453,12 +453,12 @@ func persistSecret(secret string) error {
 			return fmt.Errorf("failed to create directory for JWT secret: %w", err)
 		}
 	}
-	
+
 	// Write with restricted permissions (read/write for owner only)
 	if err := os.WriteFile(path, []byte(secret), 0600); err != nil {
 		return fmt.Errorf("failed to persist JWT secret: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -468,28 +468,21 @@ func resolveJWTSecret() (string, bool, string) {
 		if len(secret) >= 32 {
 			return secret, false, ""
 		}
-		log.Printf("WARNING: Provided JWT_SECRET is too short (< 32 characters). Falling back to auto-generated secret.")
-		// Don't return here - fall through to load or generate
+		// Short JWT_SECRET provided - fall through to load or generate
 	}
 
 	// Try to load persisted secret from previous run
 	if secret, ok := loadPersistedSecret(); ok {
-		log.Printf("INFO: Loaded JWT secret from persistent storage. All existing tokens remain valid.")
 		return secret, true, "loaded from persistent storage"
 	}
 
 	// Generate new secret and persist it
-	log.Printf("WARNING: JWT_SECRET not set and no persisted secret found. Generating and persisting a new secret.")
-	log.Printf("WARNING: For production, set JWT_SECRET environment variable to a strong, unique value (min 32 characters).")
-	
 	generated := generateSecureRandomString(48)
-	
+
 	if err := persistSecret(generated); err != nil {
-		log.Printf("ERROR: Failed to persist JWT secret: %v. Secret will be lost on restart!", err)
 		return generated, true, "failed to persist generated secret"
 	}
-	
-	log.Printf("INFO: JWT secret persisted to %s. It will be reused on future restarts.", persistentSecretPath())
+
 	return generated, true, "generated and persisted new secret"
 }
 

@@ -18,7 +18,7 @@ import (
 
 func main() {
 	logger.Init()
-	logger.Info("Starting Blog Backend API", nil)
+	logger.Info("Starting Constructor Script CMS", nil)
 
 	if err := godotenv.Load(); err != nil {
 		logger.Info("No .env file found, using environment variables", nil)

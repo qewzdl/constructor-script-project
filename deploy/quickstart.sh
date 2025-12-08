@@ -9,7 +9,7 @@ Creates a production-ready configuration and launches the CMS with HTTPS
 terminating reverse proxy and PostgreSQL via Docker Compose.
 
 Arguments:
-  <domain>     Fully qualified domain that should serve the site (e.g. blog.example.com).
+  <domain>     Fully qualified domain that should serve the site (e.g. site.example.com).
   <email>      Email used for Let's Encrypt notifications.
   [site-name]  Optional public site name used in meta settings. Defaults to "Constructor Script".
 

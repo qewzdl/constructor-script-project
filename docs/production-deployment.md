@@ -5,14 +5,14 @@ This guide explains how to launch the Constructor Script CMS on a public server 
 ## Prerequisites
 
 - A server running Linux with ports **80** and **443** exposed to the internet.
-- A DNS A/AAAA record that points your domain (e.g. `blog.example.com`) to the server.
+- A DNS A/AAAA record that points your domain (e.g. `site.example.com`) to the server.
 - Docker Engine 20.10+ and the Docker Compose plugin (`docker compose`).
 - An email address that can receive Let's Encrypt expiry notices.
 
 ## One-command setup
 
 ```bash
-./deploy/quickstart.sh blog.example.com admin@example.com "My Blog"
+./deploy/quickstart.sh site.example.com admin@example.com "My Site"
 ```
 
 The script performs the following:
@@ -35,7 +35,7 @@ The following environment variables **must** be set before deploying to producti
 - `DB_USER` – PostgreSQL username (must be provided, no default)
 - `DB_PASSWORD` – PostgreSQL password (must be provided, no default)
 - `JWT_SECRET` – Secret key for JWT token signing (must be provided, no default, minimum 32 characters recommended)
-- `SITE_DOMAIN` – Your domain name (e.g., `blog.example.com`)
+- `SITE_DOMAIN` – Your domain name (e.g., `site.example.com`)
 - `SITE_EMAIL` – Email for Let's Encrypt certificate notifications
 
 Generate these securely using:
