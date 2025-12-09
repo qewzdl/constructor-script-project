@@ -59,14 +59,16 @@ func SetupMiddleware(setupService *service.SetupService, cfg *config.Config) gin
 						"hasKey": providedKey != "",
 					})
 
-					// For GET request to /setup page (not API), show key entry page
+					// For GET request to /setup page (not API), redirect to key entry page
 					if method == http.MethodGet && path == "/setup" {
+						c.Header("Cache-Control", "no-store, no-cache, must-revalidate")
 						c.Redirect(http.StatusTemporaryRedirect, "/setup/key-required")
 						c.Abort()
 						return
 					}
 
 					// For all other requests (including API), return JSON error
+					c.Header("Content-Type", "application/json; charset=utf-8")
 					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 						"error": "Invalid or missing setup key",
 					})
@@ -75,6 +77,11 @@ func SetupMiddleware(setupService *service.SetupService, cfg *config.Config) gin
 
 				// Valid key - log successful access
 				logger.Info("Setup access granted with valid key", map[string]interface{}{
+					"path": path,
+				})
+			} else {
+				// SETUP_KEY not configured - allow access but log warning
+				logger.Warn("Setup access without key verification - SETUP_KEY not configured", map[string]interface{}{
 					"path": path,
 				})
 			}
