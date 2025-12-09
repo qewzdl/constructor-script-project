@@ -52,6 +52,13 @@ func SetupMiddleware(setupService *service.SetupService, cfg *config.Config) gin
 				}
 
 				if providedKey != cfg.SetupKey {
+					// Log the access attempt
+					logger.Warn("Setup access denied - invalid or missing key", map[string]interface{}{
+						"path":   path,
+						"method": method,
+						"hasKey": providedKey != "",
+					})
+
 					// For GET request to /setup page (not API), show key entry page
 					if method == http.MethodGet && path == "/setup" {
 						c.Redirect(http.StatusTemporaryRedirect, "/setup/key-required")
@@ -59,18 +66,17 @@ func SetupMiddleware(setupService *service.SetupService, cfg *config.Config) gin
 						return
 					}
 
-					// For API requests or other methods, return JSON error
-					if method == http.MethodGet {
-						c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-							"error": "Invalid or missing setup key. Access denied.",
-						})
-						return
-					}
+					// For all other requests (including API), return JSON error
 					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
 						"error": "Invalid or missing setup key",
 					})
 					return
 				}
+
+				// Valid key - log successful access
+				logger.Info("Setup access granted with valid key", map[string]interface{}{
+					"path": path,
+				})
 			}
 			// Key is valid or not required, allow access to setup
 			c.Next()
