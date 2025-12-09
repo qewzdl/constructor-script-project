@@ -104,6 +104,12 @@ PY
 )
 fi
 
+SETUP_KEY=$($PYTHON_BIN - <<'PY'
+import secrets
+print(secrets.token_urlsafe(32))
+PY
+)
+
 if [[ -n "$existing_db_password" ]]; then
         DB_PASSWORD="$existing_db_password"
 else
@@ -132,6 +138,9 @@ DATABASE_URL=$DATABASE_URL
 
 # JWT authentication
 JWT_SECRET=$JWT_SECRET
+
+# Setup security (one-time access key)
+SETUP_KEY=$SETUP_KEY
 
 # Server configuration
 ENVIRONMENT=production
@@ -184,9 +193,17 @@ echo "  - PostgreSQL database"
 echo "  - Constructor CMS API"
 echo "  - Caddy reverse proxy"
 echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔐 SETUP ACCESS KEY (save this securely!):"
+echo ""
+echo "    $SETUP_KEY"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
 echo "Next steps:"
-echo "  1. For local testing: visit http://localhost/setup"
-echo "  2. For production: configure your domain DNS, then visit https://your-domain.com/setup"
+echo "  1. For local testing: visit http://localhost/setup?key=$SETUP_KEY"
+echo "  2. For production: visit https://your-domain.com/setup?key=$SETUP_KEY"
 echo ""
 echo "Complete the setup wizard in your browser to create the admin account and configure your site."
+echo "⚠️  Without this key, no one can access the setup page - keep it secure!"
 echo ""

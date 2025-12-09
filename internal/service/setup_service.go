@@ -86,6 +86,14 @@ func NewSetupService(userRepo repository.UserRepository, settingRepo repository.
 	}
 }
 
+// SetDB sets the database connection for managing setup progress
+func (s *SetupService) SetDB(db *gorm.DB) {
+	if s == nil {
+		return
+	}
+	s.db = db
+}
+
 // SetLanguageService updates the language service dependency used by the setup service.
 func (s *SetupService) SetLanguageService(languageService *languageservice.LanguageService) {
 	if s == nil {
@@ -996,3 +1004,176 @@ const (
 	settingKeySubtitlesOpenAIModel     = "media.subtitles.openai_model"
 	settingKeySubtitlesOpenAIAPIKey    = "media.subtitles.openai_api_key"
 )
+
+// GetSetupProgress retrieves the current setup progress
+func (s *SetupService) GetSetupProgress() (*models.SetupProgress, error) {
+	if s.db == nil {
+		return nil, errors.New("database not configured")
+	}
+
+	var progress models.SetupProgress
+	err := s.db.First(&progress).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Create initial progress record
+			progress = models.SetupProgress{
+				CurrentStep: string(models.SetupStepSiteInfo),
+			}
+			if err := s.db.Create(&progress).Error; err != nil {
+				return nil, fmt.Errorf("failed to create setup progress: %w", err)
+			}
+			return &progress, nil
+		}
+		return nil, fmt.Errorf("failed to get setup progress: %w", err)
+	}
+
+	return &progress, nil
+}
+
+// SaveStepData saves data for a specific setup step
+func (s *SetupService) SaveStepData(req models.SetupStepRequest) (*models.SetupProgress, error) {
+	if s.db == nil {
+		return nil, errors.New("database not configured")
+	}
+
+	// Validate the step request
+	if err := req.ValidateStep(); err != nil {
+		return nil, err
+	}
+
+	progress, err := s.GetSetupProgress()
+	if err != nil {
+		return nil, err
+	}
+
+	step := models.SetupStep(req.Step)
+
+	// Save data based on step
+	switch step {
+	case models.SetupStepSiteInfo:
+		data := req.ToSiteInfoData()
+		data.Name = strings.TrimSpace(data.Name)
+		data.Description = strings.TrimSpace(data.Description)
+		data.URL = strings.TrimSpace(data.URL)
+		data.Favicon = strings.TrimSpace(data.Favicon)
+		data.Logo = strings.TrimSpace(data.Logo)
+
+		progress.SiteInfo = data
+		progress.MarkStepComplete(step)
+
+	case models.SetupStepAdmin:
+		data := req.ToAdminData()
+
+		// Hash password for storage
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(data.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash password: %w", err)
+		}
+
+		data.Username = strings.TrimSpace(data.Username)
+		data.Email = strings.ToLower(strings.TrimSpace(data.Email))
+		data.Password = string(hashedPassword)
+
+		progress.Admin = data
+		progress.MarkStepComplete(step)
+
+	case models.SetupStepLanguages:
+		data := req.ToLanguagesData()
+		data.DefaultLanguage = strings.TrimSpace(data.DefaultLanguage)
+
+		progress.Languages = data
+		progress.MarkStepComplete(step)
+
+	default:
+		return nil, fmt.Errorf("invalid setup step: %s", req.Step)
+	}
+
+	if err := s.db.Save(progress).Error; err != nil {
+		return nil, fmt.Errorf("failed to save setup progress: %w", err)
+	}
+
+	return progress, nil
+}
+
+// CompleteStepwiseSetup finalizes the setup after all steps are completed
+func (s *SetupService) CompleteStepwiseSetup(defaults models.SiteSettings) (*models.User, error) {
+	if s.userRepo == nil {
+		return nil, errors.New("user repository not configured")
+	}
+
+	progress, err := s.GetSetupProgress()
+	if err != nil {
+		return nil, err
+	}
+
+	if !progress.AllStepsComplete() {
+		return nil, errors.New("all setup steps must be completed first")
+	}
+
+	// Check if setup already completed
+	count, err := s.userRepo.Count()
+	if err != nil {
+		return nil, fmt.Errorf("failed to check user count: %w", err)
+	}
+	if count > 0 {
+		return nil, ErrSetupAlreadyCompleted
+	}
+
+	// Create admin user from progress data
+	user := &models.User{
+		Username: progress.Admin.Username,
+		Email:    progress.Admin.Email,
+		Password: progress.Admin.Password, // Already hashed
+		Role:     authorization.RoleAdmin,
+	}
+
+	if err := s.userRepo.Create(user); err != nil {
+		return nil, fmt.Errorf("failed to create admin user: %w", err)
+	}
+
+	// Save site settings
+	if s.settingRepo != nil {
+		req := models.SetupRequest{
+			SiteName:            progress.SiteInfo.Name,
+			SiteDescription:     progress.SiteInfo.Description,
+			SiteURL:             progress.SiteInfo.URL,
+			SiteFavicon:         progress.SiteInfo.Favicon,
+			SiteLogo:            progress.SiteInfo.Logo,
+			SiteDefaultLanguage: progress.Languages.DefaultLanguage,
+		}
+
+		// Parse supported languages
+		if progress.Languages.SupportedLanguages != "" {
+			req.SiteSupportedLanguages = strings.Split(progress.Languages.SupportedLanguages, ",")
+		}
+
+		if err := s.saveSiteSettings(req, defaults); err != nil {
+			return nil, fmt.Errorf("failed to save site settings: %w", err)
+		}
+
+		if err := s.settingRepo.Set(settingKeySetupComplete, "true"); err != nil {
+			return nil, fmt.Errorf("failed to mark setup as complete: %w", err)
+		}
+	}
+
+	// Clean up progress record
+	if s.db != nil {
+		s.db.Delete(progress)
+	}
+
+	logger.Info("Stepwise setup completed successfully", map[string]interface{}{
+		"admin_username": user.Username,
+		"admin_email":    user.Email,
+	})
+
+	return user, nil
+}
+
+// ResetSetupProgress resets the setup progress (useful for testing or re-setup)
+func (s *SetupService) ResetSetupProgress() error {
+	if s.db == nil {
+		return errors.New("database not configured")
+	}
+
+	return s.db.Where("1 = 1").Delete(&models.SetupProgress{}).Error
+}

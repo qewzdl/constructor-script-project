@@ -58,10 +58,112 @@ func (h *SetupHandler) Status(c *gin.Context) {
 	h.applyFontSettings(&settings)
 	h.sanitizeSensitiveSettings(&settings)
 
+	response := models.SetupStatusResponse{
+		SetupRequired: !complete,
+		Site:          settings,
+	}
+
+	// If setup is required, get the current progress
+	if !complete {
+		progress, err := h.setupService.GetSetupProgress()
+		if err != nil {
+			logger.Error(err, "Failed to get setup progress", nil)
+		} else {
+			response.CurrentStep = progress.CurrentStep
+			response.Progress = progress
+			// Don't expose sensitive data
+			response.Progress.Admin.Password = ""
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetStepProgress returns the current setup step and progress
+func (h *SetupHandler) GetStepProgress(c *gin.Context) {
+	if h.setupService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Setup service not available"})
+		return
+	}
+
+	progress, err := h.setupService.GetSetupProgress()
+	if err != nil {
+		logger.Error(err, "Failed to get setup progress", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get setup progress"})
+		return
+	}
+
+	// Don't expose sensitive data
+	progress.Admin.Password = ""
+
 	c.JSON(http.StatusOK, gin.H{
-		"setup_required": !complete,
-		"site":           settings,
+		"progress": progress,
 	})
+}
+
+// SaveStep saves data for a specific setup step
+func (h *SetupHandler) SaveStep(c *gin.Context) {
+	if h.setupService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Setup service not available"})
+		return
+	}
+
+	var req models.SetupStepRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.handleValidationError(c, err)
+		return
+	}
+
+	progress, err := h.setupService.SaveStepData(req)
+	if err != nil {
+		var validationErr *models.ValidationError
+		if errors.As(err, &validationErr) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+			return
+		}
+
+		logger.Error(err, "Failed to save step data", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save step data"})
+		return
+	}
+
+	// Don't expose sensitive data
+	progress.Admin.Password = ""
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Step data saved successfully",
+		"progress": progress,
+	})
+}
+
+// CompleteStepwiseSetup finalizes the setup after all steps are completed
+func (h *SetupHandler) CompleteStepwiseSetup(c *gin.Context) {
+	if h.setupService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Setup service not available"})
+		return
+	}
+
+	defaults := h.defaultSiteSettings()
+
+	_, err := h.setupService.CompleteStepwiseSetup(defaults)
+	if err != nil {
+		if errors.Is(err, service.ErrSetupAlreadyCompleted) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Setup has already been completed"})
+			return
+		}
+
+		var validationErr *models.ValidationError
+		if errors.As(err, &validationErr) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+			return
+		}
+
+		logger.Error(err, "Failed to complete setup", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete setup"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Setup completed successfully"})
 }
 
 func (h *SetupHandler) Complete(c *gin.Context) {

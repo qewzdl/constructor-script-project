@@ -44,6 +44,7 @@ services:
       ENABLE_COMPRESSION: "${ENABLE_COMPRESSION:-true}"
       UPLOAD_DIR: "${UPLOAD_DIR:-./uploads}"
       JWT_SECRET: "${JWT_SECRET}"
+      SETUP_KEY: "${SETUP_KEY}"
       SITE_URL: "${SITE_URL:-https://localhost}"
       SITE_NAME: "${SITE_NAME:-Constructor Script}"
       SITE_DESCRIPTION: "${SITE_DESCRIPTION:-Powered by Constructor Script CMS}"

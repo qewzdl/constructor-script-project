@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/service"
 	"constructor-script-backend/pkg/logger"
 
@@ -25,7 +26,7 @@ func init() {
 	setupStatusCache.ttl = 30 * time.Second
 }
 
-func SetupMiddleware(setupService *service.SetupService) gin.HandlerFunc {
+func SetupMiddleware(setupService *service.SetupService, cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if setupService == nil {
 			c.Next()
@@ -37,6 +38,41 @@ func SetupMiddleware(setupService *service.SetupService) gin.HandlerFunc {
 
 		// Always allow OPTIONS requests for CORS
 		if method == http.MethodOptions {
+			c.Next()
+			return
+		}
+
+		// Check if accessing setup endpoints
+		if strings.HasPrefix(path, "/setup") || strings.HasPrefix(path, "/api/v1/setup") {
+			// If SETUP_KEY is configured, verify it
+			if cfg.SetupKey != "" {
+				providedKey := c.Query("key")
+				if providedKey == "" {
+					providedKey = c.GetHeader("X-Setup-Key")
+				}
+
+				if providedKey != cfg.SetupKey {
+					// For GET request to /setup page (not API), show key entry page
+					if method == http.MethodGet && path == "/setup" {
+						c.Redirect(http.StatusTemporaryRedirect, "/setup/key-required")
+						c.Abort()
+						return
+					}
+
+					// For API requests or other methods, return JSON error
+					if method == http.MethodGet {
+						c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+							"error": "Invalid or missing setup key. Access denied.",
+						})
+						return
+					}
+					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+						"error": "Invalid or missing setup key",
+					})
+					return
+				}
+			}
+			// Key is valid or not required, allow access to setup
 			c.Next()
 			return
 		}

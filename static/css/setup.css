@@ -370,6 +370,123 @@ textarea.form-field__input {
     background-color: var(--color-accent-transparent);
 }
 
+/* Progress indicator */
+.setup__progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--size-mid);
+    padding: 0 var(--size-sm);
+    position: relative;
+}
+
+.setup__progress::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 15%;
+    right: 15%;
+    height: 2px;
+    background-color: var(--color-border);
+    z-index: 0;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--size-xs);
+    position: relative;
+    z-index: 1;
+}
+
+.progress-step__number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--color-bg-top);
+    border: 2px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: var(--color-secondary);
+    transition: all 0.3s ease;
+}
+
+.progress-step__label {
+    font-size: var(--font-size-xs);
+    color: var(--color-secondary);
+    text-align: center;
+    transition: color 0.3s ease;
+}
+
+.progress-step.active .progress-step__number {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-primary-opposite);
+}
+
+.progress-step.active .progress-step__label {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.progress-step.completed .progress-step__number {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+}
+
+.progress-step.completed .progress-step__number::before {
+    content: '✓';
+}
+
+.progress-step.completed .progress-step__label {
+    color: var(--color-accent);
+}
+
+/* Step containers */
+.setup-step {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.setup-step[hidden] {
+    display: none;
+}
+
+/* Navigation buttons */
+.setup__navigation {
+    display: flex;
+    gap: var(--size-base);
+    margin-top: var(--size-base);
+}
+
+.setup__navigation .button {
+    flex: 1;
+}
+
+.setup__navigation .button--secondary {
+    background-color: var(--color-bg-top);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+}
+
+.setup__navigation .button--secondary:hover {
+    background-color: var(--color-border);
+}
+
 .setup__form {
     display: grid;
     gap: var(--size-base);

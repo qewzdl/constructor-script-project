@@ -1297,14 +1297,172 @@ func (h *TemplateHandler) RenderSetup(c *gin.Context) {
 		return
 	}
 
+	// Preserve the setup key in the page context if provided
+	setupKey := c.Query("key")
+
 	h.renderTemplate(c, "setup", "Initial setup", "Create the first administrator account and configure the site.", gin.H{
 		"Scripts":     []string{"/static/js/setup.js"},
 		"SetupAction": "/api/v1/setup",
 		"SetupStatus": "/api/v1/setup/status",
+		"SetupKey":    setupKey,
 		"HideChrome":  true,
 		"NoIndex":     true,
 		"Layout":      "setup_base.html",
 	})
+}
+
+func (h *TemplateHandler) RenderSetupKeyRequired(c *gin.Context) {
+	// Render the setup key required page directly
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.Header("X-Robots-Tag", "noindex, nofollow")
+	c.Status(http.StatusOK)
+
+	// Try to load from theme, fallback to inline HTML
+	tmpl, err := h.templateClone()
+	if err == nil {
+		if t := tmpl.Lookup("setup_key_required.html"); t != nil {
+			if err := t.Execute(c.Writer, nil); err == nil {
+				return
+			}
+		}
+	}
+
+	// Fallback: serve inline HTML
+	c.Writer.Write([]byte(`<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup Access Required</title>
+    <style>
+        :root {
+            --color-background: #f9fafb;
+            --color-surface: #ffffff;
+            --color-text: #111827;
+            --color-text-muted: #6b7280;
+            --color-border: #e5e7eb;
+            --color-primary: #3b82f6;
+            --color-primary-dark: #2563eb;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-background: #111827;
+                --color-surface: #1f2937;
+                --color-text: #f9fafb;
+                --color-text-muted: #9ca3af;
+                --color-border: #374151;
+            }
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--color-background);
+            color: var(--color-text);
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 1rem;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            padding: 2rem;
+            background: var(--color-surface);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.8; }
+        h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 0.5rem; }
+        p { color: var(--color-text-muted); margin-bottom: 2rem; line-height: 1.5; }
+        form { display: flex; flex-direction: column; gap: 1rem; }
+        input {
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            background: var(--color-background);
+            color: var(--color-text);
+            font-family: monospace;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button:hover { background: var(--color-primary-dark); }
+        .error {
+            padding: 0.75rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            color: #dc2626;
+            font-size: 0.875rem;
+            display: none;
+        }
+        .error.show { display: block; }
+        .help {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--color-border);
+            font-size: 0.875rem;
+        }
+        code {
+            background: var(--color-background);
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🔐</div>
+        <h1>Setup Access Required</h1>
+        <p>A security key is required to access the setup page. This key was generated when you ran the deployment script.</p>
+        <form id="form">
+            <div class="error" id="error"></div>
+            <input type="text" id="key" placeholder="Enter your setup key" autocomplete="off" spellcheck="false" required />
+            <button type="submit">Continue to Setup</button>
+        </form>
+        <div class="help">
+            <p>💡 The setup key was displayed when you ran <code>./deploy/quickstart.sh</code> or can be found in <code>deploy/.env.production</code> as <code>SETUP_KEY</code>.</p>
+        </div>
+    </div>
+    <script>
+        const form = document.getElementById('form');
+        const input = document.getElementById('key');
+        const errorDiv = document.getElementById('error');
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('error')) {
+            errorDiv.textContent = params.get('error');
+            errorDiv.classList.add('show');
+        }
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            errorDiv.classList.remove('show');
+            const key = input.value.trim();
+            if (!key) {
+                errorDiv.textContent = 'Please enter a setup key';
+                errorDiv.classList.add('show');
+                return;
+            }
+            window.location.href = '/setup?key=' + encodeURIComponent(key);
+        });
+        input.focus();
+    </script>
+</body>
+</html>`))
 }
 
 func (h *TemplateHandler) RenderProfile(c *gin.Context) {

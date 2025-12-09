@@ -476,6 +476,7 @@ func (a *Application) runMigrations() error {
 		&models.SocialLink{},
 		&models.MenuItem{},
 		&models.Plugin{},
+		&models.SetupProgress{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
@@ -912,6 +913,11 @@ func (a *Application) initServices() {
 	var languageService *languageservice.LanguageService
 	setupService := service.NewSetupService(a.repositories.User, a.repositories.Setting, uploadService, languageService)
 
+	// Set database connection for setup service to enable progress tracking
+	if setupService != nil && a.db != nil {
+		setupService.SetDB(a.db)
+	}
+
 	subtitleDefaults := models.SubtitleSettings{}
 	if a.cfg != nil {
 		subtitleDefaults.Enabled = a.cfg.SubtitleGenerationEnabled
@@ -1149,7 +1155,7 @@ func (a *Application) initRouter() error {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	router.Use(middleware.SetupMiddleware(a.services.Setup))
+	router.Use(middleware.SetupMiddleware(a.services.Setup, a.cfg))
 	router.Use(middleware.LanguageNegotiationMiddleware(func() *languageservice.LanguageService {
 		return a.services.Language
 	}))
@@ -1220,6 +1226,7 @@ func (a *Application) initRouter() error {
 	router.GET("/login", a.templateHandler.RenderLogin)
 	router.GET("/register", a.templateHandler.RenderRegister)
 	router.GET("/setup", a.templateHandler.RenderSetup)
+	router.GET("/setup/key-required", a.templateHandler.RenderSetupKeyRequired)
 	router.GET("/profile", a.templateHandler.RenderProfile)
 	router.GET("/courses/:slug", a.templateHandler.RenderCourse)
 	router.GET("/admin", a.templateHandler.RenderAdmin)
@@ -1240,6 +1247,9 @@ func (a *Application) initRouter() error {
 		public := v1.Group("")
 		{
 			public.GET("/setup/status", a.handlers.Setup.Status)
+			public.GET("/setup/progress", a.handlers.Setup.GetStepProgress)
+			public.POST("/setup/step", a.handlers.Setup.SaveStep)
+			public.POST("/setup/complete", a.handlers.Setup.CompleteStepwiseSetup)
 			public.POST("/setup", a.handlers.Setup.Complete)
 			public.POST("/register", a.handlers.Auth.Register)
 			public.POST("/login", a.handlers.Auth.Login)

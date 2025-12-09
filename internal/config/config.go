@@ -124,6 +124,9 @@ type Config struct {
 	CourseCheckoutSuccessURL string
 	CourseCheckoutCancelURL  string
 	CourseCheckoutCurrency   string
+
+	// Setup Security
+	SetupKey string
 }
 
 func New() *Config {
@@ -243,6 +246,9 @@ func New() *Config {
 		StripePublishableKey:   strings.TrimSpace(getEnv("STRIPE_PUBLISHABLE_KEY", "")),
 		StripeWebhookSecret:    strings.TrimSpace(getEnv("STRIPE_WEBHOOK_SECRET", "")),
 		CourseCheckoutCurrency: strings.ToLower(strings.TrimSpace(getEnv("COURSE_CURRENCY", "usd"))),
+
+		// Setup Security
+		SetupKey: getEnv("SETUP_KEY", ""),
 	}
 
 	if trimmed := strings.ToLower(strings.TrimSpace(c.SubtitleProvider)); trimmed != "" {

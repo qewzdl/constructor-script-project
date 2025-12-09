@@ -1096,6 +1096,8 @@ type SetupRequest struct {
 	SiteSupportedLanguages []string `json:"site_supported_languages"`
 }
 
+// Setup types are defined in setup.go, setup_validation.go
+
 type SocialLink struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
