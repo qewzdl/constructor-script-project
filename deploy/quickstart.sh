@@ -186,11 +186,8 @@ ENABLE_REDIS=false
 ENABLE_EMAIL=false
 ENABLE_METRICS=false
 
-# Content settings below will be configured via web setup at /setup
-# SITE_NAME=My Site
-# SITE_DESCRIPTION=My site description
-# SITE_URL=https://$user_domain
-# CORS_ORIGINS=https://$user_domain
+# Site information (name, description, URL, CORS) will be configured
+# via the web setup wizard at /setup
 
 # Subtitle generation (uncomment to enable OpenAI Whisper auto-transcriptions)
 # SUBTITLE_GENERATION_ENABLED=true

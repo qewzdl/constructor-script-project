@@ -16,8 +16,6 @@ VALUES (
 -- Create site settings
 INSERT INTO settings (key, value, created_at, updated_at)
 VALUES
-    ('site_name', :site_name, NOW(), NOW()),
-    ('site_description', :site_description, NOW(), NOW()),
     ('site_url', :site_url, NOW(), NOW()),
     ('site_favicon', '/static/icons/favicon.svg', NOW(), NOW()),
     ('site_logo', '/static/icons/logo.svg', NOW(), NOW()),
