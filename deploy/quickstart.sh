@@ -205,11 +205,15 @@ ENV
 
 chmod 600 "$ENV_FILE"
 
+echo "✓ Created $ENV_FILE with domain: $user_domain"
+
 # Provide a docker-compose compatible .env next to the compose file so that
 # subsequent `docker compose` invocations continue using the generated
 # credentials even when --env-file is omitted.
 cp "$ENV_FILE" "$DOT_ENV_FILE"
 chmod 600 "$DOT_ENV_FILE"
+
+echo "✓ Copied configuration to $DOT_ENV_FILE"
 
 pushd "$ROOT_DIR/deploy" >/dev/null
 
