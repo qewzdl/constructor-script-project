@@ -424,7 +424,8 @@ textarea.form-field__input {
     color: var(--color-secondary);
     text-align: center;
     transition: color 0.3s ease;
-    max-width: 80px;
+    padding: var(--size-sm) var(--size-xs) 0 var(--size-xs);
+    white-space: nowrap;
 }
 
 .progress-step.active .progress-step__number {
