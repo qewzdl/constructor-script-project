@@ -442,11 +442,19 @@ textarea.form-field__input {
 .progress-step.completed .progress-step__number {
     background-color: var(--color-accent);
     border-color: var(--color-accent);
-    color: white;
+    color: transparent;
+    font-size: 0;
 }
 
 .progress-step.completed .progress-step__number::before {
     content: '✓';
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .progress-step.completed .progress-step__label {
