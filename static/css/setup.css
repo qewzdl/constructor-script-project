@@ -372,23 +372,11 @@ textarea.form-field__input {
 
 /* Progress indicator */
 .setup__progress {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
     margin-bottom: var(--size-mid);
-    padding: 0 var(--size-sm);
-    position: relative;
-}
-
-.setup__progress::before {
-    content: '';
-    position: absolute;
-    top: 20px;
-    left: 15%;
-    right: 15%;
-    height: 2px;
-    background-color: var(--color-border);
-    z-index: 0;
+    counter-reset: step;
 }
 
 .progress-step {
@@ -397,7 +385,22 @@ textarea.form-field__input {
     align-items: center;
     gap: var(--size-xs);
     position: relative;
-    z-index: 1;
+    padding-top: var(--size-sm);
+}
+
+.progress-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: calc(var(--size-sm) + 20px);
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-border);
+    z-index: 0;
+}
+
+.progress-step.completed:not(:last-child)::after {
+    background-color: var(--color-accent);
 }
 
 .progress-step__number {
@@ -412,6 +415,8 @@ textarea.form-field__input {
     font-weight: 600;
     color: var(--color-secondary);
     transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
 }
 
 .progress-step__label {
@@ -419,12 +424,14 @@ textarea.form-field__input {
     color: var(--color-secondary);
     text-align: center;
     transition: color 0.3s ease;
+    max-width: 80px;
 }
 
 .progress-step.active .progress-step__number {
     background-color: var(--color-primary);
     border-color: var(--color-primary);
     color: var(--color-primary-opposite);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 .progress-step.active .progress-step__label {
