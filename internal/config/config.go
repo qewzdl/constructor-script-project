@@ -101,6 +101,7 @@ type Config struct {
 	SiteName           string
 	SiteDescription    string
 	SiteURL            string
+	SiteDomain         string
 	SiteFavicon        string
 	SiteLogo           string
 	DefaultLanguage    string
@@ -222,15 +223,14 @@ func New() *Config {
 		MetricsAllowedIPs:        getEnvAsSlice("METRICS_ALLOWED_IPS"),
 
 		// Site Meta
-		SiteName:           getEnv("SITE_NAME", "Constructor Script"),
-		SiteDescription:    getEnv("SITE_DESCRIPTION", "Platform for building modern, high-performance websites using Go and templates."),
-		SiteURL:            getEnv("SITE_URL", "http://localhost:8081"),
-		SiteFavicon:        getEnv("SITE_FAVICON", "/favicon.ico"),
-		SiteLogo:           getEnv("SITE_LOGO", "/static/icons/logo.svg"),
-		DefaultLanguage:    defaultLanguage,
-		SupportedLanguages: supportedLanguages,
-
-		// Backup
+		SiteName:            getEnv("SITE_NAME", "Constructor Script"),
+		SiteDescription:     getEnv("SITE_DESCRIPTION", "Platform for building modern, high-performance websites using Go and templates."),
+		SiteDomain:          getEnv("SITE_DOMAIN", ""),
+		SiteURL:             resolveSiteURL(getEnv("SITE_DOMAIN", ""), getEnv("SITE_URL", "")),
+		SiteFavicon:         getEnv("SITE_FAVICON", "/favicon.ico"),
+		SiteLogo:            getEnv("SITE_LOGO", "/static/icons/logo.svg"),
+		DefaultLanguage:     defaultLanguage,
+		SupportedLanguages:  supportedLanguages, // Backup
 		BackupEncryptionKey: getEnv("BACKUP_ENCRYPTION_KEY", ""),
 		BackupS3Enabled:     getEnvAsBool("BACKUP_S3_ENABLED", false),
 		BackupS3Endpoint:    getEnv("BACKUP_S3_ENDPOINT", ""),
@@ -606,6 +606,26 @@ func normalizeFrameAncestors(values []string) []string {
 	}
 
 	return filtered
+}
+
+// resolveSiteURL determines the site URL based on SITE_DOMAIN and SITE_URL environment variables
+// Priority:
+// 1. If SITE_DOMAIN is set, use https://{SITE_DOMAIN}
+// 2. If SITE_URL is set, use it as-is
+// 3. Default to http://localhost:8081
+func resolveSiteURL(siteDomain, siteURL string) string {
+	// Priority 1: If SITE_DOMAIN is provided, construct HTTPS URL
+	if domain := strings.TrimSpace(siteDomain); domain != "" {
+		return "https://" + domain
+	}
+
+	// Priority 2: If SITE_URL is provided, use it
+	if url := strings.TrimSpace(siteURL); url != "" {
+		return url
+	}
+
+	// Priority 3: Default for development
+	return "http://localhost:8081"
 }
 
 func (c *Config) IsDevelopment() bool {
