@@ -27,9 +27,21 @@ class SetupWizard {
         try {
             await this.loadProgress();
             this.setupEventListeners();
+            this.autoFillSiteUrl();
             this.updateUI();
         } catch (error) {
             showAlert(this.alertElement, error.message || "Failed to initialize setup");
+        }
+    }
+    
+    autoFillSiteUrl() {
+        // Auto-fill site URL based on current browser location if not already set
+        const siteUrlInput = document.getElementById('setup-site-url');
+        if (siteUrlInput && !siteUrlInput.value) {
+            const currentUrl = new URL(window.location.href);
+            const siteUrl = `${currentUrl.protocol}//${currentUrl.host}`;
+            siteUrlInput.value = siteUrl;
+            siteUrlInput.placeholder = siteUrl;
         }
     }
     
