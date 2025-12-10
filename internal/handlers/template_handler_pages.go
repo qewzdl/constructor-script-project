@@ -1301,7 +1301,7 @@ func (h *TemplateHandler) RenderSetup(c *gin.Context) {
 	setupKey := c.Query("key")
 
 	h.renderTemplate(c, "setup", "Initial setup", "Create the first administrator account and configure the site.", gin.H{
-		"Scripts":     []string{"/static/js/setup.js"},
+		"Scripts":     []string{"/static/js/setup-config.js", "/static/js/setup.js"},
 		"SetupAction": "/api/v1/setup",
 		"SetupStatus": "/api/v1/setup/status",
 		"SetupKey":    setupKey,
