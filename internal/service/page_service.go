@@ -711,7 +711,11 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 			section.Order = i + 1
 		}
 
-		section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical)
+		defaultPadding := constants.DefaultSectionPadding
+		if activeTheme := s.themes.Active(); activeTheme != nil {
+			defaultPadding = activeTheme.DefaultSectionPadding()
+		}
+		section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical, defaultPadding)
 		section.MarginVertical = normaliseSectionMargin(section.MarginVertical)
 
 		section.Type = sectionType

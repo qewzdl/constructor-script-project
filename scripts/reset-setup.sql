@@ -11,6 +11,14 @@ DELETE FROM settings WHERE key LIKE 'setup.step.%';
 -- Delete all users (required for setup to be accessible)
 DELETE FROM users;
 
+-- Delete setup progress data (for stepwise setup)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'setup_progresses') THEN
+        DELETE FROM setup_progresses;
+    END IF;
+END $$;
+
 -- Optional: Clear all sessions (if table exists)
 DO $$ 
 BEGIN
@@ -19,4 +27,4 @@ BEGIN
     END IF;
 END $$;
 
-SELECT 'Setup has been reset. All users have been deleted. You can now access the setup wizard.' AS message;
+SELECT 'Setup has been reset. All users and setup progress have been deleted. You can now access the setup wizard.' AS message;

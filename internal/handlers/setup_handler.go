@@ -158,8 +158,13 @@ func (h *SetupHandler) CompleteStepwiseSetup(c *gin.Context) {
 			return
 		}
 
-		logger.Error(err, "Failed to complete setup", nil)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete setup"})
+		logger.Error(err, "Failed to complete setup", map[string]interface{}{
+			"error_message": err.Error(),
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to complete setup",
+			"details": err.Error(),
+		})
 		return
 	}
 

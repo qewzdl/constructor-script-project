@@ -84,7 +84,11 @@ func PrepareSections(sections []models.Section, manager *theme.Manager, opts Pre
 		}
 
 		if opts.NormaliseSpacing {
-			section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical)
+			defaultPadding := constants.DefaultSectionPadding
+			if activeTheme := manager.Active(); activeTheme != nil {
+				defaultPadding = activeTheme.DefaultSectionPadding()
+			}
+			section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical, defaultPadding)
 			section.MarginVertical = normaliseSectionMargin(section.MarginVertical)
 		}
 
@@ -243,9 +247,9 @@ func clampSectionPaddingValue(value int) int {
 	return closest
 }
 
-func normaliseSectionPadding(value *int) *int {
+func normaliseSectionPadding(value *int, defaultPadding int) *int {
 	if value == nil {
-		return nil
+		return intPtr(defaultPadding)
 	}
 	normalised := clampSectionPaddingValue(*value)
 	return intPtr(normalised)
@@ -311,7 +315,7 @@ func NormaliseSections(sections models.PostSections) models.PostSections {
 			section.Order = i + 1
 		}
 
-		section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical)
+		section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical, constants.DefaultSectionPadding)
 		section.MarginVertical = normaliseSectionMargin(section.MarginVertical)
 
 		if len(section.Elements) > 0 {

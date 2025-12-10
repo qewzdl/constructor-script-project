@@ -52,7 +52,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		if prefix != pageViewClassPrefix {
 			sectionClasses = append(sectionClasses, fmt.Sprintf("%s__section--context-%s", pageViewClassPrefix, prefix))
 		}
-		if paddingClass := buildSectionPaddingClass(pageViewClassPrefix, section.PaddingVertical); paddingClass != "" {
+		if paddingClass := h.buildSectionPaddingClass(pageViewClassPrefix, section.PaddingVertical); paddingClass != "" {
 			sectionClasses = append(sectionClasses, paddingClass)
 		}
 		if marginClass := buildSectionMarginClass(pageViewClassPrefix, section.MarginVertical); marginClass != "" {
@@ -146,11 +146,16 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 	return template.HTML(sb.String()), scripts
 }
 
-func buildSectionPaddingClass(prefix string, value *int) string {
+func (h *TemplateHandler) buildSectionPaddingClass(prefix string, value *int) string {
+	var padding int
 	if value == nil {
-		return ""
+		padding = constants.DefaultSectionPadding
+		if activeTheme := h.themeManager.Active(); activeTheme != nil {
+			padding = activeTheme.DefaultSectionPadding()
+		}
+	} else {
+		padding = clampSectionPaddingValue(*value)
 	}
-	padding := clampSectionPaddingValue(*value)
 	return fmt.Sprintf("%s__section--pv-%d", prefix, padding)
 }
 

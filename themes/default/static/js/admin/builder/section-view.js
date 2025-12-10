@@ -277,8 +277,27 @@
     window.AdminSectionTypePicker = window.AdminSectionTypePicker || {};
     window.AdminSectionTypePicker.open = openSectionTypePicker;
 
-    const paddingOptions = [0, 4, 8, 16, 32, 64, 128];
-    const marginOptions = [0, 4, 8, 16, 32, 64, 128];
+    // Read builder configuration from server
+    const getBuilderConfig = () => {
+        const configElement = document.getElementById('builder-config-data');
+        if (configElement && configElement.textContent) {
+            try {
+                return JSON.parse(configElement.textContent);
+            } catch (error) {
+                console.error('Failed to parse builder config:', error);
+            }
+        }
+        return {
+            paddingOptions: [0, 4, 8, 16, 32, 64, 128],
+            marginOptions: [0, 4, 8, 16, 32, 64, 128],
+            defaultSectionPadding: 16,
+            defaultSectionMargin: 0,
+        };
+    };
+
+    const builderConfig = getBuilderConfig();
+    const paddingOptions = builderConfig.paddingOptions || [0, 4, 8, 16, 32, 64, 128];
+    const marginOptions = builderConfig.marginOptions || [0, 4, 8, 16, 32, 64, 128];
 
     const clampPaddingValue = (value) => {
         if (!paddingOptions.length) {

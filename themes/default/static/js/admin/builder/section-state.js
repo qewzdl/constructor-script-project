@@ -52,14 +52,31 @@
         return limit;
     };
 
-    const paddingOptions = [0, 4, 8, 16, 32, 64, 128];
-    const marginOptions = [0, 4, 8, 16, 32, 64, 128];
-    const defaultPadding = paddingOptions[0];
-    const defaultMargin = marginOptions[0];
-    const newSectionDefaultPadding = paddingOptions.includes(64)
-        ? 64
-        : paddingOptions[Math.min(2, paddingOptions.length - 1)];
-    const newSectionDefaultMargin = defaultMargin;
+    // Read builder configuration from server
+    const getBuilderConfig = () => {
+        const configElement = document.getElementById('builder-config-data');
+        if (configElement && configElement.textContent) {
+            try {
+                return JSON.parse(configElement.textContent);
+            } catch (error) {
+                console.error('Failed to parse builder config:', error);
+            }
+        }
+        return {
+            paddingOptions: [0, 4, 8, 16, 32, 64, 128],
+            marginOptions: [0, 4, 8, 16, 32, 64, 128],
+            defaultSectionPadding: 16,
+            defaultSectionMargin: 0,
+        };
+    };
+
+    const builderConfig = getBuilderConfig();
+    const paddingOptions = builderConfig.paddingOptions || [0, 4, 8, 16, 32, 64, 128];
+    const marginOptions = builderConfig.marginOptions || [0, 4, 8, 16, 32, 64, 128];
+    const defaultPadding = paddingOptions[0] || 0;
+    const defaultMargin = marginOptions[0] || 0;
+    const newSectionDefaultPadding = builderConfig.defaultSectionPadding || 16;
+    const newSectionDefaultMargin = builderConfig.defaultSectionMargin || 0;
 
     const clampPaddingValue = (value) => {
         if (!paddingOptions.length) {
@@ -98,7 +115,7 @@
                 return clampPaddingValue(parsed);
             }
         }
-        return defaultPadding;
+        return newSectionDefaultPadding;
     };
 
     const clampMarginValue = (value) => {
@@ -138,7 +155,7 @@
                 return clampMarginValue(parsed);
             }
         }
-        return defaultMargin;
+        return newSectionDefaultMargin;
     };
 
     const createElementState = (definitions, element = {}) => {

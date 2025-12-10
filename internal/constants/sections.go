@@ -22,7 +22,7 @@ const (
 	CourseListModeOwned = "owned"
 
 	// DefaultSectionPadding defines the default vertical padding (in pixels) applied to newly created sections.
-	DefaultSectionPadding = 32
+	DefaultSectionPadding = 64
 	// DefaultSectionMargin defines the default vertical margin (in pixels) applied to newly created sections.
 	DefaultSectionMargin = 0
 )

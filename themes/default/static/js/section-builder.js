@@ -94,9 +94,7 @@
 
     const SECTION_PADDING_OPTIONS = [0, 4, 8, 16, 32, 64, 128];
     const SECTION_MARGIN_OPTIONS = [0, 4, 8, 16, 32, 64, 128];
-    const DEFAULT_SECTION_PADDING = SECTION_PADDING_OPTIONS.includes(64)
-        ? 64
-        : SECTION_PADDING_OPTIONS[0];
+    const DEFAULT_SECTION_PADDING = 16;
     const DEFAULT_SECTION_MARGIN = SECTION_MARGIN_OPTIONS[0];
 
     const clampSectionPadding = (value) => {

@@ -2,5 +2,6 @@
     "name": "Default",
     "description": "A clean, content-focused layout with expressive typography and flexible content blocks.",
     "version": "1.0.0",
-    "author": "Constructor Script"
+    "author": "Constructor Script",
+    "default_section_padding": 64
 }

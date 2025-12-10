@@ -2157,6 +2157,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"Scripts":                h.builderScripts(),
 		"SectionDefinitionsJSON": sectionJSON,
 		"ElementDefinitionsJSON": elementJSON,
+		"BuilderConfigJSON":      h.builderConfigJSON(),
 		"AdminEndpoints":         adminEndpoints,
 		"BlogEnabled":            blogEnabled,
 		"CoursesEnabled":         coursesEnabled,
@@ -2255,6 +2256,30 @@ func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
 	}
 
 	return template.JS(sectionJSON), template.JS(elementJSON)
+}
+
+func (h *TemplateHandler) builderConfigJSON() template.JS {
+	defaultPadding := constants.DefaultSectionPadding
+	if h.themeManager != nil {
+		if active := h.themeManager.Active(); active != nil {
+			defaultPadding = active.DefaultSectionPadding()
+		}
+	}
+
+	config := gin.H{
+		"paddingOptions":        constants.SectionPaddingOptions(),
+		"marginOptions":         constants.SectionMarginOptions(),
+		"defaultSectionPadding": defaultPadding,
+		"defaultSectionMargin":  constants.DefaultSectionMargin,
+	}
+
+	configJSON, err := json.Marshal(config)
+	if err != nil {
+		logger.Error(err, "Failed to marshal builder config", nil)
+		configJSON = []byte("{}")
+	}
+
+	return template.JS(configJSON)
 }
 
 func (h *TemplateHandler) buildPagination(current, total int, buildURL func(page int) string) gin.H {

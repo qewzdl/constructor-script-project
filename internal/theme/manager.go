@@ -14,13 +14,14 @@ import (
 )
 
 type Metadata struct {
-	Name           string `json:"name"`
-	Description    string `json:"description"`
-	Version        string `json:"version"`
-	Author         string `json:"author"`
-	PreviewImage   string `json:"preview_image"`
-	DefaultLogo    string `json:"default_logo"`
-	DefaultFavicon string `json:"default_favicon"`
+	Name                  string `json:"name"`
+	Description           string `json:"description"`
+	Version               string `json:"version"`
+	Author                string `json:"author"`
+	PreviewImage          string `json:"preview_image"`
+	DefaultLogo           string `json:"default_logo"`
+	DefaultFavicon        string `json:"default_favicon"`
+	DefaultSectionPadding *int   `json:"default_section_padding,omitempty"`
 }
 
 type Theme struct {
@@ -324,6 +325,20 @@ func (t *Theme) ElementDefinitions() map[string]ElementDefinition {
 		clone[key] = value
 	}
 	return clone
+}
+
+func (t *Theme) DefaultSectionPadding() int {
+	if t != nil && t.Metadata.DefaultSectionPadding != nil {
+		padding := *t.Metadata.DefaultSectionPadding
+		// Validate that the value is in allowed options
+		options := []int{0, 4, 8, 16, 32, 64, 128}
+		for _, opt := range options {
+			if padding == opt {
+				return padding
+			}
+		}
+	}
+	return 16 // Fallback default
 }
 
 func (t *Theme) BuilderAssets() BuilderAssets {

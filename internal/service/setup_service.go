@@ -1103,11 +1103,21 @@ func (s *SetupService) CompleteStepwiseSetup(defaults models.SiteSettings) (*mod
 
 	progress, err := s.GetSetupProgress()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get setup progress: %w", err)
 	}
 
 	if !progress.AllStepsComplete() {
-		return nil, errors.New("all setup steps must be completed first")
+		missingSteps := []string{}
+		if !progress.SiteInfoComplete {
+			missingSteps = append(missingSteps, "site_info")
+		}
+		if !progress.AdminComplete {
+			missingSteps = append(missingSteps, "admin")
+		}
+		if !progress.LanguagesComplete {
+			missingSteps = append(missingSteps, "languages")
+		}
+		return nil, fmt.Errorf("incomplete setup steps: %v", strings.Join(missingSteps, ", "))
 	}
 
 	// Check if setup already completed
