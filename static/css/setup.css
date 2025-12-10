@@ -488,7 +488,7 @@ textarea.form-field__input {
 /* Navigation buttons */
 .setup__navigation {
     display: flex;
-    gap: var(--size-base);
+    gap: var(--size-sm);
     margin-top: var(--size-base);
 }
 
