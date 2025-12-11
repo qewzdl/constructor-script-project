@@ -257,6 +257,13 @@
         const marginVertical = normaliseMarginValue(marginSource);
         const headerImageSupported =
             sectionDefinitions[type]?.supportsHeaderImage === true;
+        
+        // Handle custom section settings (like hero fields)
+        const settingsSource = section.settings ?? section.Settings ?? {};
+        const settings = typeof settingsSource === 'object' && settingsSource !== null 
+            ? { ...settingsSource } 
+            : {};
+        
         return {
             clientId: randomId(),
             id: normaliseString(section.id ?? section.ID ?? ''),
@@ -275,6 +282,7 @@
             styleGridItems,
             paddingVertical,
             marginVertical,
+            settings,
         };
     };
 
@@ -342,9 +350,10 @@
                         ? section.image.trim()
                         : '';
                     const title = section.title.trim();
+                    const hasSettings = section.settings && Object.keys(section.settings).length > 0;
                     const hasContent = supportsElements(section.type)
-                        ? Boolean(title || image || elements.length > 0)
-                        : Boolean(title || image);
+                        ? Boolean(title || image || elements.length > 0 || hasSettings)
+                        : Boolean(title || image || hasSettings);
 
                     if (!hasContent) {
                         return null;
@@ -400,6 +409,11 @@
                     payload.margin_vertical = clampMarginValue(
                         Number(section.marginVertical)
                     );
+
+                    // Include custom section settings (like hero fields)
+                    if (section.settings && Object.keys(section.settings).length > 0) {
+                        payload.settings = section.settings;
+                    }
 
                     return payload;
                 })
@@ -604,6 +618,13 @@
                         limitDefinition
                     );
                 }
+            } else if (field.startsWith('section-setting-')) {
+                // Handle custom section settings (like hero fields)
+                const settingKey = field.replace('section-setting-', '');
+                if (!section.settings) {
+                    section.settings = {};
+                }
+                section.settings[settingKey] = value;
             } else if (field === 'section-padding-vertical') {
                 section.paddingVertical = clampPaddingValue(Number(value));
             } else if (field === 'section-margin-vertical') {

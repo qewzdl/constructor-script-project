@@ -584,17 +584,18 @@ type AuthResponse struct {
 type PostSections []Section
 
 type Section struct {
-	ID              string           `json:"id"`
-	Type            string           `json:"type"`
-	Title           string           `json:"title"`
-	Image           string           `json:"image"`
-	Limit           int              `json:"limit"`
-	Mode            string           `json:"mode,omitempty"`
-	Order           int              `json:"order"`
-	StyleGridItems  *bool            `json:"style_grid_items,omitempty"`
-	PaddingVertical *int             `json:"padding_vertical,omitempty"`
-	MarginVertical  *int             `json:"margin_vertical,omitempty"`
-	Elements        []SectionElement `json:"elements"`
+	ID              string                 `json:"id"`
+	Type            string                 `json:"type"`
+	Title           string                 `json:"title"`
+	Image           string                 `json:"image"`
+	Limit           int                    `json:"limit"`
+	Mode            string                 `json:"mode,omitempty"`
+	Order           int                    `json:"order"`
+	StyleGridItems  *bool                  `json:"style_grid_items,omitempty"`
+	PaddingVertical *int                   `json:"padding_vertical,omitempty"`
+	MarginVertical  *int                   `json:"margin_vertical,omitempty"`
+	Settings        map[string]interface{} `json:"settings,omitempty"`
+	Elements        []SectionElement       `json:"elements"`
 }
 
 type SectionElement struct {
@@ -612,6 +613,15 @@ type ImageContent struct {
 	URL     string `json:"url"`
 	Alt     string `json:"alt"`
 	Caption string `json:"caption"`
+}
+
+type HeroContent struct {
+	Title      string `json:"title"`
+	Subtitle   string `json:"subtitle"`
+	ImageURL   string `json:"image_url"`
+	ImageAlt   string `json:"image_alt"`
+	ButtonText string `json:"button_text"`
+	ButtonURL  string `json:"button_url"`
 }
 
 // ContentSecurityPolicyDirectives contains additional CSP directive values keyed by directive name.

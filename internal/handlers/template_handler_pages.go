@@ -2244,7 +2244,57 @@ func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
 	sectionDefs := theme.DefaultSectionDefinitions()
 	elementDefs := theme.DefaultElementDefinitions()
 
-	if h.themeManager != nil {
+	// Try to use dynamic metadata from section registry first
+	if metadata := h.SectionMetadata(); len(metadata) > 0 {
+		sectionDefs = make(map[string]theme.SectionDefinition)
+		for _, meta := range metadata {
+			supportsElements := true
+			supportsHeaderImage := false
+
+			// Determine if section supports elements based on schema
+			if meta.Schema != nil {
+				if _, hasLimit := meta.Schema["limit"]; hasLimit {
+					supportsElements = false
+				}
+			}
+
+			def := theme.SectionDefinition{
+				Type:                meta.Type,
+				Label:               meta.Name,
+				Description:         meta.Description,
+				Order:               0,
+				SupportsElements:    &supportsElements,
+				SupportsHeaderImage: &supportsHeaderImage,
+			}
+
+			// Convert schema to settings
+			if meta.Schema != nil && len(meta.Schema) > 0 {
+				def.Settings = make(map[string]theme.SectionSettingDefinition)
+				for key, schemaValue := range meta.Schema {
+					setting := theme.SectionSettingDefinition{}
+
+					if schemaMap, ok := schemaValue.(map[string]interface{}); ok {
+						if label, ok := schemaMap["label"].(string); ok {
+							setting.Label = label
+						}
+						if min, ok := schemaMap["min"].(int); ok {
+							setting.Min = &min
+						}
+						if max, ok := schemaMap["max"].(int); ok {
+							setting.Max = &max
+						}
+						if defaultVal, ok := schemaMap["default"].(int); ok {
+							setting.Default = &defaultVal
+						}
+					}
+
+					def.Settings[key] = setting
+				}
+			}
+
+			sectionDefs[meta.Type] = def
+		}
+	} else if h.themeManager != nil {
 		if active := h.themeManager.Active(); active != nil {
 			if defs := active.SectionDefinitions(); len(defs) > 0 {
 				sectionDefs = defs

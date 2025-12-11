@@ -6,6 +6,7 @@ import (
 	"constructor-script-backend/pkg/logger"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -52,8 +53,20 @@ func (h *PageHandler) Update(c *gin.Context) {
 
 	page, err := h.pageService.Update(uint(id), req)
 	if err != nil {
-		logger.Error(err, "Failed to update page", nil)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update page"})
+		logger.Error(err, "Failed to update page", map[string]interface{}{"page_id": id})
+
+		// Check for specific error types to return better messages
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "already exists") {
+			c.JSON(http.StatusConflict, gin.H{"error": errMsg})
+			return
+		}
+		if strings.Contains(errMsg, "required") || strings.Contains(errMsg, "invalid") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
 		return
 	}
 

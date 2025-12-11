@@ -1,0 +1,7 @@
+{
+    "type": "hero",
+    "label": "Hero section",
+    "order": 5,
+    "description": "Prominent banner with title, subtitle, image, and call-to-action button.",
+    "supports_elements": true
+}

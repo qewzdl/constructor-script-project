@@ -110,7 +110,7 @@ func NewTemplateHandler(
 		sanitizer:           policy,
 	}
 
-	handler.sectionRegistry = sections.DefaultRegistry()
+	handler.sectionRegistry = sections.DefaultRegistryWithMetadata()
 
 	if err := handler.reloadTemplates(); err != nil {
 		return nil, err

@@ -483,6 +483,12 @@
                     parts.push(`Mode: ${modeLabel}`);
                 }
             }
+            // Show custom section settings preview (like hero title)
+            if (section.settings && Object.keys(section.settings).length > 0) {
+                if (section.settings.title) {
+                    parts.push(`Title: ${section.settings.title}`);
+                }
+            }
             return parts.join(' · ');
         };
 
@@ -697,6 +703,108 @@
                 });
                 modeField.append(modeSelect);
                 appendField(modeField);
+            }
+
+            // Handle custom section settings (like hero section fields)
+            if (sectionDefinition?.settings) {
+                Object.entries(sectionDefinition.settings).forEach(([key, settingDef]) => {
+                    // Skip limit and mode as they are handled above
+                    if (key === 'limit' || key === 'mode') {
+                        return;
+                    }
+
+                    if (!section.settings) {
+                        section.settings = {};
+                    }
+
+                    const fieldType = settingDef.type || 'text';
+                    const fieldLabel = settingDef.label || key;
+                    const isRequired = settingDef.required === true;
+
+                    if (fieldType === 'textarea') {
+                        const field = createElement('label', {
+                            className: 'admin-builder__field',
+                        });
+                        const labelSpan = createElement('span', {
+                            className: 'admin-builder__label',
+                            textContent: fieldLabel,
+                        });
+                        if (isRequired) {
+                            labelSpan.append(
+                                createElement('em', {
+                                    className: 'admin-builder__required',
+                                    textContent: ' (required)',
+                                })
+                            );
+                        }
+                        field.append(labelSpan);
+                        
+                        const textarea = createElement('textarea', {
+                            className: 'admin-builder__textarea',
+                        });
+                        textarea.placeholder = settingDef.placeholder || '';
+                        textarea.value = section.settings[key] || '';
+                        textarea.dataset.field = `section-setting-${key}`;
+                        textarea.rows = 2;
+                        if (isRequired) {
+                            textarea.required = true;
+                        }
+                        textarea.addEventListener('input', scheduleChange);
+                        field.append(textarea);
+                        appendField(field);
+                    } else {
+                        const field = createElement('label', {
+                            className: 'admin-builder__field',
+                        });
+                        const labelSpan = createElement('span', {
+                            className: 'admin-builder__label',
+                            textContent: fieldLabel,
+                        });
+                        if (isRequired) {
+                            labelSpan.append(
+                                createElement('em', {
+                                    className: 'admin-builder__required',
+                                    textContent: ' (required)',
+                                })
+                            );
+                        }
+                        field.append(labelSpan);
+                        
+                        const input = createElement('input', {
+                            className: 'admin-builder__input',
+                        });
+                        input.type = fieldType === 'url' ? 'url' : 'text';
+                        input.placeholder = settingDef.placeholder || '';
+                        input.value = section.settings[key] || '';
+                        input.dataset.field = `section-setting-${key}`;
+                        if (isRequired) {
+                            input.required = true;
+                        }
+                        input.addEventListener('input', scheduleChange);
+                        field.append(input);
+
+                        // Add media browse button for image/url fields
+                        if (settingDef.allowMediaBrowse) {
+                            const inputId = `section-${section.clientId}-setting-${key}`;
+                            input.id = inputId;
+                            const actions = createElement('div', {
+                                className: 'admin-builder__field-actions',
+                            });
+                            const browseButton = createElement('button', {
+                                className: 'admin-builder__media-button',
+                                textContent: 'Browse uploads',
+                            });
+                            browseButton.type = 'button';
+                            browseButton.dataset.action = 'open-media-library';
+                            browseButton.dataset.mediaTarget = `#${inputId}`;
+                            browseButton.dataset.mediaAllowedTypes = 'image';
+                            actions.append(browseButton);
+                            field.append(actions);
+                        }
+
+                        appendField(field);
+                    }
+                });
             }
 
             const paddingValue = clampPaddingValue(section.paddingVertical);

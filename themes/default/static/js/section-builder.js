@@ -1,9 +1,43 @@
 (() => {
     const builders = new WeakMap();
 
+    // Helper function to get CSRF token from cookies
+    const getCSRFToken = () => {
+        const cookies = document.cookie.split('; ');
+        for (const cookie of cookies) {
+            const [key, value] = cookie.split('=');
+            if (key === 'csrf_token') {
+                return decodeURIComponent(value);
+            }
+        }
+        return '';
+    };
+
+    // Helper function to build fetch options with credentials and CSRF token
+    const buildFetchOptions = (options = {}) => {
+        const { method = 'GET', headers = {}, ...rest } = options;
+        const csrfToken = getCSRFToken();
+        
+        const fetchOptions = {
+            method,
+            credentials: 'include',
+            headers: {
+                ...headers,
+            },
+            ...rest,
+        };
+
+        // Add CSRF token for state-changing methods
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase()) && csrfToken) {
+            fetchOptions.headers['X-CSRF-Token'] = csrfToken;
+        }
+
+        return fetchOptions;
+    };
+
     const PageBuilderAPI = {
         async getConfig(pageId) {
-            const response = await fetch(`/api/v1/admin/pages/${pageId}/builder`);
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/builder`, buildFetchOptions());
             if (!response.ok) {
                 throw new Error(`Failed to fetch config: ${response.status}`);
             }
@@ -11,10 +45,10 @@
         },
 
         async duplicatePage(pageId) {
-            const response = await fetch(`/api/v1/admin/pages/${pageId}/duplicate`, {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/duplicate`, buildFetchOptions({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-            });
+            }));
             if (!response.ok) {
                 throw new Error(`Failed to duplicate page: ${response.status}`);
             }
@@ -22,11 +56,11 @@
         },
 
         async reorderSections(pageId, sectionIds) {
-            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/reorder`, {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/reorder`, buildFetchOptions({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ section_ids: sectionIds }),
-            });
+            }));
             if (!response.ok) {
                 throw new Error(`Failed to reorder sections: ${response.status}`);
             }
@@ -34,11 +68,11 @@
         },
 
         async addSection(pageId, sectionData) {
-            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections`, {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections`, buildFetchOptions({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(sectionData),
-            });
+            }));
             if (!response.ok) {
                 throw new Error(`Failed to add section: ${response.status}`);
             }
@@ -46,11 +80,11 @@
         },
 
         async updateSection(pageId, sectionId, sectionData) {
-            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/${sectionId}`, {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/${sectionId}`, buildFetchOptions({
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(sectionData),
-            });
+            }));
             if (!response.ok) {
                 throw new Error(`Failed to update section: ${response.status}`);
             }
@@ -58,9 +92,9 @@
         },
 
         async deleteSection(pageId, sectionId) {
-            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/${sectionId}`, {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/${sectionId}`, buildFetchOptions({
                 method: 'DELETE',
-            });
+            }));
             if (!response.ok) {
                 throw new Error(`Failed to delete section: ${response.status}`);
             }
@@ -68,10 +102,10 @@
         },
 
         async duplicateSection(pageId, sectionId) {
-            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/${sectionId}/duplicate`, {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/${sectionId}/duplicate`, buildFetchOptions({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-            });
+            }));
             if (!response.ok) {
                 throw new Error(`Failed to duplicate section: ${response.status}`);
             }
@@ -79,7 +113,7 @@
         },
 
         async getTemplates() {
-            const response = await fetch('/api/v1/admin/pages/templates');
+            const response = await fetch('/api/v1/admin/pages/templates', buildFetchOptions());
             if (!response.ok) {
                 throw new Error(`Failed to fetch templates: ${response.status}`);
             }
@@ -87,11 +121,11 @@
         },
 
         async createFromTemplate(templateId, pageData) {
-            const response = await fetch(`/api/v1/admin/pages/templates/${templateId}`, {
+            const response = await fetch(`/api/v1/admin/pages/templates/${templateId}`, buildFetchOptions({
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(pageData),
-            });
+            }));
             if (!response.ok) {
                 throw new Error(`Failed to create from template: ${response.status}`);
             }
@@ -107,7 +141,7 @@
             if (pageId) {
                 params.append('page_id', pageId);
             }
-            const response = await fetch(`/api/v1/admin/pages/validate-slug?${params}`);
+            const response = await fetch(`/api/v1/admin/pages/validate-slug?${params}`, buildFetchOptions());
             if (!response.ok) {
                 throw new Error(`Failed to validate slug: ${response.status}`);
             }
@@ -115,7 +149,7 @@
         },
 
         async getBuilderConfig() {
-            const response = await fetch('/api/v1/admin/pages/builder/config');
+            const response = await fetch('/api/v1/admin/pages/builder/config', buildFetchOptions());
             if (!response.ok) {
                 throw new Error(`Failed to fetch builder config: ${response.status}`);
             }

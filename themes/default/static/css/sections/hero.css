@@ -1,0 +1,122 @@
+/* Hero Section Styles */
+.page-view__hero {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: var(--size-base) 0;
+}
+
+.page-view__hero-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--size-base);
+    align-items: center;
+    max-width: 1200px;
+    width: 100%;
+    padding: 0 var(--size-base);
+}
+
+.page-view__hero-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-base);
+}
+
+.page-view__hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.page-view__hero-subtitle {
+    font-size: 1.1rem;
+    color: var(--color-secondary);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.page-view__hero-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: var(--size-lg);
+    padding: var(--size-sm) var(--size-lg);
+    background-color: var(--color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: 999px;
+    font-size: 1rem;
+    align-self: flex-start;
+    cursor: pointer;
+}
+
+.page-view__hero-button:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.page-view__hero-button:active {
+    transform: translateY(0);
+}
+
+.page-view__hero-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-view__hero-image-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--size-sm);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .page-view__hero-container {
+        grid-template-columns: 1fr;
+        gap: var(--size-lg);
+        text-align: center;
+    }
+
+    .page-view__hero-content {
+        align-items: center;
+    }
+
+    .page-view__hero-title {
+        font-size: 2rem;
+    }
+
+    .page-view__hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .page-view__hero-button {
+        align-self: center;
+    }
+
+    .page-view__hero-image {
+        order: -1;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-view__hero {
+        padding: var(--size-lg) 0;
+    }
+
+    .page-view__hero-title {
+        font-size: 1.75rem;
+    }
+
+    .page-view__hero-subtitle {
+        font-size: 0.95rem;
+    }
+
+    .page-view__hero-button {
+        padding: var(--size-xs) var(--size-base);
+        font-size: 1rem;
+    }
+}

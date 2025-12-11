@@ -2242,6 +2242,26 @@
     outline: none;
 }
 
+.admin-form__button {
+    border: 1px solid var(--color-border);
+    padding: var(--size-sm) var(--size-lg);
+    background: color-mix(
+        in srgb,
+        var(--color-border-subtle) 30%,
+        var(--color-bg-top)
+    );
+    color: var(--color-secondary);
+    font-weight: 600;
+}
+
+.admin-form__button:hover,
+.admin-form__button:focus-visible {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: var(--color-primary-transparent);
+    outline: none;
+}
+
 .admin-form__delete {
     border: 1px solid var(--color-error);
     padding: var(--size-sm) var(--size-lg);
