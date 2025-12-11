@@ -18,8 +18,13 @@
             },
             subtitle: {
                 label: 'Subtitle',
-                type: 'textarea',
+                type: 'text',
                 placeholder: 'Discover amazing features and possibilities',
+            },
+            text: {
+                label: 'Description text',
+                type: 'textarea',
+                placeholder: 'Additional descriptive text for your hero section',
             },
             image_url: {
                 label: 'Hero image URL',

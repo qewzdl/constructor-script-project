@@ -24,7 +24,7 @@
 }
 
 .page-view__hero-title {
-    font-size: 3rem;
+    font-size: 2rem;
     font-weight: 700;
     color: var(--color-text);
     margin: 0;
@@ -32,8 +32,16 @@
 }
 
 .page-view__hero-subtitle {
-    font-size: 1.1rem;
-    color: var(--color-secondary);
+    font-size: 1.6rem;
+    font-weight: 400;
+    color: var(--color-text);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.page-view__hero-text {
+    font-size: 1rem;
+    color: var(--color-text);
     margin: 0;
     line-height: 1.6;
 }
@@ -71,6 +79,8 @@
     max-width: 100%;
     height: auto;
     border-radius: var(--size-sm);
+    user-select: none;
+    pointer-events: none;
 }
 
 /* Responsive Design */
@@ -90,6 +100,10 @@
     }
 
     .page-view__hero-subtitle {
+        font-size: 1.25rem;
+    }
+
+    .page-view__hero-text {
         font-size: 1rem;
     }
 

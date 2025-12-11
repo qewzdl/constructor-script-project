@@ -40,6 +40,10 @@ func RegisterHeroWithMetadata(reg *RegistryWithMetadata) {
 					"type":    "string",
 					"default": "Discover amazing features and possibilities",
 				},
+				"text": map[string]interface{}{
+					"type":    "string",
+					"default": "",
+				},
 				"image_url": map[string]interface{}{
 					"type":     "string",
 					"required": true,
@@ -94,6 +98,7 @@ func renderHero(ctx RenderContext, prefix string, elem models.SectionElement) (s
 
 	title, _ := settings["title"].(string)
 	subtitle, _ := settings["subtitle"].(string)
+	text, _ := settings["text"].(string)
 	imageURL, _ := settings["image_url"].(string)
 	imageAlt, _ := settings["image_alt"].(string)
 	buttonText, _ := settings["button_text"].(string)
@@ -118,6 +123,7 @@ func renderHero(ctx RenderContext, prefix string, elem models.SectionElement) (s
 	// Sanitize HTML content
 	sanitizedTitle := ctx.SanitizeHTML(title)
 	sanitizedSubtitle := ctx.SanitizeHTML(subtitle)
+	sanitizedText := ctx.SanitizeHTML(text)
 
 	// Build CSS classes
 	heroClass := fmt.Sprintf("%s__hero", prefix)
@@ -125,6 +131,7 @@ func renderHero(ctx RenderContext, prefix string, elem models.SectionElement) (s
 	heroContentClass := fmt.Sprintf("%s__hero-content", prefix)
 	heroTitleClass := fmt.Sprintf("%s__hero-title", prefix)
 	heroSubtitleClass := fmt.Sprintf("%s__hero-subtitle", prefix)
+	heroTextClass := fmt.Sprintf("%s__hero-text", prefix)
 	heroButtonClass := fmt.Sprintf("%s__hero-button", prefix)
 	heroImageClass := fmt.Sprintf("%s__hero-image", prefix)
 	heroImageImgClass := fmt.Sprintf("%s__hero-image-img", prefix)
@@ -138,7 +145,11 @@ func renderHero(ctx RenderContext, prefix string, elem models.SectionElement) (s
 	sb.WriteString(`<h1 class="` + heroTitleClass + `">` + sanitizedTitle + `</h1>`)
 
 	if strings.TrimSpace(subtitle) != "" {
-		sb.WriteString(`<p class="` + heroSubtitleClass + `">` + sanitizedSubtitle + `</p>`)
+		sb.WriteString(`<h2 class="` + heroSubtitleClass + `">` + sanitizedSubtitle + `</h2>`)
+	}
+
+	if strings.TrimSpace(text) != "" {
+		sb.WriteString(`<p class="` + heroTextClass + `">` + sanitizedText + `</p>`)
 	}
 
 	sb.WriteString(`<a href="` + template.HTMLEscapeString(buttonURL) + `" class="` + heroButtonClass + `">`)
