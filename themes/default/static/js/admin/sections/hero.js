@@ -43,6 +43,7 @@
                 type: 'url',
                 required: true,
                 placeholder: '/',
+                allowAnchorPicker: true,
             },
         },
     });

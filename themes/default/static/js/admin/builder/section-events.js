@@ -1,5 +1,121 @@
 
 (() => {
+    const utils = window.AdminUtils;
+
+    const openAnchorPicker = (inputElement) => {
+        if (!inputElement || !utils) {
+            return;
+        }
+
+        // Get all sections on the page
+        const sections = Array.from(document.querySelectorAll('[data-section-client]'));
+        if (sections.length === 0) {
+            alert('No sections found on this page');
+            return;
+        }
+
+        // Create modal overlay
+        const overlay = utils.createElement('div', {
+            className: 'anchor-picker-overlay'
+        });
+
+        // Create modal content
+        const modal = utils.createElement('div', {
+            className: 'anchor-picker-modal'
+        });
+
+        // Header
+        const header = utils.createElement('div', {
+            className: 'anchor-picker-header'
+        });
+        const title = utils.createElement('h3', {
+            className: 'anchor-picker-title',
+            textContent: 'Select a section to link'
+        });
+        header.appendChild(title);
+
+        // Section list
+        const sectionList = utils.createElement('div', {
+            className: 'anchor-picker-list'
+        });
+
+        sections.forEach((section, index) => {
+            const sectionClientId = section.dataset.sectionClient;
+            const sectionId = section.dataset.sectionId;
+            const titleInput = section.querySelector('[data-field="section-title"]');
+            const sectionTitle = titleInput ? titleInput.value.trim() : '';
+            const sectionType = section.dataset.sectionType || 'unknown';
+            
+            const displayTitle = sectionTitle || `Section ${index + 1}`;
+            const anchorId = sectionId || sectionClientId;
+
+            const button = utils.createElement('button', {
+                className: 'anchor-picker-item',
+                type: 'button'
+            });
+            
+            const buttonTitle = utils.createElement('div', {
+                className: 'anchor-picker-item-title',
+                textContent: displayTitle
+            });
+            
+            const buttonMeta = utils.createElement('div', {
+                className: 'anchor-picker-item-meta'
+            });
+            
+            const typeSpan = utils.createElement('span', {
+                textContent: `Type: ${sectionType}`
+            });
+            
+            const anchorSpan = utils.createElement('code', {
+                className: 'anchor-picker-item-code',
+                textContent: `#section-${anchorId}`
+            });
+            
+            buttonMeta.append(typeSpan, anchorSpan);
+            button.append(buttonTitle, buttonMeta);
+
+            button.addEventListener('click', () => {
+                inputElement.value = `#section-${anchorId}`;
+                inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+                inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+                document.body.removeChild(overlay);
+            });
+
+            sectionList.appendChild(button);
+        });
+
+        // Footer
+        const footer = utils.createElement('div', {
+            className: 'anchor-picker-footer'
+        });
+        const cancelButton = utils.createElement('button', {
+            className: 'admin-builder__button',
+            textContent: 'Cancel',
+            type: 'button'
+        });
+        footer.appendChild(cancelButton);
+
+        modal.append(header, sectionList, footer);
+        overlay.appendChild(modal);
+
+        // Close handlers
+        const closeModal = () => {
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+            }
+        };
+
+        cancelButton.addEventListener('click', closeModal);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeModal();
+            }
+        });
+
+        document.body.appendChild(overlay);
+    };
+
     const createEvents = ({
         listElement,
         onSectionRemove,
@@ -108,6 +224,20 @@
                     elementNode.dataset.elementClient,
                     fileNode.dataset.groupFileClient
                 );
+                return;
+            }
+
+            if (target.matches('[data-action="open-anchor-picker"]')) {
+                event.preventDefault();
+                const targetInputId = target.dataset.anchorTarget;
+                if (!targetInputId || !targetInputId.startsWith('#')) {
+                    return;
+                }
+                const inputElement = document.querySelector(targetInputId);
+                if (!inputElement) {
+                    return;
+                }
+                openAnchorPicker(inputElement);
             }
         };
 

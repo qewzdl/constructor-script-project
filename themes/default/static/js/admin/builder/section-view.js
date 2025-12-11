@@ -784,21 +784,36 @@
                         field.append(input);
 
                         // Add media browse button for image/url fields
-                        if (settingDef.allowMediaBrowse) {
+                        if (settingDef.allowMediaBrowse || settingDef.allowAnchorPicker) {
                             const inputId = `section-${section.clientId}-setting-${key}`;
                             input.id = inputId;
                             const actions = createElement('div', {
                                 className: 'admin-builder__field-actions',
                             });
-                            const browseButton = createElement('button', {
-                                className: 'admin-builder__media-button',
-                                textContent: 'Browse uploads',
-                            });
-                            browseButton.type = 'button';
-                            browseButton.dataset.action = 'open-media-library';
-                            browseButton.dataset.mediaTarget = `#${inputId}`;
-                            browseButton.dataset.mediaAllowedTypes = 'image';
-                            actions.append(browseButton);
+                            
+                            if (settingDef.allowMediaBrowse) {
+                                const browseButton = createElement('button', {
+                                    className: 'admin-builder__media-button',
+                                    textContent: 'Browse uploads',
+                                });
+                                browseButton.type = 'button';
+                                browseButton.dataset.action = 'open-media-library';
+                                browseButton.dataset.mediaTarget = `#${inputId}`;
+                                browseButton.dataset.mediaAllowedTypes = 'image';
+                                actions.append(browseButton);
+                            }
+                            
+                            if (settingDef.allowAnchorPicker) {
+                                const anchorButton = createElement('button', {
+                                    className: 'admin-builder__anchor-button',
+                                    textContent: 'Link to section',
+                                });
+                                anchorButton.type = 'button';
+                                anchorButton.dataset.action = 'open-anchor-picker';
+                                anchorButton.dataset.anchorTarget = `#${inputId}`;
+                                actions.append(anchorButton);
+                            }
+                            
                             field.append(actions);
                         }
 
@@ -1067,6 +1082,9 @@
                 });
                 sectionItem.dataset.sectionClient = section.clientId;
                 sectionItem.dataset.sectionIndex = String(index);
+                if (section.id) {
+                    sectionItem.dataset.sectionId = section.id;
+                }
 
                 const sectionDefinition = sectionDefinitions?.[section.type] || {};
                 const allowElements = sectionDefinition.supportsElements !== false;
