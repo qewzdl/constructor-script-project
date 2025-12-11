@@ -1,0 +1,54 @@
+<!-- 
+  Admin Dashboard Script Loader
+  
+  This example shows the correct order for loading admin dashboard modules.
+  Add these script tags to your admin template file.
+-->
+
+<!-- Core Dependencies (must be loaded first) -->
+<script src="/static/js/admin/utils.js"></script>
+<script src="/static/js/admin/elements/registry.js"></script>
+<script src="/static/js/admin/builder/section-builder.js"></script>
+
+<!-- Base Modules -->
+<script src="/static/js/admin/formatters.js"></script>
+<script src="/static/js/admin/api-client.js"></script>
+<script src="/static/js/admin/ui-manager.js"></script>
+
+<!-- Feature Modules -->
+<script src="/static/js/admin/analytics.js"></script>
+<script src="/static/js/admin/tables/table-manager.js"></script>
+<script src="/static/js/admin/forms/form-handler.js"></script>
+
+<!-- Layout and Media -->
+<script src="/static/js/admin/layout.js"></script>
+<script src="/static/js/admin/media-library.js"></script>
+
+<!-- Specific Panel Modules (optional, load as needed) -->
+<script src="/static/js/admin/panels/backup.js"></script>
+<script src="/static/js/admin/panels/homepage.js"></script>
+<script src="/static/js/admin/panels/social.js"></script>
+<script src="/static/js/admin/panels/fonts.js"></script>
+<script src="/static/js/admin/panels/menu.js"></script>
+
+<!-- Section Modules -->
+<script src="/static/js/admin/sections/hero.js"></script>
+<script src="/static/js/admin/sections/features.js"></script>
+<script src="/static/js/admin/sections/cta.js"></script>
+<script src="/static/js/admin/sections/testimonials.js"></script>
+
+<!-- Element Modules -->
+<script src="/static/js/admin/elements/text.js"></script>
+<script src="/static/js/admin/elements/image.js"></script>
+<script src="/static/js/admin/elements/video.js"></script>
+
+<!-- Builder Modules -->
+<script src="/static/js/admin/builder/toolbar.js"></script>
+<script src="/static/js/admin/builder/preview.js"></script>
+
+<!-- Plugin-specific modules (if any) -->
+<script src="/static/js/admin/archive.js"></script>
+<script src="/static/js/admin/forum.js"></script>
+
+<!-- Main Entry Point (must be loaded last) -->
+<script src="/static/js/admin.js"></script>

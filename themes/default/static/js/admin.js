@@ -1,13 +1,42 @@
+/**
+ * Admin Dashboard Main Entry Point
+ * 
+ * This is the main coordinator for the admin dashboard.
+ * Heavy logic has been moved to modular components in the admin/ directory.
+ * 
+ * Required modules (must be loaded before this file):
+ * - admin/formatters.js
+ * - admin/api-client.js
+ * - admin/ui-manager.js
+ * - admin/analytics.js
+ * - admin/tables/table-manager.js
+ * - admin/forms/form-handler.js
+ */
 (() => {
-    const utils = window.AdminUtils;
-    const registry = window.AdminElementRegistry;
-    const builderModule = window.AdminSectionBuilder;
+    // Check for required dependencies
+    const dependencies = {
+        utils: window.AdminUtils,
+        registry: window.AdminElementRegistry,
+        builderModule: window.AdminSectionBuilder,
+        apiClient: window.AdminApiClient,
+        uiManager: window.AdminUiManager,
+        formatters: window.AdminFormatters,
+        analytics: window.AdminAnalytics,
+        tableManager: window.AdminTableManager,
+        formHandler: window.AdminFormHandler,
+    };
 
-    if (!utils || !registry || !builderModule) {
-        console.error('Admin dashboard dependencies are missing.');
+    const missingDeps = Object.entries(dependencies)
+        .filter(([_, value]) => !value)
+        .map(([key]) => key);
+
+    if (missingDeps.length > 0) {
+        console.error('Admin dashboard is missing dependencies:', missingDeps.join(', '));
+        console.error('Make sure all required modules are loaded before admin.js');
         return;
     }
 
+    const { utils, registry, builderModule } = dependencies;
     const {
         formatDate,
         parseDateInput,
@@ -25,142 +54,18 @@
     } = utils;
 
     const AUTO_GENERATED_SUBTITLE_TITLE = 'Auto-generated subtitles';
-
     const elementDefinitions = registry.getDefinitions();
     const createSectionBuilder = builderModule.create;
     
-    const generateContentPreview = (sections) => {
-        if (!Array.isArray(sections) || sections.length === 0) {
-            return '';
-        }
-        const parts = [];
-        sections.forEach((section) => {
-            if (section.title) {
-                parts.push(section.title);
-            }
-            if (Array.isArray(section.elements)) {
-                section.elements.forEach((element) => {
-                    const definition = elementDefinitions[element.type];
-                    if (definition && typeof definition.preview === 'function') {
-                        definition.preview(element, parts);
-                    }
-                });
-            }
-        });
-        return parts.join('\n\n');
-    };
-
-    const coerceDateValue = (value) => {
-        if (value instanceof Date) {
-            const time = value.getTime();
-            return Number.isNaN(time) ? null : new Date(time);
-        }
-        if (typeof value === 'number') {
-            const date = new Date(value);
-            return Number.isNaN(date.getTime()) ? null : date;
-        }
-        if (typeof value === 'string') {
-            const trimmed = value.trim();
-            if (!trimmed) {
-                return null;
-            }
-            const date = new Date(trimmed);
-            return Number.isNaN(date.getTime()) ? null : date;
-        }
-        if (value && typeof value === 'object') {
-            if (value.Time) {
-                return coerceDateValue(value.Time);
-            }
-            if (value.time) {
-                return coerceDateValue(value.time);
-            }
-        }
-        return null;
-    };
-
-    const extractDateValue = (entry, ...keys) => {
-        if (!entry) {
-            return null;
-        }
-        for (const key of keys) {
-            if (Object.prototype.hasOwnProperty.call(entry, key)) {
-                const date = coerceDateValue(entry[key]);
-                if (date) {
-                    return date;
-                }
-            }
-        }
-        return null;
-    };
-
-    const formatPublicationStatus = (entry) => {
-        const published = Boolean(entry?.published ?? entry?.Published);
-        const publishAtDate = extractDateValue(entry, 'publish_at', 'publishAt', 'PublishAt');
-        const publishedAtDate = extractDateValue(entry, 'published_at', 'publishedAt', 'PublishedAt');
-        const now = Date.now();
-
-        if (!published) {
-            if (publishAtDate) {
-                return publishAtDate.getTime() > now
-                    ? `Draft (scheduled ${formatDate(publishAtDate)})`
-                    : `Draft (planned ${formatDate(publishAtDate)})`;
-            }
-            return 'Draft';
-        }
-
-        if (publishAtDate && publishAtDate.getTime() > now) {
-            return `Scheduled for ${formatDate(publishAtDate)}`;
-        }
-
-        if (publishedAtDate) {
-            return `Published ${formatDate(publishedAtDate)}`;
-        }
-
-        if (publishAtDate) {
-            return `Published ${formatDate(publishAtDate)}`;
-        }
-
-        return 'Published';
-    };
-
-    const formatPercentage = (value, fractionDigits = 1) => {
-        const numeric = Number(value);
-        if (!Number.isFinite(numeric)) {
-            return '0%';
-        }
-        const digits = Math.max(0, Math.min(4, Number(fractionDigits) || 0));
-        try {
-            return `${numeric.toLocaleString(undefined, {
-                minimumFractionDigits: digits,
-                maximumFractionDigits: digits,
-            })}%`;
-        } catch (error) {
-            return `${numeric.toFixed(digits)}%`;
-        }
-    };
-
-    const describePublication = (entry) => {
-        const publishAtDate = extractDateValue(entry, 'publish_at', 'publishAt', 'PublishAt');
-        const publishedAtDate = extractDateValue(entry, 'published_at', 'publishedAt', 'PublishedAt');
-        const now = Date.now();
-
-        if (publishedAtDate) {
-            return `Published on ${formatDate(publishedAtDate)}.`;
-        }
-
-        if (publishAtDate) {
-            return publishAtDate.getTime() > now
-                ? `Scheduled for ${formatDate(publishAtDate)}.`
-                : `Planned publish date ${formatDate(publishAtDate)}.`;
-        }
-
-        return '';
-    };
-
-    const parseOrder = (value, fallback = 0) => {
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : fallback;
-    };
+    // Use formatting functions from the modular formatters component
+    // These are now imported from admin/formatters.js
+    const generateContentPreview = dependencies.formatters.generateContentPreview;
+    const coerceDateValue = dependencies.formatters.coerceDateValue;
+    const extractDateValue = dependencies.formatters.extractDateValue;
+    const formatPublicationStatus = dependencies.formatters.formatPublicationStatus;
+    const formatPercentage = dependencies.formatters.formatPercentage;
+    const describePublication = dependencies.formatters.describePublication;
+    const parseOrder = dependencies.formatters.parseOrder;
 
     const initialiseAdminDashboard = () => {
         const root = document.querySelector('[data-page="admin"]');
@@ -168,6 +73,7 @@
             return;
         }
 
+        // Tab management
         const ACTIVE_TAB_STORAGE_KEY = 'constructor.admin.activeTab';
         const getStoredActiveTab = () => {
             try {
@@ -180,135 +86,22 @@
         const setStoredActiveTab = (tabId) => {
             try {
                 const storage = window.localStorage;
-                if (!storage) {
-                    return;
-                }
+                if (!storage) return;
                 if (tabId) {
                     storage.setItem(ACTIVE_TAB_STORAGE_KEY, tabId);
                 } else {
                     storage.removeItem(ACTIVE_TAB_STORAGE_KEY);
                 }
             } catch (error) {
-                /* Ignore storage errors (private browsing, storage disabled, etc.) */
+                /* Ignore storage errors */
             }
         };
 
+        // Get app context
         const app = window.App || {};
         const auth = app.auth;
-        const stateChangingMethods = new Set([
-            'POST',
-            'PUT',
-            'PATCH',
-            'DELETE',
-        ]);
-        const readCookie = (name) => {
-            if (!name || typeof document?.cookie !== 'string') {
-                return '';
-            }
-            const cookies = document.cookie.split('; ');
-            for (let index = 0; index < cookies.length; index += 1) {
-                const cookie = cookies[index];
-                if (!cookie) {
-                    continue;
-                }
-                const [key, ...rest] = cookie.split('=');
-                if (key === name) {
-                    return decodeURIComponent(rest.join('='));
-                }
-            }
-            return '';
-        };
-        const getCSRFCookie = () => readCookie('csrf_token');
-        const buildAuthenticatedRequestInit = (options = {}) => {
-            const init = { ...options };
-            const headers = Object.assign({}, options.headers || {});
-            const method = (options.method || 'GET').toUpperCase();
 
-            init.method = method;
-
-            if (options.body && !(options.body instanceof FormData)) {
-                headers['Content-Type'] =
-                    headers['Content-Type'] || 'application/json';
-            }
-
-            const token =
-                auth && typeof auth.getToken === 'function'
-                    ? auth.getToken()
-                    : undefined;
-            if (token && !headers.Authorization) {
-                headers.Authorization = `Bearer ${token}`;
-            }
-
-            if (stateChangingMethods.has(method)) {
-                const csrfToken = getCSRFCookie();
-                if (csrfToken && !headers['X-CSRF-Token']) {
-                    headers['X-CSRF-Token'] = csrfToken;
-                }
-            }
-
-            init.headers = headers;
-            init.credentials = 'include';
-            return init;
-        };
-
-        const authenticatedFetch = (url, options = {}) =>
-            fetch(url, buildAuthenticatedRequestInit(options));
-
-        const fallbackApiRequest = async (url, options = {}) => {
-            const response = await authenticatedFetch(url, options);
-
-            const contentType = response.headers.get('content-type') || '';
-            const isJson = contentType.includes('application/json');
-            const payload = isJson
-                ? await response.json().catch(() => null)
-                : await response.text();
-
-            if (!response.ok) {
-                const message =
-                    payload && typeof payload === 'object' && payload.error
-                        ? payload.error
-                        : typeof payload === 'string'
-                        ? payload
-                        : 'Request failed';
-                const error = new Error(message);
-                error.status = response.status;
-                error.payload = payload;
-                throw error;
-            }
-
-            return payload;
-        };
-
-        const apiRequest =
-            typeof app.apiRequest === 'function'
-                ? app.apiRequest
-                : fallbackApiRequest;
-        if (typeof app.apiRequest !== 'function') {
-            console.warn(
-                'Admin dashboard is using fallback API client because App.apiRequest is unavailable.'
-            );
-        }
-        const setAlert =
-            typeof app.setAlert === 'function' ? app.setAlert : null;
-        const toggleFormDisabled =
-            typeof app.toggleFormDisabled === 'function'
-                ? app.toggleFormDisabled
-                : null;
-
-        const requireAuth = () => {
-            if (!auth || typeof auth.getToken !== 'function') {
-                return true;
-            }
-            if (!auth.getToken()) {
-                window.location.href = '/login?redirect=/admin';
-                return false;
-            }
-            return true;
-        };
-
-        if (!requireAuth()) {
-            return;
-        }
+        // Parse endpoints from data attributes
 
         const endpoints = {
             stats: root.dataset.endpointStats,
@@ -353,185 +146,58 @@
             ? String(currentUserIdValue)
             : '';
 
+        // Create API client using the modular component
+        const apiClient = dependencies.apiClient.create({ auth, endpoints });
+
+        // Check authentication
+        if (!apiClient.requireAuth('/admin')) {
+            return;
+        }
+
+        // Create UI manager using the modular component
         const alertElement = document.getElementById('admin-alert');
-        const ALERT_AUTO_HIDE_MS = 5000;
-        const ALERT_TRANSITION_FALLBACK_MS = 360;
-        let alertAutoHideTimeoutId = null;
-        let alertDismissFallbackTimeoutId = null;
-        let pendingHideHandler = null;
+        const setAlert = typeof app.setAlert === 'function' ? app.setAlert : null;
+        const toggleFormDisabled = typeof app.toggleFormDisabled === 'function' 
+            ? app.toggleFormDisabled 
+            : null;
 
-        const cancelPendingHide = () => {
-            if (!alertElement) {
-                return;
-            }
-            if (pendingHideHandler) {
-                alertElement.removeEventListener('transitionend', pendingHideHandler);
-                pendingHideHandler = null;
-            }
-            if (alertDismissFallbackTimeoutId) {
-                window.clearTimeout(alertDismissFallbackTimeoutId);
-                alertDismissFallbackTimeoutId = null;
-            }
+        const uiManager = dependencies.uiManager.create({
+            alertElement,
+            setAlert,
+            toggleFormDisabled,
+        });
+
+        // Use formatters from the modular component
+        const formatters = dependencies.formatters;
+
+        // Create analytics manager
+        const analyticsManager = dependencies.analytics.create({
+            root,
+            chartLibrary: null, // Add chart library if needed
+        });
+
+        // Store instances globally for access by other modules and existing code
+        window.AdminDashboard = {
+            root,
+            auth,
+            apiClient,
+            uiManager,
+            analyticsManager,
+            formatters,
+            endpoints,
+            currentUserId,
         };
 
-        const updateAlertContent = (message, type = 'info') => {
-            if (!alertElement) {
-                return;
-            }
-            if (typeof setAlert === 'function') {
-                setAlert(alertElement, message, type);
-                return;
-            }
+        // Legacy compatibility - keep these for existing code that may reference them
+        const apiRequest = (url, options) => apiClient.request(url, options);
+        const showAlert = (message, type) => uiManager.showAlert(message, type);
+        const clearAlert = () => uiManager.clearAlert();
+        const handleRequestError = (error) => uiManager.handleRequestError(error, auth);
+        const disableForm = (form, disabled) => uiManager.disableForm(form, disabled);
 
-            alertElement.classList.remove('is-error', 'is-success', 'is-info');
-
-            if (!message) {
-                alertElement.hidden = true;
-                alertElement.textContent = '';
-                return;
-            }
-
-            const statusClass =
-                type === 'error' ? 'is-error' : type === 'success' ? 'is-success' : 'is-info';
-            alertElement.classList.add(statusClass);
-            alertElement.hidden = false;
-            alertElement.textContent = message;
-        };
-
-        const clearAlertContent = () => updateAlertContent('');
-
-        const hideAlert = () => {
-            if (!alertElement) {
-                return;
-            }
-
-            window.clearTimeout(alertAutoHideTimeoutId);
-            alertAutoHideTimeoutId = null;
-            cancelPendingHide();
-            alertElement.classList.remove('is-visible');
-
-            if (alertElement.hidden) {
-                clearAlertContent();
-                return;
-            }
-
-            pendingHideHandler = (event) => {
-                if (event.target !== alertElement) {
-                    return;
-                }
-                cancelPendingHide();
-                clearAlertContent();
-            };
-
-            alertElement.addEventListener('transitionend', pendingHideHandler);
-            alertDismissFallbackTimeoutId = window.setTimeout(() => {
-                cancelPendingHide();
-                clearAlertContent();
-            }, ALERT_TRANSITION_FALLBACK_MS);
-        };
-
-        const showAlert = (message, type = 'info') => {
-            if (!alertElement) {
-                return;
-            }
-
-            window.clearTimeout(alertAutoHideTimeoutId);
-            alertAutoHideTimeoutId = null;
-            cancelPendingHide();
-
-            if (!message) {
-                hideAlert();
-                return;
-            }
-
-            updateAlertContent(message, type);
-            // Force reflow so transitions apply consistently.
-            void alertElement.offsetWidth;
-            alertElement.classList.add('is-visible');
-            alertAutoHideTimeoutId = window.setTimeout(() => {
-                hideAlert();
-            }, ALERT_AUTO_HIDE_MS);
-        };
-
-        const clearAlert = () => hideAlert();
-
-        const handleRequestError = (error) => {
-            if (!error) {
-                return;
-            }
-            if (error.status === 401) {
-                if (auth && typeof auth.clearToken === 'function') {
-                    auth.clearToken();
-                }
-                window.location.href = '/login?redirect=/admin';
-                return;
-            }
-            if (error.status === 403) {
-                showAlert(
-                    'You do not have permission to perform this action.',
-                    'error'
-                );
-                return;
-            }
-            const message =
-                error.message || 'Request failed. Please try again.';
-            showAlert(message, 'error');
-            console.error('Admin dashboard request failed', error);
-        };
-
-        const disableForm = (form, disabled) => {
-            if (!form) {
-                return;
-            }
-            if (typeof toggleFormDisabled === 'function') {
-                toggleFormDisabled(form, disabled);
-                return;
-            }
-            form.querySelectorAll('input, select, textarea, button').forEach(
-                (field) => {
-                    field.disabled = disabled;
-                }
-            );
-        };
-
-        const focusFirstField = (form) => {
-            if (!form) {
-                return null;
-            }
-            const selector = [
-                'input:not([type="hidden"]):not([disabled])',
-                'textarea:not([disabled])',
-                'select:not([disabled])',
-            ].join(', ');
-            const field = form.querySelector(selector);
-            if (field && typeof field.focus === 'function') {
-                field.focus();
-                return field;
-            }
-            if (typeof form.focus === 'function') {
-                form.focus();
-            }
-            return field || null;
-        };
-
-        const bringFormIntoView = (form) => {
-            if (!form) {
-                return;
-            }
-            if (typeof form.scrollIntoView === 'function') {
-                try {
-                    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } catch (error) {
-                    form.scrollIntoView();
-                }
-            }
-            const scheduleFocus = () => focusFirstField(form);
-            if (typeof window.requestAnimationFrame === 'function') {
-                window.requestAnimationFrame(scheduleFocus);
-            } else {
-                scheduleFocus();
-            }
-        };
+        // Helper functions for forms (delegating to UI manager where appropriate)
+        const focusFirstField = (form) => uiManager.focusFirstField(form);
+        const bringFormIntoView = (form) => uiManager.bringFormIntoView(form);
 
         const updateBackupSummary = (message) => {
             if (!backupSummary) {

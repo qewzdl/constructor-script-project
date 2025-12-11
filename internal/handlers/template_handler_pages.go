@@ -2219,6 +2219,14 @@ func (h *TemplateHandler) builderScripts() []string {
 		"/static/js/admin/builder/section-view.js",
 		"/static/js/admin/builder/section-events.js",
 		"/static/js/admin/builder/section-builder.js",
+		// Modular components (must be loaded before admin.js)
+		"/static/js/admin/formatters.js",
+		"/static/js/admin/api-client.js",
+		"/static/js/admin/ui-manager.js",
+		"/static/js/admin/analytics.js",
+		"/static/js/admin/tables/table-manager.js",
+		"/static/js/admin/forms/form-handler.js",
+		// Layout and core
 		"/static/js/admin/media-library.js",
 		"/static/js/admin/layout.js",
 		"/static/js/admin/panels/core.js",
