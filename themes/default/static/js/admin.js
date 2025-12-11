@@ -908,6 +908,12 @@
         const pageDraftButton = pageForm?.querySelector(
             '[data-role="page-submit-draft"]'
         );
+        const pageDuplicateButton = pageForm?.querySelector(
+            '[data-role="page-duplicate"]'
+        );
+        const pagePreviewButton = pageForm?.querySelector(
+            '[data-role="page-preview"]'
+        );
         const categoryDeleteButton = categoryForm?.querySelector(
             '[data-role="category-delete"]'
         );
@@ -8695,7 +8701,14 @@
             if (pageDeleteButton) {
                 pageDeleteButton.hidden = false;
             }
+            if (pageDuplicateButton) {
+                pageDuplicateButton.hidden = false;
+            }
+            if (pagePreviewButton) {
+                pagePreviewButton.hidden = false;
+            }
             if (pageSectionsManager) {
+                pageSectionsManager.setPageId(page.id);
                 pageSectionsManager.setSections(
                     extractSectionsFromEntry(page)
                 );
@@ -8718,6 +8731,12 @@
             }
             if (pageDeleteButton) {
                 pageDeleteButton.hidden = true;
+            }
+            if (pageDuplicateButton) {
+                pageDuplicateButton.hidden = true;
+            }
+            if (pagePreviewButton) {
+                pagePreviewButton.hidden = true;
             }
             if (pagePathInput) {
                 pagePathInput.value = '';
@@ -13086,6 +13105,50 @@
             }
         };
 
+        const handlePageDuplicate = async () => {
+            if (!pageForm || !pageForm.dataset.id) {
+                return;
+            }
+            const id = pageForm.dataset.id;
+            if (!window.SectionBuilder?.PageBuilderAPI) {
+                showAlert('Page duplication is not available.', 'error');
+                return;
+            }
+            if (pageDuplicateButton) {
+                pageDuplicateButton.disabled = true;
+                pageDuplicateButton.textContent = 'Duplicating...';
+            }
+            clearAlert();
+            try {
+                const result = await window.SectionBuilder.PageBuilderAPI.duplicatePage(id);
+                if (result.page) {
+                    showAlert('Page duplicated successfully.', 'success');
+                    await loadPages();
+                    selectPage(result.page.id || result.page.ID);
+                } else {
+                    showAlert('Page duplicated but could not load the copy.', 'warning');
+                    await loadPages();
+                }
+            } catch (error) {
+                console.error('Failed to duplicate page:', error);
+                showAlert('Failed to duplicate page. Please try again.', 'error');
+            } finally {
+                if (pageDuplicateButton) {
+                    pageDuplicateButton.disabled = false;
+                    pageDuplicateButton.textContent = 'Duplicate';
+                }
+            }
+        };
+
+        const handlePagePreview = () => {
+            if (!pageForm || !pageForm.dataset.id) {
+                return;
+            }
+            const id = pageForm.dataset.id;
+            const previewUrl = `/api/v1/admin/pages/${id}/preview`;
+            window.open(previewUrl, '_blank', 'noopener,noreferrer');
+        };
+
         const handleCategorySubmit = async (event) => {
             event.preventDefault();
             if (!categoryForm) {
@@ -13839,10 +13902,34 @@
             setCoursePackageSearchQuery(coursePackageSearchInput.value);
         }
 
+        pageSlugInput?.addEventListener('blur', async function() {
+            const slug = this.value.trim();
+            if (!slug || this.disabled) {
+                return;
+            }
+            const pageId = pageForm?.dataset.id;
+            if (!window.SectionBuilder?.PageBuilderAPI) {
+                return;
+            }
+            try {
+                const result = await window.SectionBuilder.PageBuilderAPI.validateSlug(slug, pageId);
+                if (result.available === false) {
+                    this.setCustomValidity('This slug is already in use by another page.');
+                    this.reportValidity();
+                } else {
+                    this.setCustomValidity('');
+                }
+            } catch (error) {
+                console.error('Failed to validate slug:', error);
+            }
+        });
+
         postForm?.addEventListener('submit', handlePostSubmit);
         postDeleteButton?.addEventListener('click', handlePostDelete);
         pageForm?.addEventListener('submit', handlePageSubmit);
         pageDeleteButton?.addEventListener('click', handlePageDelete);
+        pageDuplicateButton?.addEventListener('click', handlePageDuplicate);
+        pagePreviewButton?.addEventListener('click', handlePagePreview);
         categoryForm?.addEventListener('submit', handleCategorySubmit);
         categoryDeleteButton?.addEventListener('click', handleCategoryDelete);
         userForm?.addEventListener('submit', handleUserSubmit);

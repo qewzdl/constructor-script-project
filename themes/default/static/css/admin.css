@@ -4084,3 +4084,49 @@
     opacity: 0.6;
     pointer-events: none;
 }
+
+/* Page Builder Enhancements */
+
+.section-card__control--duplicate {
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-top));
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.section-card__control--duplicate:hover,
+.section-card__control--duplicate:focus-visible {
+    background: var(--color-primary);
+    color: var(--color-primary-opposite);
+}
+
+.section-card--drop-before {
+    border-top: 3px solid var(--color-primary);
+    padding-top: calc(var(--size-base) - 3px);
+}
+
+.section-card--drop-after {
+    border-bottom: 3px solid var(--color-primary);
+    padding-bottom: calc(var(--size-base) - 3px);
+}
+
+.section-builder__insertion--active {
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    border-color: var(--color-primary);
+}
+
+.section-builder__insertion--active .section-builder__insert-button {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    transform: scale(1.1);
+}
+
+input[name="slug"]:invalid {
+    border-color: var(--color-danger, #e53e3e);
+    background: color-mix(in srgb, var(--color-danger, #e53e3e) 5%, var(--color-bg-top));
+}
+
+input[name="slug"]:invalid:focus {
+    outline-color: var(--color-danger, #e53e3e);
+}
+

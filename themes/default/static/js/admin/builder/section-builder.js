@@ -191,6 +191,12 @@
             state.notify();
         };
 
+        let pageId = null;
+
+        const setPageId = (id) => {
+            pageId = id;
+        };
+
         const setSections = (nextSections) => {
             state.setSections(nextSections);
             render();
@@ -385,6 +391,7 @@
             setSections,
             reset,
             getSections: () => state.getSections(),
+            setPageId,
             onChange,
             destroy: () => {
                 events.destroy();

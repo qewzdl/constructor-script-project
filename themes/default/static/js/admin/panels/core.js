@@ -588,6 +588,12 @@
                                 >
                                     Save as draft
                                 </button>
+                                <button type="button" class="admin-form__button" data-role="page-duplicate" hidden>
+                                    Duplicate
+                                </button>
+                                <button type="button" class="admin-form__button" data-role="page-preview" hidden>
+                                    Preview
+                                </button>
                                 <button type="button" class="admin-form__delete" data-role="page-delete" hidden>
                                     Delete page
                                 </button>

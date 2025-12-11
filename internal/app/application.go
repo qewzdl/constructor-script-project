@@ -141,6 +141,7 @@ type handlerContainer struct {
 	Upload           *handlers.UploadHandler
 	Backup           *handlers.BackupHandler
 	Page             *handlers.PageHandler
+	PageBuilder      *handlers.PageBuilderHandler
 	Setup            *handlers.SetupHandler
 	Homepage         *handlers.HomepageHandler
 	SocialLink       *handlers.SocialLinkHandler
@@ -1050,6 +1051,7 @@ func (a *Application) initHandlers() error {
 		Upload:           handlers.NewUploadHandler(a.services.Upload),
 		Backup:           handlers.NewBackupHandler(a.services.Backup),
 		Page:             handlers.NewPageHandler(a.services.Page),
+		PageBuilder:      handlers.NewPageBuilderHandler(a.services.Page),
 		Setup:            handlers.NewSetupHandler(a.services.Setup, a.services.Font, a.cfg),
 		Homepage:         handlers.NewHomepageHandler(a.services.Homepage),
 		SocialLink:       handlers.NewSocialLinkHandler(a.services.SocialLink),
@@ -1323,6 +1325,20 @@ func (a *Application) initRouter() error {
 			content.DELETE("/pages/:id", a.handlers.Page.Delete)
 			content.GET("/pages", a.handlers.Page.GetAllAdmin)
 			content.POST("/pages/sections/padding", a.handlers.Page.UpdateAllSectionPadding)
+
+			// Enhanced page builder endpoints
+			content.GET("/pages/:id/builder", a.handlers.PageBuilder.GetPageBuilder)
+			content.POST("/pages/:id/duplicate", a.handlers.PageBuilder.DuplicatePage)
+			content.POST("/pages/:id/sections/reorder", a.handlers.PageBuilder.ReorderSections)
+			content.POST("/pages/:id/sections", a.handlers.PageBuilder.AddSection)
+			content.PUT("/pages/:id/sections/:sectionId", a.handlers.PageBuilder.UpdateSection)
+			content.DELETE("/pages/:id/sections/:sectionId", a.handlers.PageBuilder.DeleteSection)
+			content.POST("/pages/:id/sections/:sectionId/duplicate", a.handlers.PageBuilder.DuplicateSection)
+			content.GET("/pages/templates", a.handlers.PageBuilder.GetPageTemplates)
+			content.POST("/pages/templates/:templateId", a.handlers.PageBuilder.CreateFromTemplate)
+			content.GET("/pages/:id/preview", a.handlers.PageBuilder.PreviewPage)
+			content.POST("/pages/validate-slug", a.handlers.PageBuilder.ValidatePageSlug)
+			content.GET("/pages/builder/config", a.handlers.PageBuilder.GetPageBuilderConfig)
 
 			// Upload operations with rate limiting
 			uploads := content.Group("")

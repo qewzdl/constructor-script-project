@@ -1,0 +1,219 @@
+package service
+
+import (
+	"constructor-script-backend/internal/constants"
+	"constructor-script-backend/internal/models"
+)
+
+// GetPageBuilderConfig returns configuration for the page builder UI.
+func (s *PageService) GetPageBuilderConfig() models.PageBuilderConfig {
+	return models.PageBuilderConfig{
+		AvailableSections: getAvailableSectionTypes(),
+		DefaultPadding:    constants.DefaultSectionPadding,
+		DefaultMargin:     constants.DefaultSectionMargin,
+		PaddingOptions:    constants.SectionPaddingOptions(),
+		MarginOptions:     constants.SectionMarginOptions(),
+	}
+}
+
+func getAvailableSectionTypes() []models.SectionTypeConfig {
+	return []models.SectionTypeConfig{
+		{
+			Type:        "standard",
+			Name:        "Standard Section",
+			Description: "Basic content section with custom elements",
+			Category:    "layout",
+			Icon:        "layout",
+			AllowedIn:   []string{"page", "post", "homepage"},
+			Schema: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":        "string",
+					"label":       "Section Title",
+					"placeholder": "Enter section title",
+				},
+				"padding_vertical": map[string]interface{}{
+					"type":  "number",
+					"label": "Vertical Padding",
+				},
+			},
+		},
+		{
+			Type:        "grid",
+			Name:        "Grid Section",
+			Description: "Display content in a grid layout",
+			Category:    "layout",
+			Icon:        "grid",
+			AllowedIn:   []string{"page", "post", "homepage"},
+			Schema: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":  "string",
+					"label": "Section Title",
+				},
+				"style_grid_items": map[string]interface{}{
+					"type":    "boolean",
+					"label":   "Style Grid Items",
+					"default": true,
+				},
+			},
+		},
+		{
+			Type:        "posts_list",
+			Name:        "Posts List",
+			Description: "Display a list of blog posts",
+			Category:    "content",
+			Icon:        "list",
+			AllowedIn:   []string{"page", "homepage"},
+			Schema: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":  "string",
+					"label": "Section Title",
+				},
+				"limit": map[string]interface{}{
+					"type":    "number",
+					"label":   "Number of Posts",
+					"min":     1,
+					"max":     constants.MaxPostListSectionLimit,
+					"default": constants.DefaultPostListSectionLimit,
+				},
+			},
+		},
+		{
+			Type:        "categories_list",
+			Name:        "Categories List",
+			Description: "Display blog categories",
+			Category:    "navigation",
+			Icon:        "tag",
+			AllowedIn:   []string{"page", "homepage"},
+			Schema: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":  "string",
+					"label": "Section Title",
+				},
+				"limit": map[string]interface{}{
+					"type":    "number",
+					"label":   "Number of Categories",
+					"min":     1,
+					"max":     constants.MaxCategoryListSectionLimit,
+					"default": constants.DefaultCategoryListSectionLimit,
+				},
+			},
+		},
+		{
+			Type:        "courses_list",
+			Name:        "Courses List",
+			Description: "Display available courses",
+			Category:    "content",
+			Icon:        "book",
+			AllowedIn:   []string{"page", "homepage"},
+			Schema: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":  "string",
+					"label": "Section Title",
+				},
+				"limit": map[string]interface{}{
+					"type":    "number",
+					"label":   "Number of Courses",
+					"min":     1,
+					"max":     constants.MaxCourseListSectionLimit,
+					"default": constants.DefaultCourseListSectionLimit,
+				},
+				"mode": map[string]interface{}{
+					"type":  "select",
+					"label": "Display Mode",
+					"options": []map[string]string{
+						{"value": constants.CourseListModeCatalog, "label": "Catalog (All Courses)"},
+						{"value": constants.CourseListModeOwned, "label": "My Courses (User's Courses)"},
+					},
+					"default": constants.CourseListModeCatalog,
+				},
+			},
+		},
+		{
+			Type:        "paragraph",
+			Name:        "Paragraph",
+			Description: "Text content",
+			Category:    "elements",
+			Icon:        "type",
+			AllowedIn:   []string{"standard", "grid"},
+			Schema: map[string]interface{}{
+				"text": map[string]interface{}{
+					"type":        "textarea",
+					"label":       "Text Content",
+					"placeholder": "Enter text...",
+					"required":    true,
+				},
+			},
+		},
+		{
+			Type:        "image",
+			Name:        "Image",
+			Description: "Single image with caption",
+			Category:    "media",
+			Icon:        "image",
+			AllowedIn:   []string{"standard", "grid"},
+			Schema: map[string]interface{}{
+				"url": map[string]interface{}{
+					"type":     "image",
+					"label":    "Image URL",
+					"required": true,
+				},
+				"alt": map[string]interface{}{
+					"type":        "string",
+					"label":       "Alt Text",
+					"placeholder": "Describe the image",
+				},
+				"caption": map[string]interface{}{
+					"type":        "string",
+					"label":       "Caption",
+					"placeholder": "Optional caption",
+				},
+			},
+		},
+		{
+			Type:        "image_group",
+			Name:        "Image Gallery",
+			Description: "Multiple images in a group",
+			Category:    "media",
+			Icon:        "images",
+			AllowedIn:   []string{"standard", "grid"},
+			Schema: map[string]interface{}{
+				"images": map[string]interface{}{
+					"type":     "array",
+					"label":    "Images",
+					"itemType": "image",
+					"minItems": 1,
+					"maxItems": 20,
+				},
+			},
+		},
+		{
+			Type:        "list",
+			Name:        "List",
+			Description: "Bulleted or numbered list",
+			Category:    "elements",
+			Icon:        "list",
+			AllowedIn:   []string{"standard", "grid"},
+			Schema: map[string]interface{}{
+				"items": map[string]interface{}{
+					"type":     "array",
+					"label":    "List Items",
+					"itemType": "string",
+					"minItems": 1,
+				},
+				"ordered": map[string]interface{}{
+					"type":    "boolean",
+					"label":   "Numbered List",
+					"default": false,
+				},
+			},
+		},
+		{
+			Type:        "search",
+			Name:        "Search Box",
+			Description: "Search functionality",
+			Category:    "interactive",
+			Icon:        "search",
+			AllowedIn:   []string{"page", "homepage"},
+		},
+	}
+}

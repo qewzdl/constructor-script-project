@@ -1,6 +1,128 @@
 (() => {
     const builders = new WeakMap();
 
+    const PageBuilderAPI = {
+        async getConfig(pageId) {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/builder`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch config: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async duplicatePage(pageId) {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/duplicate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to duplicate page: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async reorderSections(pageId, sectionIds) {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/reorder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section_ids: sectionIds }),
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to reorder sections: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async addSection(pageId, sectionData) {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sectionData),
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to add section: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async updateSection(pageId, sectionId, sectionData) {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/${sectionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sectionData),
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to update section: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async deleteSection(pageId, sectionId) {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/${sectionId}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to delete section: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async duplicateSection(pageId, sectionId) {
+            const response = await fetch(`/api/v1/admin/pages/${pageId}/sections/${sectionId}/duplicate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to duplicate section: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async getTemplates() {
+            const response = await fetch('/api/v1/admin/pages/templates');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch templates: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async createFromTemplate(templateId, pageData) {
+            const response = await fetch(`/api/v1/admin/pages/templates/${templateId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pageData),
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to create from template: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async preview(pageId) {
+            return `/api/v1/admin/pages/${pageId}/preview`;
+        },
+
+        async validateSlug(slug, pageId = null) {
+            const params = new URLSearchParams({ slug });
+            if (pageId) {
+                params.append('page_id', pageId);
+            }
+            const response = await fetch(`/api/v1/admin/pages/validate-slug?${params}`);
+            if (!response.ok) {
+                throw new Error(`Failed to validate slug: ${response.status}`);
+            }
+            return response.json();
+        },
+
+        async getBuilderConfig() {
+            const response = await fetch('/api/v1/admin/pages/builder/config');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch builder config: ${response.status}`);
+            }
+            return response.json();
+        },
+    };
+
     const generateId = () =>
         window.crypto && typeof window.crypto.randomUUID === 'function'
             ? window.crypto.randomUUID()
@@ -1008,7 +1130,7 @@
             });
         };
 
-        const moveSection = (fromIndex, toIndex) => {
+        const moveSection = async (fromIndex, toIndex) => {
             if (fromIndex === toIndex) {
                 return;
             }
@@ -1023,6 +1145,15 @@
             state.sections.splice(boundedIndex, 0, removed);
             render();
             endDrag();
+
+            if (state.pageId) {
+                try {
+                    const sectionIds = state.sections.map(s => s.id);
+                    await PageBuilderAPI.reorderSections(state.pageId, sectionIds);
+                } catch (error) {
+                    console.error('Failed to sync section order:', error);
+                }
+            }
         };
 
         const removeSection = (index) => {
@@ -1228,6 +1359,43 @@
                 moveSection(index, index + 1)
             );
             controls.appendChild(moveDown);
+
+            const duplicate = createElement('button', {
+                className: 'section-card__control section-card__control--duplicate',
+                textContent: 'Duplicate',
+                type: 'button',
+            });
+            duplicate.addEventListener('click', async () => {
+                if (!state.pageId) {
+                    const copy = cloneDeep(section);
+                    copy.id = generateId();
+                    if (Array.isArray(copy.elements)) {
+                        copy.elements = copy.elements.map((element) => ({
+                            ...cloneDeep(element),
+                            id: generateId(),
+                        }));
+                    }
+                    state.sections.splice(index + 1, 0, copy);
+                    render();
+                    return;
+                }
+                try {
+                    duplicate.disabled = true;
+                    duplicate.textContent = 'Duplicating...';
+                    const result = await PageBuilderAPI.duplicateSection(state.pageId, section.id);
+                    if (result.section) {
+                        state.sections.splice(index + 1, 0, normaliseSection(result.section));
+                        render();
+                    }
+                } catch (error) {
+                    console.error('Failed to duplicate section:', error);
+                    alert('Failed to duplicate section. Please try again.');
+                } finally {
+                    duplicate.disabled = false;
+                    duplicate.textContent = 'Duplicate';
+                }
+            });
+            controls.appendChild(duplicate);
 
             const remove = createElement('button', {
                 className: 'section-card__control',
@@ -2557,8 +2725,12 @@
                 }
                 render();
             },
+            setPageId: (pageId) => {
+                state.pageId = pageId;
+            },
             reset: () => {
                 state.sections = [];
+                delete state.pageId;
                 render();
             },
             validate: () => validateSections(state.sections),
@@ -2566,7 +2738,7 @@
         };
     };
 
-    const init = (root) => {
+    const init = (root, options = {}) => {
         if (!root) {
             return null;
         }
@@ -2576,11 +2748,15 @@
         const builder = createBuilder(root);
         if (builder) {
             builders.set(root, builder);
+            if (options.pageId) {
+                builder.setPageId(options.pageId);
+            }
         }
         return builder;
     };
 
     window.SectionBuilder = {
         init,
+        PageBuilderAPI,
     };
 })();
