@@ -8,7 +8,15 @@
     "sections": [
         {
             "title": "Build your site with Constructor Script",
-            "type": "hero"
+            "type": "standard",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "A modern platform for building content-driven websites."
+                    }
+                }
+            ]
         },
         {
             "title": "Launch quickly",

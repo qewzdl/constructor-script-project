@@ -1,7 +1,0 @@
-{
-    "type": "hero",
-    "label": "Hero section",
-    "order": 10,
-    "description": "Prominent introduction block without additional content elements.",
-    "supports_elements": false
-}

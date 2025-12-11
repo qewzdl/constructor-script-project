@@ -593,24 +593,6 @@
                 imageInput.addEventListener('input', scheduleChange);
                 imageField.append(imageInput);
 
-                if (section.type === 'hero') {
-                    const imageActions = createElement('div', {
-                        className: 'admin-builder__field-actions',
-                    });
-                    const browseButton = createElement('button', {
-                        className: 'admin-builder__media-button',
-                        textContent: 'Browse uploads',
-                        type: 'button',
-                        dataset: {
-                            action: 'open-media-library',
-                            mediaTarget: `#${imageInputId}`,
-                            mediaAllowedTypes: 'image',
-                        },
-                    });
-                    imageActions.append(browseButton);
-                    imageField.append(imageActions);
-                }
-
                 appendField(imageField);
             }
 

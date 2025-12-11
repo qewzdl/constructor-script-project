@@ -127,15 +127,6 @@
             'Flexible content area for combining paragraphs, media, and lists.',
     });
 
-    ensureRegistered('hero', {
-        label: 'Hero section',
-        order: 10,
-        supportsElements: false,
-        description:
-            'Prominent introduction block without additional content elements.',
-        supportsHeaderImage: true,
-    });
-
     ensureRegistered('grid', {
         label: 'Grid section',
         order: 15,

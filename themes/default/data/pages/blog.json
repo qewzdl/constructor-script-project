@@ -8,7 +8,15 @@
     "sections": [
         {
             "title": "Insights from the Constructor Script team",
-            "type": "hero"
+            "type": "standard",
+            "elements": [
+                {
+                    "type": "paragraph",
+                    "content": {
+                        "text": "Stay updated with the latest news and insights."
+                    }
+                }
+            ]
         },
         {
             "title": "What you'll find",

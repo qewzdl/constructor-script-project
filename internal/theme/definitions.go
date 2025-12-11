@@ -404,8 +404,6 @@ func mergeElementDefinition(base, override ElementDefinition) ElementDefinition 
 
 func defaultSectionDefinitions() map[string]SectionDefinition {
 	standardSupports := true
-	heroSupports := false
-	heroHeaderImage := true
 	postsSupports := false
 	categoriesSupports := false
 	coursesSupports := false
@@ -429,14 +427,6 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Order:            0,
 			Description:      "Flexible content area for combining paragraphs, media, and lists.",
 			SupportsElements: &standardSupports,
-		},
-		"hero": {
-			Type:                "hero",
-			Label:               "Hero section",
-			Order:               10,
-			Description:         "Prominent introduction block without additional content elements.",
-			SupportsElements:    &heroSupports,
-			SupportsHeaderImage: &heroHeaderImage,
 		},
 		"grid": {
 			Type:             "grid",

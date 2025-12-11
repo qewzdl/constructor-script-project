@@ -288,15 +288,6 @@
         },
     });
 
-    sectionTypeRegistry.register('hero', {
-        label: 'Hero section',
-        order: 10,
-        supportsElements: false,
-        description:
-            'Large introductory section with a headline and optional image. Does not allow additional content blocks.',
-        supportsHeaderImage: true,
-    });
-
     sectionTypeRegistry.register('grid', {
         label: 'Grid section',
         order: 15,

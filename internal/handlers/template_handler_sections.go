@@ -59,8 +59,6 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sectionClasses = append(sectionClasses, marginClass)
 		}
 		sectionTitleClass := fmt.Sprintf("%s__section-title", pageViewClassPrefix)
-		sectionImageWrapperClass := fmt.Sprintf("%s__section-image", pageViewClassPrefix)
-		sectionImageClass := fmt.Sprintf("%s__section-img", pageViewClassPrefix)
 
 		sb.WriteString(`<section class="` + strings.Join(sectionClasses, " ") + `" id="section-` + template.HTMLEscapeString(section.ID) + `">`)
 		if wrapWithContainer {
@@ -70,16 +68,8 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
 		}
 
-		if section.Image != "" && strings.EqualFold(sectionType, "hero") {
-			sb.WriteString(`<figure class="` + sectionImageWrapperClass + `">`)
-			sb.WriteString(`<img class="` + sectionImageClass + `" src="` + template.HTMLEscapeString(section.Image) + `" alt="` + escapedTitle + `" />`)
-			sb.WriteString(`</figure>`)
-		}
-
 		skipElements := false
 		switch sectionType {
-		case "hero":
-			skipElements = true
 		case "posts_list":
 			skipElements = true
 			sb.WriteString(h.renderPostsListSection(pageViewClassPrefix, section))
@@ -1118,10 +1108,6 @@ func (h *TemplateHandler) generateTOC(sections models.PostSections) template.HTM
 	sb.WriteString(`<ol class="post__toc-list">`)
 
 	for _, section := range sections {
-		if strings.EqualFold(section.Type, "hero") {
-			continue
-		}
-
 		title := strings.TrimSpace(section.Title)
 		if title == "" {
 			continue
