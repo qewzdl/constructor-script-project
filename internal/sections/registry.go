@@ -9,12 +9,24 @@ import (
 	"constructor-script-backend/internal/models"
 )
 
+// ServiceProvider exposes services needed by advanced section renderers.
+type ServiceProvider interface {
+	PostService() interface{}
+	CategoryService() interface{}
+	CoursePackageService() interface{}
+	CourseCheckoutService() interface{}
+	SearchService() interface{}
+	ThemeManager() interface{}
+}
+
 // RenderContext exposes the minimal capabilities required by section renderers.
 type RenderContext interface {
 	// SanitizeHTML should clean potentially unsafe markup before rendering.
 	SanitizeHTML(input string) string
 	// CloneTemplates returns an isolated template instance for rendering complex sections.
 	CloneTemplates() (*template.Template, error)
+	// Services returns access to application services for advanced renderers.
+	Services() ServiceProvider
 }
 
 // Renderer describes a function capable of rendering a section element into HTML output and optional scripts.

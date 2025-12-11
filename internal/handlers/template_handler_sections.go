@@ -68,22 +68,13 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
 		}
 
+		// Try to render as a special section type (posts_list, categories_list, courses_list)
 		skipElements := false
-		switch sectionType {
-		case "posts_list":
+		specialSectionHTML, specialScripts := h.renderSpecialSection(pageViewClassPrefix, section, sectionType)
+		if specialSectionHTML != "" {
 			skipElements = true
-			sb.WriteString(h.renderPostsListSection(pageViewClassPrefix, section))
-		case "categories_list":
-			skipElements = true
-			sb.WriteString(h.renderCategoriesListSection(pageViewClassPrefix, section))
-		case "courses_list":
-			skipElements = true
-			mode := strings.TrimSpace(strings.ToLower(section.Mode))
-			scripts = appendScripts(scripts, []string{"/static/js/courses-modal.js"})
-			if mode != constants.CourseListModeOwned && h.courseCheckoutEnabled() {
-				scripts = appendScripts(scripts, []string{"/static/js/courses-checkout.js"})
-			}
-			sb.WriteString(h.renderCoursesListSection(pageViewClassPrefix, section))
+			sb.WriteString(specialSectionHTML)
+			scripts = appendScripts(scripts, specialScripts)
 		}
 
 		if !skipElements {
@@ -1001,6 +992,28 @@ func coursePackageStats(pkg models.CoursePackage) (topics int, lessons int, dura
 	}
 
 	return
+}
+
+// renderSpecialSection handles section types that need special rendering (posts_list, categories_list, courses_list).
+// Returns HTML and scripts if the section type is handled, empty strings otherwise.
+func (h *TemplateHandler) renderSpecialSection(prefix string, section models.Section, sectionType string) (string, []string) {
+	// Create a pseudo element to pass the section data to the renderer
+	elem := models.SectionElement{
+		Type:    sectionType,
+		Content: section,
+	}
+
+	if h.sectionRegistry == nil {
+		h.sectionRegistry = sections.DefaultRegistry()
+	}
+
+	// Check if we have a renderer for this section type
+	if renderer, ok := h.sectionRegistry.Get(sectionType); ok {
+		html, scripts := renderer(h, prefix, elem)
+		return html, scripts
+	}
+
+	return "", nil
 }
 
 func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement) (string, []string) {

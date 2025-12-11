@@ -50,7 +50,10 @@ type TemplateHandler struct {
 	themeManager        *theme.Manager
 	config              *config.Config
 	sanitizer           *bluemonday.Policy
-	sectionRegistry     *sections.Registry
+	sectionRegistry     interface {
+		Register(sectionType string, renderer sections.Renderer) error
+		Get(sectionType string) (sections.Renderer, bool)
+	}
 }
 
 func NewTemplateHandler(
@@ -114,6 +117,41 @@ func NewTemplateHandler(
 	}
 
 	return handler, nil
+}
+
+// Services implements sections.ServiceProvider interface.
+func (h *TemplateHandler) Services() sections.ServiceProvider {
+	return h
+}
+
+// PostService implements sections.ServiceProvider.
+func (h *TemplateHandler) PostService() interface{} {
+	return h.postService
+}
+
+// CategoryService implements sections.ServiceProvider.
+func (h *TemplateHandler) CategoryService() interface{} {
+	return h.categoryService
+}
+
+// CoursePackageService implements sections.ServiceProvider.
+func (h *TemplateHandler) CoursePackageService() interface{} {
+	return h.coursePackageSvc
+}
+
+// CourseCheckoutService implements sections.ServiceProvider.
+func (h *TemplateHandler) CourseCheckoutService() interface{} {
+	return h.courseCheckoutSvc
+}
+
+// SearchService implements sections.ServiceProvider.
+func (h *TemplateHandler) SearchService() interface{} {
+	return h.searchService
+}
+
+// ThemeManager implements sections.ServiceProvider.
+func (h *TemplateHandler) ThemeManager() interface{} {
+	return h.themeManager
 }
 
 // SetBlogServices swaps the blog-related services used by the template handler.
