@@ -110,7 +110,8 @@ func (r *pageRepository) GetAll() ([]models.Page, error) {
 
 func (r *pageRepository) GetAllAdmin() ([]models.Page, error) {
 	var pages []models.Page
-	if err := r.db.Order("pages.created_at DESC").Find(&pages).Error; err != nil {
+	if err := r.db.Order(clause.OrderByColumn{Column: clause.Column{Name: "order"}}).
+		Order("pages.created_at DESC").Find(&pages).Error; err != nil {
 		return nil, err
 	}
 	return pages, nil
