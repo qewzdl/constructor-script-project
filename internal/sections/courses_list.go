@@ -76,7 +76,7 @@ func renderCoursesList(ctx RenderContext, prefix string, elem models.SectionElem
 	}
 
 	if mode == constants.CourseListModeOwned {
-		return renderOwnedCourses(ctx, prefix, section, coursePackageSvc, elem), scripts
+		return renderOwnedCourses(ctx, prefix, section), scripts
 	}
 
 	// Catalog mode
@@ -142,11 +142,11 @@ func renderCatalogCourses(ctx RenderContext, prefix string, section models.Secti
 	return sb.String()
 }
 
-func renderOwnedCourses(ctx RenderContext, prefix string, section models.Section, svc *courseservice.PackageService, elem models.SectionElement) string {
+func renderOwnedCourses(ctx RenderContext, prefix string, section models.Section) string {
 	emptyClass := fmt.Sprintf("%s__course-list-empty", prefix)
 
 	// Extract owned courses data from element
-	data := extractOwnedCourseSectionData(section, elem)
+	data := extractOwnedCourseSectionData(section)
 
 	if len(data.Courses) == 0 {
 		emptyMsg := data.EmptyMessage
@@ -212,7 +212,7 @@ type ownedCourseSectionData struct {
 	EmptyMessage string
 }
 
-func extractOwnedCourseSectionData(section models.Section, elem models.SectionElement) ownedCourseSectionData {
+func extractOwnedCourseSectionData(section models.Section) ownedCourseSectionData {
 	var result ownedCourseSectionData
 
 	for _, sectionElem := range section.Elements {

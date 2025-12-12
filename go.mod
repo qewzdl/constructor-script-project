@@ -3,6 +3,7 @@ module constructor-script-backend
 go 1.24.0
 
 require (
+	constructor-script-backend/pkg/pluginsdk v0.0.0
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-playground/validator/v10 v10.27.0
@@ -15,7 +16,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	golang.org/x/crypto v0.42.0
 	golang.org/x/text v0.29.0
-	golang.org/x/time v0.13.0
+	golang.org/x/time v0.14.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.0
 )
@@ -68,3 +69,5 @@ require (
 	golang.org/x/tools v0.36.0 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
 )
+
+replace constructor-script-backend/pkg/pluginsdk => ./pkg/pluginsdk

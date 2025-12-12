@@ -117,13 +117,15 @@ func renderPostsList(ctx RenderContext, prefix string, elem models.SectionElemen
 
 func renderPostCard(tmpl *template.Template, post *models.Post, cardClass, titleID string) (string, error) {
 	data := map[string]interface{}{
-		"Post":    post,
-		"Class":   cardClass,
-		"TitleID": titleID,
+		"Post":         post,
+		"WrapperClass": cardClass,
+		"TitleID":      titleID,
+		"Heading":      "h3",
+		"LazyLoad":     true,
 	}
 
 	var buf strings.Builder
-	if err := tmpl.ExecuteTemplate(&buf, "post-card", data); err != nil {
+	if err := tmpl.ExecuteTemplate(&buf, "components/post-card", data); err != nil {
 		return "", err
 	}
 

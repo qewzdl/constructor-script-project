@@ -55,8 +55,8 @@ func TestVideoServiceUpdateSubtitleReplacesExisting(t *testing.T) {
 			ID:       7,
 			Filename: "lesson.mp4",
 			Attachments: models.CourseVideoAttachments{
-				{Title: "Auto-generated subtitles", URL: "/uploads/lesson-subtitles-old.vtt"},
-				{Title: "Worksheet", URL: "/uploads/lesson-notes.pdf"},
+				models.CourseVideoAttachment{Title: "Auto-generated subtitles", URL: "/uploads/lesson-subtitles-old.vtt"},
+				models.CourseVideoAttachment{Title: "Worksheet", URL: "/uploads/lesson-notes.pdf"},
 			},
 		},
 	}
@@ -111,7 +111,7 @@ func TestVideoServiceUpdateSubtitleAddsNewWhenMissing(t *testing.T) {
 			ID:       3,
 			Filename: "module.mp4",
 			Attachments: models.CourseVideoAttachments{
-				{Title: "Guide", URL: "/uploads/module-guide.pdf"},
+				models.CourseVideoAttachment{Title: "Guide", URL: "/uploads/module-guide.pdf"},
 			},
 		},
 	}

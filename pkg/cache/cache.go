@@ -159,6 +159,11 @@ func (c *Cache) FlushAll() error {
 	return c.client.FlushAll(ctx).Err()
 }
 
+// Clear removes all values from cache (alias for FlushAll)
+func (c *Cache) Clear() {
+	_ = c.FlushAll()
+}
+
 func (c *Cache) Close() error {
 	if !c.enabled {
 		return nil
