@@ -14,7 +14,6 @@
     align-items: center;
     max-width: 1200px;
     width: 100%;
-    padding: 0 var(--size-base);
 }
 
 .page-view__hero-content {
@@ -95,18 +94,6 @@
         align-items: center;
     }
 
-    .page-view__hero-title {
-        font-size: 2rem;
-    }
-
-    .page-view__hero-subtitle {
-        font-size: 1.25rem;
-    }
-
-    .page-view__hero-text {
-        font-size: 1rem;
-    }
-
     .page-view__hero-button {
         align-self: center;
     }
@@ -126,11 +113,18 @@
     }
 
     .page-view__hero-subtitle {
-        font-size: 0.95rem;
+        font-size: 1.4rem;
+    }
+
+    .page-view__hero-container {
+        text-align: start;
+    }
+
+    .page-view__hero-content {
+        align-items: flex-start;
     }
 
     .page-view__hero-button {
-        padding: var(--size-xs) var(--size-base);
-        font-size: 1rem;
+        align-self: flex-start;
     }
 }
