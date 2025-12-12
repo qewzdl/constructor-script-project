@@ -3407,6 +3407,9 @@
 .admin-type-picker__option-description {
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
+    width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .admin-type-picker__empty {
