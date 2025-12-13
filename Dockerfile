@@ -4,6 +4,10 @@ FROM golang:1.25 AS builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
+# Copy local modules referenced via replace in go.mod so `go mod download` succeeds.
+# This mirrors the local path used by the replace directive:
+#   replace constructor-script-backend/pkg/pluginsdk => ./pkg/pluginsdk
+COPY pkg/pluginsdk ./pkg/pluginsdk
 RUN go mod download
 
 COPY . .
