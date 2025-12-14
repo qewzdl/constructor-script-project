@@ -356,7 +356,25 @@ func (h *SetupHandler) UpdateSiteSettings(c *gin.Context) {
 	}
 
 	if err := h.setupService.UpdateSiteSettings(req, defaults); err != nil {
-		logger.Error(err, "Failed to update site settings", nil)
+		var validationErr *service.ValidationError
+		if errors.As(err, &validationErr) {
+			fields := map[string]interface{}{
+				"field": validationErr.Field,
+				"error": validationErr.Message,
+			}
+			if prefix := safeKeyPrefix(req, validationErr.Field); prefix != "" {
+				fields["key_prefix"] = prefix
+				fields["key_length"] = safeKeyLength(req, validationErr.Field)
+			}
+
+			logger.Warn("Site settings validation failed", fields)
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+			return
+		}
+
+		logger.Error(err, "Failed to update site settings", map[string]interface{}{
+			"error": err.Error(),
+		})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update site settings"})
 		return
 	}
@@ -371,6 +389,37 @@ func (h *SetupHandler) UpdateSiteSettings(c *gin.Context) {
 	h.applyFontSettings(&settings)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Site settings updated", "site": settings})
+}
+
+func safeKeyPrefix(req models.UpdateSiteSettingsRequest, field string) string {
+	value := strings.TrimSpace(selectKeyByField(req, field))
+	if value == "" {
+		return ""
+	}
+
+	if len(value) <= 6 {
+		return value
+	}
+
+	return value[:6] + "..."
+}
+
+func safeKeyLength(req models.UpdateSiteSettingsRequest, field string) int {
+	value := strings.TrimSpace(selectKeyByField(req, field))
+	return len(value)
+}
+
+func selectKeyByField(req models.UpdateSiteSettingsRequest, field string) string {
+	switch field {
+	case "stripe_secret_key":
+		return req.StripeSecretKey
+	case "stripe_publishable_key":
+		return req.StripePublishableKey
+	case "stripe_webhook_secret":
+		return req.StripeWebhookSecret
+	default:
+		return ""
+	}
 }
 
 func (h *SetupHandler) UploadFavicon(c *gin.Context) {

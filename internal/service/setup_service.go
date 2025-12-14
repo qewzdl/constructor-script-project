@@ -719,41 +719,53 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 
 	successURL, err := normalizeCheckoutURL(req.CourseCheckoutSuccessURL, "course checkout success")
 	if err != nil {
-		return err
+		return &ValidationError{Field: "course_checkout_success_url", Message: err.Error()}
 	}
 	cancelURL, err := normalizeCheckoutURL(req.CourseCheckoutCancelURL, "course checkout cancel")
 	if err != nil {
-		return err
+		return &ValidationError{Field: "course_checkout_cancel_url", Message: err.Error()}
 	}
 
 	currency := strings.ToLower(strings.TrimSpace(req.CourseCheckoutCurrency))
 	if currency != "" && !currencyCodePattern.MatchString(currency) {
-		return fmt.Errorf("invalid course checkout currency: must be a three-letter ISO code")
+		return &ValidationError{
+			Field:   "course_checkout_currency",
+			Message: "invalid course checkout currency: must be a three-letter ISO code",
+		}
 	}
 
 	stripeSecret := strings.TrimSpace(req.StripeSecretKey)
 	if stripeSecret != "" && !stripe.IsSecretKey(stripeSecret) {
-		return fmt.Errorf(
-			"invalid Stripe secret key: must start with %q or %q",
-			stripe.SecretKeyPrefixStandard,
-			stripe.SecretKeyPrefixRestricted,
-		)
+		return &ValidationError{
+			Field: "stripe_secret_key",
+			Message: fmt.Sprintf(
+				"invalid Stripe secret key: must start with %q or %q",
+				stripe.SecretKeyPrefixStandard,
+				stripe.SecretKeyPrefixRestricted,
+			),
+		}
 	}
 
 	stripePublish := strings.TrimSpace(req.StripePublishableKey)
 	if stripePublish != "" && !stripe.IsPublishableKey(stripePublish) {
-		return fmt.Errorf(
-			"invalid Stripe publishable key: must start with %q",
-			stripe.PublishableKeyPrefix,
-		)
+		return &ValidationError{
+			Field: "stripe_publishable_key",
+			Message: fmt.Sprintf(
+				"invalid Stripe publishable key: must start with %q",
+				stripe.PublishableKeyPrefix,
+			),
+		}
 	}
 
 	stripeWebhook := strings.TrimSpace(req.StripeWebhookSecret)
 	if stripeWebhook != "" && !stripe.IsWebhookSecret(stripeWebhook) {
-		return fmt.Errorf(
-			"invalid Stripe webhook secret: must start with %q",
-			stripe.WebhookSecretPrefix,
-		)
+		return &ValidationError{
+			Field: "stripe_webhook_secret",
+			Message: fmt.Sprintf(
+				"invalid Stripe webhook secret: must start with %q",
+				stripe.WebhookSecretPrefix,
+			),
+		}
 	}
 
 	updates := map[string]string{
