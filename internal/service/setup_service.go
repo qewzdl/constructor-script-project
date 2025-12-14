@@ -705,6 +705,14 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		return errors.New("setting repository not configured")
 	}
 
+	currentStripeSecret := s.currentSettingValue(settingKeyStripeSecretKey, defaults.StripeSecretKey)
+	currentStripePublishable := s.currentSettingValue(settingKeyStripePublishableKey, defaults.StripePublishableKey)
+	currentStripeWebhook := s.currentSettingValue(settingKeyStripeWebhookSecret, defaults.StripeWebhookSecret)
+
+	stripeSecret, updateStripeSecret := normalizeCredentialInput(req.StripeSecretKey, currentStripeSecret)
+	stripePublish, updateStripePublish := normalizeCredentialInput(req.StripePublishableKey, currentStripePublishable)
+	stripeWebhook, updateStripeWebhook := normalizeCredentialInput(req.StripeWebhookSecret, currentStripeWebhook)
+
 	normalizeCheckoutURL := func(value, label string) (string, error) {
 		trimmed := strings.TrimSpace(value)
 		if trimmed == "" {
@@ -734,8 +742,7 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		}
 	}
 
-	stripeSecret := strings.TrimSpace(req.StripeSecretKey)
-	if stripeSecret != "" && !stripe.IsSecretKey(stripeSecret) {
+	if updateStripeSecret && stripeSecret != "" && !stripe.IsSecretKey(stripeSecret) {
 		return &ValidationError{
 			Field: "stripe_secret_key",
 			Message: fmt.Sprintf(
@@ -746,8 +753,7 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		}
 	}
 
-	stripePublish := strings.TrimSpace(req.StripePublishableKey)
-	if stripePublish != "" && !stripe.IsPublishableKey(stripePublish) {
+	if updateStripePublish && stripePublish != "" && !stripe.IsPublishableKey(stripePublish) {
 		return &ValidationError{
 			Field: "stripe_publishable_key",
 			Message: fmt.Sprintf(
@@ -757,8 +763,7 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		}
 	}
 
-	stripeWebhook := strings.TrimSpace(req.StripeWebhookSecret)
-	if stripeWebhook != "" && !stripe.IsWebhookSecret(stripeWebhook) {
+	if updateStripeWebhook && stripeWebhook != "" && !stripe.IsWebhookSecret(stripeWebhook) {
 		return &ValidationError{
 			Field: "stripe_webhook_secret",
 			Message: fmt.Sprintf(
@@ -775,12 +780,19 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		settingKeySiteFavicon:              strings.TrimSpace(req.Favicon),
 		settingKeySiteLogo:                 strings.TrimSpace(req.Logo),
 		settingKeyTagRetentionHours:        strconv.Itoa(req.UnusedTagRetentionHours),
-		settingKeyStripeSecretKey:          stripeSecret,
-		settingKeyStripePublishableKey:     stripePublish,
-		settingKeyStripeWebhookSecret:      stripeWebhook,
 		settingKeyCourseCheckoutSuccessURL: successURL,
 		settingKeyCourseCheckoutCancelURL:  cancelURL,
 		settingKeyCourseCheckoutCurrency:   currency,
+	}
+
+	if updateStripeSecret {
+		updates[settingKeyStripeSecretKey] = stripeSecret
+	}
+	if updateStripePublish {
+		updates[settingKeyStripePublishableKey] = stripePublish
+	}
+	if updateStripeWebhook {
+		updates[settingKeyStripeWebhookSecret] = stripeWebhook
 	}
 
 	for key, value := range updates {
@@ -817,6 +829,50 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 	}
 
 	return nil
+}
+
+func normalizeCredentialInput(input, current string) (string, bool) {
+	trimmedInput := strings.TrimSpace(input)
+	currentValue := strings.TrimSpace(current)
+
+	switch {
+	case trimmedInput == "":
+		return "", true
+	case isMaskedCredential(trimmedInput):
+		return currentValue, false
+	case currentValue != "" && trimmedInput == currentValue:
+		return currentValue, false
+	default:
+		return trimmedInput, true
+	}
+}
+
+func (s *SetupService) currentSettingValue(key string, fallback string) string {
+	value := strings.TrimSpace(fallback)
+
+	if stored, err := s.getSettingValue(key); err == nil {
+		if trimmed := strings.TrimSpace(stored); trimmed != "" {
+			value = trimmed
+		}
+	}
+
+	return value
+}
+
+func isMaskedCredential(value string) bool {
+	if value == "" {
+		return false
+	}
+
+	for _, r := range value {
+		switch r {
+		case '*', '•', '·', '●':
+		default:
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *SetupService) resolveSiteLanguages(defaultLanguage string, supported []string) (string, []string, error) {
