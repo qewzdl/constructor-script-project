@@ -997,6 +997,22 @@ func coursePackageStats(pkg models.CoursePackage) (topics int, lessons int, dura
 // renderSpecialSection handles section types that need special rendering (posts_list, categories_list, courses_list).
 // Returns HTML and scripts if the section type is handled, empty strings otherwise.
 func (h *TemplateHandler) renderSpecialSection(prefix string, section models.Section, sectionType string) (string, []string) {
+	if sectionType == "courses_list" {
+		html := h.renderCoursesListSection(prefix, section)
+
+		mode := strings.TrimSpace(strings.ToLower(section.Mode))
+		if mode == "" {
+			mode = constants.CourseListModeCatalog
+		}
+
+		scripts := []string{"/static/js/courses-modal.js"}
+		if mode != constants.CourseListModeOwned && h.courseCheckoutSvc != nil && h.courseCheckoutSvc.Enabled() {
+			scripts = append(scripts, "/static/js/courses-checkout.js")
+		}
+
+		return html, scripts
+	}
+
 	// Create a pseudo element to pass the section data to the renderer
 	elem := models.SectionElement{
 		Type:    sectionType,
