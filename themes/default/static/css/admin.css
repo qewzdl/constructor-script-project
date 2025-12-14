@@ -774,6 +774,10 @@
     .admin-courses__actions {
         margin-inline-start: 0;
     }
+
+    .admin__header > * {
+        padding-inline: var(--side-padding);
+    }
 }
 
 .admin__panels {
@@ -3035,7 +3039,6 @@
         gap: var(--size-mid);
     }
 
-    .admin__header,
     .admin-card,
     .admin-panel {
         padding: var(--size-base);
