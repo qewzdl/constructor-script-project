@@ -668,3 +668,22 @@ func errorEvent(event *zerolog.Event, err error) *zerolog.Event {
 
 	return event.Err(err)
 }
+
+// Close closes any file used by the logger's output. It is safe to call
+// multiple times. Standard outputs (stdout/stderr) will not be closed.
+func Close() error {
+	if v := configValue.Load(); v != nil {
+		if cfg, ok := v.(Config); ok {
+			if cfg.Output != nil {
+				if f, ok := cfg.Output.(*os.File); ok {
+					if f == os.Stdout || f == os.Stderr {
+						return nil
+					}
+					return f.Close()
+				}
+			}
+		}
+	}
+
+	return nil
+}
