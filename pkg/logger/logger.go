@@ -49,6 +49,7 @@ var (
 	levelValue        atomic.Value
 	configValue       atomic.Value
 	stackTraceEnabled atomic.Bool
+	logFile           *os.File
 
 	ctxFieldsKey = contextFieldsKey{}
 	ctxLoggerKey = contextLoggerKey{}
@@ -116,6 +117,19 @@ func ConfigFromEnv() (Config, error) {
 	}
 
 	var cfgErr error
+
+	// If LOG_FILE is set, open file for append and use as output
+	if path := strings.TrimSpace(os.Getenv("LOG_FILE")); path != "" {
+		f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			cfgErr = errors.Join(cfgErr, fmt.Errorf("open log file %q: %w", path, err))
+		} else {
+			cfg.Output = f
+			// store file handle to allow Close() later
+			logFile = f
+		}
+	}
+
 	if levelErr != nil {
 		cfgErr = errors.Join(cfgErr, levelErr)
 	}
@@ -657,4 +671,15 @@ func errorEvent(event *zerolog.Event, err error) *zerolog.Event {
 	}
 
 	return event.Err(err)
+}
+
+// Close closes any file opened by the logger (when LOG_FILE was used).
+// It is safe to call multiple times.
+func Close() error {
+	if logFile == nil {
+		return nil
+	}
+	err := logFile.Close()
+	logFile = nil
+	return err
 }

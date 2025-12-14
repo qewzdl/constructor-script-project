@@ -18,6 +18,12 @@ import (
 
 func main() {
 	logger.Init()
+	// Ensure any log file opened by the logger is closed on exit
+	defer func() {
+		if err := logger.Close(); err != nil {
+			logger.Error(err, "Failed to close log file", nil)
+		}
+	}()
 	logger.Info("Starting Constructor Script CMS", nil)
 
 	if err := godotenv.Load(); err != nil {

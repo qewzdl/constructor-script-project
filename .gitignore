@@ -7,3 +7,6 @@ vendor/
 deploy/.env.production
 deploy/.env
 *.exe
+*.log
+*.out
+bin/
