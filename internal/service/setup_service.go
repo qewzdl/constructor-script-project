@@ -15,7 +15,6 @@ import (
 
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/models"
-	"constructor-script-backend/internal/payments/stripe"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/pkg/lang"
 	"constructor-script-backend/pkg/logger"
@@ -739,37 +738,6 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		return &ValidationError{
 			Field:   "course_checkout_currency",
 			Message: "invalid course checkout currency: must be a three-letter ISO code",
-		}
-	}
-
-	if updateStripeSecret && stripeSecret != "" && !stripe.IsSecretKey(stripeSecret) {
-		return &ValidationError{
-			Field: "stripe_secret_key",
-			Message: fmt.Sprintf(
-				"invalid Stripe secret key: must start with %q or %q",
-				stripe.SecretKeyPrefixStandard,
-				stripe.SecretKeyPrefixRestricted,
-			),
-		}
-	}
-
-	if updateStripePublish && stripePublish != "" && !stripe.IsPublishableKey(stripePublish) {
-		return &ValidationError{
-			Field: "stripe_publishable_key",
-			Message: fmt.Sprintf(
-				"invalid Stripe publishable key: must start with %q",
-				stripe.PublishableKeyPrefix,
-			),
-		}
-	}
-
-	if updateStripeWebhook && stripeWebhook != "" && !stripe.IsWebhookSecret(stripeWebhook) {
-		return &ValidationError{
-			Field: "stripe_webhook_secret",
-			Message: fmt.Sprintf(
-				"invalid Stripe webhook secret: must start with %q",
-				stripe.WebhookSecretPrefix,
-			),
 		}
 	}
 
