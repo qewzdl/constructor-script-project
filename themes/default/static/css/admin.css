@@ -757,7 +757,7 @@
         overflow-y: auto;
         scrollbar-gutter: stable;
         overflow-anchor: none;
-        padding: var(--size-max);
+        padding: 5%;
     }
 
     .admin__tabs {
