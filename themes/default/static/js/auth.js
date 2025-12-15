@@ -573,6 +573,94 @@
         });
     };
 
+    const initProfileTabs = () => {
+        const profileRoot =
+            document.querySelector('[data-page="profile"]') ||
+            document.querySelector(".page-view--profile");
+        if (!profileRoot) {
+            return;
+        }
+
+        const nav = profileRoot.querySelector("[data-profile-nav]");
+        const panelsContainer = profileRoot.querySelector("[data-profile-panels]");
+        if (!nav || !panelsContainer) {
+            return;
+        }
+
+        const buttons = Array.from(
+            nav.querySelectorAll("[data-profile-tab-target]")
+        );
+        const panels = Array.from(
+            panelsContainer.querySelectorAll("[data-profile-tab-panel]")
+        );
+
+        if (!buttons.length || !panels.length) {
+            return;
+        }
+
+        const panelByTab = new Map();
+        panels.forEach((panel) => {
+            const tabKey =
+                (panel.dataset.profileTabPanel || panel.dataset.profileTab || "")
+                    .trim();
+            if (tabKey) {
+                panelByTab.set(tabKey, panel);
+            }
+        });
+
+        let defaultTab = buttons[0].dataset.profileTabTarget || "";
+        const hashTab = window.location.hash.replace("#", "").trim();
+        if (hashTab && panelByTab.has(hashTab)) {
+            defaultTab = hashTab;
+        }
+
+        const activate = (tab) => {
+            let resolvedTab = tab;
+            if (!panelByTab.has(resolvedTab)) {
+                resolvedTab = defaultTab;
+            }
+
+            const activePanel = panelByTab.get(resolvedTab);
+            if (!activePanel) {
+                return;
+            }
+
+            panelsContainer.classList.add("is-ready");
+
+            panels.forEach((panel) => {
+                const isActive = panel === activePanel;
+                panel.classList.toggle("is-active", isActive);
+                panel.hidden = !isActive;
+            });
+
+            buttons.forEach((button) => {
+                const isActive = button.dataset.profileTabTarget === resolvedTab;
+                button.classList.toggle("is-active", isActive);
+                if (isActive) {
+                    button.setAttribute("aria-current", "true");
+                } else {
+                    button.removeAttribute("aria-current");
+                }
+            });
+
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, "", `#${resolvedTab}`);
+            }
+        };
+
+        buttons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const target = button.dataset.profileTabTarget;
+                if (!target) {
+                    return;
+                }
+                activate(target);
+            });
+        });
+
+        activate(defaultTab);
+    };
+
     const populateProfileFromResponse = (user) => {
         const usernameField = document.getElementById("profile-username");
         const emailField = document.getElementById("profile-email");
@@ -648,6 +736,7 @@
                 return;
             }
 
+            initProfileTabs();
             loadProfileData();
         }
 

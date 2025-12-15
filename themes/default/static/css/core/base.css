@@ -721,15 +721,6 @@ textarea.form-field__input {
     color: var(--color-secondary);
 }
 
-.profile-courses__list {
-    display: grid;
-    gap: var(--common-gap);
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
 .profile-courses__item {
     list-style: none;
 }
@@ -778,6 +769,168 @@ textarea.form-field__input {
     display: flex;
     gap: var(--size-sm);
     align-items: center;
+}
+
+.page-view--profile .page-view__sections {
+    max-width: var(--page-max-width);
+    padding-inline: var(--page-side-padding);
+    padding-block: var(--size-max);
+    margin-inline: auto;
+    width: 100%;
+}
+
+.profile-shell {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) 1fr;
+    gap: var(--size-max);
+    align-items: start;
+    min-height: 400px;
+}
+
+.profile-shell__nav {
+    position: sticky;
+    top: var(--size-lg);
+}
+
+.profile-shell__menu {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    list-style: none;
+}
+
+.profile-shell__menu-link {
+    width: 100%;
+    text-align: left;
+    color: inherit;
+    padding: var(--size-sm) 0;
+    font-weight: 700;
+    display: grid;
+    gap: 4px;
+    overflow: hidden;
+    background-color: transparent;
+    border: none;
+}
+
+.profile-shell__menu-link:hover,
+.profile-shell__menu-link:focus-visible {
+    outline: none;
+}
+.profile-shell__menu-link:hover .profile-shell__menu-title,
+.profile-shell__menu-link:focus-visible .profile-shell__menu-title {
+    color: var(--color-primary);
+}
+
+.profile-shell__menu-link.is-active {
+    color: var(--color-primary);
+}
+
+.profile-shell__menu-link > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-shell__menu-title {
+    font-size: var(--font-size-base);
+    font-weight: 500;
+}
+
+.profile-shell__panels {
+    display: grid;
+    gap: var(--common-gap);
+}
+
+.profile-shell__panel[hidden] {
+    display: none !important;
+}
+
+.profile-shell__panel .profile-card {
+    height: auto;
+}
+
+.profile-layout {
+    display: grid;
+    gap: var(--size-lg);
+    grid-template-columns: minmax(240px, 320px) 1fr;
+    align-items: start;
+}
+
+.profile-layout__nav {
+    position: sticky;
+    top: calc(var(--size-lg) + var(--size-sm));
+    display: grid;
+    gap: var(--size-sm);
+    padding: var(--size-base);
+    border: 1px solid var(--color-border);
+    border-radius: var(--size-sm);
+    background: var(--color-bg-top);
+}
+
+.profile-layout__nav-title {
+    font-weight: 600;
+    color: var(--color-secondary);
+}
+
+.profile-layout__nav-list {
+    list-style: none;
+    display: grid;
+    gap: var(--size-xs);
+    padding: 0;
+    margin: 0;
+}
+
+.profile-layout__nav-link {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text);
+    padding: var(--size-sm) var(--size-base);
+    border-radius: var(--size-xs);
+    cursor: pointer;
+}
+
+.profile-layout__nav-link:hover,
+.profile-layout__nav-link:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.profile-layout__nav-link.is-active {
+    border-color: var(--color-primary);
+    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    color: var(--color-primary);
+}
+
+.profile-layout__body {
+    display: grid;
+    gap: var(--size-lg);
+}
+
+.profile-layout__sections .page-view__section {
+    margin: 0;
+}
+
+.page-view--profile [data-profile-panels].is-ready [data-profile-tab-panel] {
+    display: none;
+}
+
+.page-view--profile [data-profile-panels].is-ready [data-profile-tab-panel].is-active {
+    display: block;
+}
+
+@media (max-width: 960px) {
+    .profile-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-layout__nav {
+        position: static;
+    }
+
+    .profile-layout__nav-list {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
 }
 
 .course-player {
@@ -2929,6 +3082,20 @@ body.course-modal-open {
 
 .page-view__title, .page-view__description {
     color: var(--color-page-view-header-opposite);
+}
+
+@media (max-width: 1024px) {
+    .profile-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-shell__nav {
+        position: static;
+    }
+
+    .profile-shell__menu {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
 }
 
 @media (min-width: 768px) {

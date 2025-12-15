@@ -58,9 +58,23 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		if marginClass := buildSectionMarginClass(pageViewClassPrefix, section.MarginVertical); marginClass != "" {
 			sectionClasses = append(sectionClasses, marginClass)
 		}
+
+		sectionAttributes := ""
+		if settings := section.Settings; settings != nil {
+			if tab, ok := settings["profile_tab"].(string); ok {
+				if trimmed := strings.TrimSpace(tab); trimmed != "" {
+					escaped := template.HTMLEscapeString(trimmed)
+					sectionAttributes += fmt.Sprintf(` data-profile-tab-panel="%s" data-profile-tab="%s"`, escaped, escaped)
+				}
+			}
+		}
 		sectionTitleClass := fmt.Sprintf("%s__section-title", pageViewClassPrefix)
 
-		sb.WriteString(`<section class="` + strings.Join(sectionClasses, " ") + `" id="section-` + template.HTMLEscapeString(section.ID) + `">`)
+		sb.WriteString(`<section class="` + strings.Join(sectionClasses, " ") + `" id="section-` + template.HTMLEscapeString(section.ID) + `"`)
+		if sectionAttributes != "" {
+			sb.WriteString(sectionAttributes)
+		}
+		sb.WriteString(`>`)
 		if wrapWithContainer {
 			sb.WriteString(`<div class="page-view__section-container">`)
 		}

@@ -86,7 +86,7 @@ func renderProfileSecurity(ctx RenderContext, prefix string, elem models.Section
 	sb.WriteString(`</div>`)
 	sb.WriteString(`</div>`)
 
-	sb.WriteString(`<button type="submit" class="button button--secondary">`)
+	sb.WriteString(`<button type="submit" class="button button--primary">`)
 	sb.WriteString(template.HTMLEscapeString(buttonLabel))
 	sb.WriteString(`</button>`)
 

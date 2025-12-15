@@ -4,11 +4,15 @@
     "path": "/profile",
     "description": "Manage personal details, account security, and connected devices.",
     "published": true,
-    "template": "page",
+    "template": "profile",
     "sections": [
         {
-            "id": "profile-settings",
-            "type": "grid",
+            "id": "profile-account",
+            "type": "profile_account_details",
+            "order": 1,
+            "settings": {
+                "profile_tab": "account"
+            },
             "elements": [
                 {
                     "id": "profile-account",
@@ -18,7 +22,27 @@
                         "description": "The information below appears in comments and author bylines.",
                         "button_label": "Save changes"
                     }
-                },
+                }
+            ]
+        },
+        {
+            "id": "profile-courses",
+            "type": "courses_list",
+            "title": "Courses",
+            "order": 2,
+            "mode": "owned",
+            "settings": {
+                "profile_tab": "courses"
+            }
+        },
+        {
+            "id": "profile-security",
+            "type": "profile_security",
+            "order": 3,
+            "settings": {
+                "profile_tab": "security"
+            },
+            "elements": [
                 {
                     "id": "profile-security",
                     "type": "profile_security",
@@ -29,12 +53,6 @@
                     }
                 }
             ]
-        },
-        {
-            "id": "profile-courses",
-            "type": "courses_list",
-            "title": "Courses",
-            "mode": "owned"
         }
     ]
 }

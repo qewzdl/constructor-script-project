@@ -1,0 +1,77 @@
+{{ $classes := "page-view" }}
+{{ with .PageViewModifiers }}
+    {{ range . }}
+        {{ $classes = printf "%s page-view--%s" $classes . }}
+    {{ end }}
+{{ end }}
+{{ $attributes := "" }}
+{{ with .PageViewAttributes }}
+    {{ $attributes = printf " %s" . }}
+{{ end }}
+<article class="{{ $classes }}" role="article"{{ $attributes }}>
+    {{ if not .Page.HideHeader }}
+    <header class="page-view__header">
+        <div class="page-view__header-container">
+            <h1 class="page-view__title">{{ .Page.Title }}</h1>
+            {{ if .Page.Description }}
+            <p class="page-view__description">{{ .Page.Description }}</p>
+            {{ end }}
+        </div>
+    </header>
+    {{ end }}
+
+    {{ if or .Content .Sections (gt (len .ProfileTabs) 0) }}
+    <div class="page-view__content">
+        {{ if .Content }}
+        <div class="page-view__body">
+            {{ .Content }}
+        </div>
+        {{ end }}
+
+        {{ if gt (len .ProfileTabs) 0 }}
+        <div class="page-view__sections">
+            <div class="profile-shell">
+                <nav class="profile-shell__nav" data-profile-nav aria-label="Profile">
+                    <div class="profile-shell__menu" role="tablist" aria-orientation="vertical">
+                        {{ range $index, $tab := .ProfileTabs }}
+                            {{ $isActive := eq $tab.ID $.ProfileDefaultTab }}
+                            <button
+                                type="button"
+                                role="tab"
+                                id="profile-tab-{{ $tab.ID }}"
+                                class="profile-shell__menu-link{{ if $isActive }} is-active{{ end }}"
+                                data-profile-tab-target="{{ $tab.ID }}"
+                                aria-controls="profile-panel-{{ $tab.ID }}"
+                                aria-selected="{{ if $isActive }}true{{ else }}false{{ end }}"
+                            >
+                                <span class="profile-shell__menu-title">{{ $tab.Label }}</span>
+                            </button>
+                        {{ end }}
+                    </div>
+                </nav>
+
+                <div class="profile-shell__panels" data-profile-panels>
+                    {{ range $index, $tab := .ProfileTabs }}
+                        {{ $isActive := eq $tab.ID $.ProfileDefaultTab }}
+                        <section
+                            class="profile-shell__panel{{ if $isActive }} is-active{{ end }}"
+                            id="profile-panel-{{ $tab.ID }}"
+                            data-profile-tab-panel="{{ $tab.ID }}"
+                            role="tabpanel"
+                            aria-labelledby="profile-tab-{{ $tab.ID }}"
+                            {{ if not $isActive }}hidden{{ end }}
+                        >
+                            {{ $tab.Content }}
+                        </section>
+                    {{ end }}
+                </div>
+            </div>
+        </div>
+        {{ else if .Sections }}
+        <div class="page-view__sections">
+            {{ .Sections }}
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
+</article>

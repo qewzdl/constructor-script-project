@@ -1465,6 +1465,13 @@ func (h *TemplateHandler) RenderSetupKeyRequired(c *gin.Context) {
 </html>`))
 }
 
+type profileTab struct {
+	ID          string
+	Label       string
+	Description string
+	Content     template.HTML
+}
+
 func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 	user, ok := h.currentUser(c)
 	if !ok {
@@ -1507,8 +1514,10 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 	}
 
 	templateName := strings.TrimSpace(page.Template)
-	if strings.EqualFold(templateName, "profile") || templateName == "" {
-		templateName = "page"
+	if templateName == "" ||
+		strings.EqualFold(templateName, "page") ||
+		strings.EqualFold(templateName, "profile") {
+		templateName = "profile"
 	}
 
 	page.Title = pageTitle
@@ -1520,6 +1529,12 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		"UserCourses":        courses,
 		"PageViewModifiers":  []string{"profile"},
 		"PageViewAttributes": template.HTMLAttr(`data-page="profile"`),
+	}
+
+	tabs := buildProfileTabs(h, sections)
+	if len(tabs) > 0 {
+		data["ProfileTabs"] = tabs
+		data["ProfileDefaultTab"] = tabs[0].ID
 	}
 
 	if sectionsHTML != "" {
@@ -1658,6 +1673,8 @@ func applyProfileUserContext(sections models.PostSections, user *models.User, co
 		section := &sections[i]
 		sectionType := strings.TrimSpace(strings.ToLower(section.Type))
 
+		applyProfileTabSetting(section)
+
 		if sectionType == "courses_list" && strings.EqualFold(strings.TrimSpace(strings.ToLower(section.Mode)), constants.CourseListModeOwned) {
 			data := extractOwnedCourseSectionData(*section)
 			data.Courses = cloneUserCoursePackages(courses)
@@ -1695,6 +1712,105 @@ func applyProfileUserContext(sections models.PostSections, user *models.User, co
 	return sections
 }
 
+func applyProfileTabSetting(section *models.Section) {
+	if section == nil {
+		return
+	}
+
+	id := strings.TrimSpace(strings.ToLower(section.ID))
+	tab := ""
+	switch id {
+	case "profile-account":
+		tab = "account"
+	case "profile-courses":
+		tab = "courses"
+	case "profile-security":
+		tab = "security"
+	}
+
+	if tab == "" {
+		return
+	}
+
+	if section.Settings == nil {
+		section.Settings = map[string]interface{}{}
+	}
+	if existing, ok := section.Settings["profile_tab"].(string); ok && strings.TrimSpace(existing) != "" {
+		return
+	}
+
+	section.Settings["profile_tab"] = tab
+}
+
+func buildProfileTabs(h *TemplateHandler, sections models.PostSections) []profileTab {
+	if h == nil || len(sections) == 0 {
+		return nil
+	}
+
+	var accountHTML string
+	var securityHTML string
+	var coursesHTML string
+
+	for i := range sections {
+		section := sections[i]
+		sectionType := strings.TrimSpace(strings.ToLower(section.Type))
+
+		if sectionType == "courses_list" && coursesHTML == "" {
+			coursesHTML = h.renderCoursesListSection(pageViewClassPrefix, section)
+		}
+
+		for j := range section.Elements {
+			elem := section.Elements[j]
+			elemType := strings.TrimSpace(strings.ToLower(elem.Type))
+			switch elemType {
+			case "profile_account_details":
+				if accountHTML == "" {
+					if html, _ := h.renderSectionElement(pageViewClassPrefix, elem); html != "" {
+						accountHTML = html
+					}
+				}
+			case "profile_security":
+				if securityHTML == "" {
+					if html, _ := h.renderSectionElement(pageViewClassPrefix, elem); html != "" {
+						securityHTML = html
+					}
+				}
+			}
+		}
+	}
+
+	tabs := make([]profileTab, 0, 3)
+
+	if accountHTML != "" {
+		tabs = append(tabs, profileTab{
+			ID:          "account",
+			Label:       "Account settings",
+			Description: "Update your display name and email for this profile.",
+			Content:     template.HTML(accountHTML),
+		})
+	}
+
+	if coursesHTML != "" {
+		tabs = append(tabs, profileTab{
+			ID:          "courses",
+			Label:       "My courses",
+			Description: "Learning packages currently available to your account.",
+			Content:     template.HTML(coursesHTML),
+		})
+	}
+
+	if securityHTML != "" {
+		tabs = append(tabs, profileTab{
+			ID:          "security",
+			Label:       "Account security",
+			Description: "Password and sign-in safety controls.",
+			Content:     template.HTML(securityHTML),
+		})
+	}
+
+	return tabs
+}
+
 func ensureContentMap(element *models.SectionElement) map[string]interface{} {
 	if element == nil {
 		return map[string]interface{}{}
@@ -1710,8 +1826,10 @@ func ensureContentMap(element *models.SectionElement) map[string]interface{} {
 func defaultProfileSections() models.PostSections {
 	sections := models.PostSections{
 		{
-			ID:   "profile-settings",
-			Type: "grid",
+			ID:       "profile-account",
+			Type:     "profile_account_details",
+			Order:    1,
+			Settings: map[string]interface{}{"profile_tab": "account"},
 			Elements: []models.SectionElement{
 				{
 					ID:    "profile-account",
@@ -1723,10 +1841,26 @@ func defaultProfileSections() models.PostSections {
 						"button_label": "Save changes",
 					},
 				},
+			},
+		},
+		{
+			ID:       "profile-courses",
+			Type:     "courses_list",
+			Title:    "Courses",
+			Order:    2,
+			Mode:     constants.CourseListModeOwned,
+			Settings: map[string]interface{}{"profile_tab": "courses"},
+		},
+		{
+			ID:       "profile-security",
+			Type:     "profile_security",
+			Order:    3,
+			Settings: map[string]interface{}{"profile_tab": "security"},
+			Elements: []models.SectionElement{
 				{
 					ID:    "profile-security",
 					Type:  "profile_security",
-					Order: 2,
+					Order: 1,
 					Content: map[string]interface{}{
 						"title":        "Security",
 						"description":  "Change your password regularly and review connected devices.",
@@ -1734,12 +1868,6 @@ func defaultProfileSections() models.PostSections {
 					},
 				},
 			},
-		},
-		{
-			ID:    "profile-courses",
-			Type:  "courses_list",
-			Title: "Courses",
-			Mode:  constants.CourseListModeOwned,
 		},
 	}
 
