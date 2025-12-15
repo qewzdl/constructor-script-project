@@ -1214,7 +1214,7 @@ textarea.form-field__input {
 }
 
 .course-player__test-start .button, .course-player__actions .button {
-    border-radius: var(--size-sm);
+    border-radius: 999px;
 }
 
 .course-player__question-step {
