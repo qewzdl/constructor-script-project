@@ -1211,7 +1211,10 @@ textarea.form-field__input {
 
 .course-player__test-start {
     display: flex;
-    justify-content: center;
+}
+
+.course-player__test-start .button, .course-player__actions .button {
+    border-radius: var(--size-sm);
 }
 
 .course-player__question-step {
