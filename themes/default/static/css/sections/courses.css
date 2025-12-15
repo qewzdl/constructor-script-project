@@ -6,6 +6,31 @@
 
 .courses-list__item {
     cursor: pointer;
+    position: relative;
+}
+
+.course-card__box-icon {
+    display: none;
+}
+
+.page-view__course-card .course-card__box-icon,
+.profile-course.profile-course--link .course-card__box-icon {
+    position: absolute;
+    right: var(--size-base);
+    bottom: var(--size-base);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc((var(--size-mid) + var(--size-md)) / 2);
+    height: calc((var(--size-mid) + var(--size-md)) / 2);
+    color: var(--color-text);
+    pointer-events: none;
+}
+
+.page-view__course-card .course-card__box-icon svg,
+.profile-course.profile-course--link .course-card__box-icon svg {
+    width: 100%;
+    height: 100%;
 }
 
 .courses-list__item:hover,

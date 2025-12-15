@@ -737,6 +737,7 @@ textarea.form-field__input {
 .profile-course {
     color: inherit;
     text-decoration: none;
+    position: relative;
 }
 
 .profile-course:focus-visible {
