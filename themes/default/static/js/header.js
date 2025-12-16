@@ -45,4 +45,15 @@
 
     breakpoint.addEventListener("change", syncWithViewport);
     syncWithViewport();
+    // Добавляем обработчик прокрутки для смены стиля header
+    const onScroll = () => {
+        if (window.scrollY > 0) {
+            header.classList.add("is-scrolled");
+        } else {
+            header.classList.remove("is-scrolled");
+        }
+    };
+    window.addEventListener("scroll", onScroll);
+    // Инициализация состояния при загрузке
+    onScroll();
 })();
