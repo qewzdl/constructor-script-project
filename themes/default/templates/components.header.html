@@ -63,19 +63,6 @@
                         >Profile</a
                     >
                 </li>
-                <li
-                    class="header__nav-item"
-                    data-auth="auth"
-                    {{ if not .IsAuthenticated }}hidden{{ end }}
-                >
-                    <button
-                        id="logout-button"
-                        class="header__nav-link header__nav-link--button"
-                        type="button"
-                    >
-                        Log out
-                    </button>
-                </li>
                 {{ else }}
                 <li
                     class="header__nav-item"

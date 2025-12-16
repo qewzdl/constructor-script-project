@@ -260,20 +260,6 @@ textarea {
     color: var(--color-primary);
 }
 
-#logout-button {
-    color: var(--color-error);
-    font-size: var(--font-size-base);
-    border-radius: 999px;
-}
-
-#logout-button:hover {
-    background-color: color-mix(
-        in srgb,
-        var(--color-error) 12%,
-        transparent 88%
-    );
-}
-
 .main {
     grid-area: main;
     display: grid;
@@ -709,6 +695,58 @@ textarea.form-field__input {
 .profile-form.is-disabled {
     opacity: 0.7;
     pointer-events: none;
+}
+
+.profile-logout {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-base);
+    padding: var(--size-base);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    margin-top: var(--common-gap);
+}
+
+.profile-logout__content {
+    display: grid;
+    gap: var(--size-xs);
+}
+
+.profile-logout__title {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+}
+
+.profile-logout__description {
+    margin: 0;
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.profile-logout__button {
+    color: var(--color-error);
+    border-color: var(--color-error);
+    background-color: transparent;
+}
+
+.profile-logout__button:hover,
+.profile-logout__button:focus-visible {
+    border-color: var(--color-error);
+    background-color: var(--color-error);
+    color: var(--color-primary-opposite);
+}
+
+@media (max-width: 640px) {
+    .profile-logout {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .profile-logout__button {
+        width: 100%;
+    }
 }
 
 .profile-card--courses .profile-courses {

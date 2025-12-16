@@ -11,6 +11,9 @@ const (
 	profileSecurityDefaultTitle       = "Security"
 	profileSecurityDefaultDescription = "Change your password regularly and review connected devices."
 	profileSecurityDefaultButton      = "Update password"
+	profileLogoutTitle                = "Sign out"
+	profileLogoutDescription          = "Log out of your account on this device."
+	profileLogoutButtonLabel          = "Log out"
 )
 
 // RegisterProfileSecurity registers the profile security form renderer.
@@ -91,6 +94,23 @@ func renderProfileSecurity(ctx RenderContext, prefix string, elem models.Section
 	sb.WriteString(`</button>`)
 
 	sb.WriteString(`</form>`)
+
+	sb.WriteString(`<div class="profile-logout" aria-label="`)
+	sb.WriteString(template.HTMLEscapeString(profileLogoutTitle))
+	sb.WriteString(`" data-auth="auth">`)
+	sb.WriteString(`<div class="profile-logout__content">`)
+	sb.WriteString(`<h3 class="profile-logout__title">`)
+	sb.WriteString(template.HTMLEscapeString(profileLogoutTitle))
+	sb.WriteString(`</h3>`)
+	sb.WriteString(`<p class="profile-logout__description">`)
+	sb.WriteString(template.HTMLEscapeString(profileLogoutDescription))
+	sb.WriteString(`</p>`)
+	sb.WriteString(`</div>`)
+	sb.WriteString(`<button type="button" id="logout-button" class="button button--secondary profile-logout__button">`)
+	sb.WriteString(template.HTMLEscapeString(profileLogoutButtonLabel))
+	sb.WriteString(`</button>`)
+	sb.WriteString(`</div>`)
+
 	sb.WriteString(`</section>`)
 
 	return sb.String(), nil
