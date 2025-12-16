@@ -7,9 +7,6 @@
 .search__form {
     display: grid;
     gap: var(--common-gap);
-    padding: var(--size-base);
-    background-color: var(--color-primary-transparent);
-    border: 1px solid var(--color-border);
 }
 
 .search__fields {
