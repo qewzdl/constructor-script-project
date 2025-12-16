@@ -1784,6 +1784,21 @@ textarea.form-field__input {
     pointer-events: none;
 }
 
+/* Keep user-entered line breaks when descriptions contain newlines */
+.post-card__description,
+.post__description,
+.category-page__description,
+.page-view__description,
+.course-modal__description,
+.course-modal__topic-description,
+.course-player__description,
+.course-player__sidebar-description,
+.course-player__topic-description,
+.course-player__lesson-description,
+.course-player__test-description {
+    white-space: pre-line;
+}
+
 .post-card__description {
     color: var(--color-secondary);
     font-size: var(--font-size-base);
