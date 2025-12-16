@@ -157,7 +157,6 @@
     color: var(--color-secondary);
     font-weight: 500;
     text-align: left;
-    transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .forum__filter-toggle::after {
