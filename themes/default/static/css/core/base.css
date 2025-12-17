@@ -2169,7 +2169,7 @@ body.post-image-modal-open .post-progress {
 
 
 .post__related-container {
-    display; flex;
+    display: flex;
     flex-direction: column;
     gap: var(--common-gap);
 }
