@@ -2166,6 +2166,13 @@ body.post-image-modal-open .post-progress {
     white-space: nowrap;
     text-overflow: ellipsis;
 } 
+
+
+.post__related-container {
+    display; flex;
+    flex-direction: column;
+    gap: var(--common-gap);
+}
 .post__related {
     display: grid;
     gap: var(--common-gap);
@@ -2191,7 +2198,6 @@ body.post-image-modal-open .post-progress {
     gap: 0;
     flex: 0 0 min(100%, 20rem);
     width: min(100%, 20rem);
-    margin-bottom: var(--size-sm);
     color: var(--color-text);
     text-decoration: none;
 }
