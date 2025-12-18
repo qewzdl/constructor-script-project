@@ -633,6 +633,7 @@
             content = normaliseImageContent(content);
         } else if (type === 'feature_item') {
             content = {
+                title: content.title || content.Title || '',
                 text: content.text || content.Text || '',
                 image_url:
                     content.image_url ||
@@ -796,7 +797,7 @@
             return {
                 id: generateId(),
                 type: 'feature_item',
-                content: { text: '', image_url: '', image_alt: '' },
+                content: { title: '', text: '', image_url: '', image_alt: '' },
             };
         }
         if (type === 'list') {
@@ -852,6 +853,7 @@
             return payload;
         }
         if (element.type === 'feature_item') {
+            const title = element.content?.title || element.content?.Title || '';
             const text = element.content?.text || '';
             const imageURL =
                 element.content?.image_url ||
@@ -859,12 +861,16 @@
                 '';
             const imageAlt =
                 element.content?.image_alt || element.content?.imageAlt || '';
+            const hasTitle = title.trim().length > 0;
             const hasText = text.trim().length > 0;
             const hasImage = imageURL.trim().length > 0;
             if (!hasText) {
                 return null;
             }
             const payload = { text: text.trim() };
+            if (hasTitle) {
+                payload.title = title.trim();
+            }
             if (hasImage) {
                 payload.image_url = imageURL.trim();
             }
@@ -2107,6 +2113,25 @@
                 if (!element.content || typeof element.content !== 'object') {
                     element.content = {};
                 }
+
+                const titleId = `${section.id}-${element.id}-feature-title`;
+                const titleField = createElement('div', {
+                    className: 'section-field',
+                });
+                const titleLabel = createElement('label', {
+                    textContent: 'Feature title',
+                    attrs: { for: titleId },
+                });
+                const titleInput = createElement('input', { type: 'text' });
+                titleInput.id = titleId;
+                titleInput.placeholder = 'Give this feature a title';
+                titleInput.value = element.content?.title || '';
+                titleInput.addEventListener('input', (event) => {
+                    element.content.title = event.target.value;
+                });
+                titleField.appendChild(titleLabel);
+                titleField.appendChild(titleInput);
+                body.appendChild(titleField);
 
                 const textId = `${section.id}-${element.id}-feature-text`;
                 const textField = createElement('div', {

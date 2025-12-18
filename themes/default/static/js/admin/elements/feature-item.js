@@ -11,12 +11,13 @@
         label: 'Feature item',
         addLabel: 'Add feature',
         order: 25,
-        initialFocusSelector: '[data-field="feature-text"]',
+        initialFocusSelector: '[data-field="feature-title"]',
         create: () => ({
             clientId: randomId(),
             id: '',
             type: 'feature_item',
             content: {
+                title: '',
                 text: '',
                 image_url: '',
                 image_alt: '',
@@ -27,6 +28,7 @@
             id,
             type: 'feature_item',
             content: {
+                title: normaliseString(rawContent.title ?? rawContent.Title ?? ''),
                 text: normaliseString(rawContent.text ?? rawContent.Text ?? ''),
                 image_url: normaliseString(
                     rawContent.image_url ??
@@ -45,6 +47,25 @@
             },
         }),
         renderEditor: (elementNode, element) => {
+            const titleField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            titleField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Feature title',
+                })
+            );
+            const titleInput = createElement('input', {
+                className: 'admin-builder__input',
+            });
+            titleInput.type = 'text';
+            titleInput.placeholder = 'Name the feature highlight';
+            titleInput.value = element.content?.title || '';
+            titleInput.dataset.field = 'feature-title';
+            titleField.append(titleInput);
+            elementNode.append(titleField);
+
             const textField = createElement('label', {
                 className: 'admin-builder__field',
             });
@@ -118,6 +139,10 @@
             elementNode.append(altField);
         },
         updateField: (element, field, value) => {
+            if (field === 'feature-title') {
+                element.content.title = value;
+                return true;
+            }
             if (field === 'feature-text') {
                 element.content.text = value;
                 return true;
@@ -134,11 +159,15 @@
         },
         hasContent: (element) =>
             Boolean(
-                element.content?.text?.trim() ||
+                element.content?.title?.trim() ||
+                    element.content?.text?.trim() ||
                     element.content?.image_url?.trim()
             ),
         sanitise: (element, index) => {
             const payload = {};
+            if (element.content.title && element.content.title.trim()) {
+                payload.title = element.content.title.trim();
+            }
             if (element.content.text && element.content.text.trim()) {
                 payload.text = element.content.text.trim();
             }
@@ -156,6 +185,9 @@
             };
         },
         preview: (element, parts) => {
+            if (element.content?.title) {
+                parts.push(element.content.title);
+            }
             if (element.content?.text) {
                 parts.push(element.content.text);
             }

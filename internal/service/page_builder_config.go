@@ -232,11 +232,17 @@ func getAvailableSectionTypes() []models.SectionTypeConfig {
 		{
 			Type:        "feature_item",
 			Name:        "Feature Item",
-			Description: "Text plus image card for the features section.",
+			Description: "Headline, supporting text, and optional image for the features section.",
 			Category:    "elements",
 			Icon:        "sparkles",
 			AllowedIn:   []string{"features"},
 			Schema: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":        "string",
+					"label":       "Feature title",
+					"placeholder": "Summarize the feature highlight",
+					"required":    false,
+				},
 				"text": map[string]interface{}{
 					"type":        "textarea",
 					"label":       "Feature text",

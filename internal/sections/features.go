@@ -84,13 +84,10 @@ func renderFeaturesSection(ctx RenderContext, prefix string, elem models.Section
 func renderFeatureItem(ctx RenderContext, prefix string, elem models.SectionElement) (string, []string) {
 	content := sectionContent(elem)
 
-	text, _ := content["text"].(string)
-	imageURL, _ := content["image_url"].(string)
-	imageAlt, _ := content["image_alt"].(string)
-
-	text = strings.TrimSpace(text)
-	imageURL = strings.TrimSpace(imageURL)
-	imageAlt = strings.TrimSpace(imageAlt)
+	title := strings.TrimSpace(getString(content, "title"))
+	text := strings.TrimSpace(getString(content, "text"))
+	imageURL := strings.TrimSpace(getString(content, "image_url"))
+	imageAlt := strings.TrimSpace(getString(content, "image_alt"))
 
 	if text == "" {
 		return "", nil
@@ -100,6 +97,7 @@ func renderFeatureItem(ctx RenderContext, prefix string, elem models.SectionElem
 	bodyClass := fmt.Sprintf("%s__feature-body", prefix)
 	mediaClass := fmt.Sprintf("%s__feature-media", prefix)
 	imageClass := fmt.Sprintf("%s__feature-image", prefix)
+	titleClass := fmt.Sprintf("%s__feature-title", prefix)
 	textClass := fmt.Sprintf("%s__feature-text", prefix)
 
 	var sb strings.Builder
@@ -117,6 +115,9 @@ func renderFeatureItem(ctx RenderContext, prefix string, elem models.SectionElem
 
 	if text != "" {
 		sb.WriteString(`<div class="` + bodyClass + `">`)
+		if title != "" {
+			sb.WriteString(`<h3 class="` + titleClass + `">` + template.HTMLEscapeString(title) + `</h3>`)
+		}
 		sb.WriteString(`<p class="` + textClass + `">` + ctx.SanitizeHTML(text) + `</p>`)
 		sb.WriteString(`</div>`)
 	}

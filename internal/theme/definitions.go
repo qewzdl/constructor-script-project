@@ -520,7 +520,7 @@ func defaultElementDefinitions() map[string]ElementDefinition {
 			Type:        "feature_item",
 			Label:       "Feature item",
 			Order:       25,
-			Description: "Feature highlight with text and an optional image.",
+			Description: "Feature highlight with title, supporting text, and an optional image.",
 		},
 		"image_group": {
 			Type:        "image_group",
