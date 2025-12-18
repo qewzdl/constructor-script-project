@@ -1,8 +1,11 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -76,6 +79,24 @@ func (s *FileService) Create(req models.CreateArchiveFileRequest) (*models.Archi
 		file.FileSize = *req.FileSize
 	}
 
+	// Try to infer metadata (mime type, file size, simple file type) from the remote URL
+	if file.FileURL != "" {
+		// Only attempt inference if fields are missing
+		if file.MimeType == "" || file.FileSize == 0 || file.FileType == "" {
+			if ct, size, err := inferRemoteFileMetadata(file.FileURL); err == nil {
+				if file.MimeType == "" && ct != "" {
+					file.MimeType = ct
+				}
+				if file.FileSize == 0 && size > 0 {
+					file.FileSize = size
+				}
+				if file.FileType == "" {
+					file.FileType = mapMimeToType(file.MimeType, file.FileURL)
+				}
+			}
+		}
+	}
+
 	if err := s.fileRepo.Create(file); err != nil {
 		return nil, err
 	}
@@ -113,7 +134,21 @@ func (s *FileService) Update(id uint, req models.UpdateArchiveFileRequest) (*mod
 		if url == "" {
 			return nil, fmt.Errorf("file url cannot be empty")
 		}
+		// if url changed, mark for metadata inference below
+		urlChanged := !strings.EqualFold(file.FileURL, url)
 		file.FileURL = url
+		if urlChanged {
+			// clear fields so they may be inferred if not provided explicitly
+			if req.MimeType == nil {
+				file.MimeType = ""
+			}
+			if req.FileType == nil {
+				file.FileType = ""
+			}
+			if req.FileSize == nil {
+				file.FileSize = 0
+			}
+		}
 	}
 
 	if req.PreviewURL != nil {
@@ -130,6 +165,23 @@ func (s *FileService) Update(id uint, req models.UpdateArchiveFileRequest) (*mod
 
 	if req.FileSize != nil {
 		file.FileSize = *req.FileSize
+	}
+
+	// If metadata is missing after update, try to infer from the remote URL
+	if file.FileURL != "" {
+		if file.MimeType == "" || file.FileSize == 0 || file.FileType == "" {
+			if ct, size, err := inferRemoteFileMetadata(file.FileURL); err == nil {
+				if file.MimeType == "" && ct != "" {
+					file.MimeType = ct
+				}
+				if file.FileSize == 0 && size > 0 {
+					file.FileSize = size
+				}
+				if file.FileType == "" {
+					file.FileType = mapMimeToType(file.MimeType, file.FileURL)
+				}
+			}
+		}
 	}
 
 	if req.Published != nil {
@@ -305,4 +357,93 @@ func (s *FileService) invalidateTreeCache() {
 	if s.directoryService != nil {
 		s.directoryService.invalidateTreeCache()
 	}
+}
+
+// inferRemoteFileMetadata attempts to fetch Content-Type and Content-Length from the
+// given URL. It prefers HEAD, and falls back to a ranged GET if necessary.
+func inferRemoteFileMetadata(url string) (mimeType string, size int64, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, _ := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil || resp == nil || resp.StatusCode >= 400 {
+		// try ranged GET (single byte) as fallback
+		req2, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		req2.Header.Set("Range", "bytes=0-0")
+		resp, err = client.Do(req2)
+		if err != nil {
+			return "", 0, err
+		}
+	}
+	defer resp.Body.Close()
+
+	ct := strings.TrimSpace(resp.Header.Get("Content-Type"))
+	if ct != "" {
+		// strip any charset
+		if idx := strings.Index(ct, ";"); idx >= 0 {
+			ct = strings.TrimSpace(ct[:idx])
+		}
+		mimeType = strings.ToLower(ct)
+	}
+
+	cl := strings.TrimSpace(resp.Header.Get("Content-Length"))
+	if cl != "" {
+		if v, err := strconv.ParseInt(cl, 10, 64); err == nil {
+			size = v
+		}
+	}
+
+	// Some ranged responses use Content-Range instead of Content-Length
+	if size == 0 {
+		cr := strings.TrimSpace(resp.Header.Get("Content-Range"))
+		// format: bytes 0-0/12345
+		if cr != "" {
+			if slash := strings.LastIndex(cr, "/"); slash >= 0 && slash+1 < len(cr) {
+				if v, err := strconv.ParseInt(strings.TrimSpace(cr[slash+1:]), 10, 64); err == nil {
+					size = v
+				}
+			}
+		}
+	}
+
+	return mimeType, size, nil
+}
+
+// mapMimeToType produces a simple human-friendly file type label from a mime type
+// or URL extension.
+func mapMimeToType(mimeType, url string) string {
+	mt := strings.ToLower(strings.TrimSpace(mimeType))
+	if mt != "" {
+		switch {
+		case strings.HasPrefix(mt, "image/"):
+			return "Image"
+		case strings.HasPrefix(mt, "video/"):
+			return "Video"
+		case strings.HasPrefix(mt, "audio/"):
+			return "Audio"
+		case mt == "application/pdf":
+			return "Document"
+		case strings.HasPrefix(mt, "text/"):
+			return "Document"
+		case strings.HasPrefix(mt, "application/zip") || strings.Contains(mt, "compressed") || strings.Contains(mt, "tar"):
+			return "Archive"
+		}
+	}
+	// fallback to extension-based hints
+	lower := strings.ToLower(url)
+	if strings.HasSuffix(lower, ".pdf") || strings.HasSuffix(lower, ".doc") || strings.HasSuffix(lower, ".docx") || strings.HasSuffix(lower, ".txt") {
+		return "Document"
+	}
+	if strings.HasSuffix(lower, ".zip") || strings.HasSuffix(lower, ".tar") || strings.HasSuffix(lower, ".gz") || strings.HasSuffix(lower, ".7z") {
+		return "Archive"
+	}
+	if strings.HasSuffix(lower, ".jpg") || strings.HasSuffix(lower, ".jpeg") || strings.HasSuffix(lower, ".png") || strings.HasSuffix(lower, ".gif") || strings.HasSuffix(lower, ".svg") {
+		return "Image"
+	}
+	if strings.HasSuffix(lower, ".mp4") || strings.HasSuffix(lower, ".mov") || strings.HasSuffix(lower, ".webm") {
+		return "Video"
+	}
+	return "Other"
 }
