@@ -303,10 +303,7 @@ func (h *TemplateHandler) renderCategoriesListSection(prefix string, section mod
 	}
 
 	if len(filtered) == 0 {
-		// If all categories were filtered out (for example only an "uncategorized"
-		// category exists), fall back to showing the original categories so the
-		// user still sees available categories instead of an empty message.
-		filtered = categories
+		return `<p class="` + emptyClass + `">No categories available yet. Check back soon!</p>`
 	}
 
 	if limit < len(filtered) {
