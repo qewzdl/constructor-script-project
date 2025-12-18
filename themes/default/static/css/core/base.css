@@ -3127,6 +3127,7 @@ body.course-modal-open {
 .footer > *,
 .post > *:not(.post-progress),
 .comments,
+.search > *,
 .course-player__header > *:not(.course-player__figure),
 .course-player__layout,
 .course-player__header-content,
