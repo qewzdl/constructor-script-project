@@ -353,9 +353,18 @@ func (h *TemplateHandler) loadBlogCollections(page, limit int) ([]models.Post, i
 		if loadedCategories, catErr := h.categoryService.GetAll(); catErr != nil {
 			logger.Error(catErr, "Failed to load categories", nil)
 		} else if len(loadedCategories) > 0 {
+			// Determine whether there are any non-default categories.
+			hasNonDefault := false
+			for _, category := range loadedCategories {
+				if !strings.EqualFold(category.Slug, "uncategorized") && !strings.EqualFold(category.Name, "uncategorized") {
+					hasNonDefault = true
+					break
+				}
+			}
+
 			filteredCategories := make([]models.Category, 0, len(loadedCategories))
 			for _, category := range loadedCategories {
-				if strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized") {
+				if (strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized")) && hasNonDefault {
 					continue
 				}
 				filteredCategories = append(filteredCategories, category)

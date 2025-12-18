@@ -294,9 +294,21 @@ func (h *TemplateHandler) renderCategoriesListSection(prefix string, section mod
 		return `<p class="` + emptyClass + `">Unable to load categories at the moment. Please try again later.</p>`
 	}
 
+	// Determine whether there are any non-default categories.
+	hasNonDefault := false
+	for _, category := range categories {
+		if !strings.EqualFold(category.Slug, "uncategorized") && !strings.EqualFold(category.Name, "uncategorized") {
+			hasNonDefault = true
+			break
+		}
+	}
+
+	// Filter categories. If there are other categories, skip the default
+	// "uncategorized" entry. If not, include it so the user sees at least
+	// one category instead of the generic empty message.
 	filtered := make([]models.Category, 0, len(categories))
 	for _, category := range categories {
-		if strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized") {
+		if (strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized")) && hasNonDefault {
 			continue
 		}
 		filtered = append(filtered, category)

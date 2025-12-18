@@ -141,7 +141,10 @@ func (s *CategoryService) GetAll() ([]models.Category, error) {
 	if s.cache != nil {
 		var categories []models.Category
 		if err := s.cache.Get("categories:all", &categories); err == nil {
-			return categories, nil
+			// If cache has data, return it. If it is empty, fall through to refresh from DB.
+			if len(categories) > 0 {
+				return categories, nil
+			}
 		}
 	}
 
@@ -161,7 +164,10 @@ func (s *CategoryService) GetWithPostCount() ([]models.Category, error) {
 	if s.cache != nil {
 		var categories []models.Category
 		if err := s.cache.Get("categories:with_count", &categories); err == nil {
-			return categories, nil
+			// Avoid returning stale empty caches – refresh when empty.
+			if len(categories) > 0 {
+				return categories, nil
+			}
 		}
 	}
 

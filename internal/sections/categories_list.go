@@ -79,9 +79,18 @@ func renderCategoriesList(ctx RenderContext, prefix string, elem models.SectionE
 		return `<p class="` + emptyClass + `">Unable to load categories at the moment. Please try again later.</p>`, nil
 	}
 
+	// Determine whether there are any non-default categories.
+	hasNonDefault := false
+	for _, category := range categories {
+		if !strings.EqualFold(category.Slug, "uncategorized") && !strings.EqualFold(category.Name, "uncategorized") {
+			hasNonDefault = true
+			break
+		}
+	}
+
 	filtered := make([]models.Category, 0, len(categories))
 	for _, category := range categories {
-		if strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized") {
+		if (strings.EqualFold(category.Slug, "uncategorized") || strings.EqualFold(category.Name, "uncategorized")) && hasNonDefault {
 			continue
 		}
 		filtered = append(filtered, category)
