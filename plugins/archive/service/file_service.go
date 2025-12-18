@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -404,6 +407,49 @@ func (s *FileService) invalidateTreeCache() {
 }
 
 func inferRemoteFileMetadata(url string) (mimeType string, size int64, err error) {
+	// Handle local filesystem paths (absolute or file://)
+	if strings.HasPrefix(url, "/") || strings.HasPrefix(url, "file://") {
+		var localPath string
+		if strings.HasPrefix(url, "file://") {
+			localPath = strings.TrimPrefix(url, "file://")
+		} else {
+			localPath = strings.TrimPrefix(url, "/")
+		}
+		localPath = filepath.FromSlash(localPath)
+		if info, statErr := os.Stat(localPath); statErr == nil && !info.IsDir() {
+			size = info.Size()
+			// Determine mime type by extension first
+			if ext := strings.ToLower(filepath.Ext(localPath)); ext != "" {
+				if mt := mime.TypeByExtension(ext); mt != "" {
+					if idx := strings.Index(mt, ";"); idx >= 0 {
+						mt = strings.TrimSpace(mt[:idx])
+					}
+					mimeType = strings.ToLower(mt)
+				}
+			}
+			// Fallback to sniffing content if mime not found
+			if mimeType == "" {
+				f, openErr := os.Open(localPath)
+				if openErr == nil {
+					buf := make([]byte, 512)
+					n, _ := f.Read(buf)
+					sniff := http.DetectContentType(buf[:n])
+					if sniff != "" {
+						mimeType = strings.ToLower(sniff)
+					}
+					f.Close()
+				}
+			}
+			log.Printf("[inferRemoteFileMetadata] Local file %s: mime=%s, size=%d", localPath, mimeType, size)
+			return mimeType, size, nil
+		}
+		// If we reached here, the local file could not be accessed
+		if info, err := os.Stat(localPath); err != nil {
+			return "", 0, fmt.Errorf("local file not accessible: %w", err)
+		} else if info.IsDir() {
+			return "", 0, fmt.Errorf("local path is a directory")
+		}
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

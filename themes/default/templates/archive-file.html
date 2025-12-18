@@ -100,21 +100,11 @@
             {{- end }}
             <div class="archive-file__meta-item">
                 <span class="archive-file__meta-label">File type</span>
-                <span>
-                    {{- with trim $file.FileType -}}
-                    {{ . }}
-                    {{- else -}}
-                    {{- if trim $file.MimeType -}}
-                    {{ trim $file.MimeType }}
-                    {{- else -}}
-                    Not specified
-                    {{- end -}}
-                    {{- end -}}
-                </span>
+                <span>{{ guessFileType (trim $file.FileType) (trim $file.MimeType) (trim $file.FileURL) }}</span>
             </div>
             <div class="archive-file__meta-item">
                 <span class="archive-file__meta-label">Size</span>
-                <span>{{ if $file.FileSize }}{{ $file.FileSize }} bytes{{ else }}Not specified{{ end }}</span>
+                <span>{{ if $file.FileSize }}{{ formatBytes $file.FileSize }} ({{ $file.FileSize }} bytes){{ else }}Not specified{{ end }}</span>
             </div>
             <div class="archive-file__meta-item">
                 <span class="archive-file__meta-label">Updated</span>

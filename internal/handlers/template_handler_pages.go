@@ -2148,6 +2148,16 @@ func (h *TemplateHandler) renderArchiveFile(c *gin.Context, pathValue string) {
 			h.renderError(c, http.StatusNotFound, "File not found", "The requested file could not be located.")
 			return
 		}
+
+		// If file still missing type/size, try to refresh metadata in background (non-blocking)
+		if strings.TrimSpace(file.FileType) == "" || file.FileSize == 0 || strings.TrimSpace(file.MimeType) == "" {
+			go func(id uint) {
+				// Call Update with an empty request to trigger re-inference without changing other fields
+				if _, err := h.archiveFileSvc.Update(id, models.UpdateArchiveFileRequest{}); err != nil {
+					logger.Warn("Failed to refresh archive file metadata", map[string]interface{}{"id": id, "error": err.Error()})
+				}
+			}(file.ID)
+		}
 		logger.Error(err, "Failed to load archive file", map[string]interface{}{"path": pathValue})
 		h.renderError(c, http.StatusInternalServerError, "Archive unavailable", "We couldn't load this file right now.")
 		return

@@ -165,6 +165,61 @@ func GetTemplateFuncs(assetModTime AssetModTimeFunc) template.FuncMap {
 			}
 			return fmt.Sprintf("%s%sv=%d", path, separator, version)
 		},
+
+		"formatBytes": func(n int64) string {
+			if n <= 0 {
+				return "0 B"
+			}
+			f := float64(n)
+			units := []string{"B", "KB", "MB", "GB", "TB"}
+			i := 0
+			for f >= 1024 && i < len(units)-1 {
+				f = f / 1024
+				i++
+			}
+			if units[i] == "B" {
+				return fmt.Sprintf("%d %s", int64(f), units[i])
+			}
+			return fmt.Sprintf("%.2f %s", f, units[i])
+		},
+
+		"guessFileType": func(fileType, mimeType, urlStr string) string {
+			ft := strings.TrimSpace(strings.ToLower(fileType))
+			mt := strings.TrimSpace(strings.ToLower(mimeType))
+			if ft != "" {
+				return strings.Title(ft)
+			}
+			if mt != "" {
+				switch {
+				case strings.HasPrefix(mt, "image/"):
+					return "Image"
+				case strings.HasPrefix(mt, "video/"):
+					return "Video"
+				case strings.HasPrefix(mt, "audio/"):
+					return "Audio"
+				case mt == "application/pdf", strings.HasPrefix(mt, "text/"):
+					return "Document"
+				case strings.Contains(mt, "zip") || strings.Contains(mt, "compressed") || strings.Contains(mt, "gzip") || strings.Contains(mt, "tar"):
+					return "Archive"
+				}
+				return mt
+			}
+			lower := strings.ToLower(strings.TrimSpace(urlStr))
+			ext := strings.ToLower(filepath.Ext(lower))
+			switch ext {
+			case ".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt", ".xls", ".xlsx", ".ppt", ".pptx":
+				return "Document"
+			case ".zip", ".tar", ".gz", ".7z", ".rar", ".bz2":
+				return "Archive"
+			case ".jpg", ".jpeg", ".png", ".gif", ".svg", ".bmp", ".webp", ".ico":
+				return "Image"
+			case ".mp4", ".mov", ".webm", ".avi", ".mkv", ".flv":
+				return "Video"
+			case ".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a":
+				return "Audio"
+			}
+			return "Not specified"
+		},
 	}
 }
 
