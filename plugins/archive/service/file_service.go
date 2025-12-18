@@ -434,8 +434,20 @@ func inferRemoteFileMetadata(url string) (mimeType string, size int64, err error
 		return mimeType, size, nil
 	}
 
+	// Попытка определить MIME-тип по расширению из URL (перед запросами)
+	var mimeFromExt string
+	if ext := strings.ToLower(filepath.Ext(url)); ext != "" {
+		if mt := mime.TypeByExtension(ext); mt != "" {
+			if idx := strings.Index(mt, ";"); idx >= 0 {
+				mt = strings.TrimSpace(mt[:idx])
+			}
+			mimeFromExt = strings.ToLower(mt)
+			log.Printf("[inferRemoteFileMetadata] MIME from extension for %s: %s", url, mimeFromExt)
+		}
+	}
+
 	// Handle remote URLs
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second) // Увеличен таймаут
 	defer cancel()
 
 	client := &http.Client{
@@ -445,19 +457,28 @@ func inferRemoteFileMetadata(url string) (mimeType string, size int64, err error
 			}
 			return nil
 		},
-		Timeout: 15 * time.Second,
+		Timeout: 30 * time.Second, // Увеличен таймаут
 	}
+
+	// Улучшенные заголовки
+	userAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 	// Try HEAD request first
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
 	if err != nil {
+		log.Printf("[inferRemoteFileMetadata] Failed to create HEAD request for %s: %v", url, err)
+		// Возвращаем хотя бы MIME из расширения, если он есть
+		if mimeFromExt != "" {
+			return mimeFromExt, 0, nil
+		}
 		return "", 0, fmt.Errorf("failed to create HEAD request: %w", err)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Accept", "*/*")
 
 	resp, err := client.Do(req)
 
-	// If HEAD fails, try GET with Range
+	// If HEAD fails or returns error status, try GET
 	if err != nil || resp == nil || resp.StatusCode >= 400 {
 		if resp != nil {
 			resp.Body.Close()
@@ -466,22 +487,51 @@ func inferRemoteFileMetadata(url string) (mimeType string, size int64, err error
 			log.Printf("[inferRemoteFileMetadata] HEAD failed for %s: %v", url, err)
 		}
 
+		// Пробуем обычный GET запрос с Range
 		req2, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
+			log.Printf("[inferRemoteFileMetadata] Failed to create GET request for %s: %v", url, err)
+			if mimeFromExt != "" {
+				return mimeFromExt, 0, nil
+			}
 			return "", 0, fmt.Errorf("failed to create GET request: %w", err)
 		}
-		req2.Header.Set("Range", "bytes=0-0")
-		req2.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+		req2.Header.Set("User-Agent", userAgent)
+		req2.Header.Set("Accept", "*/*")
+		req2.Header.Set("Range", "bytes=0-1023")
 
 		resp, err = client.Do(req2)
 		if err != nil {
-			log.Printf("[inferRemoteFileMetadata] GET also failed for %s: %v", url, err)
-			return "", 0, fmt.Errorf("both HEAD and GET failed: %w", err)
+			log.Printf("[inferRemoteFileMetadata] GET with Range failed for %s: %v", url, err)
+
+			// Последняя попытка - GET без Range
+			req3, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+			if err != nil {
+				if mimeFromExt != "" {
+					return mimeFromExt, 0, nil
+				}
+				return "", 0, fmt.Errorf("all request methods failed: %w", err)
+			}
+			req3.Header.Set("User-Agent", userAgent)
+			req3.Header.Set("Accept", "*/*")
+
+			resp, err = client.Do(req3)
+			if err != nil {
+				log.Printf("[inferRemoteFileMetadata] Final GET attempt failed for %s: %v", url, err)
+				if mimeFromExt != "" {
+					return mimeFromExt, 0, nil
+				}
+				return "", 0, fmt.Errorf("all request methods failed: %w", err)
+			}
 		}
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
+		log.Printf("[inferRemoteFileMetadata] Server returned error status %d for %s", resp.StatusCode, url)
+		if mimeFromExt != "" {
+			return mimeFromExt, 0, nil
+		}
 		return "", 0, fmt.Errorf("server returned status %d", resp.StatusCode)
 	}
 
@@ -492,6 +542,13 @@ func inferRemoteFileMetadata(url string) (mimeType string, size int64, err error
 			ct = strings.TrimSpace(ct[:idx])
 		}
 		mimeType = strings.ToLower(ct)
+		log.Printf("[inferRemoteFileMetadata] Content-Type from headers: %s", mimeType)
+	}
+
+	// Если MIME не получен из заголовков, используем из расширения
+	if mimeType == "" && mimeFromExt != "" {
+		mimeType = mimeFromExt
+		log.Printf("[inferRemoteFileMetadata] Using MIME from extension: %s", mimeType)
 	}
 
 	// Extract Content-Length
@@ -499,6 +556,7 @@ func inferRemoteFileMetadata(url string) (mimeType string, size int64, err error
 	if cl != "" {
 		if v, parseErr := strconv.ParseInt(cl, 10, 64); parseErr == nil && v > 0 {
 			size = v
+			log.Printf("[inferRemoteFileMetadata] Content-Length: %d", size)
 		}
 	}
 
@@ -506,16 +564,32 @@ func inferRemoteFileMetadata(url string) (mimeType string, size int64, err error
 	if size == 0 {
 		cr := strings.TrimSpace(resp.Header.Get("Content-Range"))
 		if cr != "" {
-			// Content-Range format: bytes 0-0/12345
+			// Content-Range format: bytes 0-1023/12345 or bytes */12345
 			if slash := strings.LastIndex(cr, "/"); slash >= 0 && slash+1 < len(cr) {
 				totalStr := strings.TrimSpace(cr[slash+1:])
 				if totalStr != "*" {
 					if v, parseErr := strconv.ParseInt(totalStr, 10, 64); parseErr == nil && v > 0 {
 						size = v
+						log.Printf("[inferRemoteFileMetadata] Size from Content-Range: %d", size)
 					}
 				}
 			}
 		}
+	}
+
+	// Если размер всё ещё 0 и это полный ответ (200), попробуем прочитать тело
+	if size == 0 && resp.StatusCode == http.StatusOK && resp.Body != nil {
+		// Читаем только небольшую часть, чтобы не грузить весь файл
+		buf := make([]byte, 1024)
+		n, readErr := resp.Body.Read(buf)
+		if readErr == nil || (readErr != nil && n > 0) {
+			log.Printf("[inferRemoteFileMetadata] Read %d bytes from body, but cannot determine full size without downloading entire file", n)
+		}
+	}
+
+	if mimeType == "" && size == 0 {
+		log.Printf("[inferRemoteFileMetadata] Could not determine any metadata for %s", url)
+		return "", 0, fmt.Errorf("could not determine metadata")
 	}
 
 	log.Printf("[inferRemoteFileMetadata] Success for %s: mime=%s, size=%d", url, mimeType, size)
