@@ -88,7 +88,10 @@ func renderCategoriesList(ctx RenderContext, prefix string, elem models.SectionE
 	}
 
 	if len(filtered) == 0 {
-		return `<p class="` + emptyClass + `">No categories available yet.</p>`, nil
+		// If all categories were filtered out (for example only an "uncategorized"
+		// category exists), fall back to showing the original categories so the
+		// user still sees available categories instead of an empty message.
+		filtered = categories
 	}
 
 	if len(filtered) > limit {
