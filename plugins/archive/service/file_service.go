@@ -582,7 +582,7 @@ func inferRemoteFileMetadata(url string) (mimeType string, size int64, err error
 		// Читаем только небольшую часть, чтобы не грузить весь файл
 		buf := make([]byte, 1024)
 		n, readErr := resp.Body.Read(buf)
-		if readErr == nil || (readErr != nil && n > 0) {
+		if readErr == nil || n > 0 {
 			log.Printf("[inferRemoteFileMetadata] Read %d bytes from body, but cannot determine full size without downloading entire file", n)
 		}
 	}
