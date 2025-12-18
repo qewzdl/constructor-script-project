@@ -28,6 +28,7 @@ func RegisterDefaults(reg *Registry) {
 	RegisterFileGroup(reg)
 	RegisterList(reg)
 	RegisterSearch(reg)
+	RegisterFeatures(reg)
 	RegisterHero(reg)
 
 	// Profile sections
@@ -64,4 +65,5 @@ func RegisterDefaultsWithMetadata(reg *RegistryWithMetadata) {
 	RegisterCategoriesListWithMetadata(reg)
 	RegisterCoursesListWithMetadata(reg)
 	RegisterHeroWithMetadata(reg)
+	RegisterFeaturesWithMetadata(reg)
 }

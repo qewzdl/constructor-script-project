@@ -444,6 +444,28 @@
         },
     });
 
+    sectionTypeRegistry.register('features', {
+        label: 'Features',
+        order: 12,
+        supportsElements: true,
+        description:
+            'Grid of feature highlights mixing images and supporting text.',
+        validate: (section) => {
+            const items = Array.isArray(section?.elements)
+                ? section.elements.filter(
+                      (element) =>
+                          element &&
+                          typeof element.type === 'string' &&
+                          element.type.toLowerCase() === 'feature_item'
+                  )
+                : [];
+            if (!items.length) {
+                return 'must include at least one feature item.';
+            }
+            return null;
+        },
+    });
+
     sectionTypeRegistry.register('grid', {
         label: 'Grid section',
         order: 15,
@@ -609,6 +631,22 @@
             content = { text: content.text || content.Text || '' };
         } else if (type === 'image') {
             content = normaliseImageContent(content);
+        } else if (type === 'feature_item') {
+            content = {
+                text: content.text || content.Text || '',
+                image_url:
+                    content.image_url ||
+                    content.imageUrl ||
+                    content.Image_url ||
+                    content.ImageUrl ||
+                    '',
+                image_alt:
+                    content.image_alt ||
+                    content.imageAlt ||
+                    content.Image_alt ||
+                    content.ImageAlt ||
+                    '',
+            };
         } else if (type === 'image_group') {
             content = normaliseImageGroupContent(content);
         } else if (type === 'list') {
@@ -754,6 +792,13 @@
                 content: { layout: 'grid', images: [] },
             };
         }
+        if (type === 'feature_item') {
+            return {
+                id: generateId(),
+                type: 'feature_item',
+                content: { text: '', image_url: '', image_alt: '' },
+            };
+        }
         if (type === 'list') {
             return {
                 id: generateId(),
@@ -803,6 +848,28 @@
             const caption = element.content?.caption || '';
             if (caption.trim()) {
                 payload.caption = caption.trim();
+            }
+            return payload;
+        }
+        if (element.type === 'feature_item') {
+            const text = element.content?.text || '';
+            const imageURL =
+                element.content?.image_url ||
+                element.content?.imageUrl ||
+                '';
+            const imageAlt =
+                element.content?.image_alt || element.content?.imageAlt || '';
+            const hasText = text.trim().length > 0;
+            const hasImage = imageURL.trim().length > 0;
+            if (!hasText) {
+                return null;
+            }
+            const payload = { text: text.trim() };
+            if (hasImage) {
+                payload.image_url = imageURL.trim();
+            }
+            if (imageAlt && imageAlt.trim()) {
+                payload.image_alt = imageAlt.trim();
             }
             return payload;
         }
@@ -1062,6 +1129,11 @@
                     );
                     if (!hasItems) {
                         return `Section ${i + 1}, list ${j + 1} must include at least one item.`;
+                    }
+                } else if (element.type === 'feature_item') {
+                    const text = element.content?.text || '';
+                    if (!text.trim()) {
+                        return `Section ${i + 1}, feature ${j + 1} must include text.`;
                     }
                 }
             }
@@ -1748,6 +1820,17 @@
                 });
                 elementActions.appendChild(addGallery);
 
+                const addFeatureItem = createElement('button', {
+                    className: 'section-elements__button',
+                    textContent: 'Add feature item',
+                    type: 'button',
+                });
+                addFeatureItem.addEventListener('click', () => {
+                    section.elements.push(createElementByType('feature_item'));
+                    render();
+                });
+                elementActions.appendChild(addFeatureItem);
+
                 const addList = createElement('button', {
                     className: 'section-elements__button',
                     textContent: 'Add list',
@@ -2020,6 +2103,73 @@
                 captionField.appendChild(captionLabel);
                 captionField.appendChild(captionInput);
                 body.appendChild(captionField);
+            } else if (element.type === 'feature_item') {
+                if (!element.content || typeof element.content !== 'object') {
+                    element.content = {};
+                }
+
+                const textId = `${section.id}-${element.id}-feature-text`;
+                const textField = createElement('div', {
+                    className: 'section-field',
+                });
+                const textLabel = createElement('label', {
+                    textContent: 'Feature text',
+                    attrs: { for: textId },
+                });
+                const textInput = document.createElement('textarea');
+                textInput.id = textId;
+                textInput.placeholder = 'Describe the feature highlight';
+                textInput.value = element.content?.text || '';
+                textInput.addEventListener('input', (event) => {
+                    element.content.text = event.target.value;
+                });
+                textField.appendChild(textLabel);
+                textField.appendChild(textInput);
+                body.appendChild(textField);
+
+                const urlId = `${section.id}-${element.id}-feature-url`;
+                const urlField = createElement('div', {
+                    className: 'section-field',
+                });
+                const urlLabel = createElement('label', {
+                    textContent: 'Image URL',
+                    attrs: { for: urlId },
+                });
+                const urlInput = createElement('input', { type: 'url' });
+                urlInput.id = urlId;
+                urlInput.placeholder = 'https://example.com/feature.jpg';
+                urlInput.value = element.content?.image_url || '';
+                urlInput.addEventListener('input', (event) => {
+                    element.content.image_url = event.target.value;
+                });
+                urlField.appendChild(urlLabel);
+                urlField.appendChild(urlInput);
+                const featureMediaActions = createMediaBrowseActions(urlInput, {
+                    allowedTypes: ['image'],
+                });
+                if (featureMediaActions) {
+                    urlField.appendChild(featureMediaActions);
+                }
+                body.appendChild(urlField);
+
+                const altId = `${section.id}-${element.id}-feature-alt`;
+                const altField = createElement('div', {
+                    className: 'section-field',
+                });
+                const altLabel = createElement('label', {
+                    textContent: 'Image alt text',
+                    attrs: { for: altId },
+                });
+                const altInput = createElement('input', { type: 'text' });
+                altInput.id = altId;
+                altInput.placeholder = 'Describe the image content';
+                altInput.value = element.content?.image_alt || '';
+                altInput.addEventListener('input', (event) => {
+                    element.content.image_alt = event.target.value;
+                });
+                altField.appendChild(altLabel);
+                altField.appendChild(altInput);
+                body.appendChild(altField);
             } else if (element.type === 'list') {
                 if (!Array.isArray(element.content?.items)) {
                     element.content.items = [''];

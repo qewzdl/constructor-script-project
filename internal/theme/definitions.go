@@ -428,6 +428,13 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Description:      "Flexible content area for combining paragraphs, media, and lists.",
 			SupportsElements: &standardSupports,
 		},
+		"features": {
+			Type:             "features",
+			Label:            "Features",
+			Order:            12,
+			Description:      "Highlight key features with images and supporting text.",
+			SupportsElements: &standardSupports,
+		},
 		"grid": {
 			Type:             "grid",
 			Label:            "Grid section",
@@ -508,6 +515,12 @@ func defaultElementDefinitions() map[string]ElementDefinition {
 			Label:       "Image",
 			Order:       20,
 			Description: "Single image with optional alt text and caption.",
+		},
+		"feature_item": {
+			Type:        "feature_item",
+			Label:       "Feature item",
+			Order:       25,
+			Description: "Feature highlight with text and an optional image.",
 		},
 		"image_group": {
 			Type:        "image_group",

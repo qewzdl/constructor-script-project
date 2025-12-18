@@ -57,6 +57,20 @@ func getAvailableSectionTypes() []models.SectionTypeConfig {
 			},
 		},
 		{
+			Type:        "features",
+			Name:        "Features",
+			Description: "Showcase features with supporting images.",
+			Category:    "marketing",
+			Icon:        "sparkles",
+			AllowedIn:   []string{"page", "post", "homepage"},
+			Schema: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":  "string",
+					"label": "Section Title",
+				},
+			},
+		},
+		{
 			Type:        "posts_list",
 			Name:        "Posts List",
 			Description: "Display a list of blog posts",
@@ -214,6 +228,32 @@ func getAvailableSectionTypes() []models.SectionTypeConfig {
 			Category:    "interactive",
 			Icon:        "search",
 			AllowedIn:   []string{"page", "homepage"},
+		},
+		{
+			Type:        "feature_item",
+			Name:        "Feature Item",
+			Description: "Text plus image card for the features section.",
+			Category:    "elements",
+			Icon:        "sparkles",
+			AllowedIn:   []string{"features"},
+			Schema: map[string]interface{}{
+				"text": map[string]interface{}{
+					"type":        "textarea",
+					"label":       "Feature text",
+					"placeholder": "Explain the feature value",
+					"required":    true,
+				},
+				"image_url": map[string]interface{}{
+					"type":     "image",
+					"label":    "Image URL",
+					"required": false,
+				},
+				"image_alt": map[string]interface{}{
+					"type":        "string",
+					"label":       "Image alt text",
+					"placeholder": "Describe the image",
+				},
+			},
 		},
 	}
 }

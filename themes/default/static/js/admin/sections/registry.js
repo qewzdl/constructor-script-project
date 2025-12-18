@@ -134,6 +134,13 @@
         description:
             'Displays content blocks in a responsive grid. Add at least two elements for a balanced layout.',
     });
+    ensureRegistered('features', {
+        label: 'Features',
+        order: 16,
+        supportsElements: true,
+        description:
+            'Showcase key features with image and text pairs laid out in a grid.',
+    });
 
     ensureRegistered('file_list', {
         label: 'File list',
