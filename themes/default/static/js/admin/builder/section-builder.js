@@ -273,6 +273,19 @@
             emitChange();
         };
 
+        const moveElementInSection = (sectionClientId, elementClientId, direction) => {
+            const nextIndex = state.moveElementInSection(sectionClientId, elementClientId, direction);
+            if (nextIndex < 0) {
+                return;
+            }
+            render();
+            emitChange();
+            const focusRole = direction === 'up' ? 'element-move-up' : 'element-move-down';
+            view.focusField(
+                `[data-section-client="${sectionClientId}"] [data-element-client="${elementClientId}"] [data-role="${focusRole}"]`
+            );
+        };
+
         const addGroupImage = (sectionClientId, elementClientId) => {
             const image = state.addGroupImage(sectionClientId, elementClientId);
             if (!image) {
@@ -350,6 +363,7 @@
             onSectionRemove: removeSection,
             onSectionMove: moveSection,
             onElementRemove: removeElementFromSection,
+            onElementMove: moveElementInSection,
             onElementAdd: addElementToSection,
             onGroupImageAdd: addGroupImage,
             onGroupImageRemove: removeGroupImage,

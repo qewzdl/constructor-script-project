@@ -45,6 +45,32 @@
         return label || normalised;
     };
 
+    const createAllowedElementsResolver = (sectionDefinitions) => {
+        const cache = new Map();
+        return (sectionType) => {
+            const typeKey = normaliseString(sectionType);
+            if (cache.has(typeKey)) {
+                return cache.get(typeKey);
+            }
+            const allowedList = sectionDefinitions?.[typeKey]?.allowedElements;
+            if (!Array.isArray(allowedList) || !allowedList.length) {
+                cache.set(typeKey, null);
+                return null;
+            }
+            const set = new Set(
+                allowedList
+                    .map((item) => normaliseString(item).toLowerCase())
+                    .filter(Boolean)
+            );
+            if (set.size === 0) {
+                cache.set(typeKey, null);
+                return null;
+            }
+            cache.set(typeKey, set);
+            return set;
+        };
+    };
+
     const openSectionTypePicker = ({
         orderedSectionTypes,
         sectionDefinitions,
@@ -429,6 +455,16 @@
         orderedSectionTypes,
         applyPaddingToAllSections,
     }) => {
+        const resolveAllowedElements = createAllowedElementsResolver(sectionDefinitions);
+        const isElementAllowed = (sectionType, elementType) => {
+            const allowedSet = resolveAllowedElements(sectionType);
+            if (!allowedSet || allowedSet.size === 0) {
+                return true;
+            }
+            const normalised = normaliseString(elementType).toLowerCase();
+            return normalised ? allowedSet.has(normalised) : false;
+        };
+
         const focusField = (selector) => {
             if (!selector) {
                 return;
@@ -1323,33 +1359,54 @@
                         })
                     );
                 } else {
-                    section.elements.forEach((element, elementIndex) => {
+                    const filteredElements = section.elements.filter((element) =>
+                        isElementAllowed(section.type, element.type)
+                    );
+                    let renderedIndex = 0;
+                    filteredElements.forEach((element, elementIndex) => {
+                        renderedIndex += 1;
                         const elementNode = createElement('div', {
                             className: 'admin-builder__element',
                         });
                         elementNode.dataset.elementClient = element.clientId;
                         elementNode.dataset.elementType = element.type;
-                        elementNode.dataset.elementIndex = String(elementIndex);
+                        elementNode.dataset.elementIndex = String(renderedIndex - 1);
 
                         const elementHeader = createElement('div', {
                             className: 'admin-builder__element-header',
                         });
                         const elementTitle = createElement('span', {
                             className: 'admin-builder__element-title',
-                            textContent: `${elementLabel(definitions, element.type)} ${
-                                elementIndex + 1
-                            }`,
+                            textContent: `${elementLabel(definitions, element.type)} ${renderedIndex}`,
                         });
                         const elementActions = createElement('div', {
                             className: 'admin-builder__element-actions',
                         });
+                        const moveUpButton = createElement('button', {
+                            className: 'admin-builder__element-move',
+                            textContent: 'Move up',
+                        });
+                        moveUpButton.type = 'button';
+                        moveUpButton.dataset.action = 'element-move';
+                        moveUpButton.dataset.direction = 'up';
+                        moveUpButton.dataset.role = 'element-move-up';
+                        moveUpButton.disabled = renderedIndex <= 1;
+                        const moveDownButton = createElement('button', {
+                            className: 'admin-builder__element-move',
+                            textContent: 'Move down',
+                        });
+                        moveDownButton.type = 'button';
+                        moveDownButton.dataset.action = 'element-move';
+                        moveDownButton.dataset.direction = 'down';
+                        moveDownButton.dataset.role = 'element-move-down';
+                        moveDownButton.disabled = renderedIndex >= filteredElements.length;
                         const removeElementButton = createElement('button', {
                             className: 'admin-builder__element-remove',
                             textContent: 'Remove',
                         });
                         removeElementButton.type = 'button';
                         removeElementButton.dataset.action = 'element-remove';
-                        elementActions.append(removeElementButton);
+                        elementActions.append(moveUpButton, moveDownButton, removeElementButton);
                         elementHeader.append(elementTitle, elementActions);
                         elementNode.append(elementHeader);
 
@@ -1357,6 +1414,15 @@
 
                         elementsContainer.append(elementNode);
                     });
+                    if (renderedIndex === 0) {
+                        elementsContainer.append(
+                            createElement('p', {
+                                className: 'admin-builder__element-empty',
+                                textContent:
+                                    'No content blocks yet. Add one below.',
+                            })
+                        );
+                    }
                 }
 
                 sectionItem.append(elementsContainer);
@@ -1367,6 +1433,9 @@
                     });
 
                     orderedTypes.forEach((type) => {
+                        if (!isElementAllowed(section.type, type)) {
+                            return;
+                        }
                         const elementDefinition = definitions[type];
                         if (!elementDefinition || !elementDefinition.addLabel) {
                             return;

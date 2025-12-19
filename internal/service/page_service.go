@@ -668,10 +668,11 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 		if definition.SupportsElements != nil {
 			allowElements = *definition.SupportsElements
 		}
+		allowedElements := definition.AllowedElementSet()
 
 		if allowElements {
 			if len(section.Elements) > 0 {
-				preparedElements, err := s.prepareSectionElements(section.Elements, elementDefinitions)
+				preparedElements, err := s.prepareSectionElements(section.Elements, elementDefinitions, allowedElements)
 				if err != nil {
 					return nil, fmt.Errorf("section %d: %w", i, err)
 				}
@@ -726,35 +727,12 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 	return prepared, nil
 }
 
-func (s *PageService) prepareSectionElements(elements []models.SectionElement, definitions map[string]theme.ElementDefinition) ([]models.SectionElement, error) {
-	prepared := make([]models.SectionElement, 0, len(elements))
-
-	for i, elem := range elements {
-		if elem.ID == "" {
-			elem.ID = uuid.New().String()
-		}
-
-		if elem.Order == 0 {
-			elem.Order = i + 1
-		}
-
-		elemType := strings.ToLower(strings.TrimSpace(elem.Type))
-		if elemType == "" {
-			return nil, fmt.Errorf("element %d: type is required", i)
-		}
-		if _, ok := definitions[elemType]; !ok {
-			return nil, fmt.Errorf("element %d: unknown type '%s'", i, elem.Type)
-		}
-		elem.Type = elemType
-
-		if elem.Content == nil {
-			return nil, fmt.Errorf("element %d: content is required", i)
-		}
-
-		prepared = append(prepared, elem)
-	}
-
-	return prepared, nil
+func (s *PageService) prepareSectionElements(
+	elements []models.SectionElement,
+	definitions map[string]theme.ElementDefinition,
+	allowed map[string]struct{},
+) ([]models.SectionElement, error) {
+	return prepareSectionElements(elements, definitions, allowed)
 }
 
 func (s *PageService) getTemplate(template string) string {

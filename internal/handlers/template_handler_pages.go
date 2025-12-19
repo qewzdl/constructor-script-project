@@ -2390,11 +2390,20 @@ func (h *TemplateHandler) builderScripts() []string {
 
 func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
 	sectionDefs := theme.DefaultSectionDefinitions()
+	baseSectionDefs := sectionDefs
 	elementDefs := theme.DefaultElementDefinitions()
 
 	// Try to use dynamic metadata from section registry first
 	if metadata := h.SectionMetadata(); len(metadata) > 0 {
-		sectionDefs = make(map[string]theme.SectionDefinition)
+		if h.themeManager != nil {
+			if active := h.themeManager.Active(); active != nil {
+				if defs := active.SectionDefinitions(); len(defs) > 0 {
+					baseSectionDefs = defs
+				}
+			}
+		}
+
+		sectionDefs = make(map[string]theme.SectionDefinition, len(metadata))
 		for _, meta := range metadata {
 			supportsElements := true
 			supportsHeaderImage := false
@@ -2406,18 +2415,20 @@ func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
 				}
 			}
 
-			def := theme.SectionDefinition{
-				Type:                meta.Type,
-				Label:               meta.Name,
-				Description:         meta.Description,
-				Order:               0,
-				SupportsElements:    &supportsElements,
-				SupportsHeaderImage: &supportsHeaderImage,
-			}
+			base := baseSectionDefs[strings.TrimSpace(strings.ToLower(meta.Type))]
+			def := base
+			def.Type = meta.Type
+			def.Label = meta.Name
+			def.Description = meta.Description
+			def.Order = 0
+			def.SupportsElements = &supportsElements
+			def.SupportsHeaderImage = &supportsHeaderImage
 
 			// Convert schema to settings
 			if meta.Schema != nil && len(meta.Schema) > 0 {
-				def.Settings = make(map[string]theme.SectionSettingDefinition)
+				if def.Settings == nil {
+					def.Settings = make(map[string]theme.SectionSettingDefinition)
+				}
 				for key, schemaValue := range meta.Schema {
 					setting := theme.SectionSettingDefinition{}
 

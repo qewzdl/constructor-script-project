@@ -2480,7 +2480,8 @@
 .admin-builder__remove,
 .admin-builder__element-remove,
 .admin-builder__button,
-.admin-builder__anchor-button {
+.admin-builder__anchor-button,
+.admin-builder__element-move {
     border: 1px solid var(--color-border);
     background: var(--color-bg-top);
     padding: var(--size-xs) var(--size-sm);
@@ -2522,7 +2523,9 @@
 .admin-builder__button:hover,
 .admin-builder__button:focus-visible,
 .admin-builder__anchor-button:hover,
-.admin-builder__anchor-button:focus-visible {
+.admin-builder__anchor-button:focus-visible,
+.admin-builder__element-move:hover,
+.admin-builder__element-move:focus-visible {
     background: var(--color-primary-transparent);
     border-color: var(--color-primary);
     color: var(--color-primary);

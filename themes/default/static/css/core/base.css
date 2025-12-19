@@ -3113,7 +3113,7 @@ body.course-modal-open {
     margin-top: var(--common-gap);
 }
 
-.tag-page {
+.tag-page, .category-page {
     padding-block: var(--size-max);
 }
 
@@ -3132,7 +3132,8 @@ body.course-modal-open {
 .course-player__layout,
 .course-player__header-content,
 .tag-page__container,
-.post__related {
+.post__related,
+.category-page {
     max-width: var(--page-max-width);
     padding-inline: var(--page-side-padding);
     margin-inline: auto;

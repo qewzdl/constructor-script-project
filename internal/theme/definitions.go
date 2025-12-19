@@ -19,9 +19,33 @@ type SectionDefinition struct {
 	Label               string                              `json:"label,omitempty"`
 	Order               int                                 `json:"order,omitempty"`
 	Description         string                              `json:"description,omitempty"`
+	AllowedElements     []string                            `json:"allowed_elements,omitempty"`
 	SupportsElements    *bool                               `json:"supports_elements,omitempty"`
 	SupportsHeaderImage *bool                               `json:"supports_header_image,omitempty"`
 	Settings            map[string]SectionSettingDefinition `json:"settings,omitempty"`
+}
+
+// AllowedElementSet returns the normalised set of element types permitted for the section.
+// Nil indicates no restrictions on element types.
+func (d SectionDefinition) AllowedElementSet() map[string]struct{} {
+	if len(d.AllowedElements) == 0 {
+		return nil
+	}
+
+	set := make(map[string]struct{}, len(d.AllowedElements))
+	for _, raw := range d.AllowedElements {
+		normalised := strings.ToLower(strings.TrimSpace(raw))
+		if normalised == "" {
+			continue
+		}
+		set[normalised] = struct{}{}
+	}
+
+	if len(set) == 0 {
+		return nil
+	}
+
+	return set
 }
 
 // SectionSettingDefinition describes additional configuration for a section type.
@@ -128,6 +152,9 @@ func mergeSectionDefinition(base, override SectionDefinition) SectionDefinition 
 	}
 	if override.SupportsHeaderImage != nil {
 		result.SupportsHeaderImage = override.SupportsHeaderImage
+	}
+	if override.AllowedElements != nil {
+		result.AllowedElements = normaliseElementTypes(override.AllowedElements)
 	}
 
 	if len(override.Settings) > 0 {
@@ -426,6 +453,7 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Label:            "Standard section",
 			Order:            0,
 			Description:      "Flexible content area for combining paragraphs, media, and lists.",
+			AllowedElements:  normaliseElementTypes([]string{"paragraph", "image", "image_group", "list", "file_group", "search"}),
 			SupportsElements: &standardSupports,
 		},
 		"features": {
@@ -433,6 +461,7 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Label:            "Features",
 			Order:            12,
 			Description:      "Highlight key features with images and supporting text.",
+			AllowedElements:  normaliseElementTypes([]string{"feature_item"}),
 			SupportsElements: &standardSupports,
 		},
 		"grid": {
@@ -440,6 +469,7 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Label:            "Grid section",
 			Order:            15,
 			Description:      "Displays content blocks in a responsive grid layout.",
+			AllowedElements:  normaliseElementTypes([]string{"paragraph", "image", "image_group", "list", "file_group"}),
 			SupportsElements: &standardSupports,
 		},
 		"file_list": {
@@ -447,6 +477,7 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Label:            "File list",
 			Order:            17,
 			Description:      "Showcase downloadable files with optional grouping.",
+			AllowedElements:  normaliseElementTypes([]string{"file_group"}),
 			SupportsElements: &standardSupports,
 		},
 		"posts_list": {
@@ -579,4 +610,30 @@ func DefaultElementDefinitions() map[string]ElementDefinition {
 		clone[key] = value
 	}
 	return clone
+}
+
+func normaliseElementTypes(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		normalised := strings.ToLower(strings.TrimSpace(value))
+		if normalised == "" {
+			continue
+		}
+		if _, exists := seen[normalised]; exists {
+			continue
+		}
+		seen[normalised] = struct{}{}
+		result = append(result, normalised)
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
 }

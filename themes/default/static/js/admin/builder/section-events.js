@@ -121,6 +121,7 @@
         onSectionRemove,
         onSectionMove,
         onElementRemove,
+        onElementMove,
         onElementAdd,
         onGroupImageAdd,
         onGroupImageRemove,
@@ -167,6 +168,17 @@
                     return;
                 }
                 onElementRemove?.(sectionClientId, elementNode.dataset.elementClient);
+                return;
+            }
+
+            if (target.matches('[data-action="element-move"]')) {
+                event.preventDefault();
+                const elementNode = target.closest('[data-element-client]');
+                if (!elementNode) {
+                    return;
+                }
+                const direction = target.dataset.direction || '';
+                onElementMove?.(sectionClientId, elementNode.dataset.elementClient, direction);
                 return;
             }
 

@@ -15,6 +15,20 @@
     const normaliseType = (type) =>
         typeof type === 'string' ? type.trim().toLowerCase() : '';
 
+    const normaliseTypeList = (value) => {
+        if (!Array.isArray(value)) {
+            return [];
+        }
+        const set = new Set();
+        value.forEach((item) => {
+            const normalised = normaliseType(item);
+            if (normalised) {
+                set.add(normalised);
+            }
+        });
+        return Array.from(set);
+    };
+
     const register = (type, definition = {}) => {
         const normalised = normaliseType(type);
         if (!normalised || !definition) {
@@ -29,6 +43,12 @@
             definition.supportsHeaderImage !== undefined
                 ? definition.supportsHeaderImage
                 : definition.supports_header_image;
+
+        const allowedElementsSource =
+            definition.allowedElements !== undefined
+                ? definition.allowedElements
+                : definition.allowed_elements;
+        const allowedElements = normaliseTypeList(allowedElementsSource);
 
         const entry = {
             type: normalised,
@@ -57,6 +77,7 @@
                               ? supportsHeaderImageSource.toLowerCase() !== 'false'
                               : supportsHeaderImageSource
                       ),
+            allowedElements: allowedElements.length ? allowedElements : undefined,
             settings:
                 definition.settings && typeof definition.settings === 'object'
                     ? definition.settings
@@ -125,6 +146,7 @@
         supportsElements: true,
         description:
             'Flexible content area for combining paragraphs, media, and lists.',
+        allowedElements: ['paragraph', 'image', 'image_group', 'list', 'file_group', 'search'],
     });
 
     ensureRegistered('grid', {
@@ -133,6 +155,7 @@
         supportsElements: true,
         description:
             'Displays content blocks in a responsive grid. Add at least two elements for a balanced layout.',
+        allowedElements: ['paragraph', 'image', 'image_group', 'list', 'file_group'],
     });
     ensureRegistered('features', {
         label: 'Features',
@@ -140,6 +163,7 @@
         supportsElements: true,
         description:
             'Showcase key features with image and text pairs laid out in a grid.',
+        allowedElements: ['feature_item'],
     });
 
     ensureRegistered('file_list', {
@@ -147,6 +171,7 @@
         order: 17,
         supportsElements: true,
         description: 'Display downloadable files with optional grouping.',
+        allowedElements: ['file_group'],
     });
 
     if (blogEnabled) {

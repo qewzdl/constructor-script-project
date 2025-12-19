@@ -40,10 +40,11 @@ func PrepareSections(sections []models.Section, manager *theme.Manager, opts Pre
 		if definition.SupportsElements != nil {
 			allowElements = *definition.SupportsElements
 		}
+		allowedElements := definition.AllowedElementSet()
 
 		if allowElements {
 			if len(section.Elements) > 0 {
-				preparedElements, err := prepareSectionElements(section.Elements, elementDefinitions)
+				preparedElements, err := prepareSectionElements(section.Elements, elementDefinitions, allowedElements)
 				if err != nil {
 					return nil, fmt.Errorf("section %d: %w", i, err)
 				}
@@ -100,7 +101,7 @@ func PrepareSections(sections []models.Section, manager *theme.Manager, opts Pre
 	return prepared, nil
 }
 
-func prepareSectionElements(elements []models.SectionElement, definitions map[string]theme.ElementDefinition) ([]models.SectionElement, error) {
+func prepareSectionElements(elements []models.SectionElement, definitions map[string]theme.ElementDefinition, allowed map[string]struct{}) ([]models.SectionElement, error) {
 	prepared := make([]models.SectionElement, 0, len(elements))
 
 	for i, elem := range elements {
@@ -118,6 +119,11 @@ func prepareSectionElements(elements []models.SectionElement, definitions map[st
 		}
 		if _, ok := definitions[elemType]; !ok {
 			return nil, fmt.Errorf("element %d: unknown type '%s'", i, elem.Type)
+		}
+		if len(allowed) > 0 {
+			if _, ok := allowed[elemType]; !ok {
+				return nil, fmt.Errorf("element %d: type '%s' is not allowed in this section", i, elem.Type)
+			}
 		}
 		elem.Type = elemType
 

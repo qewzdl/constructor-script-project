@@ -14,6 +14,32 @@
         createFileState,
     } = utils;
 
+    const createAllowedElementsResolver = (sectionDefinitions) => {
+        const cache = new Map();
+        return (sectionType) => {
+            const typeKey = normaliseString(sectionType);
+            if (cache.has(typeKey)) {
+                return cache.get(typeKey);
+            }
+            const allowedList = sectionDefinitions?.[typeKey]?.allowedElements;
+            if (!Array.isArray(allowedList) || !allowedList.length) {
+                cache.set(typeKey, null);
+                return null;
+            }
+            const set = new Set(
+                allowedList
+                    .map((item) => normaliseString(item).toLowerCase())
+                    .filter(Boolean)
+            );
+            if (set.size === 0) {
+                cache.set(typeKey, null);
+                return null;
+            }
+            cache.set(typeKey, set);
+            return set;
+        };
+    };
+
     const parseInteger = (value) => {
         if (typeof value === 'number' && Number.isFinite(value)) {
             return Math.trunc(value);
@@ -205,7 +231,8 @@
         elementDefinitions,
         sectionDefinitions,
         defaultType,
-        section = {}
+        section = {},
+        resolveAllowedElements
     ) => {
         const requestedType = normaliseString(
             section.type ?? section.Type ?? defaultType
@@ -215,6 +242,10 @@
             : defaultType;
         const supportsElements =
             sectionDefinitions[type]?.supportsElements !== false;
+        const allowedElements =
+            typeof resolveAllowedElements === 'function'
+                ? resolveAllowedElements(type)
+                : null;
         const elementsSource = supportsElements
             ? ensureArray(section.elements ?? section.Elements)
             : [];
@@ -264,6 +295,17 @@
             ? { ...settingsSource } 
             : {};
         
+        const elements = supportsElements
+            ? elementsSource
+                  .map((element) => createElementState(elementDefinitions, element))
+                  .filter((element) => {
+                      if (!allowedElements || allowedElements.size === 0) {
+                          return true;
+                      }
+                      return allowedElements.has(element.type);
+                  })
+            : [];
+
         return {
             clientId: randomId(),
             id: normaliseString(section.id ?? section.ID ?? ''),
@@ -272,11 +314,7 @@
             image: headerImageSupported
                 ? normaliseString(section.image ?? section.Image ?? '')
                 : '',
-            elements: supportsElements
-                ? elementsSource.map((element) =>
-                      createElementState(elementDefinitions, element)
-                  )
-                : [],
+            elements,
             limit: limitValue,
             mode: modeValue,
             styleGridItems,
@@ -320,6 +358,15 @@
         const defaultSectionType = normaliseString(
             sectionRegistry.getDefaultType?.() ?? 'standard'
         );
+        const resolveAllowedElements = createAllowedElementsResolver(sectionDefs);
+        const isElementAllowed = (sectionType, elementType) => {
+            const allowedSet = resolveAllowedElements(sectionType);
+            if (!allowedSet || allowedSet.size === 0) {
+                return true;
+            }
+            const normalised = normaliseString(elementType).toLowerCase();
+            return normalised ? allowedSet.has(normalised) : false;
+        };
 
         const findSection = (sectionClientId) =>
             sections.find((section) => section.clientId === sectionClientId) ||
@@ -339,18 +386,37 @@
         const getSections = () =>
             sections
                 .map((section, index) => {
-                    const elements = section.elements
-                        .map((element, elementIndex) =>
-                            sanitiseElement(definitions, element, elementIndex)
-                        )
-                        .filter(Boolean);
-
                     const headerImageSupported = supportsHeaderImage(section.type);
                     const image = headerImageSupported
                         ? section.image.trim()
                         : '';
                     const title = section.title.trim();
                     const hasSettings = section.settings && Object.keys(section.settings).length > 0;
+
+                    let elements = nilSlice;
+                    if (supportsElements(section.type)) {
+                        const sanitisedElements = [];
+                        const allowedSet = resolveAllowedElements(section.type);
+                        section.elements
+                            .filter((element) => {
+                                if (!allowedSet || allowedSet.size === 0) {
+                                    return true;
+                                }
+                                return allowedSet.has(normaliseString(element.type).toLowerCase());
+                            })
+                            .forEach((element) => {
+                                const sanitised = sanitiseElement(
+                                    definitions,
+                                    element,
+                                    sanitisedElements.length
+                                );
+                                if (sanitised) {
+                                    sanitisedElements.push(sanitised);
+                                }
+                            });
+                        elements = sanitisedElements;
+                    }
+
                     const hasContent = supportsElements(section.type)
                         ? Boolean(title || image || elements.length > 0 || hasSettings)
                         : Boolean(title || image || hasSettings);
@@ -436,7 +502,8 @@
                     definitions,
                     sectionDefs,
                     defaultSectionType,
-                    section
+                    section,
+                    resolveAllowedElements
                 )
             );
             return sections;
@@ -452,7 +519,8 @@
                 definitions,
                 sectionDefs,
                 defaultSectionType,
-                { type }
+                { type },
+                resolveAllowedElements
             );
             section.elements = [];
             section.paddingVertical = clampPaddingValue(newSectionDefaultPadding);
@@ -514,6 +582,9 @@
             if (!supportsElements(section.type)) {
                 return null;
             }
+            if (!isElementAllowed(section.type, type)) {
+                return null;
+            }
             const definition = definitions[type];
             const element =
                 definition && typeof definition.create === 'function'
@@ -539,6 +610,48 @@
             section.elements = section.elements.filter(
                 (element) => element.clientId !== elementClientId
             );
+        };
+
+        const moveElementInSection = (sectionClientId, elementClientId, direction) => {
+            const section = findSection(sectionClientId);
+            if (!section || !Array.isArray(section.elements)) {
+                return -1;
+            }
+            const currentIndex = section.elements.findIndex(
+                (element) => element.clientId === elementClientId
+            );
+            if (currentIndex < 0) {
+                return -1;
+            }
+
+            let targetIndex = currentIndex;
+            if (direction === 'up') {
+                targetIndex -= 1;
+            } else if (direction === 'down') {
+                targetIndex += 1;
+            } else if (typeof direction === 'number' && Number.isFinite(direction)) {
+                targetIndex = Math.trunc(direction);
+            } else if (typeof direction === 'string' && direction.trim()) {
+                const parsed = Number.parseInt(direction, 10);
+                if (Number.isFinite(parsed)) {
+                    targetIndex = parsed;
+                }
+            }
+
+            if (targetIndex < 0) {
+                targetIndex = 0;
+            }
+            if (targetIndex >= section.elements.length) {
+                targetIndex = section.elements.length - 1;
+            }
+
+            if (targetIndex === currentIndex || targetIndex < 0) {
+                return -1;
+            }
+
+            const [element] = section.elements.splice(currentIndex, 1);
+            section.elements.splice(targetIndex, 0, element);
+            return targetIndex;
         };
 
         const addGroupImage = (sectionClientId, elementClientId) => {
@@ -646,6 +759,10 @@
                 }
                 if (!supportsElements(section.type)) {
                     section.elements = [];
+                } else if (Array.isArray(section.elements)) {
+                    section.elements = section.elements.filter((element) =>
+                        isElementAllowed(section.type, element.type)
+                    );
                 }
                 const limitDefinition = sectionDefs[section.type]?.settings?.limit;
                 if (limitDefinition) {
@@ -709,6 +826,7 @@
             moveSection,
             addElementToSection,
             removeElementFromSection,
+            moveElementInSection,
             addGroupImage,
             removeGroupImage,
             addGroupFile,

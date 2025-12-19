@@ -353,10 +353,11 @@ func (s *PostService) prepareSections(sections []models.Section) (models.PostSec
 		if definition.SupportsElements != nil {
 			allowElements = *definition.SupportsElements
 		}
+		allowedElements := definition.AllowedElementSet()
 
 		if allowElements {
 			if len(section.Elements) > 0 {
-				preparedElements, err := s.prepareSectionElements(section.Elements, elementDefinitions)
+				preparedElements, err := s.prepareSectionElements(section.Elements, elementDefinitions, allowedElements)
 				if err != nil {
 					return nil, fmt.Errorf("section %d: %w", i, err)
 				}
@@ -398,7 +399,11 @@ func (s *PostService) prepareSections(sections []models.Section) (models.PostSec
 	return prepared, nil
 }
 
-func (s *PostService) prepareSectionElements(elements []models.SectionElement, definitions map[string]theme.ElementDefinition) ([]models.SectionElement, error) {
+func (s *PostService) prepareSectionElements(
+	elements []models.SectionElement,
+	definitions map[string]theme.ElementDefinition,
+	allowed map[string]struct{},
+) ([]models.SectionElement, error) {
 	prepared := make([]models.SectionElement, 0, len(elements))
 
 	for i, elem := range elements {
@@ -417,6 +422,11 @@ func (s *PostService) prepareSectionElements(elements []models.SectionElement, d
 		}
 		if _, ok := definitions[elemType]; !ok {
 			return nil, fmt.Errorf("element %d: unknown type '%s'", i, elem.Type)
+		}
+		if len(allowed) > 0 {
+			if _, ok := allowed[elemType]; !ok {
+				return nil, fmt.Errorf("element %d: type '%s' is not allowed in this section", i, elem.Type)
+			}
 		}
 		elem.Type = elemType
 
