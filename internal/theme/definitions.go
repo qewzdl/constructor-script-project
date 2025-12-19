@@ -61,6 +61,7 @@ type SectionSettingDefinition struct {
 	Required          bool                   `json:"required,omitempty"`
 	AllowMediaBrowse  bool                   `json:"allowMediaBrowse,omitempty"`
 	AllowAnchorPicker bool                   `json:"allowAnchorPicker,omitempty"`
+	AllowCoursePicker bool                   `json:"allowCoursePicker,omitempty"`
 }
 
 // SectionSettingOption represents a selectable option for a section setting.
@@ -550,9 +551,10 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 					DefaultValue: constants.CourseListDisplayLimited,
 				},
 				"selected_courses": {
-					Label:       "Selected course IDs or slugs",
-					Type:        "textarea",
-					Placeholder: "e.g. 12, advanced-go, 5",
+					Label:             "Selected courses",
+					Type:              "text",
+					Placeholder:       "Choose courses to feature",
+					AllowCoursePicker: true,
 				},
 				"show_all_button": {
 					Label:        "Show link to all courses",

@@ -2,6 +2,95 @@
 (() => {
     const utils = window.AdminUtils;
 
+    const adminRoot = document.querySelector('[data-page="admin"]');
+    const coursePickerCache = {
+        promise: null,
+        courses: null,
+    };
+
+    const normaliseValue = (value) =>
+        utils && typeof utils.normaliseString === 'function'
+            ? utils.normaliseString(value)
+            : String(value || '');
+
+    const parseCourseSelections = (raw) => {
+        if (!raw) {
+            return [];
+        }
+        const source = Array.isArray(raw)
+            ? raw
+            : String(raw).split(/[,;\n\r]/);
+        return source
+            .map((item) => normaliseValue(item).trim())
+            .filter(Boolean);
+    };
+
+    const courseIdentifierFromPackage = (course) => {
+        if (!course) {
+            return '';
+        }
+        const slug = normaliseValue(course.slug || '').trim();
+        if (slug) {
+            return slug;
+        }
+        if (typeof course.id === 'number' && Number.isFinite(course.id)) {
+            return String(course.id);
+        }
+        if (course.id) {
+            return String(course.id);
+        }
+        return '';
+    };
+
+    const fetchCoursePackages = async () => {
+        if (coursePickerCache.courses) {
+            return coursePickerCache.courses;
+        }
+        if (coursePickerCache.promise) {
+            return coursePickerCache.promise;
+        }
+        const endpoint =
+            adminRoot && adminRoot.dataset
+                ? adminRoot.dataset.endpointCoursesPackages
+                : '';
+        if (!endpoint) {
+            alert('Course packages endpoint is not configured.');
+            return [];
+        }
+        const dashboard = window.AdminDashboard;
+        const apiClient =
+            dashboard && dashboard.apiClient && typeof dashboard.apiClient.request === 'function'
+                ? dashboard.apiClient
+                : null;
+
+        const fetchPromise = apiClient
+            ? apiClient.request(endpoint)
+            : fetch(endpoint, { credentials: 'include' }).then((response) => {
+                  if (!response.ok) {
+                      throw new Error(`Failed to load courses: ${response.status}`);
+                  }
+                  const contentType = response.headers.get('content-type') || '';
+                  const isJson = contentType.includes('application/json');
+                  return isJson ? response.json() : null;
+              });
+
+        coursePickerCache.promise = fetchPromise
+            .then((data) => {
+                const packages = Array.isArray(data?.packages) ? data.packages : [];
+                coursePickerCache.courses = packages;
+                return packages;
+            })
+            .catch((error) => {
+                console.error(error);
+                alert('Failed to load course packages.');
+                return [];
+            })
+            .finally(() => {
+                coursePickerCache.promise = null;
+            });
+        return coursePickerCache.promise;
+    };
+
     const openAnchorPicker = (inputElement) => {
         if (!inputElement || !utils) {
             return;
@@ -114,6 +203,149 @@
         });
 
         document.body.appendChild(overlay);
+    };
+
+    const openCoursePicker = async (inputElement) => {
+        if (!inputElement || !utils) {
+            return;
+        }
+
+        const courses = await fetchCoursePackages();
+        if (!courses || courses.length === 0) {
+            alert('No course packages found.');
+            return;
+        }
+
+        const selected = new Set(
+            parseCourseSelections(inputElement.value).map((item) =>
+                item.toLowerCase()
+            )
+        );
+
+        const overlay = utils.createElement('div', {
+            className: 'anchor-picker-overlay',
+        });
+
+        const modal = utils.createElement('div', {
+            className: 'anchor-picker-modal',
+        });
+
+        const header = utils.createElement('div', {
+            className: 'anchor-picker-header',
+        });
+        const title = utils.createElement('h3', {
+            className: 'anchor-picker-title',
+            textContent: 'Select courses to display',
+        });
+        header.appendChild(title);
+
+        const list = utils.createElement('div', {
+            className: 'anchor-picker-list',
+        });
+
+        courses.forEach((course, index) => {
+            const value = courseIdentifierFromPackage(course);
+            if (!value) {
+                return;
+            }
+            const lowerValue = value.toLowerCase();
+            const item = utils.createElement('label', {
+                className: 'anchor-picker-item anchor-picker-item--selectable',
+            });
+            const checkbox = utils.createElement('input', {
+                className: 'anchor-picker-checkbox',
+                type: 'checkbox',
+            });
+            checkbox.checked = selected.has(lowerValue);
+            checkbox.dataset.value = value;
+
+            const itemBody = utils.createElement('div');
+            const itemTitle = utils.createElement('div', {
+                className: 'anchor-picker-item-title',
+                textContent:
+                    course?.title ||
+                    course?.name ||
+                    course?.slug ||
+                    `Course ${index + 1}`,
+            });
+            itemBody.append(itemTitle);
+
+            const meta = utils.createElement('div', {
+                className: 'anchor-picker-item-meta',
+            });
+            if (course?.slug) {
+                meta.append(
+                    utils.createElement('code', {
+                        className: 'anchor-picker-item-code',
+                        textContent: course.slug,
+                    })
+                );
+            }
+            if (course?.id) {
+                meta.append(
+                    utils.createElement('span', {
+                        textContent: `ID: ${course.id}`,
+                    })
+                );
+            }
+            if (meta.childElementCount) {
+                itemBody.append(meta);
+            }
+
+            item.append(checkbox, itemBody);
+            list.append(item);
+        });
+
+        if (!list.childElementCount) {
+            alert('No course packages available for selection.');
+            return;
+        }
+
+        const footer = utils.createElement('div', {
+            className: 'anchor-picker-footer',
+        });
+        const cancelButton = utils.createElement('button', {
+            className: 'admin-builder__button',
+            textContent: 'Cancel',
+            type: 'button',
+        });
+        const applyButton = utils.createElement('button', {
+            className: 'admin-builder__button admin-builder__button--primary',
+            textContent: 'Apply',
+            type: 'button',
+        });
+        footer.append(cancelButton, applyButton);
+
+        modal.append(header, list, footer);
+        overlay.append(modal);
+
+        const closeModal = () => {
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+            }
+        };
+
+        cancelButton.addEventListener('click', closeModal);
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                closeModal();
+            }
+        });
+
+        applyButton.addEventListener('click', () => {
+            const selectedValues = Array.from(
+                list.querySelectorAll('.anchor-picker-checkbox:checked')
+            )
+                .map((input) => input.dataset.value || '')
+                .map((value) => value.trim())
+                .filter(Boolean);
+            inputElement.value = selectedValues.join(', ');
+            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+            inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+            closeModal();
+        });
+
+        document.body.append(overlay);
     };
 
     const createEvents = ({
@@ -250,6 +482,20 @@
                     return;
                 }
                 openAnchorPicker(inputElement);
+            }
+
+            if (target.matches('[data-action="open-course-picker"]')) {
+                event.preventDefault();
+                const targetInputId = target.dataset.courseTarget;
+                if (!targetInputId || !targetInputId.startsWith('#')) {
+                    return;
+                }
+                const inputElement = document.querySelector(targetInputId);
+                if (!inputElement) {
+                    return;
+                }
+                openCoursePicker(inputElement);
+                return;
             }
         };
 

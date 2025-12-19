@@ -142,9 +142,10 @@ func getAvailableSectionTypes() []models.SectionTypeConfig {
 					"default": constants.CourseListDisplayLimited,
 				},
 				"selected_courses": map[string]interface{}{
-					"type":        "textarea",
-					"label":       "Selected course IDs or slugs",
-					"placeholder": "e.g. 12, advanced-go, 5",
+					"type":              "text",
+					"label":             "Selected courses",
+					"placeholder":       "Choose courses to feature",
+					"allowCoursePicker": true,
 				},
 				"show_all_button": map[string]interface{}{
 					"type":    "boolean",

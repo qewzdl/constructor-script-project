@@ -58,6 +58,17 @@
     cursor: pointer;
 }
 
+.anchor-picker-item--selectable {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--size-base);
+}
+
+.anchor-picker-checkbox {
+    width: 1rem;
+    height: 1rem;
+}
+
 .anchor-picker-item:hover,
 .anchor-picker-item:focus-visible {
     border-color: var(--color-primary);

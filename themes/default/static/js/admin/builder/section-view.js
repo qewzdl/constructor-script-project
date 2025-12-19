@@ -948,40 +948,6 @@
                             showAllCheckbox = input;
                         }
                         appendField(field);
-                    } else if (fieldType === 'textarea') {
-                        const field = createElement('label', {
-                            className: 'admin-builder__field',
-                        });
-                        const labelSpan = createElement('span', {
-                            className: 'admin-builder__label',
-                            textContent: fieldLabel,
-                        });
-                        if (isRequired) {
-                            labelSpan.append(
-                                createElement('em', {
-                                    className: 'admin-builder__required',
-                                    textContent: ' (required)',
-                                })
-                            );
-                        }
-                        field.append(labelSpan);
-                        
-                        const textarea = createElement('textarea', {
-                            className: 'admin-builder__textarea',
-                        });
-                        textarea.placeholder = settingDef.placeholder || '';
-                        textarea.value = section.settings[key] || '';
-                        textarea.dataset.field = `section-setting-${key}`;
-                        textarea.rows = 2;
-                        if (isRequired) {
-                            textarea.required = true;
-                        }
-                        textarea.addEventListener('input', scheduleChange);
-                        field.append(textarea);
-                        if (key === 'selected_courses') {
-                            registerConditionalField(field, ['selected']);
-                        }
-                        appendField(field);
                     } else {
                         const field = createElement('label', {
                             className: 'admin-builder__field',
@@ -1013,8 +979,16 @@
                         input.addEventListener('input', scheduleChange);
                         field.append(input);
 
+                        if (key === 'selected_courses') {
+                            registerConditionalField(field, ['selected']);
+                        }
+
                         // Add media browse button for image/url fields
-                        if (settingDef.allowMediaBrowse || settingDef.allowAnchorPicker) {
+                        if (
+                            settingDef.allowMediaBrowse ||
+                            settingDef.allowAnchorPicker ||
+                            settingDef.allowCoursePicker
+                        ) {
                             const inputId = `section-${section.clientId}-setting-${key}`;
                             input.id = inputId;
                             const actions = createElement('div', {
@@ -1042,6 +1016,17 @@
                                 anchorButton.dataset.action = 'open-anchor-picker';
                                 anchorButton.dataset.anchorTarget = `#${inputId}`;
                                 actions.append(anchorButton);
+                            }
+
+                            if (settingDef.allowCoursePicker) {
+                                const courseButton = createElement('button', {
+                                    className: 'admin-builder__anchor-button',
+                                    textContent: 'Select courses',
+                                });
+                                courseButton.type = 'button';
+                                courseButton.dataset.action = 'open-course-picker';
+                                courseButton.dataset.courseTarget = `#${inputId}`;
+                                actions.append(courseButton);
                             }
                             
                             field.append(actions);

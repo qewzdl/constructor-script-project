@@ -230,9 +230,10 @@
                     default: 3,
                 },
                 selected_courses: {
-                    label: 'Selected course IDs or slugs',
-                    type: 'textarea',
-                    placeholder: 'e.g. 12, advanced-go, 5',
+                    label: 'Selected courses',
+                    type: 'text',
+                    placeholder: 'Choose courses to feature',
+                    allowCoursePicker: true,
                 },
                 show_all_button: {
                     label: 'Show link to all courses',
