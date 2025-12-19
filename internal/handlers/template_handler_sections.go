@@ -770,9 +770,11 @@ func (h *TemplateHandler) renderPostListContent(prefix string, posts []models.Po
 	}
 
 	if len(opts.Pagination) > 0 {
+		sb.WriteString(`<div class="posts-list__actions">`)
 		if err := tmpl.ExecuteTemplate(&sb, "components/pagination", opts.Pagination); err != nil {
 			logger.Error(err, "Failed to render post list pagination", map[string]interface{}{"prefix": prefix})
 		}
+		sb.WriteString(`</div>`)
 	}
 
 	return sb.String()

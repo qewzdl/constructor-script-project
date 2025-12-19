@@ -47,7 +47,9 @@
         </div>
 
         {{ with .Pagination }}
+        <div class="posts-list__actions">
             {{ template "components/pagination" . }}
+        </div>
         {{ end }}
 
         {{ if $hasExtra }}

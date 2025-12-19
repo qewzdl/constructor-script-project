@@ -53,7 +53,7 @@ func renderPostsList(ctx RenderContext, prefix string, elem models.SectionElemen
 		return "", nil
 	}
 
-	listClass := fmt.Sprintf("%s__post-list", prefix)
+	listClass := fmt.Sprintf("%s__post-list posts-list", prefix)
 	emptyClass := fmt.Sprintf("%s__post-list-empty", prefix)
 	cardClass := fmt.Sprintf("%s__post-card post-card", prefix)
 

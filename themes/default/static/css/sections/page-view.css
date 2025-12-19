@@ -38,3 +38,11 @@
     color: var(--color-secondary);
     font-size: var(--font-size-base);
 }
+
+.posts-list__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--size-sm);
+    margin-top: var(--size-lg);
+}
