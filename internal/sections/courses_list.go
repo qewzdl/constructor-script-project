@@ -40,11 +40,6 @@ func RegisterCoursesListWithMetadata(reg *RegistryWithMetadata) {
 					"min":     1,
 					"max":     constants.MaxCourseListSectionLimit,
 				},
-				"mode": map[string]interface{}{
-					"type":    "string",
-					"enum":    []string{constants.CourseListModeCatalog, constants.CourseListModeOwned},
-					"default": constants.CourseListModeCatalog,
-				},
 			},
 		},
 	}

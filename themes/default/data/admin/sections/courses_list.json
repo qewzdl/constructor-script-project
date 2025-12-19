@@ -5,25 +5,50 @@
     "description": "Highlights available course packages with pricing and topics.",
     "supports_elements": false,
     "settings": {
+        "display_mode": {
+            "label": "Display mode",
+            "type": "select",
+            "options": [
+                {
+                    "value": "limited",
+                    "label": "Limited (latest courses)"
+                },
+                {
+                    "value": "paginated",
+                    "label": "Paginated (all courses)"
+                },
+                {
+                    "value": "selected",
+                    "label": "Selected courses"
+                }
+            ],
+            "default_value": "limited"
+        },
         "limit": {
             "label": "Number of courses to display",
             "default": 3,
             "min": 1,
             "max": 12
         },
-        "mode": {
-            "label": "Courses to show",
-            "options": [
-                {
-                    "value": "catalog",
-                    "label": "Available for purchase"
-                },
-                {
-                    "value": "owned",
-                    "label": "Assigned to the current user"
-                }
-            ],
-            "default_value": "catalog"
+        "selected_courses": {
+            "label": "Selected course IDs or slugs",
+            "type": "textarea",
+            "placeholder": "e.g. 12, advanced-go, 5"
+        },
+        "show_all_button": {
+            "label": "Show link to all courses",
+            "type": "boolean",
+            "default_value": "false"
+        },
+        "all_courses_url": {
+            "label": "All courses link",
+            "type": "url",
+            "placeholder": "/courses",
+            "allowAnchorPicker": true
+        },
+        "all_courses_label": {
+            "label": "All courses link label",
+            "placeholder": "View all courses"
         }
     }
 }

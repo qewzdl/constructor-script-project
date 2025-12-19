@@ -68,7 +68,7 @@ func (h *TemplateHandler) renderSinglePost(c *gin.Context, post *models.Post) {
 
 	structuredData := h.buildPostStructuredData(post, site, canonicalURL)
 
-	contentHTML, sectionScripts := h.renderSections(post.Sections)
+	contentHTML, sectionScripts := h.renderSections(post.Sections, c)
 	scripts := appendScripts([]string{"/static/js/post.js"}, sectionScripts)
 
 	data := h.basePageData(post.Title, post.Description, gin.H{
@@ -204,7 +204,7 @@ func (h *TemplateHandler) renderCustomPage(c *gin.Context, page *models.Page) {
 		contentHTML = template.HTML(page.Content)
 	}
 
-	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(page.Sections, "page-view")
+	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(page.Sections, "page-view", c)
 
 	data := gin.H{
 		"Page": page,
@@ -434,7 +434,7 @@ func (h *TemplateHandler) renderBlogWithPage(c *gin.Context, page *models.Page) 
 		data["Content"] = template.HTML(page.Content)
 	}
 
-	sections, sectionScripts := h.renderSectionsWithPrefix(page.Sections, "blog")
+	sections, sectionScripts := h.renderSectionsWithPrefix(page.Sections, "blog", c)
 
 	data["PageViewModifiers"] = []string{"blog"}
 
@@ -1497,7 +1497,7 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 	}
 
 	sections, page := h.profileSectionsForUser(user, courses)
-	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(sections, "page-view")
+	sectionsHTML, sectionScripts := h.renderSectionsWithPrefix(sections, "page-view", c)
 	scripts := appendScripts(nil, sectionScripts)
 	defaultTitle := "Profile"
 	defaultDescription := "Manage personal details, account security, and connected devices."
@@ -1538,7 +1538,7 @@ func (h *TemplateHandler) RenderProfile(c *gin.Context) {
 		"PageViewAttributes": template.HTMLAttr(`data-page="profile"`),
 	}
 
-	tabs := buildProfileTabs(h, sections)
+	tabs := buildProfileTabs(h, sections, c)
 	if len(tabs) > 0 {
 		data["ProfileTabs"] = tabs
 		data["ProfileDefaultTab"] = tabs[0].ID
@@ -1749,7 +1749,7 @@ func applyProfileTabSetting(section *models.Section) {
 	section.Settings["profile_tab"] = tab
 }
 
-func buildProfileTabs(h *TemplateHandler, sections models.PostSections) []profileTab {
+func buildProfileTabs(h *TemplateHandler, sections models.PostSections, c *gin.Context) []profileTab {
 	if h == nil || len(sections) == 0 {
 		return nil
 	}
@@ -1763,7 +1763,7 @@ func buildProfileTabs(h *TemplateHandler, sections models.PostSections) []profil
 		sectionType := strings.TrimSpace(strings.ToLower(section.Type))
 
 		if sectionType == "courses_list" && coursesHTML == "" {
-			coursesHTML = h.renderCoursesListSection(pageViewClassPrefix, section)
+			coursesHTML = h.renderCoursesListSection(pageViewClassPrefix, section, c)
 		}
 
 		for j := range section.Elements {
@@ -1772,13 +1772,13 @@ func buildProfileTabs(h *TemplateHandler, sections models.PostSections) []profil
 			switch elemType {
 			case "profile_account_details":
 				if accountHTML == "" {
-					if html, _ := h.renderSectionElement(pageViewClassPrefix, elem); html != "" {
+					if html, _ := h.renderSectionElement(pageViewClassPrefix, elem, c); html != "" {
 						accountHTML = html
 					}
 				}
 			case "profile_security":
 				if securityHTML == "" {
-					if html, _ := h.renderSectionElement(pageViewClassPrefix, elem); html != "" {
+					if html, _ := h.renderSectionElement(pageViewClassPrefix, elem, c); html != "" {
 						securityHTML = html
 					}
 				}
@@ -1951,7 +1951,7 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 					step.Video.SectionsHTML = ""
 					continue
 				}
-				html, scripts := h.renderSectionsWithPrefix(sections, "course-player")
+				html, scripts := h.renderSectionsWithPrefix(sections, "course-player", c)
 				if html != "" {
 					step.Video.SectionsHTML = string(html)
 				} else {
@@ -1967,7 +1967,7 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 					step.Content.SectionsHTML = ""
 					continue
 				}
-				html, scripts := h.renderSectionsWithPrefix(sections, "course-player")
+				html, scripts := h.renderSectionsWithPrefix(sections, "course-player", c)
 				if html != "" {
 					step.Content.SectionsHTML = string(html)
 				} else {

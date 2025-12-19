@@ -131,14 +131,35 @@ func getAvailableSectionTypes() []models.SectionTypeConfig {
 					"max":     constants.MaxCourseListSectionLimit,
 					"default": constants.DefaultCourseListSectionLimit,
 				},
-				"mode": map[string]interface{}{
+				"display_mode": map[string]interface{}{
 					"type":  "select",
-					"label": "Display Mode",
+					"label": "Course list layout",
 					"options": []map[string]string{
-						{"value": constants.CourseListModeCatalog, "label": "Catalog (All Courses)"},
-						{"value": constants.CourseListModeOwned, "label": "My Courses (User's Courses)"},
+						{"value": constants.CourseListDisplayLimited, "label": "Limited (latest courses)"},
+						{"value": constants.CourseListDisplayPaginated, "label": "Paginated (all courses)"},
+						{"value": constants.CourseListDisplaySelected, "label": "Selected courses"},
 					},
-					"default": constants.CourseListModeCatalog,
+					"default": constants.CourseListDisplayLimited,
+				},
+				"selected_courses": map[string]interface{}{
+					"type":        "textarea",
+					"label":       "Selected course IDs or slugs",
+					"placeholder": "e.g. 12, advanced-go, 5",
+				},
+				"show_all_button": map[string]interface{}{
+					"type":    "boolean",
+					"label":   "Show link to all courses",
+					"default": false,
+				},
+				"all_courses_url": map[string]interface{}{
+					"type":        "string",
+					"label":       "All courses link",
+					"placeholder": "/courses",
+				},
+				"all_courses_label": map[string]interface{}{
+					"type":        "string",
+					"label":       "All courses link label",
+					"placeholder": "View all courses",
 				},
 			},
 		},

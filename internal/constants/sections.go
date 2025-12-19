@@ -21,6 +21,13 @@ const (
 	// CourseListModeOwned renders the courses currently granted to the authenticated user.
 	CourseListModeOwned = "owned"
 
+	// CourseListDisplayLimited shows a capped number of the most recent courses.
+	CourseListDisplayLimited = "limited"
+	// CourseListDisplayPaginated shows all courses with pagination.
+	CourseListDisplayPaginated = "paginated"
+	// CourseListDisplaySelected shows only administrator-selected courses (with optional pagination).
+	CourseListDisplaySelected = "selected"
+
 	// DefaultSectionPadding defines the default vertical padding (in pixels) applied to newly created sections.
 	DefaultSectionPadding = 64
 	// DefaultSectionMargin defines the default vertical margin (in pixels) applied to newly created sections.

@@ -488,6 +488,17 @@
             if (!section) {
                 return '';
             }
+            const countSelectedCourses = (value) => {
+                if (!value) {
+                    return 0;
+                }
+                const entries = Array.isArray(value)
+                    ? value
+                    : String(value).split(/[,;\n\r]/);
+                return entries
+                    .map((entry) => normaliseString(entry).toLowerCase())
+                    .filter(Boolean).length;
+            };
             const parts = [];
             parts.push(
                 `Vertical padding: ${clampPaddingValue(section.paddingVertical)}px`
@@ -517,6 +528,27 @@
                 const modeLabel = describeModeValue(modeDefinition, section.mode);
                 if (modeLabel) {
                     parts.push(`Mode: ${modeLabel}`);
+                }
+            }
+            const displayModeDefinition = sectionDefinition?.settings?.display_mode;
+            if (displayModeDefinition?.options?.length) {
+                const displayLabel = describeModeValue(
+                    displayModeDefinition,
+                    section.settings?.display_mode
+                );
+                if (displayLabel) {
+                    parts.push(`Display: ${displayLabel}`);
+                }
+                const isSelectedMode =
+                    normaliseString(section.settings?.display_mode).toLowerCase() ===
+                    'selected';
+                if (isSelectedMode) {
+                    const selectedCount = countSelectedCourses(
+                        section.settings?.selected_courses
+                    );
+                    if (selectedCount > 0) {
+                        parts.push(`Selected courses: ${selectedCount}`);
+                    }
                 }
             }
             // Show custom section settings preview (like hero title)
@@ -657,17 +689,85 @@
                 appendField(styleField);
             }
 
+            const displayModeDefinition = sectionDefinition?.settings?.display_mode;
+            const displayModeOptions =
+                displayModeDefinition?.options?.filter((option) =>
+                    Boolean(normaliseString(option?.value))
+                ) || [];
+            const displayModeDefault =
+                (displayModeDefinition?.defaultValue ??
+                    displayModeDefinition?.default_value ??
+                    displayModeOptions[0]?.value) ||
+                'limited';
+            const displayModeSelect =
+                displayModeOptions.length > 0
+                    ? createElement('select', {
+                          className: 'admin-builder__select',
+                      })
+                    : null;
+            if (displayModeSelect) {
+                const displayModeField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                displayModeField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: displayModeDefinition?.label || 'Display mode',
+                    })
+                );
+                const currentDisplayMode = normaliseModeValue(
+                    {
+                        options: displayModeOptions,
+                        defaultValue: displayModeDefault,
+                    },
+                    section.settings?.display_mode
+                );
+                displayModeOptions.forEach((option) => {
+                    const value = normaliseString(option?.value).toLowerCase();
+                    if (!value) {
+                        return;
+                    }
+                    const optionNode = createElement('option', {
+                        value,
+                        textContent:
+                            normaliseString(option?.label) ||
+                            normaliseString(option?.value),
+                    });
+                    if (value === currentDisplayMode) {
+                        optionNode.selected = true;
+                    }
+                    displayModeSelect.append(optionNode);
+                });
+                displayModeField.append(displayModeSelect);
+                appendField(displayModeField);
+            }
+
+            const conditionalFields = [];
+            const registerConditionalField = (node, modes) => {
+                if (!node) {
+                    return;
+                }
+                conditionalFields.push({
+                    node,
+                    modes: Array.isArray(modes)
+                        ? modes.map((mode) => normaliseString(mode).toLowerCase())
+                        : null,
+                });
+            };
+
             const limitDefinition = sectionDefinition?.settings?.limit;
+            let limitLabelSpan;
+            let limitField;
             if (limitDefinition) {
-                const limitField = createElement('label', {
+                limitField = createElement('label', {
                     className: 'admin-builder__field',
                 });
                 limitField.append(
-                    createElement('span', {
+                    (limitLabelSpan = createElement('span', {
                         className: 'admin-builder__label',
                         textContent:
                             limitDefinition.label || 'Number of posts to display',
-                    })
+                    }))
                 );
                 const limitInput = createElement('input', {
                     className: 'admin-builder__input',
@@ -695,6 +795,7 @@
                 limitInput.dataset.field = 'section-limit';
                 limitInput.addEventListener('input', scheduleChange);
                 limitField.append(limitInput);
+                registerConditionalField(limitField, ['limited', 'paginated', 'selected']);
                 appendField(limitField);
             }
 
@@ -744,8 +845,8 @@
             // Handle custom section settings (like hero section fields)
             if (sectionDefinition?.settings) {
                 Object.entries(sectionDefinition.settings).forEach(([key, settingDef]) => {
-                    // Skip limit and mode as they are handled above
-                    if (key === 'limit' || key === 'mode') {
+                    // Skip limit, mode, and display_mode as they are handled above
+                    if (key === 'limit' || key === 'mode' || key === 'display_mode') {
                         return;
                     }
 
@@ -753,11 +854,101 @@
                         section.settings = {};
                     }
 
-                    const fieldType = settingDef.type || 'text';
+                    const options = Array.isArray(settingDef.options)
+                        ? settingDef.options.filter((option) =>
+                              Boolean(normaliseString(option?.value))
+                          )
+                        : [];
+                    const fieldType =
+                        settingDef.type || (options.length ? 'select' : 'text');
                     const fieldLabel = settingDef.label || key;
                     const isRequired = settingDef.required === true;
 
-                    if (fieldType === 'textarea') {
+                    if (fieldType === 'select' && options.length) {
+                        const field = createElement('label', {
+                            className: 'admin-builder__field',
+                        });
+                        const labelSpan = createElement('span', {
+                            className: 'admin-builder__label',
+                            textContent: fieldLabel,
+                        });
+                        field.append(labelSpan);
+
+                        const select = createElement('select', {
+                            className: 'admin-builder__select',
+                        });
+                        select.dataset.field = `section-setting-${key}`;
+                        const currentValue = normaliseModeValue(
+                            {
+                                options,
+                                defaultValue:
+                                    settingDef.defaultValue ?? settingDef.default_value ?? '',
+                            },
+                            section.settings[key]
+                        );
+                        options.forEach((option) => {
+                            const value = normaliseString(option?.value).toLowerCase();
+                            if (!value) {
+                                return;
+                            }
+                            const optionNode = createElement('option', {
+                                value,
+                                textContent:
+                                    normaliseString(option?.label) ||
+                                    normaliseString(option?.value),
+                            });
+                            if (value === currentValue) {
+                                optionNode.selected = true;
+                            }
+                            select.append(optionNode);
+                        });
+                        select.addEventListener('change', () => {
+                            section.settings[key] = normaliseString(select.value);
+                            scheduleChange();
+                        });
+                        field.append(select);
+                        appendField(field);
+                    } else if (fieldType === 'boolean') {
+                        const field = createElement('label', {
+                            className: 'admin-builder__field admin-builder__field--checkbox',
+                        });
+                        const input = createElement('input', {
+                            className: 'admin-builder__checkbox checkbox__input',
+                        });
+                        input.type = 'checkbox';
+                        input.dataset.field = `section-setting-${key}`;
+                        const rawValue = section.settings[key];
+                        const normalisedValue =
+                            typeof rawValue === 'string'
+                                ? rawValue.trim().toLowerCase()
+                                : rawValue;
+                        input.checked =
+                            rawValue === true ||
+                            normalisedValue === 'true' ||
+                            normalisedValue === '1' ||
+                            normalisedValue === 1 ||
+                            normalisedValue === 'yes' ||
+                            normalisedValue === 'on';
+                        input.addEventListener('change', scheduleChange);
+                        const labelSpan = createElement('span', {
+                            className: 'admin-builder__label',
+                            textContent: fieldLabel,
+                        });
+                        if (isRequired) {
+                            labelSpan.append(
+                                createElement('em', {
+                                    className: 'admin-builder__required',
+                                    textContent: ' (required)',
+                                })
+                            );
+                        }
+                        field.append(input, labelSpan);
+                        if (key === 'show_all_button') {
+                            registerConditionalField(field, ['paginated', 'selected']);
+                            showAllCheckbox = input;
+                        }
+                        appendField(field);
+                    } else if (fieldType === 'textarea') {
                         const field = createElement('label', {
                             className: 'admin-builder__field',
                         });
@@ -787,6 +978,9 @@
                         }
                         textarea.addEventListener('input', scheduleChange);
                         field.append(textarea);
+                        if (key === 'selected_courses') {
+                            registerConditionalField(field, ['selected']);
+                        }
                         appendField(field);
                     } else {
                         const field = createElement('label', {
@@ -853,6 +1047,9 @@
                             field.append(actions);
                         }
 
+                        if (key === 'all_courses_url' || key === 'all_courses_label') {
+                            registerConditionalField(field, ['paginated', 'selected'], true);
+                        }
                         appendField(field);
                     }
                 });
@@ -1038,6 +1235,84 @@
             dialog.append(header, body, footer);
             overlay.append(dialog);
             sectionItem.append(overlay);
+
+            const updateDisplayModeVisibility = () => {
+                const showAllValue = (() => {
+                    const raw =
+                        showAllCheckbox && typeof showAllCheckbox.checked === 'boolean'
+                            ? showAllCheckbox.checked
+                            : section.settings?.show_all_button;
+                    if (raw === true) return true;
+                    if (raw === false) return false;
+                    const normalized =
+                        typeof raw === 'string' ? raw.trim().toLowerCase() : raw;
+                    return (
+                        normalized === 'true' ||
+                        normalized === '1' ||
+                        normalized === 1 ||
+                        normalized === 'yes' ||
+                        normalized === 'on'
+                    );
+                })();
+                const mode = normaliseString(
+                    section.settings?.display_mode ??
+                        displayModeSelect?.value ??
+                        displayModeDefault
+                ).toLowerCase();
+
+                conditionalFields.forEach(({ node, modes, requireShowAll }) => {
+                    if (!node) {
+                        return;
+                    }
+                    let visible = true;
+                    if (modes && modes.length && !modes.includes(mode)) {
+                        visible = false;
+                    }
+                    if (visible && requireShowAll && !showAllValue) {
+                        visible = false;
+                    }
+                    if (visible && requireShowAll) {
+                        node.hidden = false;
+                        node.style.display = showAllValue ? '' : 'none';
+                    } else {
+                        node.hidden = !visible;
+                        node.style.display = visible ? '' : 'none';
+                    }
+                });
+
+                if (limitLabelSpan) {
+                    if (mode === 'paginated' || mode === 'selected') {
+                        limitLabelSpan.textContent =
+                            'Number of courses to display on a page';
+                    } else {
+                        limitLabelSpan.textContent =
+                            limitDefinition?.label ||
+                            'Number of courses to display';
+                    }
+                }
+            };
+
+            if (displayModeSelect) {
+                displayModeSelect.addEventListener('change', () => {
+                    section.settings = section.settings || {};
+                    section.settings.display_mode = normaliseString(
+                        displayModeSelect.value
+                    ).toLowerCase();
+                    updateDisplayModeVisibility();
+                    scheduleChange();
+                });
+            }
+
+            if (showAllCheckbox) {
+                showAllCheckbox.addEventListener('change', () => {
+                    section.settings = section.settings || {};
+                    section.settings.show_all_button = showAllCheckbox.checked;
+                    updateDisplayModeVisibility();
+                    scheduleChange();
+                });
+            }
+
+            updateDisplayModeVisibility();
 
             const previousFocus = document.activeElement;
 

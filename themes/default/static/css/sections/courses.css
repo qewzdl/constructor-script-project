@@ -76,3 +76,20 @@
     color: var(--color-secondary);
     font-size: var(--font-size-base);
 }
+
+.courses-list__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-sm);
+    margin-top: var(--size-lg);
+    flex-wrap: wrap;
+}
+
+.courses-list__see-all {
+    margin-right: auto;
+}
+
+.courses-list__actions .pagination {
+    margin-left: auto;
+}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -12,15 +13,16 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/sections"
 	"constructor-script-backend/pkg/logger"
+	"github.com/gin-gonic/gin"
 )
 
 const pageViewClassPrefix = "page-view"
 
-func (h *TemplateHandler) renderSections(sections models.PostSections) (template.HTML, []string) {
-	return h.renderSectionsWithPrefix(sections, "post")
+func (h *TemplateHandler) renderSections(sections models.PostSections, c *gin.Context) (template.HTML, []string) {
+	return h.renderSectionsWithPrefix(sections, "post", c)
 }
 
-func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections, prefix string) (template.HTML, []string) {
+func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections, prefix string, c *gin.Context) (template.HTML, []string) {
 	if len(sections) == 0 {
 		return "", nil
 	}
@@ -84,7 +86,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 
 		// Try to render as a special section type (posts_list, categories_list, courses_list)
 		skipElements := false
-		specialSectionHTML, specialScripts := h.renderSpecialSection(pageViewClassPrefix, section, sectionType)
+		specialSectionHTML, specialScripts := h.renderSpecialSection(pageViewClassPrefix, section, sectionType, c)
 		if specialSectionHTML != "" {
 			skipElements = true
 			sb.WriteString(specialSectionHTML)
@@ -110,7 +112,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			}
 
 			for _, elem := range section.Elements {
-				html, elemScripts := h.renderSectionElement(pageViewClassPrefix, elem)
+				html, elemScripts := h.renderSectionElement(pageViewClassPrefix, elem, c)
 				scripts = appendScripts(scripts, elemScripts)
 				if html == "" {
 					continue
@@ -346,8 +348,10 @@ func (h *TemplateHandler) renderCategoriesListSection(prefix string, section mod
 }
 
 type coursesListTemplateData struct {
-	ListClass string
-	Cards     []courseCardTemplateData
+	ListClass  string
+	Cards      []courseCardTemplateData
+	Pagination gin.H
+	SeeAll     *coursesListSeeAll
 }
 
 type profileCoursesTemplateData struct {
@@ -359,50 +363,47 @@ type profileCoursesTemplateData struct {
 	Limit        int
 }
 
-const defaultOwnedCoursesEmptyMessage = "You don't have any courses yet."
+type coursesListSeeAll struct {
+	URL   string
+	Label string
+}
 
-func (h *TemplateHandler) renderCoursesListSection(prefix string, section models.Section) string {
+const defaultOwnedCoursesEmptyMessage = "You don't have any courses yet."
+const defaultCoursesListSeeAllLabel = "All courses"
+
+type courseListRenderOptions struct {
+	Pagination gin.H
+	SeeAll     *coursesListSeeAll
+}
+
+type courseListDisplaySettings struct {
+	DisplayMode         string
+	PerPage             int
+	ShowAllButton       bool
+	AllCoursesURL       string
+	AllCoursesLabel     string
+	SelectedIdentifiers []string
+	PageParam           string
+}
+
+func (h *TemplateHandler) renderCoursesListSection(prefix string, section models.Section, c *gin.Context) string {
 	mode := strings.TrimSpace(strings.ToLower(section.Mode))
 	if mode == "" {
 		mode = constants.CourseListModeCatalog
 	}
 
-	switch mode {
-	case constants.CourseListModeOwned:
+	// Owned mode is still supported for profile rendering, but no longer configurable in the builder.
+	if mode == constants.CourseListModeOwned {
 		return h.renderOwnedCoursesList(prefix, section)
-	default:
-		return h.renderCatalogCoursesList(prefix, section)
 	}
+
+	return h.renderCatalogCoursesList(prefix, section, c)
 }
 
-func (h *TemplateHandler) renderCatalogCoursesList(prefix string, section models.Section) string {
-	const maxTopicsPerCourse = 6
-
-	listClass := fmt.Sprintf("%s__course-list courses-list", prefix)
+func (h *TemplateHandler) renderCatalogCoursesList(prefix string, section models.Section, c *gin.Context) string {
 	emptyClass := fmt.Sprintf("%s__course-list-empty courses-list__empty", prefix)
-	cardClass := fmt.Sprintf("%s__course-card courses-list__item post-card", prefix)
-	mediaClass := fmt.Sprintf("%s__course-media post-card__figure", prefix)
-	imageClass := fmt.Sprintf("%s__course-image post-card__image", prefix)
-	contentClass := fmt.Sprintf("%s__course-content post-card__content", prefix)
-	titleClass := fmt.Sprintf("%s__course-title post-card__title", prefix)
-	linkClass := fmt.Sprintf("%s__course-link post-card__link post-card__link--static", prefix)
-	priceClass := fmt.Sprintf("%s__course-price courses-list__price", prefix)
-	metaClass := fmt.Sprintf("%s__course-meta post-card__meta", prefix)
-	metaItemClass := fmt.Sprintf("%s__course-meta-item courses-list__meta-item", prefix)
-	durationClass := fmt.Sprintf("%s__course-duration courses-list__duration", prefix)
-	descriptionClass := fmt.Sprintf("%s__course-description post-card__description", prefix)
-	topicsClass := fmt.Sprintf("%s__course-topics post-card__tags courses-list__topics", prefix)
-	topicItemClass := fmt.Sprintf("%s__course-topic post-card__tag", prefix)
-	topicNameClass := fmt.Sprintf("%s__course-topic-name post-card__tag-link post-card__tag-link--static", prefix)
-	topicMetaClass := fmt.Sprintf("%s__course-topic-meta courses-list__topic-meta", prefix)
 
-	limit := section.Limit
-	if limit <= 0 {
-		limit = constants.DefaultCourseListSectionLimit
-	}
-	if limit > constants.MaxCourseListSectionLimit {
-		limit = constants.MaxCourseListSectionLimit
-	}
+	settings := parseCourseListSettings(section)
 
 	if h == nil || h.coursePackageSvc == nil {
 		return `<p class="` + emptyClass + `">Courses are not available right now.</p>`
@@ -418,8 +419,197 @@ func (h *TemplateHandler) renderCatalogCoursesList(prefix string, section models
 		return `<p class="` + emptyClass + `">No courses available yet. Check back soon!</p>`
 	}
 
-	if limit < len(packages) {
+	switch settings.DisplayMode {
+	case constants.CourseListDisplayPaginated:
+		return h.renderPaginatedCoursesList(prefix, section, packages, settings, c)
+	case constants.CourseListDisplaySelected:
+		selected := filterSelectedPackages(packages, settings.SelectedIdentifiers)
+		return h.renderPaginatedCoursesList(prefix, section, selected, settings, c)
+	default:
+		return h.renderLimitedCoursesList(prefix, section, packages, settings.PerPage)
+	}
+}
+
+func (h *TemplateHandler) renderOwnedCoursesList(prefix string, section models.Section) string {
+	data := extractOwnedCourseSectionData(section)
+
+	emptyMessage := strings.TrimSpace(data.EmptyMessage)
+	if emptyMessage == "" {
+		emptyMessage = defaultOwnedCoursesEmptyMessage
+	}
+
+	courses := data.Courses
+	limit := section.Limit
+	if limit > 0 && limit < len(courses) {
+		courses = courses[:limit]
+	}
+
+	entries := buildProfileCourseEntries(courses)
+	cards := make([]courseCardTemplateData, 0, len(entries))
+
+	for i := range entries {
+		entry := entries[i]
+		pkg := courses[i].Package
+
+		headingID := fmt.Sprintf("%s-course-%d-title", prefix, i+1)
+		description := strings.TrimSpace(pkg.Summary)
+		if description == "" {
+			description = strings.TrimSpace(pkg.Description)
+		}
+		sanitizedDescription := strings.TrimSpace(h.SanitizeHTML(description))
+		descriptionHTML := template.HTML("")
+		descriptionID := ""
+		if sanitizedDescription != "" {
+			descriptionID = fmt.Sprintf("%s-course-%d-description", prefix, i+1)
+			descriptionHTML = template.HTML(sanitizedDescription)
+		}
+
+		metaItems := make([]courseCardMetaItem, 0, len(entry.MetaItems))
+		for _, item := range entry.MetaItems {
+			metaClass := strings.TrimSpace(item.Class)
+			if metaClass == "" {
+				metaClass = "profile-course__meta-item"
+			} else if !strings.Contains(metaClass, "profile-course__meta-item") {
+				metaClass = strings.TrimSpace(metaClass + " profile-course__meta-item")
+			}
+			metaItems = append(metaItems, courseCardMetaItem{
+				Class: metaClass,
+				Label: item.Label,
+				Time:  item.Time,
+			})
+		}
+
+		card := courseCardTemplateData{
+			Element:          entry.Element,
+			Href:             entry.Href,
+			CardClass:        strings.TrimSpace("profile-course post-card" + entry.CardModifier),
+			MediaClass:       "profile-course__media post-card__figure",
+			ImageClass:       "profile-course__image post-card__image",
+			ContentClass:     "profile-course__content post-card__content",
+			TitleClass:       "profile-course__title post-card__title",
+			MetaClass:        "profile-course__meta post-card__meta",
+			DescriptionClass: "profile-course__description post-card__description",
+			DescriptionTag:   "p",
+			HeadingID:        headingID,
+			DescriptionID:    descriptionID,
+			HasCourseID:      entry.HasCourseID,
+			CourseID:         entry.CourseID,
+			Description:      descriptionHTML,
+			MetaItems:        metaItems,
+			Image:            entry.Image,
+			Interactive:      false,
+		}
+
+		cards = append(cards, card)
+	}
+
+	containerID := strings.TrimSpace(section.ID)
+	if containerID == "" {
+		containerID = fmt.Sprintf("%s-courses", prefix)
+	}
+
+	tmpl, err := h.templateClone()
+	if err != nil {
+		logger.Error(err, "Failed to clone templates for owned course list", map[string]interface{}{"section_id": section.ID})
+		return `<p class="profile-courses__empty courses-list__empty">` + template.HTMLEscapeString(emptyMessage) + `</p>`
+	}
+
+	dataTemplate := profileCoursesTemplateData{
+		ContainerID:  containerID,
+		EmptyMessage: emptyMessage,
+		ListClass:    "profile-courses__list courses-list",
+		EmptyClass:   "profile-courses__empty courses-list__empty",
+		Cards:        cards,
+		Limit:        limit,
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, "components/profile-courses", dataTemplate); err != nil {
+		logger.Error(err, "Failed to render owned courses list template", map[string]interface{}{"section_id": section.ID})
+		return `<p class="profile-courses__empty courses-list__empty">` + template.HTMLEscapeString(emptyMessage) + `</p>`
+	}
+
+	return buf.String()
+}
+
+func (h *TemplateHandler) renderLimitedCoursesList(prefix string, section models.Section, packages []models.CoursePackage, limit int) string {
+	if limit <= 0 {
+		limit = clampCourseListLimit(limit)
+	}
+	if limit > 0 && limit < len(packages) {
 		packages = packages[:limit]
+	}
+
+	return h.renderCourseListContent(prefix, section, packages, courseListRenderOptions{})
+}
+
+func (h *TemplateHandler) renderPaginatedCoursesList(prefix string, section models.Section, packages []models.CoursePackage, settings courseListDisplaySettings, c *gin.Context) string {
+	emptyClass := fmt.Sprintf("%s__course-list-empty courses-list__empty", prefix)
+
+	perPage := clampCourseListLimit(settings.PerPage)
+	if perPage <= 0 {
+		perPage = clampCourseListLimit(constants.DefaultCourseListSectionLimit)
+	}
+
+	total := len(packages)
+	if total == 0 {
+		return `<p class="` + emptyClass + `">No courses available yet. Check back soon!</p>`
+	}
+
+	totalPages := (total + perPage - 1) / perPage
+	currentPage := courseListPageFromContext(c, settings.PageParam)
+	if currentPage > totalPages {
+		currentPage = totalPages
+	}
+	if currentPage < 1 {
+		currentPage = 1
+	}
+
+	start := (currentPage - 1) * perPage
+	if start > total {
+		start = total
+	}
+	end := start + perPage
+	if end > total {
+		end = total
+	}
+	pagePackages := packages[start:end]
+
+	pagination := h.buildPagination(currentPage, totalPages, func(page int) string {
+		return buildCourseListPageURL(c, settings.PageParam, page)
+	})
+
+	var seeAll *coursesListSeeAll
+	if settings.ShowAllButton {
+		link := strings.TrimSpace(settings.AllCoursesURL)
+		if link != "" {
+			label := strings.TrimSpace(settings.AllCoursesLabel)
+			if label == "" {
+				label = defaultCoursesListSeeAllLabel
+			}
+			seeAll = &coursesListSeeAll{
+				URL:   link,
+				Label: label,
+			}
+		}
+	}
+
+	return h.renderCourseListContent(prefix, section, pagePackages, courseListRenderOptions{
+		Pagination: pagination,
+		SeeAll:     seeAll,
+	})
+}
+
+func (h *TemplateHandler) renderCourseListContent(prefix string, section models.Section, packages []models.CoursePackage, opts courseListRenderOptions) string {
+	emptyClass := fmt.Sprintf("%s__course-list-empty courses-list__empty", prefix)
+
+	if len(packages) == 0 {
+		return `<p class="` + emptyClass + `">No courses available yet. Check back soon!</p>`
+	}
+
+	cards := h.buildCourseCards(prefix, packages)
+	if len(cards) == 0 {
+		return `<p class="` + emptyClass + `">No courses available yet. Check back soon!</p>`
 	}
 
 	tmpl, err := h.templateClone()
@@ -427,6 +617,55 @@ func (h *TemplateHandler) renderCatalogCoursesList(prefix string, section models
 		logger.Error(err, "Failed to clone templates for course list section", map[string]interface{}{"section_id": section.ID})
 		return `<p class="` + emptyClass + `">Unable to display courses at the moment.</p>`
 	}
+
+	listClass := fmt.Sprintf("%s__course-list courses-list", prefix)
+	data := coursesListTemplateData{
+		ListClass: listClass,
+		Cards:     cards,
+	}
+
+	if len(opts.Pagination) > 0 {
+		data.Pagination = opts.Pagination
+	}
+
+	if opts.SeeAll != nil && strings.TrimSpace(opts.SeeAll.URL) != "" {
+		label := strings.TrimSpace(opts.SeeAll.Label)
+		if label == "" {
+			label = defaultCoursesListSeeAllLabel
+		}
+		data.SeeAll = &coursesListSeeAll{
+			URL:   strings.TrimSpace(opts.SeeAll.URL),
+			Label: label,
+		}
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, "components/courses-list", data); err != nil {
+		logger.Error(err, "Failed to render courses list template", map[string]interface{}{"section_id": section.ID})
+		return `<p class="` + emptyClass + `">Unable to display courses at the moment.</p>`
+	}
+
+	return buf.String()
+}
+
+func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.CoursePackage) []courseCardTemplateData {
+	const maxTopicsPerCourse = 6
+
+	cardClass := fmt.Sprintf("%s__course-card courses-list__item post-card", prefix)
+	mediaClass := fmt.Sprintf("%s__course-media post-card__figure", prefix)
+	imageClass := fmt.Sprintf("%s__course-image post-card__image", prefix)
+	contentClass := fmt.Sprintf("%s__course-content post-card__content", prefix)
+	titleClass := fmt.Sprintf("%s__course-title post-card__title", prefix)
+	linkClass := fmt.Sprintf("%s__course-link post-card__link post-card__link--static", prefix)
+	priceClass := fmt.Sprintf("%s__course-price courses-list__price", prefix)
+	metaClass := fmt.Sprintf("%s__course-meta post-card__meta", prefix)
+	metaItemClass := fmt.Sprintf("%s__course-meta-item courses-list__meta-item", prefix)
+	durationClass := fmt.Sprintf("%s__course-duration courses-list__duration", prefix)
+	descriptionClass := fmt.Sprintf("%s__course-description post-card__description", prefix)
+	topicsClass := fmt.Sprintf("%s__course-topics post-card__tags courses-list__topics", prefix)
+	topicItemClass := fmt.Sprintf("%s__course-topic post-card__tag", prefix)
+	topicNameClass := fmt.Sprintf("%s__course-topic-name post-card__tag-link post-card__tag-link--static", prefix)
+	topicMetaClass := fmt.Sprintf("%s__course-topic-meta courses-list__topic-meta", prefix)
 
 	cards := make([]courseCardTemplateData, 0, len(packages))
 
@@ -551,124 +790,247 @@ func (h *TemplateHandler) renderCatalogCoursesList(prefix string, section models
 		cards = append(cards, card)
 	}
 
-	if len(cards) == 0 {
-		return `<p class="` + emptyClass + `">No courses available yet. Check back soon!</p>`
-	}
-
-	data := coursesListTemplateData{
-		ListClass: listClass,
-		Cards:     cards,
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "components/courses-list", data); err != nil {
-		logger.Error(err, "Failed to render courses list template", map[string]interface{}{"section_id": section.ID})
-		return `<p class="` + emptyClass + `">Unable to display courses at the moment.</p>`
-	}
-
-	return buf.String()
+	return cards
 }
 
-func (h *TemplateHandler) renderOwnedCoursesList(prefix string, section models.Section) string {
-	data := extractOwnedCourseSectionData(section)
+func clampCourseListLimit(limit int) int {
+	if limit <= 0 {
+		return constants.DefaultCourseListSectionLimit
+	}
+	if limit > constants.MaxCourseListSectionLimit {
+		return constants.MaxCourseListSectionLimit
+	}
+	return limit
+}
 
-	emptyMessage := strings.TrimSpace(data.EmptyMessage)
-	if emptyMessage == "" {
-		emptyMessage = defaultOwnedCoursesEmptyMessage
+func parseCourseListSettings(section models.Section) courseListDisplaySettings {
+	settings := courseListDisplaySettings{
+		DisplayMode: constants.CourseListDisplayLimited,
+		PerPage:     clampCourseListLimit(section.Limit),
+		PageParam:   courseListPageParam(section),
 	}
 
-	courses := data.Courses
-	limit := section.Limit
-	if limit > 0 && limit < len(courses) {
-		courses = courses[:limit]
+	rawSettings := section.Settings
+	if rawSettings == nil {
+		return settings
 	}
 
-	entries := buildProfileCourseEntries(courses)
-	cards := make([]courseCardTemplateData, 0, len(entries))
-
-	for i := range entries {
-		entry := entries[i]
-		pkg := courses[i].Package
-
-		headingID := fmt.Sprintf("%s-course-%d-title", prefix, i+1)
-		description := strings.TrimSpace(pkg.Summary)
-		if description == "" {
-			description = strings.TrimSpace(pkg.Description)
+	if displayMode, ok := rawSettings["display_mode"]; ok {
+		mode := strings.TrimSpace(strings.ToLower(fmt.Sprint(displayMode)))
+		switch mode {
+		case constants.CourseListDisplayPaginated, constants.CourseListDisplaySelected, constants.CourseListDisplayLimited:
+			settings.DisplayMode = mode
 		}
-		sanitizedDescription := strings.TrimSpace(h.SanitizeHTML(description))
-		descriptionHTML := template.HTML("")
-		descriptionID := ""
-		if sanitizedDescription != "" {
-			descriptionID = fmt.Sprintf("%s-course-%d-description", prefix, i+1)
-			descriptionHTML = template.HTML(sanitizedDescription)
+	}
+
+	if rawSelected, ok := rawSettings["selected_courses"]; ok {
+		settings.SelectedIdentifiers = parseCourseIdentifiers(rawSelected)
+	}
+	if rawSelected, ok := rawSettings["selected_course_ids"]; ok {
+		merged := append(settings.SelectedIdentifiers, parseCourseIdentifiers(rawSelected)...)
+		settings.SelectedIdentifiers = parseCourseIdentifiers(merged)
+	}
+
+	if rawShowAll, ok := rawSettings["show_all_button"]; ok {
+		settings.ShowAllButton = boolFromSetting(rawShowAll)
+	}
+	if rawURL, ok := rawSettings["all_courses_url"]; ok {
+		settings.AllCoursesURL = strings.TrimSpace(fmt.Sprint(rawURL))
+	}
+	if rawLabel, ok := rawSettings["all_courses_label"]; ok {
+		settings.AllCoursesLabel = strings.TrimSpace(fmt.Sprint(rawLabel))
+	}
+
+	return settings
+}
+
+func courseListPageParam(section models.Section) string {
+	if key := normaliseQueryKey(section.ID); key != "" {
+		return key + "_page"
+	}
+	return "courses_page"
+}
+
+func normaliseQueryKey(raw string) string {
+	trimmed := strings.TrimSpace(strings.ToLower(raw))
+	if trimmed == "" {
+		return ""
+	}
+
+	var builder strings.Builder
+	for _, r := range trimmed {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+			builder.WriteRune(r)
+		}
+	}
+
+	return builder.String()
+}
+
+func courseListPageFromContext(c *gin.Context, param string) int {
+	if param == "" || c == nil {
+		return 1
+	}
+
+	raw := strings.TrimSpace(c.Query(param))
+	if raw == "" && param != "courses_page" {
+		raw = strings.TrimSpace(c.Query("courses_page"))
+	}
+	if raw == "" {
+		return 1
+	}
+
+	page, err := strconv.Atoi(raw)
+	if err != nil || page < 1 {
+		return 1
+	}
+	return page
+}
+
+func buildCourseListPageURL(c *gin.Context, param string, page int) string {
+	if c == nil || c.Request == nil || c.Request.URL == nil || param == "" {
+		return ""
+	}
+
+	values := url.Values{}
+	for key, vals := range c.Request.URL.Query() {
+		for _, val := range vals {
+			values.Add(key, val)
+		}
+	}
+
+	if page <= 1 {
+		values.Del(param)
+	} else {
+		values.Set(param, strconv.Itoa(page))
+	}
+
+	cloned := *c.Request.URL
+	cloned.RawQuery = values.Encode()
+	return cloned.String()
+}
+
+func boolFromSetting(value interface{}) bool {
+	switch v := value.(type) {
+	case bool:
+		return v
+	case string:
+		switch strings.TrimSpace(strings.ToLower(v)) {
+		case "1", "true", "yes", "on":
+			return true
+		default:
+			return false
+		}
+	case int:
+		return v != 0
+	case int64:
+		return v != 0
+	case float64:
+		return v != 0
+	default:
+		return false
+	}
+}
+
+func parseCourseIdentifiers(value interface{}) []string {
+	switch v := value.(type) {
+	case nil:
+		return nil
+	case string:
+		return splitIdentifiers(v)
+	case []string:
+		return splitIdentifiers(v)
+	case []interface{}:
+		values := make([]string, 0, len(v))
+		for _, item := range v {
+			values = append(values, fmt.Sprint(item))
+		}
+		return splitIdentifiers(values)
+	default:
+		return splitIdentifiers(fmt.Sprint(v))
+	}
+}
+
+func splitIdentifiers(value interface{}) []string {
+	values := make([]string, 0)
+
+	switch v := value.(type) {
+	case string:
+		chunks := strings.FieldsFunc(v, func(r rune) bool {
+			return r == ',' || r == ';' || r == '\n' || r == '\r'
+		})
+		for _, chunk := range chunks {
+			values = append(values, chunk)
+		}
+	case []string:
+		values = append(values, v...)
+	}
+
+	result := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+
+	for _, raw := range values {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			continue
+		}
+		key := strings.ToLower(trimmed)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, trimmed)
+	}
+
+	return result
+}
+
+func filterSelectedPackages(all []models.CoursePackage, identifiers []string) []models.CoursePackage {
+	if len(identifiers) == 0 || len(all) == 0 {
+		return nil
+	}
+
+	byID := make(map[uint]models.CoursePackage, len(all))
+	bySlug := make(map[string]models.CoursePackage, len(all))
+
+	for _, pkg := range all {
+		if pkg.ID > 0 {
+			byID[pkg.ID] = pkg
+		}
+		if slug := strings.TrimSpace(strings.ToLower(pkg.Slug)); slug != "" {
+			bySlug[slug] = pkg
+		}
+	}
+
+	result := make([]models.CoursePackage, 0, len(identifiers))
+	seen := make(map[uint]struct{}, len(identifiers))
+
+	for _, raw := range identifiers {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			continue
 		}
 
-		metaItems := make([]courseCardMetaItem, 0, len(entry.MetaItems))
-		for _, item := range entry.MetaItems {
-			metaClass := strings.TrimSpace(item.Class)
-			if metaClass == "" {
-				metaClass = "profile-course__meta-item"
-			} else if !strings.Contains(metaClass, "profile-course__meta-item") {
-				metaClass = strings.TrimSpace(metaClass + " profile-course__meta-item")
+		if id, err := strconv.ParseUint(trimmed, 10, 64); err == nil && id > 0 {
+			if pkg, ok := byID[uint(id)]; ok {
+				if _, exists := seen[pkg.ID]; !exists {
+					result = append(result, pkg)
+					seen[pkg.ID] = struct{}{}
+				}
+				continue
 			}
-			metaItems = append(metaItems, courseCardMetaItem{
-				Class: metaClass,
-				Label: item.Label,
-				Time:  item.Time,
-			})
 		}
 
-		card := courseCardTemplateData{
-			Element:          entry.Element,
-			Href:             entry.Href,
-			CardClass:        strings.TrimSpace("profile-course post-card" + entry.CardModifier),
-			MediaClass:       "profile-course__media post-card__figure",
-			ImageClass:       "profile-course__image post-card__image",
-			ContentClass:     "profile-course__content post-card__content",
-			TitleClass:       "profile-course__title post-card__title",
-			MetaClass:        "profile-course__meta post-card__meta",
-			DescriptionClass: "profile-course__description post-card__description",
-			DescriptionTag:   "p",
-			HeadingID:        headingID,
-			DescriptionID:    descriptionID,
-			HasCourseID:      entry.HasCourseID,
-			CourseID:         entry.CourseID,
-			Description:      descriptionHTML,
-			MetaItems:        metaItems,
-			Image:            entry.Image,
-			Interactive:      false,
+		key := strings.ToLower(trimmed)
+		if pkg, ok := bySlug[key]; ok {
+			if _, exists := seen[pkg.ID]; !exists {
+				result = append(result, pkg)
+				seen[pkg.ID] = struct{}{}
+			}
 		}
-
-		cards = append(cards, card)
 	}
 
-	containerID := strings.TrimSpace(section.ID)
-	if containerID == "" {
-		containerID = fmt.Sprintf("%s-courses", prefix)
-	}
-
-	tmpl, err := h.templateClone()
-	if err != nil {
-		logger.Error(err, "Failed to clone templates for owned course list", map[string]interface{}{"section_id": section.ID})
-		return `<p class="profile-courses__empty courses-list__empty">` + template.HTMLEscapeString(emptyMessage) + `</p>`
-	}
-
-	dataTemplate := profileCoursesTemplateData{
-		ContainerID:  containerID,
-		EmptyMessage: emptyMessage,
-		ListClass:    "profile-courses__list courses-list",
-		EmptyClass:   "profile-courses__empty courses-list__empty",
-		Cards:        cards,
-		Limit:        limit,
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "components/profile-courses", dataTemplate); err != nil {
-		logger.Error(err, "Failed to render owned courses list template", map[string]interface{}{"section_id": section.ID})
-		return `<p class="profile-courses__empty courses-list__empty">` + template.HTMLEscapeString(emptyMessage) + `</p>`
-	}
-
-	return buf.String()
+	return result
 }
 
 type courseModalLesson struct {
@@ -1022,9 +1384,9 @@ func coursePackageStats(pkg models.CoursePackage) (topics int, lessons int, dura
 
 // renderSpecialSection handles section types that need special rendering (posts_list, categories_list, courses_list).
 // Returns HTML and scripts if the section type is handled, empty strings otherwise.
-func (h *TemplateHandler) renderSpecialSection(prefix string, section models.Section, sectionType string) (string, []string) {
+func (h *TemplateHandler) renderSpecialSection(prefix string, section models.Section, sectionType string, c *gin.Context) (string, []string) {
 	if sectionType == "courses_list" {
-		html := h.renderCoursesListSection(prefix, section)
+		html := h.renderCoursesListSection(prefix, section, c)
 
 		mode := strings.TrimSpace(strings.ToLower(section.Mode))
 		if mode == "" {
@@ -1058,7 +1420,7 @@ func (h *TemplateHandler) renderSpecialSection(prefix string, section models.Sec
 	return "", nil
 }
 
-func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement) (string, []string) {
+func (h *TemplateHandler) renderSectionElement(prefix string, elem models.SectionElement, _ *gin.Context) (string, []string) {
 	if h == nil {
 		return "", nil
 	}

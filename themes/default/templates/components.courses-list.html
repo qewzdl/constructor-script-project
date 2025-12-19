@@ -1,8 +1,21 @@
 {{ define "components/courses-list" }}
-    {{- if and .ListClass .Cards }}
+    {{- $hasList := and .ListClass .Cards }}
+    {{- if $hasList }}
     <div class="{{ .ListClass }}">
         {{- range .Cards }}
             {{- template "components/course-card" . }}
+        {{- end }}
+    </div>
+    {{- end }}
+    {{- if and $hasList (or .Pagination .SeeAll) }}
+    <div class="courses-list__actions">
+        {{- if .SeeAll }}
+        <a class="button button--secondary courses-list__see-all" href="{{ .SeeAll.URL }}">
+            {{ default "All courses" .SeeAll.Label }}
+        </a>
+        {{- end }}
+        {{- if .Pagination }}
+            {{ template "components/pagination" .Pagination }}
         {{- end }}
     </div>
     {{- end }}

@@ -207,31 +207,47 @@
     }
 
     if (coursesEnabled) {
-        ensureRegistered('courses_list', {
+        register('courses_list', {
             label: 'Courses list',
             order: 22,
             supportsElements: false,
             description: 'Highlights available course packages with pricing and topics.',
             settings: {
+                display_mode: {
+                    label: 'Display mode',
+                    type: 'select',
+                    options: [
+                        { value: 'limited', label: 'Limited (latest courses)' },
+                        { value: 'paginated', label: 'Paginated (all courses)' },
+                        { value: 'selected', label: 'Selected courses' },
+                    ],
+                    defaultValue: 'limited',
+                },
                 limit: {
                     label: 'Number of courses to display',
                     min: 1,
                     max: 12,
                     default: 3,
                 },
-                mode: {
-                    label: 'Courses to show',
-                    options: [
-                        {
-                            value: 'catalog',
-                            label: 'Available for purchase',
-                        },
-                        {
-                            value: 'owned',
-                            label: 'Assigned to the current user',
-                        },
-                    ],
-                    defaultValue: 'catalog',
+                selected_courses: {
+                    label: 'Selected course IDs or slugs',
+                    type: 'textarea',
+                    placeholder: 'e.g. 12, advanced-go, 5',
+                },
+                show_all_button: {
+                    label: 'Show link to all courses',
+                    type: 'boolean',
+                    defaultValue: 'false',
+                },
+                all_courses_url: {
+                    label: 'All courses link',
+                    type: 'url',
+                    placeholder: '/courses',
+                    allowAnchorPicker: true,
+                },
+                all_courses_label: {
+                    label: 'All courses link label',
+                    placeholder: 'View all courses',
                 },
             },
         });

@@ -50,12 +50,17 @@ func (d SectionDefinition) AllowedElementSet() map[string]struct{} {
 
 // SectionSettingDefinition describes additional configuration for a section type.
 type SectionSettingDefinition struct {
-	Label        string                 `json:"label,omitempty"`
-	Min          *int                   `json:"min,omitempty"`
-	Max          *int                   `json:"max,omitempty"`
-	Default      *int                   `json:"default,omitempty"`
-	Options      []SectionSettingOption `json:"options,omitempty"`
-	DefaultValue string                 `json:"default_value,omitempty"`
+	Label             string                 `json:"label,omitempty"`
+	Type              string                 `json:"type,omitempty"`
+	Placeholder       string                 `json:"placeholder,omitempty"`
+	Min               *int                   `json:"min,omitempty"`
+	Max               *int                   `json:"max,omitempty"`
+	Default           *int                   `json:"default,omitempty"`
+	Options           []SectionSettingOption `json:"options,omitempty"`
+	DefaultValue      string                 `json:"default_value,omitempty"`
+	Required          bool                   `json:"required,omitempty"`
+	AllowMediaBrowse  bool                   `json:"allowMediaBrowse,omitempty"`
+	AllowAnchorPicker bool                   `json:"allowAnchorPicker,omitempty"`
 }
 
 // SectionSettingOption represents a selectable option for a section setting.
@@ -175,6 +180,12 @@ func mergeSectionSetting(base, override SectionSettingDefinition) SectionSetting
 	if override.Label != "" {
 		result.Label = override.Label
 	}
+	if override.Type != "" {
+		result.Type = override.Type
+	}
+	if override.Placeholder != "" {
+		result.Placeholder = override.Placeholder
+	}
 	if override.Min != nil {
 		result.Min = override.Min
 	}
@@ -191,6 +202,15 @@ func mergeSectionSetting(base, override SectionSettingDefinition) SectionSetting
 	}
 	if override.DefaultValue != "" {
 		result.DefaultValue = override.DefaultValue
+	}
+	if override.Required {
+		result.Required = true
+	}
+	if override.AllowMediaBrowse {
+		result.AllowMediaBrowse = true
+	}
+	if override.AllowAnchorPicker {
+		result.AllowAnchorPicker = true
 	}
 
 	return result
@@ -523,10 +543,32 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 					Min:     &courseLimitMin,
 					Max:     &courseLimitMax,
 				},
-				"mode": {
-					Label:        "Courses to show",
-					Options:      []SectionSettingOption{{Value: constants.CourseListModeCatalog, Label: "Available for purchase"}, {Value: constants.CourseListModeOwned, Label: "Assigned to the current user"}},
-					DefaultValue: constants.CourseListModeCatalog,
+				"display_mode": {
+					Label:        "Display mode",
+					Type:         "select",
+					Options:      []SectionSettingOption{{Value: constants.CourseListDisplayLimited, Label: "Limited (latest courses)"}, {Value: constants.CourseListDisplayPaginated, Label: "Paginated (all courses)"}, {Value: constants.CourseListDisplaySelected, Label: "Selected courses"}},
+					DefaultValue: constants.CourseListDisplayLimited,
+				},
+				"selected_courses": {
+					Label:       "Selected course IDs or slugs",
+					Type:        "textarea",
+					Placeholder: "e.g. 12, advanced-go, 5",
+				},
+				"show_all_button": {
+					Label:        "Show link to all courses",
+					Type:         "boolean",
+					DefaultValue: "false",
+				},
+				"all_courses_url": {
+					Label:             "All courses link",
+					Type:              "url",
+					Placeholder:       "/courses",
+					AllowAnchorPicker: true,
+				},
+				"all_courses_label": {
+					Label:       "All courses link label",
+					Type:        "text",
+					Placeholder: "View all courses",
 				},
 			},
 		},
