@@ -2518,6 +2518,9 @@ body.post-image-modal-open .post-progress {
     justify-content: center;
     gap: var(--size-base);
     font-size: var(--font-size-sm);
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 .pagination__button {

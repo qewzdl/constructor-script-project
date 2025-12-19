@@ -79,21 +79,12 @@
 
 .courses-list__actions {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
     gap: var(--size-sm);
     margin-top: var(--size-lg);
-    flex-wrap: wrap;
 }
 
 .courses-list__see-all {
-    margin-right: auto;
-}
-
-.courses-list__actions .pagination {
-    width: 100%;
-}
-
-.courses-list__actions .pagination .pagination__list {
-    list-style: none;
+    margin-right: 0;
 }

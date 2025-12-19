@@ -9,13 +9,13 @@
     {{- end }}
     {{- if and $hasList (or .Pagination .SeeAll) }}
     <div class="courses-list__actions">
+        {{- if .Pagination }}
+            {{ template "components/pagination" .Pagination }}
+        {{- end }}
         {{- if .SeeAll }}
         <a class="button button--secondary courses-list__see-all" href="{{ .SeeAll.URL }}">
             {{ default "All courses" .SeeAll.Label }}
         </a>
-        {{- end }}
-        {{- if .Pagination }}
-            {{ template "components/pagination" .Pagination }}
         {{- end }}
     </div>
     {{- end }}
