@@ -2527,6 +2527,11 @@ body.post-image-modal-open .post-progress {
     color: var(--color-text);
 }
 
+.pagination__button--spacer {
+    visibility: hidden;
+    pointer-events: none;
+}
+
 .pagination__button:hover {
     border-color: var(--color-primary);
     color: var(--color-primary);

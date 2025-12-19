@@ -9,6 +9,12 @@
                     {{ default "← Previous" .PrevLabel }}
                 </a>
             </li>
+            {{ else }}
+            <li aria-hidden="true">
+                <span class="pagination__button pagination__button--prev pagination__button--spacer">
+                    {{ default "← Previous" .PrevLabel }}
+                </span>
+            </li>
             {{ end }}
             <li class="pagination__info" aria-current="page">
                 {{ default (printf "Page %d of %d" .CurrentPage $total) .InfoLabel }}
@@ -18,6 +24,12 @@
                 <a href="{{ .NextURL }}" class="pagination__button pagination__button--next" rel="next">
                     {{ default "Next →" .NextLabel }}
                 </a>
+            </li>
+            {{ else }}
+            <li aria-hidden="true">
+                <span class="pagination__button pagination__button--next pagination__button--spacer">
+                    {{ default "Next →" .NextLabel }}
+                </span>
             </li>
             {{ end }}
         </ul>
