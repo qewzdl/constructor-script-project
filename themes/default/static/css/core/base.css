@@ -2516,7 +2516,7 @@ body.post-image-modal-open .post-progress {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--size-sm);
+    gap: var(--size-base);
     font-size: var(--font-size-sm);
 }
 
