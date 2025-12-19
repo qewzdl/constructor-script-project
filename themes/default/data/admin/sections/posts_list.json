@@ -5,11 +5,37 @@
     "description": "Automatically displays the most recent blog posts.",
     "supports_elements": false,
     "settings": {
+        "display_mode": {
+            "label": "Display mode",
+            "type": "select",
+            "options": [
+                {
+                    "value": "limited",
+                    "label": "Limited (latest posts)"
+                },
+                {
+                    "value": "paginated",
+                    "label": "Paginated (all posts)"
+                },
+                {
+                    "value": "selected",
+                    "label": "Selected posts"
+                }
+            ],
+            "default_value": "limited"
+        },
         "limit": {
             "label": "Number of posts to display",
+            "perPageLabel": "Number of posts to display on a page",
             "default": 6,
             "min": 1,
             "max": 24
+        },
+        "selected_posts": {
+            "label": "Selected posts",
+            "type": "text",
+            "placeholder": "Choose posts to feature",
+            "allowPostPicker": true
         }
     }
 }

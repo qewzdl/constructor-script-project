@@ -599,6 +599,23 @@ func (s *PostService) GetBySlug(slug string) (*models.Post, error) {
 	return post, nil
 }
 
+// GetByIdentifier fetches a post by slug or numeric ID without tracking views.
+func (s *PostService) GetByIdentifier(identifier string) (*models.Post, error) {
+	if s == nil || s.postRepo == nil {
+		return nil, errors.New("post repository not configured")
+	}
+
+	trimmed := strings.TrimSpace(identifier)
+	if trimmed == "" {
+		return nil, errors.New("identifier is empty")
+	}
+	if id, err := strconv.ParseUint(trimmed, 10, 64); err == nil {
+		return s.postRepo.GetByID(uint(id))
+	}
+	slug := strings.ToLower(trimmed)
+	return s.postRepo.GetBySlug(slug)
+}
+
 func (s *PostService) trackPostView(post *models.Post) {
 	if post == nil {
 		return

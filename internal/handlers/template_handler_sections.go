@@ -219,62 +219,6 @@ func clampSectionMarginValue(value int) int {
 	return closest
 }
 
-func (h *TemplateHandler) renderPostsListSection(prefix string, section models.Section) string {
-	listClass := fmt.Sprintf("%s__post-list", prefix)
-	emptyClass := fmt.Sprintf("%s__post-list-empty", prefix)
-	cardClass := fmt.Sprintf("%s__post-card post-card", prefix)
-
-	limit := section.Limit
-	if limit <= 0 {
-		limit = constants.DefaultPostListSectionLimit
-	}
-	if limit > constants.MaxPostListSectionLimit {
-		limit = constants.MaxPostListSectionLimit
-	}
-
-	if h.postService == nil {
-		return `<p class="` + emptyClass + `">Posts are not available right now.</p>`
-	}
-
-	posts, err := h.postService.GetRecentPosts(limit)
-	if err != nil {
-		logger.Error(err, "Failed to load posts for section", map[string]interface{}{"section_id": section.ID})
-		return `<p class="` + emptyClass + `">Unable to load posts at the moment. Please try again later.</p>`
-	}
-
-	if len(posts) == 0 {
-		return `<p class="` + emptyClass + `">No posts available yet. Check back soon!</p>`
-	}
-
-	tmpl, err := h.templateClone()
-	if err != nil {
-		logger.Error(err, "Failed to clone templates for post list section", map[string]interface{}{"section_id": section.ID})
-		return `<p class="` + emptyClass + `">Unable to display posts at the moment.</p>`
-	}
-
-	var sb strings.Builder
-	sb.WriteString(`<div class="` + listClass + `">`)
-	rendered := 0
-	for i := range posts {
-		post := posts[i]
-		titleID := fmt.Sprintf("%s-post-%d", prefix, i+1)
-		card, renderErr := h.renderPostCard(tmpl, &post, cardClass, titleID)
-		if renderErr != nil {
-			logger.Error(renderErr, "Failed to render post card", map[string]interface{}{"post_id": post.ID, "section_id": section.ID})
-			continue
-		}
-		sb.WriteString(card)
-		rendered++
-	}
-	sb.WriteString(`</div>`)
-
-	if rendered == 0 {
-		return `<p class="` + emptyClass + `">Unable to display posts at the moment.</p>`
-	}
-
-	return sb.String()
-}
-
 func (h *TemplateHandler) renderCategoriesListSection(prefix string, section models.Section) string {
 	emptyClass := fmt.Sprintf("%s__category-list-empty content__empty", prefix)
 
@@ -382,6 +326,17 @@ type courseListDisplaySettings struct {
 	ShowAllButton       bool
 	AllCoursesURL       string
 	AllCoursesLabel     string
+	SelectedIdentifiers []string
+	PageParam           string
+}
+
+type postsListRenderOptions struct {
+	Pagination gin.H
+}
+
+type postListDisplaySettings struct {
+	DisplayMode         string
+	PerPage             int
 	SelectedIdentifiers []string
 	PageParam           string
 }
@@ -648,6 +603,181 @@ func (h *TemplateHandler) renderCourseListContent(prefix string, section models.
 	return buf.String()
 }
 
+func (h *TemplateHandler) renderPostsListSection(prefix string, section models.Section, c *gin.Context) string {
+	emptyClass := fmt.Sprintf("%s__post-list-empty posts-list__empty", prefix)
+	if h == nil || h.postService == nil {
+		return `<p class="` + emptyClass + `">Posts are not available right now.</p>`
+	}
+
+	settings := parsePostListSettings(section)
+
+	switch settings.DisplayMode {
+	case constants.PostListDisplayPaginated:
+		return h.renderPaginatedPostsList(prefix, section, settings, c)
+	case constants.PostListDisplaySelected:
+		return h.renderSelectedPostsList(prefix, section, settings, c)
+	default:
+		return h.renderLimitedPostsList(prefix, section, settings.PerPage)
+	}
+}
+
+func (h *TemplateHandler) renderLimitedPostsList(prefix string, section models.Section, limit int) string {
+	emptyClass := fmt.Sprintf("%s__post-list-empty posts-list__empty", prefix)
+	postSvc := h.postService
+	if postSvc == nil {
+		return `<p class="` + emptyClass + `">Posts are not available right now.</p>`
+	}
+
+	limit = clampPostListLimit(limit)
+	if limit <= 0 {
+		limit = constants.DefaultPostListSectionLimit
+	}
+	posts, err := postSvc.GetRecentPosts(limit)
+	if err != nil {
+		logger.Error(err, "Failed to load posts for section", map[string]interface{}{"section_id": section.ID})
+		return `<p class="` + emptyClass + `">Unable to load posts at the moment. Please try again later.</p>`
+	}
+
+	return h.renderPostListContent(prefix, posts, postsListRenderOptions{})
+}
+
+func (h *TemplateHandler) renderPaginatedPostsList(prefix string, section models.Section, settings postListDisplaySettings, c *gin.Context) string {
+	emptyClass := fmt.Sprintf("%s__post-list-empty posts-list__empty", prefix)
+	postSvc := h.postService
+	if postSvc == nil {
+		return `<p class="` + emptyClass + `">Posts are not available right now.</p>`
+	}
+
+	perPage := clampPostListLimit(settings.PerPage)
+	if perPage <= 0 {
+		perPage = clampPostListLimit(constants.DefaultPostListSectionLimit)
+	}
+
+	currentPage := postListPageFromContext(c, settings.PageParam)
+	if currentPage < 1 {
+		currentPage = 1
+	}
+
+	posts, total, err := postSvc.GetAll(currentPage, perPage, nil, nil, nil)
+	if err != nil {
+		logger.Error(err, "Failed to load posts for section", map[string]interface{}{"section_id": section.ID})
+		return `<p class="` + emptyClass + `">Unable to load posts at the moment. Please try again later.</p>`
+	}
+
+	if total == 0 || len(posts) == 0 {
+		return `<p class="` + emptyClass + `">No posts available yet. Check back soon!</p>`
+	}
+
+	totalPages := int((total + int64(perPage) - 1) / int64(perPage))
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	if currentPage > totalPages {
+		currentPage = totalPages
+	}
+
+	pagination := h.buildPagination(currentPage, totalPages, func(page int) string {
+		return buildPostListPageURL(c, settings.PageParam, page)
+	})
+
+	return h.renderPostListContent(prefix, posts, postsListRenderOptions{
+		Pagination: pagination,
+	})
+}
+
+func (h *TemplateHandler) renderSelectedPostsList(prefix string, section models.Section, settings postListDisplaySettings, c *gin.Context) string {
+	emptyClass := fmt.Sprintf("%s__post-list-empty posts-list__empty", prefix)
+
+	posts := h.loadSelectedPosts(settings.SelectedIdentifiers)
+	if len(posts) == 0 {
+		return `<p class="` + emptyClass + `">No posts available yet. Check back soon!</p>`
+	}
+
+	perPage := clampPostListLimit(settings.PerPage)
+	if perPage <= 0 {
+		perPage = clampPostListLimit(constants.DefaultPostListSectionLimit)
+	}
+
+	total := len(posts)
+	totalPages := (total + perPage - 1) / perPage
+	currentPage := postListPageFromContext(c, settings.PageParam)
+	if currentPage > totalPages {
+		currentPage = totalPages
+	}
+	if currentPage < 1 {
+		currentPage = 1
+	}
+
+	start := (currentPage - 1) * perPage
+	if start > total {
+		start = total
+	}
+	end := start + perPage
+	if end > total {
+		end = total
+	}
+	pagePosts := posts[start:end]
+
+	pagination := h.buildPagination(currentPage, totalPages, func(page int) string {
+		return buildPostListPageURL(c, settings.PageParam, page)
+	})
+
+	return h.renderPostListContent(prefix, pagePosts, postsListRenderOptions{
+		Pagination: pagination,
+	})
+}
+
+func (h *TemplateHandler) renderPostListContent(prefix string, posts []models.Post, opts postsListRenderOptions) string {
+	emptyClass := fmt.Sprintf("%s__post-list-empty posts-list__empty", prefix)
+	if len(posts) == 0 {
+		return `<p class="` + emptyClass + `">No posts available yet. Check back soon!</p>`
+	}
+
+	tmpl, err := h.templateClone()
+	if err != nil {
+		logger.Error(err, "Failed to clone templates for post list section", map[string]interface{}{"prefix": prefix})
+		return `<p class="` + emptyClass + `">Unable to display posts at the moment.</p>`
+	}
+
+	listClass := fmt.Sprintf("%s__post-list posts-list", prefix)
+	cardClass := fmt.Sprintf("%s__post-card post-card", prefix)
+
+	var sb strings.Builder
+	sb.WriteString(`<div class="` + listClass + `">`)
+	rendered := 0
+	for i := range posts {
+		post := posts[i]
+		titleID := fmt.Sprintf("%s-post-%d", prefix, i+1)
+		data := map[string]interface{}{
+			"Post":         &post,
+			"WrapperClass": cardClass,
+			"TitleID":      titleID,
+			"Heading":      "h3",
+			"LazyLoad":     true,
+		}
+		var buf strings.Builder
+		if err := tmpl.ExecuteTemplate(&buf, "components/post-card", data); err != nil {
+			logger.Error(err, "Failed to render post card", map[string]interface{}{"post_id": post.ID})
+			continue
+		}
+		sb.WriteString(buf.String())
+		rendered++
+	}
+	sb.WriteString(`</div>`)
+
+	if rendered == 0 {
+		return `<p class="` + emptyClass + `">Unable to display posts at the moment.</p>`
+	}
+
+	if len(opts.Pagination) > 0 {
+		if err := tmpl.ExecuteTemplate(&sb, "components/pagination", opts.Pagination); err != nil {
+			logger.Error(err, "Failed to render post list pagination", map[string]interface{}{"prefix": prefix})
+		}
+	}
+
+	return sb.String()
+}
+
 func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.CoursePackage) []courseCardTemplateData {
 	const maxTopicsPerCourse = 6
 
@@ -803,6 +933,16 @@ func clampCourseListLimit(limit int) int {
 	return limit
 }
 
+func clampPostListLimit(limit int) int {
+	if limit <= 0 {
+		return constants.DefaultPostListSectionLimit
+	}
+	if limit > constants.MaxPostListSectionLimit {
+		return constants.MaxPostListSectionLimit
+	}
+	return limit
+}
+
 func parseCourseListSettings(section models.Section) courseListDisplaySettings {
 	settings := courseListDisplaySettings{
 		DisplayMode: constants.CourseListDisplayLimited,
@@ -844,11 +984,45 @@ func parseCourseListSettings(section models.Section) courseListDisplaySettings {
 	return settings
 }
 
+func parsePostListSettings(section models.Section) postListDisplaySettings {
+	settings := postListDisplaySettings{
+		DisplayMode: constants.PostListDisplayLimited,
+		PerPage:     clampPostListLimit(section.Limit),
+		PageParam:   postListPageParam(section),
+	}
+
+	rawSettings := section.Settings
+	if rawSettings == nil {
+		return settings
+	}
+
+	if displayMode, ok := rawSettings["display_mode"]; ok {
+		mode := strings.TrimSpace(strings.ToLower(fmt.Sprint(displayMode)))
+		switch mode {
+		case constants.PostListDisplayPaginated, constants.PostListDisplaySelected, constants.PostListDisplayLimited:
+			settings.DisplayMode = mode
+		}
+	}
+
+	if rawSelected, ok := rawSettings["selected_posts"]; ok {
+		settings.SelectedIdentifiers = parsePostIdentifiers(rawSelected)
+	}
+
+	return settings
+}
+
 func courseListPageParam(section models.Section) string {
 	if key := normaliseQueryKey(section.ID); key != "" {
 		return key + "_page"
 	}
 	return "courses_page"
+}
+
+func postListPageParam(section models.Section) string {
+	if key := normaliseQueryKey(section.ID); key != "" {
+		return key + "_page"
+	}
+	return "posts_page"
 }
 
 func normaliseQueryKey(raw string) string {
@@ -910,6 +1084,90 @@ func buildCourseListPageURL(c *gin.Context, param string, page int) string {
 	return cloned.String()
 }
 
+func postListPageFromContext(c *gin.Context, param string) int {
+	if param == "" || c == nil {
+		return 1
+	}
+
+	raw := strings.TrimSpace(c.Query(param))
+	if raw == "" && param != "posts_page" {
+		raw = strings.TrimSpace(c.Query("posts_page"))
+	}
+	if raw == "" {
+		return 1
+	}
+	page, err := strconv.Atoi(raw)
+	if err != nil || page < 1 {
+		return 1
+	}
+	return page
+}
+
+func buildPostListPageURL(c *gin.Context, param string, page int) string {
+	if c == nil || c.Request == nil || c.Request.URL == nil || param == "" {
+		return ""
+	}
+
+	values := url.Values{}
+	for key, vals := range c.Request.URL.Query() {
+		for _, val := range vals {
+			values.Add(key, val)
+		}
+	}
+
+	if page <= 1 {
+		values.Del(param)
+	} else {
+		values.Set(param, strconv.Itoa(page))
+	}
+
+	cloned := *c.Request.URL
+	cloned.RawQuery = values.Encode()
+	return cloned.String()
+}
+
+func (h *TemplateHandler) loadSelectedPosts(identifiers []string) []models.Post {
+	postSvc := h.postService
+	if postSvc == nil || len(identifiers) == 0 {
+		return nil
+	}
+
+	result := make([]models.Post, 0, len(identifiers))
+	seenIDs := make(map[uint]struct{})
+	seenSlugs := make(map[string]struct{})
+
+	for _, raw := range identifiers {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			continue
+		}
+		post, err := postSvc.GetByIdentifier(trimmed)
+		if err != nil || post == nil {
+			continue
+		}
+		if !post.Published {
+			continue
+		}
+		if post.ID > 0 {
+			if _, exists := seenIDs[post.ID]; exists {
+				continue
+			}
+			seenIDs[post.ID] = struct{}{}
+		} else {
+			slug := strings.TrimSpace(strings.ToLower(post.Slug))
+			if slug != "" {
+				if _, exists := seenSlugs[slug]; exists {
+					continue
+				}
+				seenSlugs[slug] = struct{}{}
+			}
+		}
+		result = append(result, *post)
+	}
+
+	return result
+}
+
 func boolFromSetting(value interface{}) bool {
 	switch v := value.(type) {
 	case bool:
@@ -933,6 +1191,14 @@ func boolFromSetting(value interface{}) bool {
 }
 
 func parseCourseIdentifiers(value interface{}) []string {
+	return parseIdentifiers(value)
+}
+
+func parsePostIdentifiers(value interface{}) []string {
+	return parseIdentifiers(value)
+}
+
+func parseIdentifiers(value interface{}) []string {
 	switch v := value.(type) {
 	case nil:
 		return nil
@@ -1399,6 +1665,11 @@ func (h *TemplateHandler) renderSpecialSection(prefix string, section models.Sec
 		}
 
 		return html, scripts
+	}
+
+	if sectionType == "posts_list" {
+		html := h.renderPostsListSection(prefix, section, c)
+		return html, nil
 	}
 
 	// Create a pseudo element to pass the section data to the renderer

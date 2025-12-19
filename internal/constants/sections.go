@@ -11,6 +11,13 @@ const (
 	// MaxCategoryListSectionLimit defines an upper bound for category list sections to keep navigation manageable.
 	MaxCategoryListSectionLimit = 30
 
+	// PostListDisplayLimited shows a capped number of the most recent posts.
+	PostListDisplayLimited = "limited"
+	// PostListDisplayPaginated shows all posts with pagination.
+	PostListDisplayPaginated = "paginated"
+	// PostListDisplaySelected shows only administrator-selected posts (with optional pagination).
+	PostListDisplaySelected = "selected"
+
 	// DefaultCourseListSectionLimit defines the default number of courses shown in a course list section.
 	DefaultCourseListSectionLimit = 3
 	// MaxCourseListSectionLimit defines an upper bound for course list sections to keep layouts balanced.

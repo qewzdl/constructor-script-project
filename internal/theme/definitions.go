@@ -58,10 +58,12 @@ type SectionSettingDefinition struct {
 	Default           *int                   `json:"default,omitempty"`
 	Options           []SectionSettingOption `json:"options,omitempty"`
 	DefaultValue      string                 `json:"default_value,omitempty"`
+	PerPageLabel      string                 `json:"perPageLabel,omitempty"`
 	Required          bool                   `json:"required,omitempty"`
 	AllowMediaBrowse  bool                   `json:"allowMediaBrowse,omitempty"`
 	AllowAnchorPicker bool                   `json:"allowAnchorPicker,omitempty"`
 	AllowCoursePicker bool                   `json:"allowCoursePicker,omitempty"`
+	AllowPostPicker   bool                   `json:"allowPostPicker,omitempty"`
 }
 
 // SectionSettingOption represents a selectable option for a section setting.
@@ -509,10 +511,23 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			SupportsElements: &postsSupports,
 			Settings: map[string]SectionSettingDefinition{
 				"limit": {
-					Label:   "Number of posts to display",
-					Default: &limitDefault,
-					Min:     &limitMin,
-					Max:     &limitMax,
+					Label:        "Number of posts to display",
+					PerPageLabel: "Number of posts to display on a page",
+					Default:      &limitDefault,
+					Min:          &limitMin,
+					Max:          &limitMax,
+				},
+				"display_mode": {
+					Label:        "Display mode",
+					Type:         "select",
+					Options:      []SectionSettingOption{{Value: constants.PostListDisplayLimited, Label: "Limited (latest posts)"}, {Value: constants.PostListDisplayPaginated, Label: "Paginated (all posts)"}, {Value: constants.PostListDisplaySelected, Label: "Selected posts"}},
+					DefaultValue: constants.PostListDisplayLimited,
+				},
+				"selected_posts": {
+					Label:           "Selected posts",
+					Type:            "text",
+					Placeholder:     "Choose posts to feature",
+					AllowPostPicker: true,
 				},
 			},
 		},
@@ -539,10 +554,11 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			SupportsElements: &coursesSupports,
 			Settings: map[string]SectionSettingDefinition{
 				"limit": {
-					Label:   "Number of courses to display",
-					Default: &courseLimitDefault,
-					Min:     &courseLimitMin,
-					Max:     &courseLimitMax,
+					Label:        "Number of courses to display",
+					PerPageLabel: "Number of courses to display on a page",
+					Default:      &courseLimitDefault,
+					Min:          &courseLimitMin,
+					Max:          &courseLimitMax,
 				},
 				"display_mode": {
 					Label:        "Display mode",

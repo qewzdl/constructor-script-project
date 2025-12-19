@@ -190,17 +190,34 @@
                 },
             },
         });
-        ensureRegistered('posts_list', {
+        register('posts_list', {
             label: 'Posts list',
             order: 20,
             supportsElements: false,
             description: 'Automatically displays the most recent blog posts.',
             settings: {
+                display_mode: {
+                    label: 'Display mode',
+                    type: 'select',
+                    options: [
+                        { value: 'limited', label: 'Limited (latest posts)' },
+                        { value: 'paginated', label: 'Paginated (all posts)' },
+                        { value: 'selected', label: 'Selected posts' },
+                    ],
+                    defaultValue: 'limited',
+                },
                 limit: {
                     label: 'Number of posts to display',
+                    perPageLabel: 'Number of posts to display on a page',
                     min: 1,
                     max: 24,
                     default: 6,
+                },
+                selected_posts: {
+                    label: 'Selected posts',
+                    type: 'text',
+                    placeholder: 'Choose posts to feature',
+                    allowPostPicker: true,
                 },
             },
         });
@@ -225,6 +242,7 @@
                 },
                 limit: {
                     label: 'Number of courses to display',
+                    perPageLabel: 'Number of courses to display on a page',
                     min: 1,
                     max: 12,
                     default: 3,

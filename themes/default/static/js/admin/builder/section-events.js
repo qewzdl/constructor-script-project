@@ -7,6 +7,10 @@
         promise: null,
         courses: null,
     };
+    const postPickerCache = {
+        promise: null,
+        posts: null,
+    };
 
     const normaliseValue = (value) =>
         utils && typeof utils.normaliseString === 'function'
@@ -38,6 +42,23 @@
         }
         if (course.id) {
             return String(course.id);
+        }
+        return '';
+    };
+
+    const postIdentifierFromEntry = (post) => {
+        if (!post) {
+            return '';
+        }
+        const slug = normaliseValue(post.slug || '').trim();
+        if (slug) {
+            return slug;
+        }
+        if (typeof post.id === 'number' && Number.isFinite(post.id)) {
+            return String(post.id);
+        }
+        if (post.id) {
+            return String(post.id);
         }
         return '';
     };
@@ -89,6 +110,54 @@
                 coursePickerCache.promise = null;
             });
         return coursePickerCache.promise;
+    };
+
+    const fetchPosts = async () => {
+        if (postPickerCache.posts) {
+            return postPickerCache.posts;
+        }
+        if (postPickerCache.promise) {
+            return postPickerCache.promise;
+        }
+        const endpoint =
+            adminRoot && adminRoot.dataset ? adminRoot.dataset.endpointPosts : '';
+        if (!endpoint) {
+            alert('Posts endpoint is not configured.');
+            return [];
+        }
+        const dashboard = window.AdminDashboard;
+        const apiClient =
+            dashboard && dashboard.apiClient && typeof dashboard.apiClient.request === 'function'
+                ? dashboard.apiClient
+                : null;
+        const url = endpoint.includes('?') ? `${endpoint}&limit=100` : `${endpoint}?limit=100`;
+
+        const fetchPromise = apiClient
+            ? apiClient.request(url)
+            : fetch(url, { credentials: 'include' }).then((response) => {
+                  if (!response.ok) {
+                      throw new Error(`Failed to load posts: ${response.status}`);
+                  }
+                  const contentType = response.headers.get('content-type') || '';
+                  const isJson = contentType.includes('application/json');
+                  return isJson ? response.json() : null;
+              });
+
+        postPickerCache.promise = fetchPromise
+            .then((data) => {
+                const posts = Array.isArray(data?.posts) ? data.posts : [];
+                postPickerCache.posts = posts;
+                return posts;
+            })
+            .catch((error) => {
+                console.error(error);
+                alert('Failed to load posts.');
+                return [];
+            })
+            .finally(() => {
+                postPickerCache.promise = null;
+            });
+        return postPickerCache.promise;
     };
 
     const openAnchorPicker = (inputElement) => {
@@ -348,6 +417,149 @@
         document.body.append(overlay);
     };
 
+    const openPostPicker = async (inputElement) => {
+        if (!inputElement || !utils) {
+            return;
+        }
+
+        const posts = await fetchPosts();
+        if (!posts || posts.length === 0) {
+            alert('No posts found.');
+            return;
+        }
+
+        const selected = new Set(
+            parseCourseSelections(inputElement.value).map((item) =>
+                item.toLowerCase()
+            )
+        );
+
+        const overlay = utils.createElement('div', {
+            className: 'anchor-picker-overlay',
+        });
+
+        const modal = utils.createElement('div', {
+            className: 'anchor-picker-modal',
+        });
+
+        const header = utils.createElement('div', {
+            className: 'anchor-picker-header',
+        });
+        const title = utils.createElement('h3', {
+            className: 'anchor-picker-title',
+            textContent: 'Select posts to display',
+        });
+        header.appendChild(title);
+
+        const list = utils.createElement('div', {
+            className: 'anchor-picker-list',
+        });
+
+        posts.forEach((post, index) => {
+            const value = postIdentifierFromEntry(post);
+            if (!value) {
+                return;
+            }
+            const lowerValue = value.toLowerCase();
+            const item = utils.createElement('label', {
+                className: 'anchor-picker-item anchor-picker-item--selectable',
+            });
+            const checkbox = utils.createElement('input', {
+                className: 'anchor-picker-checkbox',
+                type: 'checkbox',
+            });
+            checkbox.checked = selected.has(lowerValue);
+            checkbox.dataset.value = value;
+
+            const itemBody = utils.createElement('div');
+            const itemTitle = utils.createElement('div', {
+                className: 'anchor-picker-item-title',
+                textContent:
+                    post?.title ||
+                    post?.name ||
+                    post?.slug ||
+                    `Post ${index + 1}`,
+            });
+            itemBody.append(itemTitle);
+
+            const meta = utils.createElement('div', {
+                className: 'anchor-picker-item-meta',
+            });
+            if (post?.slug) {
+                meta.append(
+                    utils.createElement('code', {
+                        className: 'anchor-picker-item-code',
+                        textContent: post.slug,
+                    })
+                );
+            }
+            if (post?.id) {
+                meta.append(
+                    utils.createElement('span', {
+                        textContent: `ID: ${post.id}`,
+                    })
+                );
+            }
+            if (meta.childElementCount) {
+                itemBody.append(meta);
+            }
+
+            item.append(checkbox, itemBody);
+            list.append(item);
+        });
+
+        if (!list.childElementCount) {
+            alert('No posts available for selection.');
+            return;
+        }
+
+        const footer = utils.createElement('div', {
+            className: 'anchor-picker-footer',
+        });
+        const cancelButton = utils.createElement('button', {
+            className: 'admin-builder__button',
+            textContent: 'Cancel',
+            type: 'button',
+        });
+        const applyButton = utils.createElement('button', {
+            className: 'admin-builder__button admin-builder__button--primary',
+            textContent: 'Apply',
+            type: 'button',
+        });
+        footer.append(cancelButton, applyButton);
+
+        modal.append(header, list, footer);
+        overlay.append(modal);
+
+        const closeModal = () => {
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+            }
+        };
+
+        cancelButton.addEventListener('click', closeModal);
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                closeModal();
+            }
+        });
+
+        applyButton.addEventListener('click', () => {
+            const selectedValues = Array.from(
+                list.querySelectorAll('.anchor-picker-checkbox:checked')
+            )
+                .map((input) => input.dataset.value || '')
+                .map((value) => value.trim())
+                .filter(Boolean);
+            inputElement.value = selectedValues.join(', ');
+            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+            inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+            closeModal();
+        });
+
+        document.body.append(overlay);
+    };
+
     const createEvents = ({
         listElement,
         onSectionRemove,
@@ -495,6 +707,20 @@
                     return;
                 }
                 openCoursePicker(inputElement);
+                return;
+            }
+
+            if (target.matches('[data-action="open-post-picker"]')) {
+                event.preventDefault();
+                const targetInputId = target.dataset.postTarget;
+                if (!targetInputId || !targetInputId.startsWith('#')) {
+                    return;
+                }
+                const inputElement = document.querySelector(targetInputId);
+                if (!inputElement) {
+                    return;
+                }
+                openPostPicker(inputElement);
                 return;
             }
         };

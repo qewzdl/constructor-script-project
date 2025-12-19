@@ -705,6 +705,7 @@
                           className: 'admin-builder__select',
                       })
                     : null;
+            let showAllCheckbox = null;
             if (displayModeSelect) {
                 const displayModeField = createElement('label', {
                     className: 'admin-builder__field',
@@ -758,6 +759,13 @@
             const limitDefinition = sectionDefinition?.settings?.limit;
             let limitLabelSpan;
             let limitField;
+            const defaultLimitLabel =
+                limitDefinition?.label || 'Number of items to display';
+            const perPageLimitLabel =
+                limitDefinition?.perPageLabel ||
+                (defaultLimitLabel
+                    ? `${defaultLimitLabel} on a page`
+                    : 'Number of items to display on a page');
             if (limitDefinition) {
                 limitField = createElement('label', {
                     className: 'admin-builder__field',
@@ -765,8 +773,7 @@
                 limitField.append(
                     (limitLabelSpan = createElement('span', {
                         className: 'admin-builder__label',
-                        textContent:
-                            limitDefinition.label || 'Number of posts to display',
+                        textContent: defaultLimitLabel,
                     }))
                 );
                 const limitInput = createElement('input', {
@@ -979,7 +986,7 @@
                         input.addEventListener('input', scheduleChange);
                         field.append(input);
 
-                        if (key === 'selected_courses') {
+                        if (key === 'selected_courses' || key === 'selected_posts') {
                             registerConditionalField(field, ['selected']);
                         }
 
@@ -987,7 +994,8 @@
                         if (
                             settingDef.allowMediaBrowse ||
                             settingDef.allowAnchorPicker ||
-                            settingDef.allowCoursePicker
+                            settingDef.allowCoursePicker ||
+                            settingDef.allowPostPicker
                         ) {
                             const inputId = `section-${section.clientId}-setting-${key}`;
                             input.id = inputId;
@@ -1027,6 +1035,17 @@
                                 courseButton.dataset.action = 'open-course-picker';
                                 courseButton.dataset.courseTarget = `#${inputId}`;
                                 actions.append(courseButton);
+                            }
+
+                            if (settingDef.allowPostPicker) {
+                                const postButton = createElement('button', {
+                                    className: 'admin-builder__anchor-button',
+                                    textContent: 'Select posts',
+                                });
+                                postButton.type = 'button';
+                                postButton.dataset.action = 'open-post-picker';
+                                postButton.dataset.postTarget = `#${inputId}`;
+                                actions.append(postButton);
                             }
                             
                             field.append(actions);
@@ -1267,12 +1286,9 @@
 
                 if (limitLabelSpan) {
                     if (mode === 'paginated' || mode === 'selected') {
-                        limitLabelSpan.textContent =
-                            'Number of courses to display on a page';
+                        limitLabelSpan.textContent = perPageLimitLabel;
                     } else {
-                        limitLabelSpan.textContent =
-                            limitDefinition?.label ||
-                            'Number of courses to display';
+                        limitLabelSpan.textContent = defaultLimitLabel;
                     }
                 }
             };
