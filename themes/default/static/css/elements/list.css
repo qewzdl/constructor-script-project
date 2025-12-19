@@ -18,6 +18,14 @@
     line-height: 1.6;
 }
 
+.page-view__list-item:first-child {
+    margin-top: 0;
+}
+
+.page-view__list-item:last-child {
+    margin-bottom: 0;
+}
+
 .page-view__body li, .post__content li {
     position: relative;
 }
