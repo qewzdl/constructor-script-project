@@ -3127,6 +3127,10 @@ body.course-modal-open {
     width: 100%;
 }
 
+.page-view__section .search > * {
+    padding: 0 !important;
+}
+
 .page-view__title, .page-view__description {
     color: var(--color-page-view-header-opposite);
 }
