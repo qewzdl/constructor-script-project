@@ -93,3 +93,7 @@
 .courses-list__actions .pagination {
     margin-left: auto;
 }
+
+.courses-list__actions .pagination .pagination__list {
+    list-style: none;
+}
