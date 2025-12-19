@@ -141,13 +141,6 @@ func (f *Feature) Activate() error {
 		blogseed.EnsureDefaultCategory(categorySvc)
 	}
 
-	themeManager := f.host.ThemeManager()
-	if themeManager != nil && postSvc != nil {
-		if active := themeManager.Active(); active != nil {
-			blogseed.EnsureDefaultPosts(postSvc, repos.User(), active.PostsFS())
-		}
-	}
-
 	return nil
 }
 

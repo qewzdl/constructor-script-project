@@ -38,6 +38,7 @@ import (
 	archivehandlers "constructor-script-backend/plugins/archive/handlers"
 	archiveservice "constructor-script-backend/plugins/archive/service"
 	bloghandlers "constructor-script-backend/plugins/blog/handlers"
+	blogseed "constructor-script-backend/plugins/blog/seed"
 	blogservice "constructor-script-backend/plugins/blog/service"
 	coursehandlers "constructor-script-backend/plugins/courses/handlers"
 	courseservice "constructor-script-backend/plugins/courses/service"
@@ -259,6 +260,7 @@ func New(cfg *config.Config, opts Options) (*Application, error) {
 		if applyDefaults {
 			seed.EnsureDefaultPages(app.services.Page, theme.PagesFS())
 			seed.EnsureDefaultMenu(app.services.Menu, theme.MenuFS())
+			blogseed.EnsureDefaultPosts(app.services.Post, app.repositories.User, theme.PostsFS())
 			if app.services.Theme != nil {
 				if err := app.services.Theme.MarkInitialized(theme.Slug); err != nil {
 					logger.Error(err, "Failed to mark theme defaults as applied", map[string]interface{}{"theme": theme.Slug})
