@@ -1,6 +1,6 @@
 .page-view__list {
     margin: var(--size-mid) 0;
-    padding-left: 1.75rem;
+    padding-left: 1rem;
     font-size: var(--font-size-base);
 }
 

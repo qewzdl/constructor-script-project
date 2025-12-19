@@ -341,6 +341,7 @@
         const backupSettingsForm = document.getElementById('admin-backup-settings-form');
         const backupSettingsToggle = backupSettingsForm?.querySelector('input[name="auto_enabled"]');
         const backupSettingsIntervalInput = backupSettingsForm?.querySelector('input[name="interval_hours"]');
+        const backupSettingsRetentionInput = backupSettingsForm?.querySelector('input[name="retention_copies"]');
         const backupSettingsStatus = backupSettingsForm?.querySelector('[data-role="backup-settings-status"]');
         const backupSettingsSubmit = backupSettingsForm?.querySelector('[data-role="backup-settings-submit"]');
         const faviconUrlInput = settingsForm?.querySelector('input[name="favicon"]');
@@ -12276,16 +12277,19 @@
         };
 
         const handleBackupAutoToggleChange = () => {
-            if (!backupSettingsIntervalInput) {
-                return;
-            }
             const enabled = Boolean(backupSettingsToggle?.checked);
-            backupSettingsIntervalInput.disabled = !enabled;
-            if (enabled) {
-                backupSettingsIntervalInput.removeAttribute('aria-disabled');
-            } else {
-                backupSettingsIntervalInput.setAttribute('aria-disabled', 'true');
-            }
+            const inputs = [backupSettingsIntervalInput, backupSettingsRetentionInput];
+            inputs.forEach((input) => {
+                if (!input) {
+                    return;
+                }
+                input.disabled = !enabled;
+                if (enabled) {
+                    input.removeAttribute('aria-disabled');
+                } else {
+                    input.setAttribute('aria-disabled', 'true');
+                }
+            });
         };
 
         const renderBackupSettings = (settings) => {
@@ -12294,6 +12298,7 @@
             }
             const enabled = Boolean(settings?.enabled);
             const interval = Number.parseInt(settings?.interval_hours, 10);
+            const retention = Number.parseInt(settings?.retention_copies, 10);
 
             if (backupSettingsToggle) {
                 backupSettingsToggle.checked = enabled;
@@ -12302,6 +12307,10 @@
             if (backupSettingsIntervalInput) {
                 const value = Number.isFinite(interval) && interval > 0 ? String(interval) : '24';
                 backupSettingsIntervalInput.value = value;
+            }
+            if (backupSettingsRetentionInput) {
+                const value = Number.isFinite(retention) && retention > 0 ? String(retention) : '10';
+                backupSettingsRetentionInput.value = value;
             }
 
             if (backupSettingsStatus) {
@@ -12313,6 +12322,9 @@
                     }
                     if (settings?.last_run) {
                         parts.push(`Last backup ${formatDate(settings.last_run)}`);
+                    }
+                    if (Number.isFinite(retention) && retention > 0) {
+                        parts.push(`Keeping last ${retention} backups on server`);
                     }
                 } else {
                     parts.push('Automatic backups disabled');
@@ -12366,9 +12378,23 @@
                 return;
             }
 
+            const retentionValue = Number.parseInt(
+                backupSettingsRetentionInput?.value || '',
+                10
+            );
+            if (!Number.isFinite(retentionValue) || retentionValue < 1) {
+                showAlert('Enter how many automatic backups to keep (at least one).', 'error');
+                return;
+            }
+            if (retentionValue > 50) {
+                showAlert('Automatic backup retention cannot exceed 50 copies.', 'error');
+                return;
+            }
+
             const payload = {
                 enabled: Boolean(backupSettingsToggle?.checked),
                 interval_hours: intervalValue,
+                retention_copies: retentionValue,
             };
 
             const originalText = backupSettingsSubmit?.textContent || '';

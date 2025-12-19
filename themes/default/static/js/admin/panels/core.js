@@ -2790,6 +2790,21 @@
                                 <small class="admin-card__description admin-form__hint">
                                     Choose how often to run automatic backups. The maximum interval is 168 hours (7 days).
                                 </small>
+                                <label class="admin-form__label" for="backup-auto-retention">
+                                    Backups to keep on server
+                                    <input
+                                        type="number"
+                                        id="backup-auto-retention"
+                                        name="retention_copies"
+                                        class="admin-form__input"
+                                        min="1"
+                                        max="50"
+                                        value="10"
+                                    />
+                                </label>
+                                <small class="admin-card__description admin-form__hint">
+                                    Older automatic backups are pruned after each run to stay within this limit.
+                                </small>
                                 <p class="admin-card__description admin-form__hint" data-role="backup-settings-status" hidden></p>
                                 <div class="admin-form__actions">
                                     <button type="submit" class="admin-form__submit" data-role="backup-settings-submit">

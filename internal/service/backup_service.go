@@ -34,14 +34,16 @@ import (
 )
 
 const (
-	backupSchemaVersion            = "1"
-	backupApplication              = "constructor-script"
-	defaultAutoBackupIntervalHours = 24
-	SettingKeyBackupAuto           = "site.backup.auto"
-	backupEncryptionMagic          = "CSBK"
-	backupEncryptionVersion        = byte(1)
-	backupEncryptionTagSize        = sha256.Size
-	backupEncryptionIVSize         = 16
+	backupSchemaVersion              = "1"
+	backupApplication                = "constructor-script"
+	defaultAutoBackupIntervalHours   = 24
+	defaultAutoBackupRetentionCopies = 10
+	maxAutoBackupRetentionCopies     = 50
+	SettingKeyBackupAuto             = "site.backup.auto"
+	backupEncryptionMagic            = "CSBK"
+	backupEncryptionVersion          = byte(1)
+	backupEncryptionTagSize          = sha256.Size
+	backupEncryptionIVSize           = 16
 )
 
 var (
@@ -75,12 +77,13 @@ type BackupService struct {
 	encryptor  *backupEncryptor
 	s3Uploader *backupS3Uploader
 
-	autoMu       sync.Mutex
-	autoCancel   context.CancelFunc
-	autoNextRun  time.Time
-	autoLastRun  time.Time
-	autoInterval time.Duration
-	autoEnabled  bool
+	autoMu        sync.Mutex
+	autoCancel    context.CancelFunc
+	autoNextRun   time.Time
+	autoLastRun   time.Time
+	autoInterval  time.Duration
+	autoRetention int
+	autoEnabled   bool
 }
 
 type backupEncryptor struct {
@@ -348,16 +351,26 @@ func (s *BackupService) UpdateAutoSettings(req models.UpdateBackupSettingsReques
 		return models.BackupSettings{}, fmt.Errorf("%w: interval must be between 1 and 168 hours", ErrInvalidBackupSettings)
 	}
 
+	retention := req.RetentionCopies
+	if retention == 0 {
+		retention = defaultAutoBackupRetentionCopies
+	}
+	if retention < 1 || retention > maxAutoBackupRetentionCopies {
+		return models.BackupSettings{}, fmt.Errorf("%w: retention must be between 1 and %d copies", ErrInvalidBackupSettings, maxAutoBackupRetentionCopies)
+	}
+
 	settings := models.BackupSettings{
-		Enabled:       req.Enabled,
-		IntervalHours: req.IntervalHours,
+		Enabled:         req.Enabled,
+		IntervalHours:   req.IntervalHours,
+		RetentionCopies: retention,
 	}
 
 	if s.settings != nil {
 		payload, err := json.Marshal(struct {
-			Enabled       bool `json:"enabled"`
-			IntervalHours int  `json:"interval_hours"`
-		}{Enabled: settings.Enabled, IntervalHours: settings.IntervalHours})
+			Enabled         bool `json:"enabled"`
+			IntervalHours   int  `json:"interval_hours"`
+			RetentionCopies int  `json:"retention_copies"`
+		}{Enabled: settings.Enabled, IntervalHours: settings.IntervalHours, RetentionCopies: settings.RetentionCopies})
 		if err != nil {
 			return models.BackupSettings{}, fmt.Errorf("failed to encode backup settings: %w", err)
 		}
@@ -375,11 +388,17 @@ func (s *BackupService) UpdateAutoSettings(req models.UpdateBackupSettingsReques
 func (s *BackupService) autoSettingsWithRuntime(base models.BackupSettings) models.BackupSettings {
 	result := base
 
+	retention := result.RetentionCopies
+	if retention <= 0 {
+		retention = defaultAutoBackupRetentionCopies
+	}
+
 	s.autoMu.Lock()
 	enabled := s.autoEnabled
 	interval := s.autoInterval
 	lastRun := s.autoLastRun
 	nextRun := s.autoNextRun
+	runtimeRetention := s.autoRetention
 	s.autoMu.Unlock()
 
 	if enabled {
@@ -397,6 +416,11 @@ func (s *BackupService) autoSettingsWithRuntime(base models.BackupSettings) mode
 		result.LastRun = &lr
 	}
 
+	if runtimeRetention > 0 {
+		retention = runtimeRetention
+	}
+	result.RetentionCopies = retention
+
 	if enabled && !nextRun.IsZero() {
 		nr := nextRun
 		result.NextRun = &nr
@@ -406,13 +430,18 @@ func (s *BackupService) autoSettingsWithRuntime(base models.BackupSettings) mode
 		result.IntervalHours = defaultAutoBackupIntervalHours
 	}
 
+	if result.RetentionCopies <= 0 {
+		result.RetentionCopies = defaultAutoBackupRetentionCopies
+	}
+
 	return result
 }
 
 func (s *BackupService) loadStoredAutoSettings() (models.BackupSettings, error) {
 	settings := models.BackupSettings{
-		Enabled:       false,
-		IntervalHours: defaultAutoBackupIntervalHours,
+		Enabled:         false,
+		IntervalHours:   defaultAutoBackupIntervalHours,
+		RetentionCopies: defaultAutoBackupRetentionCopies,
 	}
 
 	if s == nil || s.settings == nil {
@@ -432,8 +461,9 @@ func (s *BackupService) loadStoredAutoSettings() (models.BackupSettings, error) 
 	}
 
 	var stored struct {
-		Enabled       bool `json:"enabled"`
-		IntervalHours int  `json:"interval_hours"`
+		Enabled         bool `json:"enabled"`
+		IntervalHours   int  `json:"interval_hours"`
+		RetentionCopies int  `json:"retention_copies"`
 	}
 
 	if err := json.Unmarshal([]byte(record.Value), &stored); err != nil {
@@ -444,6 +474,9 @@ func (s *BackupService) loadStoredAutoSettings() (models.BackupSettings, error) 
 	if stored.IntervalHours > 0 {
 		settings.IntervalHours = stored.IntervalHours
 	}
+	if stored.RetentionCopies > 0 {
+		settings.RetentionCopies = stored.RetentionCopies
+	}
 
 	return settings, nil
 }
@@ -451,6 +484,11 @@ func (s *BackupService) loadStoredAutoSettings() (models.BackupSettings, error) 
 func (s *BackupService) applyAutoSettings(settings models.BackupSettings) {
 	if s == nil {
 		return
+	}
+
+	retentionCopies := settings.RetentionCopies
+	if retentionCopies <= 0 {
+		retentionCopies = defaultAutoBackupRetentionCopies
 	}
 
 	intervalHours := settings.IntervalHours
@@ -470,6 +508,7 @@ func (s *BackupService) applyAutoSettings(settings models.BackupSettings) {
 		s.autoEnabled = false
 		s.autoInterval = 0
 		s.autoNextRun = time.Time{}
+		s.autoRetention = retentionCopies
 		s.autoMu.Unlock()
 		logger.Info("Automatic backups disabled", nil)
 		return
@@ -480,6 +519,7 @@ func (s *BackupService) applyAutoSettings(settings models.BackupSettings) {
 	s.autoEnabled = true
 	s.autoInterval = interval
 	s.autoNextRun = time.Now().Add(interval)
+	s.autoRetention = retentionCopies
 	s.autoMu.Unlock()
 
 	logger.Info("Automatic backups enabled", map[string]interface{}{"interval_hours": intervalHours})
@@ -494,15 +534,21 @@ func (s *BackupService) runAutoBackupLoop(ctx context.Context, interval time.Dur
 	for {
 		select {
 		case <-timer.C:
-			if err := s.executeAutoBackup(); err != nil {
-				logger.Error(err, "Failed to create automatic backup", nil)
-			}
+			err := s.executeAutoBackup(ctx)
 
 			now := time.Now()
+			next := now.Add(interval)
+
 			s.autoMu.Lock()
-			s.autoLastRun = now
-			s.autoNextRun = now.Add(interval)
+			if err == nil {
+				s.autoLastRun = now
+			}
+			s.autoNextRun = next
 			s.autoMu.Unlock()
+
+			if err != nil {
+				logger.Error(err, "Failed to create automatic backup", nil)
+			}
 
 			timer.Reset(interval)
 		case <-ctx.Done():
@@ -511,13 +557,25 @@ func (s *BackupService) runAutoBackupLoop(ctx context.Context, interval time.Dur
 	}
 }
 
-func (s *BackupService) executeAutoBackup() error {
+func (s *BackupService) executeAutoBackup(ctx context.Context) error {
 	if s == nil {
 		return fmt.Errorf("backup service not configured")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	parent := ctx
+	if parent == nil {
+		parent = context.Background()
+	}
+
+	ctx, cancel := context.WithTimeout(parent, 15*time.Minute)
 	defer cancel()
+
+	retention := defaultAutoBackupRetentionCopies
+	s.autoMu.Lock()
+	if s.autoRetention > 0 {
+		retention = s.autoRetention
+	}
+	s.autoMu.Unlock()
 
 	archive, err := s.CreateArchive(ctx)
 	if err != nil {
@@ -560,9 +618,83 @@ func (s *BackupService) executeAutoBackup() error {
 		}
 	}
 
+	if err := s.cleanupAutoBackups(targetDir, retention); err != nil {
+		logger.Warn("Failed to clean up old automatic backups", map[string]interface{}{
+			"error":     err.Error(),
+			"retention": retention,
+			"path":      targetDir,
+		})
+	}
+
 	logger.Info("Automatic site backup created", map[string]interface{}{"path": destinationPath})
 
 	return nil
+}
+
+func (s *BackupService) cleanupAutoBackups(dir string, retention int) error {
+	if retention <= 0 {
+		return nil
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("failed to read automatic backup directory: %w", err)
+	}
+
+	type backupFileInfo struct {
+		path    string
+		modTime time.Time
+	}
+
+	backups := make([]backupFileInfo, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		if !strings.HasPrefix(name, "backup-") {
+			continue
+		}
+		if !(strings.HasSuffix(name, ".zip") || strings.HasSuffix(name, ".zip.enc")) {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("failed to read backup info for %s: %w", name, err)
+		}
+
+		backups = append(backups, backupFileInfo{
+			path:    filepath.Join(dir, name),
+			modTime: info.ModTime(),
+		})
+	}
+
+	if len(backups) <= retention {
+		return nil
+	}
+
+	sort.Slice(backups, func(i, j int) bool {
+		return backups[i].modTime.After(backups[j].modTime)
+	})
+
+	var deletionErr error
+	for _, item := range backups[retention:] {
+		if err := os.Remove(item.path); err != nil {
+			logger.Warn("Failed to remove old automatic backup", map[string]interface{}{"path": item.path, "error": err.Error()})
+			if deletionErr == nil {
+				deletionErr = fmt.Errorf("failed to remove old backup %s: %w", item.path, err)
+			}
+			continue
+		}
+		logger.Info("Old automatic backup removed", map[string]interface{}{"path": item.path})
+	}
+
+	return deletionErr
 }
 
 func (s *BackupService) CreateArchive(ctx context.Context) (*BackupArchive, error) {

@@ -1278,7 +1278,7 @@ textarea.form-field__input {
 .course-player__lesson-description {
     margin: 0;
     font-size: var(--font-size-base);
-    color: var(--color-secondary);
+    color: var(--color-text);
     line-height: 1.6;
 }
 
@@ -1286,19 +1286,6 @@ textarea.form-field__input {
     display: flex;
     flex-direction: column;
     gap: var(--size-lg);
-}
-
-.course-player__lesson-sections {
-    display: flex;
-    flex-direction: column;
-    gap: var(--size-lg);
-}
-
-.course-player__section,
-.page-view__section--context-course-player {
-    display: flex;
-    flex-direction: column;
-    gap: var(--size-base);
 }
 
 .course-player__section-title,

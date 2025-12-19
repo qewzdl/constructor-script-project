@@ -677,12 +677,10 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 		if parsed, parseErr := strconv.ParseUint(categoryIDParam, 10, 64); parseErr == nil && parsed > 0 {
 			value := uint(parsed)
 			categoryID = &value
-			if activeCategory == nil {
-				for idx := range categories {
-					if categories[idx].ID == value {
-						activeCategory = &categories[idx]
-						break
-					}
+			for idx := range categories {
+				if categories[idx].ID == value {
+					activeCategory = &categories[idx]
+					break
 				}
 			}
 		}
@@ -2425,7 +2423,7 @@ func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
 			def.SupportsHeaderImage = &supportsHeaderImage
 
 			// Convert schema to settings
-			if meta.Schema != nil && len(meta.Schema) > 0 {
+			if len(meta.Schema) > 0 {
 				if def.Settings == nil {
 					def.Settings = make(map[string]theme.SectionSettingDefinition)
 				}

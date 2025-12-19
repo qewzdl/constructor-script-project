@@ -911,15 +911,17 @@ type SiteSettings struct {
 }
 
 type BackupSettings struct {
-	Enabled       bool       `json:"enabled"`
-	IntervalHours int        `json:"interval_hours"`
-	LastRun       *time.Time `json:"last_run,omitempty"`
-	NextRun       *time.Time `json:"next_run,omitempty"`
+	Enabled         bool       `json:"enabled"`
+	IntervalHours   int        `json:"interval_hours"`
+	LastRun         *time.Time `json:"last_run,omitempty"`
+	NextRun         *time.Time `json:"next_run,omitempty"`
+	RetentionCopies int        `json:"retention_copies,omitempty"`
 }
 
 type UpdateBackupSettingsRequest struct {
-	Enabled       bool `json:"enabled"`
-	IntervalHours int  `json:"interval_hours" binding:"required,min=1,max=168"`
+	Enabled         bool `json:"enabled"`
+	IntervalHours   int  `json:"interval_hours" binding:"required,min=1,max=168"`
+	RetentionCopies int  `json:"retention_copies" binding:"omitempty,min=1,max=50"`
 }
 
 type ThemeInfo struct {
