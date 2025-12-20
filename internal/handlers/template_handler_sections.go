@@ -71,6 +71,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			}
 		}
 		sectionTitleClass := fmt.Sprintf("%s__section-title", pageViewClassPrefix)
+		sectionDescriptionClass := fmt.Sprintf("%s__section-description", pageViewClassPrefix)
 
 		sb.WriteString(`<section class="` + strings.Join(sectionClasses, " ") + `" id="section-` + template.HTMLEscapeString(section.ID) + `"`)
 		if sectionAttributes != "" {
@@ -82,6 +83,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		}
 		if title != "" {
 			sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
+		}
+		if description := strings.TrimSpace(section.Description); description != "" {
+			sb.WriteString(`<p class="` + sectionDescriptionClass + `">` + template.HTMLEscapeString(description) + `</p>`)
 		}
 
 		// Try to render as a special section type (posts_list, categories_list, courses_list)

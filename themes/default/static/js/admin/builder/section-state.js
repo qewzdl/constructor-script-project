@@ -311,6 +311,7 @@
             id: normaliseString(section.id ?? section.ID ?? ''),
             type,
             title: normaliseString(section.title ?? section.Title ?? ''),
+            description: normaliseString(section.description ?? section.Description ?? ''),
             image: headerImageSupported
                 ? normaliseString(section.image ?? section.Image ?? '')
                 : '',
@@ -391,6 +392,7 @@
                         ? section.image.trim()
                         : '';
                     const title = section.title.trim();
+                    const description = section.description?.trim() || '';
                     const hasSettings = section.settings && Object.keys(section.settings).length > 0;
 
                     let elements = nilSlice;
@@ -418,8 +420,10 @@
                     }
 
                     const hasContent = supportsElements(section.type)
-                        ? Boolean(title || image || elements.length > 0 || hasSettings)
-                        : Boolean(title || image || hasSettings);
+                        ? Boolean(
+                              title || description || image || elements.length > 0 || hasSettings
+                          )
+                        : Boolean(title || description || image || hasSettings);
 
                     if (!hasContent) {
                         return null;
@@ -429,6 +433,7 @@
                         id: section.id || '',
                         type: section.type,
                         title,
+                        description,
                         order: index + 1,
                         elements: supportsElements(section.type) ? elements : nilSlice,
                     };
@@ -715,6 +720,8 @@
             }
             if (field === 'section-title') {
                 section.title = value;
+            } else if (field === 'section-description') {
+                section.description = value;
             } else if (field === 'section-image') {
                 if (supportsHeaderImage(section.type)) {
                     section.image = value;

@@ -4,6 +4,7 @@ package models
 type AddSectionRequest struct {
 	Type            string `json:"type" binding:"required"`
 	Title           string `json:"title"`
+	Description     string `json:"description"`
 	PaddingVertical *int   `json:"padding_vertical,omitempty"`
 	MarginVertical  *int   `json:"margin_vertical,omitempty"`
 }
@@ -11,6 +12,7 @@ type AddSectionRequest struct {
 // UpdateSectionRequest represents a request to update an existing section.
 type UpdateSectionRequest struct {
 	Title           *string           `json:"title,omitempty"`
+	Description     *string           `json:"description,omitempty"`
 	Type            *string           `json:"type,omitempty"`
 	Elements        *[]SectionElement `json:"elements,omitempty"`
 	PaddingVertical *int              `json:"padding_vertical,omitempty"`

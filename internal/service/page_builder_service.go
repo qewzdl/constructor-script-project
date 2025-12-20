@@ -80,11 +80,12 @@ func (s *PageService) AddSection(pageID uint, req models.AddSectionRequest) (*mo
 	}
 
 	newSection := models.Section{
-		ID:       uuid.New().String(),
-		Type:     req.Type,
-		Title:    req.Title,
-		Order:    len(page.Sections),
-		Elements: make([]models.SectionElement, 0),
+		ID:          uuid.New().String(),
+		Type:        req.Type,
+		Title:       req.Title,
+		Description: req.Description,
+		Order:       len(page.Sections),
+		Elements:    make([]models.SectionElement, 0),
 	}
 
 	if req.PaddingVertical != nil {
@@ -115,6 +116,9 @@ func (s *PageService) UpdateSection(pageID uint, sectionID string, req models.Up
 		if page.Sections[i].ID == sectionID {
 			if req.Title != nil {
 				page.Sections[i].Title = *req.Title
+			}
+			if req.Description != nil {
+				page.Sections[i].Description = *req.Description
 			}
 			if req.Type != nil {
 				page.Sections[i].Type = *req.Type

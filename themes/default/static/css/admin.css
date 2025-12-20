@@ -776,7 +776,7 @@
     }
 
     .admin__header > * {
-        padding-inline: var(--side-padding);
+        padding-inline: var(--page-side-padding);
     }
 }
 

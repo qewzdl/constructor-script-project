@@ -700,6 +700,7 @@
             id: section.id || section.ID || generateId(),
             type,
             title: section.title || section.Title || '',
+            description: section.description || section.Description || '',
             image: headerImageSupported ? imageSource : '',
             elements,
             limit,
@@ -1031,6 +1032,7 @@
                 id: section.id || generateId(),
                 type,
                 title: (section.title || '').trim(),
+                description: (section.description || section.Description || '').trim(),
                 order: index + 1,
                 elements,
             };
@@ -1659,6 +1661,26 @@
             titleField.appendChild(titleLabel);
             titleField.appendChild(titleInput);
             body.appendChild(titleField);
+
+        const descriptionId = `${section.id}-description`;
+        const descriptionField = createElement('div', {
+            className: 'section-field',
+        });
+        const descriptionLabel = createElement('label', {
+            textContent: 'Description (optional)',
+            attrs: { for: descriptionId },
+        });
+        const descriptionInput = createElement('textarea', {
+            attrs: { id: descriptionId, name: descriptionId, rows: '2' },
+        });
+        descriptionInput.placeholder = 'Briefly explain what this section covers';
+        descriptionInput.value = section.description || '';
+        descriptionInput.addEventListener('input', (event) => {
+            section.description = event.target.value;
+        });
+        descriptionField.appendChild(descriptionLabel);
+        descriptionField.appendChild(descriptionInput);
+        body.appendChild(descriptionField);
 
         if (definition?.supportsHeaderImage === true) {
             const imageId = `${section.id}-image`;

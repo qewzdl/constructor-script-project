@@ -587,6 +587,7 @@ type Section struct {
 	ID              string                 `json:"id"`
 	Type            string                 `json:"type"`
 	Title           string                 `json:"title"`
+	Description     string                 `json:"description"`
 	Image           string                 `json:"image"`
 	Limit           int                    `json:"limit"`
 	Mode            string                 `json:"mode,omitempty"`

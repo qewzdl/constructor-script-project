@@ -313,6 +313,8 @@ func NormaliseSections(sections models.PostSections) models.PostSections {
 		if section.Type == "" {
 			section.Type = "standard"
 		}
+		section.Title = strings.TrimSpace(section.Title)
+		section.Description = strings.TrimSpace(section.Description)
 
 		if section.ID == "" {
 			section.ID = uuid.New().String()

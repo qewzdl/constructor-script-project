@@ -1889,6 +1889,13 @@ body.post-image-modal-open .post-progress {
     margin-bottom: var(--size-base);
 }
 
+.page-view__section-description {
+    margin-bottom: var(--size-mid);
+    color: var(--color-text);
+    opacity: 0.85;
+    line-height: 1.6;
+}
+
 .page-view section[class*="__section--pv-0"] {
     padding-block: 0;
 }

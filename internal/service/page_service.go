@@ -659,6 +659,9 @@ func (s *PageService) prepareSections(sections []models.Section) (models.PostSec
 			sectionType = "standard"
 		}
 
+		section.Title = strings.TrimSpace(section.Title)
+		section.Description = strings.TrimSpace(section.Description)
+
 		definition, ok := sectionDefinitions[sectionType]
 		if !ok {
 			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)

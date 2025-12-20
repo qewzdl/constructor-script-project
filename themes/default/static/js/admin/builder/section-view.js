@@ -1579,6 +1579,27 @@
                 titleField.append(titleInput);
                 sectionItem.append(titleField);
 
+                const descriptionField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                descriptionField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Section description',
+                    })
+                );
+                const descriptionInput = createElement('textarea', {
+                    className: 'admin-builder__input',
+                    attributes: {
+                        rows: '2',
+                    },
+                });
+                descriptionInput.placeholder = 'Add a short intro for this section';
+                descriptionInput.value = section.description || '';
+                descriptionInput.dataset.field = 'section-description';
+                descriptionField.append(descriptionInput);
+                sectionItem.append(descriptionField);
+
                 const settingsContainer = createElement('div', {
                     className: 'admin-builder__section-settings',
                 });
