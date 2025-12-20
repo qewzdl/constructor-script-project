@@ -92,6 +92,9 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, req models.
 	if req.PackageID == 0 {
 		return nil, fmt.Errorf("course package id is required")
 	}
+	if req.UserID == 0 {
+		return nil, fmt.Errorf("user id is required for checkout")
+	}
 
 	pkg, err := s.packageRepo.GetByID(req.PackageID)
 	if err != nil {
@@ -114,6 +117,7 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, req models.
 		Metadata: map[string]string{
 			"course_package_id":    strconv.FormatUint(uint64(pkg.ID), 10),
 			"course_package_title": pkg.Title,
+			"user_id":              strconv.FormatUint(uint64(req.UserID), 10),
 		},
 		LineItems: []payments.LineItem{
 			{

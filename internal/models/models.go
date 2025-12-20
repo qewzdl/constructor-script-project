@@ -389,6 +389,7 @@ type CourseTestResult struct {
 type CourseCheckoutRequest struct {
 	PackageID     uint   `json:"package_id" binding:"required,gt=0"`
 	CustomerEmail string `json:"customer_email" binding:"omitempty,email"`
+	UserID        uint   `json:"-"`
 }
 
 type CourseCheckoutSession struct {

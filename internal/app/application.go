@@ -1277,7 +1277,7 @@ func (a *Application) initRouter() error {
 
 			public.GET("/tags", a.handlers.Post.GetAllTags)
 			public.GET("/tags/:slug/posts", a.handlers.Post.GetPostsByTag)
-			public.POST("/courses/checkout", a.handlers.CourseCheckout.CreateSession)
+			public.POST("/courses/checkout/webhook", a.handlers.CourseCheckout.HandleWebhook)
 			public.GET("/forum/questions", a.handlers.ForumQuestion.List)
 			public.GET("/forum/questions/:id", a.handlers.ForumQuestion.GetByID)
 			public.GET("/forum/categories", a.handlers.ForumCategory.List)
@@ -1297,6 +1297,7 @@ func (a *Application) initRouter() error {
 			protected.GET("/profile", a.handlers.Auth.GetProfile)
 			protected.PUT("/profile", a.handlers.Auth.UpdateProfile)
 			protected.PUT("/profile/password", a.handlers.Auth.ChangePassword)
+			protected.POST("/courses/checkout", a.handlers.CourseCheckout.CreateSession)
 			protected.GET("/courses/packages/:id", a.handlers.CoursePackage.GetForUser)
 			protected.GET("/courses/tests/:id", a.handlers.CourseTest.Get)
 			protected.POST("/courses/tests/:id/submit", a.handlers.CourseTest.Submit)

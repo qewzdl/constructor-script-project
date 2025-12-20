@@ -123,7 +123,7 @@
                     }
                 };
                 script.onerror = () => {
-                    reject(new Error("Не удалось загрузить Stripe.js"));
+                    reject(new Error("Failed to load Stripe.js"));
                 };
                 document.head.appendChild(script);
             });
@@ -171,7 +171,7 @@
             modal.addEventListener("courses:purchase", (event) => {
                 clearError();
                 setButtonLoading(resolveButton(event.detail), false);
-                showError("Оплата временно недоступна. Попробуйте позже.");
+                showError("Course checkout is currently unavailable. Please try again later.");
             });
             return;
         }
@@ -190,7 +190,7 @@
 
             const courseId = detail.id;
             if (!courseId) {
-                showError("Не удалось определить выбранный курс.");
+                showError("Unable to start checkout: course id is missing.");
                 setButtonLoading(button, false);
                 isProcessing = false;
                 return;
@@ -200,7 +200,7 @@
                 package_id: Number(courseId)
             };
             if (Number.isNaN(payload.package_id) || payload.package_id <= 0) {
-                showError("Некорректный идентификатор курса.");
+                showError("Invalid course id.");
                 setButtonLoading(button, false);
                 isProcessing = false;
                 return;
@@ -223,7 +223,12 @@
                 });
 
                 if (!response.ok) {
-                    let message = "Не удалось инициировать оплату. Попробуйте позже.";
+                    let message = "Unable to start checkout. Please try again.";
+                    if (response.status === 401) {
+                        message = "Please sign in to purchase this course.";
+                    } else if (response.status === 503) {
+                        message = "Checkout is temporarily unavailable. Please try again later.";
+                    }
                     try {
                         const errorPayload = await response.json();
                         if (errorPayload && typeof errorPayload.error === "string" && errorPayload.error.trim() !== "") {
@@ -241,11 +246,11 @@
 
                 const redirected = await redirectToCheckout(sessionId, checkoutURL);
                 if (!redirected) {
-                    throw new Error("Не удалось перенаправить в платежную систему.");
+                    throw new Error("Unable to redirect to payment. Please try again.");
                 }
             } catch (error) {
                 console.error("Failed to start course checkout", error);
-                showError(error && error.message ? error.message : "Не удалось инициировать оплату. Попробуйте позже.");
+                showError(error && error.message ? error.message : "Unable to start checkout. Please try again.");
             } finally {
                 setButtonLoading(button, false);
                 isProcessing = false;

@@ -238,9 +238,14 @@ func (f *Feature) Activate() error {
 	}
 
 	if handler, ok := handlers.Get(courseapi.HandlerCheckout).(*coursehandlers.CheckoutHandler); handler == nil || !ok {
-		handlers.Set(courseapi.HandlerCheckout, coursehandlers.NewCheckoutHandler(checkoutService))
+		handler = coursehandlers.NewCheckoutHandler(checkoutService)
+		handler.SetPackageService(packageService)
+		handler.SetWebhookSecret(stripeWebhook)
+		handlers.Set(courseapi.HandlerCheckout, handler)
 	} else {
 		handler.SetService(checkoutService)
+		handler.SetPackageService(packageService)
+		handler.SetWebhookSecret(stripeWebhook)
 	}
 
 	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
@@ -275,6 +280,8 @@ func (f *Feature) Deactivate() error {
 	}
 	if handler, _ := handlers.Get(courseapi.HandlerCheckout).(*coursehandlers.CheckoutHandler); handler != nil {
 		handler.SetService(nil)
+		handler.SetPackageService(nil)
+		handler.SetWebhookSecret("")
 	}
 
 	services := f.host.Services(courseapi.Namespace)
