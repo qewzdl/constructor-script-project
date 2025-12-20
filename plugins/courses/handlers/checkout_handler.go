@@ -67,6 +67,11 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 		return
 	}
 
+	if h.packageService == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "course package service unavailable"})
+		return
+	}
+
 	userID := c.GetUint("user_id")
 	if userID == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
@@ -84,6 +89,15 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 		if email := strings.TrimSpace(c.GetString("email")); email != "" {
 			req.CustomerEmail = email
 		}
+	}
+
+	if owned, err := h.packageService.GetForUser(req.PackageID, userID); err == nil && owned != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "you already own this course"})
+		return
+	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		logger.Error(err, "Failed to check existing course access", map[string]interface{}{"package_id": req.PackageID, "user_id": userID})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "unable to start checkout"})
+		return
 	}
 
 	session, err := h.service.CreateCheckoutSession(c.Request.Context(), req)

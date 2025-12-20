@@ -228,6 +228,8 @@
                         message = "Please sign in to purchase this course.";
                     } else if (response.status === 503) {
                         message = "Checkout is temporarily unavailable. Please try again later.";
+                    } else if (response.status === 409) {
+                        message = "You already own this course.";
                     }
                     try {
                         const errorPayload = await response.json();
