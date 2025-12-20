@@ -831,7 +831,7 @@ func normalizeCredentialInput(input, current string) (string, bool) {
 
 	switch {
 	case trimmedInput == "":
-		return "", true
+		return currentValue, false
 	case isMaskedCredential(trimmedInput):
 		return currentValue, false
 	case currentValue != "" && trimmedInput == currentValue:

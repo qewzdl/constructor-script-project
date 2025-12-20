@@ -313,9 +313,16 @@ func (h *SetupHandler) sanitizeSensitiveSettings(settings *models.SiteSettings) 
 	if settings == nil {
 		return
 	}
-	settings.StripeSecretKey = ""
-	settings.StripeWebhookSecret = ""
-	settings.Subtitles.OpenAIAPIKey = ""
+	settings.StripeSecretKey = maskIfSet(settings.StripeSecretKey)
+	settings.StripeWebhookSecret = maskIfSet(settings.StripeWebhookSecret)
+	settings.Subtitles.OpenAIAPIKey = maskIfSet(settings.Subtitles.OpenAIAPIKey)
+}
+
+func maskIfSet(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return ""
+	}
+	return "********"
 }
 
 func (h *SetupHandler) GetSiteSettings(c *gin.Context) {
