@@ -70,8 +70,8 @@
 .page-view__section-media-img {
     width: 100%;
     height: auto;
-    border: 1px solid var(--color-border);
-    border-radius: var(--size-xs);
+    border: none;
+    border-radius: var(--size-sm);
     background-color: var(--color-bg-top);
     object-fit: cover;
 }
