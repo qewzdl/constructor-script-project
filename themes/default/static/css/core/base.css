@@ -1884,13 +1884,7 @@ body.post-image-modal-open .post-progress {
     margin-bottom: 0 !important;
 }
 
-.post__section-title,
-.page-view__section-title {
-    margin-bottom: var(--size-base);
-}
-
 .page-view__section-description {
-    margin-bottom: var(--size-mid);
     color: var(--color-text);
     opacity: 0.85;
     line-height: 1.6;
@@ -3051,6 +3045,11 @@ body.course-modal-open {
     justify-content: flex-end;
     flex-wrap: wrap;
     gap: var(--size-sm);
+}
+
+.course-modal__actions > * {
+    flex: 1;
+
 }
 
 .course-modal__cancel {

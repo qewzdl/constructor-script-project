@@ -81,11 +81,16 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		if wrapWithContainer {
 			sb.WriteString(`<div class="page-view__section-container">`)
 		}
-		if title != "" {
-			sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
-		}
-		if description := strings.TrimSpace(section.Description); description != "" {
-			sb.WriteString(`<p class="` + sectionDescriptionClass + `">` + template.HTMLEscapeString(description) + `</p>`)
+		sectionDescription := strings.TrimSpace(section.Description)
+		if title != "" || sectionDescription != "" {
+			sb.WriteString(`<header class="page-view__section-header">`)
+			if title != "" {
+				sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
+			}
+			if sectionDescription != "" {
+				sb.WriteString(`<p class="` + sectionDescriptionClass + `">` + template.HTMLEscapeString(sectionDescription) + `</p>`)
+			}
+			sb.WriteString(`</header>`)
 		}
 
 		// Try to render as a special section type (posts_list, categories_list, courses_list)
