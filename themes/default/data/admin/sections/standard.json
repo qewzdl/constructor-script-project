@@ -7,7 +7,7 @@
     "supports_header_image": true,
     "settings": {
         "image_alt": {
-            "label": "Image alt text",
+            "label": "Side image alt text",
             "type": "text",
             "placeholder": "Describe the image for accessibility and SEO"
         }

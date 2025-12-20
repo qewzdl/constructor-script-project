@@ -507,7 +507,7 @@
                 `Vertical margin: ${clampMarginValue(section.marginVertical)}px`
             );
             if (sectionDefinition?.supportsHeaderImage === true) {
-                parts.push(section.image ? 'Header image: added' : 'Header image: none');
+                parts.push(section.image ? 'Side image: added' : 'Side image: none');
             }
             if (section?.type === 'grid') {
                 parts.push(
@@ -650,14 +650,14 @@
                 imageField.append(
                     createElement('span', {
                         className: 'admin-builder__label',
-                        textContent: 'Optional header image URL',
+                        textContent: 'Side image URL',
                     })
                 );
                 const imageInput = createElement('input', {
                     className: 'admin-builder__input',
                 });
                 imageInput.type = 'url';
-                imageInput.placeholder = 'https://example.com/cover.jpg';
+                imageInput.placeholder = 'https://example.com/side-image.jpg';
                 imageInput.value = section.image || '';
                 imageInput.dataset.field = 'section-image';
                 const imageInputId = `admin-builder-section-image-${
@@ -666,6 +666,20 @@
                 imageInput.id = imageInputId;
                 imageInput.addEventListener('input', scheduleChange);
                 imageField.append(imageInput);
+
+                const actions = createElement('div', {
+                    className: 'admin-builder__field-actions',
+                });
+                const browseButton = createElement('button', {
+                    className: 'admin-builder__media-button',
+                    textContent: 'Browse uploads',
+                });
+                browseButton.type = 'button';
+                browseButton.dataset.action = 'open-media-library';
+                browseButton.dataset.mediaTarget = `#${imageInputId}`;
+                browseButton.dataset.mediaAllowedTypes = 'image';
+                actions.append(browseButton);
+                imageField.append(actions);
 
                 appendField(imageField);
             }

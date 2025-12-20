@@ -150,7 +150,7 @@
         allowedElements: ['paragraph', 'image', 'image_group', 'list', 'file_group', 'search'],
         settings: {
             image_alt: {
-                label: 'Image alt text',
+                label: 'Side image alt text',
                 placeholder: 'Describe the right-side image',
             },
         },
