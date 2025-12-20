@@ -679,7 +679,7 @@ func (h *TemplateHandler) renderPostsListSection(prefix string, section models.S
 	case constants.PostListDisplayPaginated:
 		return h.renderPaginatedPostsList(prefix, section, settings, c)
 	case constants.PostListDisplaySelected:
-		return h.renderSelectedPostsList(prefix, section, settings, c)
+		return h.renderSelectedPostsList(prefix, settings, c)
 	default:
 		return h.renderLimitedPostsList(prefix, section, settings.PerPage)
 	}
@@ -749,7 +749,7 @@ func (h *TemplateHandler) renderPaginatedPostsList(prefix string, section models
 	})
 }
 
-func (h *TemplateHandler) renderSelectedPostsList(prefix string, section models.Section, settings postListDisplaySettings, c *gin.Context) string {
+func (h *TemplateHandler) renderSelectedPostsList(prefix string, settings postListDisplaySettings, c *gin.Context) string {
 	emptyClass := fmt.Sprintf("%s__post-list-empty posts-list__empty", prefix)
 
 	posts := h.loadSelectedPosts(settings.SelectedIdentifiers)
