@@ -190,6 +190,8 @@ func (s *SetupService) saveSiteSettings(req models.SetupRequest, defaults models
 		settingKeySiteURL:           req.SiteURL,
 		settingKeySiteFavicon:       req.SiteFavicon,
 		settingKeySiteLogo:          req.SiteLogo,
+		settingKeySiteContactEmail:  strings.TrimSpace(req.SiteContactEmail),
+		settingKeySiteFooterText:    strings.TrimSpace(req.SiteFooterText),
 		settingKeyTagRetentionHours: strconv.Itoa(blogservice.DefaultUnusedTagRetentionHours),
 	}
 
@@ -272,6 +274,20 @@ func (s *SetupService) GetSiteSettings(defaults models.SiteSettings) (models.Sit
 		}
 	} else if value != "" {
 		result.Logo = value
+	}
+	if value, getErr := s.getSettingValue(settingKeySiteContactEmail); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = getErr
+		}
+	} else if value != "" {
+		result.ContactEmail = strings.TrimSpace(value)
+	}
+	if value, getErr := s.getSettingValue(settingKeySiteFooterText); getErr != nil {
+		if !errors.Is(getErr, gorm.ErrRecordNotFound) {
+			err = getErr
+		}
+	} else if value != "" {
+		result.FooterText = strings.TrimSpace(value)
 	}
 
 	if value, getErr := s.getSettingValue(settingKeyTagRetentionHours); getErr != nil {
@@ -741,12 +757,22 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		}
 	}
 
+	contactEmail := strings.TrimSpace(req.ContactEmail)
+	if contactEmail != "" && !emailPattern.MatchString(contactEmail) {
+		return &ValidationError{
+			Field:   "contact_email",
+			Message: "invalid contact email address",
+		}
+	}
+
 	updates := map[string]string{
 		settingKeySiteName:                 strings.TrimSpace(req.Name),
 		settingKeySiteDescription:          strings.TrimSpace(req.Description),
 		settingKeySiteURL:                  strings.TrimSpace(req.URL),
 		settingKeySiteFavicon:              strings.TrimSpace(req.Favicon),
 		settingKeySiteLogo:                 strings.TrimSpace(req.Logo),
+		settingKeySiteContactEmail:         contactEmail,
+		settingKeySiteFooterText:           strings.TrimSpace(req.FooterText),
 		settingKeyTagRetentionHours:        strconv.Itoa(req.UnusedTagRetentionHours),
 		settingKeyCourseCheckoutSuccessURL: successURL,
 		settingKeyCourseCheckoutCancelURL:  cancelURL,
@@ -1022,6 +1048,8 @@ const (
 	settingKeySiteURL                  = "site.url"
 	settingKeySiteFavicon              = "site.favicon"
 	settingKeySiteLogo                 = "site.logo"
+	settingKeySiteContactEmail         = "site.contact_email"
+	settingKeySiteFooterText           = "site.footer_text"
 	settingKeyTagRetentionHours        = blogservice.SettingKeyTagRetentionHours
 	settingKeySiteDefaultLanguage      = "site.default_language"
 	settingKeySiteSupportedLanguages   = "site.supported_languages"

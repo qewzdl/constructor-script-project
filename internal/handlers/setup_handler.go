@@ -221,8 +221,10 @@ func (h *SetupHandler) Complete(c *gin.Context) {
 
 func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 	var logo string
+	var contactEmail string
 	if h.config != nil {
 		logo = h.config.SiteLogo
+		contactEmail = strings.TrimSpace(h.config.SMTPFrom)
 	}
 	if strings.TrimSpace(logo) == "" {
 		logo = "/static/icons/logo.svg"
@@ -241,6 +243,8 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 
 	settings := models.SiteSettings{
 		Logo:                     logo,
+		ContactEmail:             contactEmail,
+		FooterText:               "",
 		UnusedTagRetentionHours:  blogservice.DefaultUnusedTagRetentionHours,
 		DefaultLanguage:          defaultLanguage,
 		SupportedLanguages:       supportedLanguages,

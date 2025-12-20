@@ -15,9 +15,22 @@
                 >
                     {{ .Site.Name }}
                 </a>
+                {{ if .Site.FooterText }}
                 <p class="footer__text">
-                    Build, publish, and grow your content with confidence.
+                    {{ .Site.FooterText }}
                 </p>
+                {{ end }}
+                {{ if .Site.ContactEmail }}
+                <p class="footer__contact">
+                    <a
+                        href="mailto:{{ .Site.ContactEmail }}"
+                        class="footer__contact-link"
+                        rel="nofollow"
+                    >
+                        {{ .Site.ContactEmail }}
+                    </a>
+                </p>
+                {{ end }}
             </section>
             <nav class="footer__nav" aria-label="Footer navigation">
                 {{ $footerMenu := .Site.FooterMenuItems }}

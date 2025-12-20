@@ -895,6 +895,8 @@ type SiteSettings struct {
 	Favicon                  string           `json:"favicon"`
 	FaviconType              string           `json:"favicon_type"`
 	Logo                     string           `json:"logo"`
+	ContactEmail             string           `json:"contact_email"`
+	FooterText               string           `json:"footer_text"`
 	UnusedTagRetentionHours  int              `json:"unused_tag_retention_hours"`
 	SocialLinks              []SocialLink     `json:"social_links"`
 	MenuItems                []MenuItem       `json:"menu_items"`
@@ -941,6 +943,8 @@ type UpdateSiteSettingsRequest struct {
 	URL                      string                         `json:"url" binding:"required"`
 	Favicon                  string                         `json:"favicon"`
 	Logo                     string                         `json:"logo"`
+	ContactEmail             string                         `json:"contact_email" binding:"omitempty,email"`
+	FooterText               string                         `json:"footer_text" binding:"max=500"`
 	UnusedTagRetentionHours  int                            `json:"unused_tag_retention_hours" binding:"required,min=1"`
 	DefaultLanguage          string                         `json:"default_language"`
 	SupportedLanguages       []string                       `json:"supported_languages"`
@@ -1105,6 +1109,8 @@ type SetupRequest struct {
 	SiteURL                string   `json:"site_url" binding:"required,url"`
 	SiteFavicon            string   `json:"site_favicon"`
 	SiteLogo               string   `json:"site_logo"`
+	SiteContactEmail       string   `json:"site_contact_email" binding:"omitempty,email"`
+	SiteFooterText         string   `json:"site_footer_text" binding:"max=500"`
 	SiteDefaultLanguage    string   `json:"site_default_language"`
 	SiteSupportedLanguages []string `json:"site_supported_languages"`
 }

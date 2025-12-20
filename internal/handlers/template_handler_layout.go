@@ -71,10 +71,12 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 		"Site": gin.H{
 			"Name":               site.Name,
 			"Description":        site.Description,
+			"FooterText":         site.FooterText,
 			"URL":                site.URL,
 			"Favicon":            site.Favicon,
 			"FaviconType":        site.FaviconType,
 			"Logo":               site.Logo,
+			"ContactEmail":       site.ContactEmail,
 			"SocialLinks":        site.SocialLinks,
 			"MenuItems":          site.MenuItems,
 			"HeaderMenuItems":    headerMenu,

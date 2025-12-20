@@ -8658,6 +8658,8 @@
             return '';
         };
 
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
         const getPaymentsFieldValue = (name) => {
             const field = paymentsForm?.querySelector(`[name="${name}"]`);
             if (field && typeof field.value === 'string') {
@@ -8691,6 +8693,8 @@
                 const entries = [
                     ['name', site?.name],
                     ['description', site?.description],
+                    ['contact_email', site?.contact_email],
+                    ['footer_text', site?.footer_text],
                     ['url', site?.url],
                     ['favicon', site?.favicon],
                     ['logo', site?.logo],
@@ -12437,10 +12441,17 @@
             const payload = {
                 name: getSettingsFieldValue('name'),
                 description: getSettingsFieldValue('description'),
+                contact_email: getSettingsFieldValue('contact_email'),
+                footer_text: getSettingsFieldValue('footer_text'),
                 url: getSettingsFieldValue('url'),
                 favicon: getSettingsFieldValue('favicon'),
                 logo: getSettingsFieldValue('logo'),
             };
+
+            if (payload.contact_email && !emailPattern.test(payload.contact_email)) {
+                showAlert('Please provide a valid contact email address or leave the field blank.', 'error');
+                return;
+            }
 
             const stripeSecretKey = getPaymentsFieldValue('stripe_secret_key');
             const stripePublishableKey = getPaymentsFieldValue('stripe_publishable_key');

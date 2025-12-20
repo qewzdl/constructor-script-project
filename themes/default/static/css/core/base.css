@@ -2576,6 +2576,22 @@ body.post-image-modal-open .post-progress {
     font-size: var(--font-size-base);
 }
 
+.footer__contact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-xs);
+}
+
+.footer__contact-link {
+    color: var(--color-secondary);
+    font-weight: 300;
+}
+
+.footer__contact-link:hover,
+.footer__contact-link:focus-visible {
+    color: var(--color-primary);
+}
+
 .footer__nav {
     display: grid;
     gap: var(--size-mid);
