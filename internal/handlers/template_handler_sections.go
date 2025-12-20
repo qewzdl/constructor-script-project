@@ -82,15 +82,18 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sb.WriteString(`<div class="page-view__section-container">`)
 		}
 		sectionDescription := strings.TrimSpace(section.Description)
+		headerHTML := ""
 		if title != "" || sectionDescription != "" {
-			sb.WriteString(`<header class="page-view__section-header">`)
+			var headerBuilder strings.Builder
+			headerBuilder.WriteString(`<header class="page-view__section-header">`)
 			if title != "" {
-				sb.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
+				headerBuilder.WriteString(`<h2 class="` + sectionTitleClass + `">` + escapedTitle + `</h2>`)
 			}
 			if sectionDescription != "" {
-				sb.WriteString(`<p class="` + sectionDescriptionClass + `">` + template.HTMLEscapeString(sectionDescription) + `</p>`)
+				headerBuilder.WriteString(`<p class="` + sectionDescriptionClass + `">` + template.HTMLEscapeString(sectionDescription) + `</p>`)
 			}
-			sb.WriteString(`</header>`)
+			headerBuilder.WriteString(`</header>`)
+			headerHTML = headerBuilder.String()
 		}
 
 		// Try to render as a special section type (posts_list, categories_list, courses_list)
@@ -98,6 +101,10 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		specialSectionHTML, specialScripts := h.renderSpecialSection(pageViewClassPrefix, section, sectionType, c)
 		if specialSectionHTML != "" {
 			skipElements = true
+			if headerHTML != "" {
+				sb.WriteString(headerHTML)
+				headerHTML = ""
+			}
 			sb.WriteString(specialSectionHTML)
 			scripts = appendScripts(scripts, specialScripts)
 		}
@@ -167,11 +174,14 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 				sb.WriteString(
 					`<div class="page-view__section-body page-view__section-body--split">`,
 				)
-				if sectionHTML != "" {
-					sb.WriteString(
-						`<div class="page-view__section-content">` + sectionHTML + `</div>`,
-					)
+				sb.WriteString(`<div class="page-view__section-content">`)
+				if headerHTML != "" {
+					sb.WriteString(headerHTML)
 				}
+				if sectionHTML != "" {
+					sb.WriteString(sectionHTML)
+				}
+				sb.WriteString(`</div>`)
 				sb.WriteString(`<figure class="page-view__section-media">`)
 				sb.WriteString(
 					`<img class="page-view__section-media-img" src="` +
@@ -181,6 +191,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 				)
 				sb.WriteString(`</figure></div>`)
 			} else {
+				if headerHTML != "" {
+					sb.WriteString(headerHTML)
+				}
 				sb.WriteString(sectionHTML)
 			}
 		}
