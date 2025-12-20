@@ -144,9 +144,16 @@
         label: 'Standard section',
         order: 0,
         supportsElements: true,
+        supportsHeaderImage: true,
         description:
             'Flexible content area for combining paragraphs, media, and lists.',
         allowedElements: ['paragraph', 'image', 'image_group', 'list', 'file_group', 'search'],
+        settings: {
+            image_alt: {
+                label: 'Image alt text',
+                placeholder: 'Describe the right-side image',
+            },
+        },
     });
 
     ensureRegistered('grid', {

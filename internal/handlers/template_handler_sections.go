@@ -103,6 +103,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		}
 
 		if !skipElements {
+			var contentBuilder strings.Builder
 			gridWrapperClass := ""
 			gridItemClass := ""
 			gridOpened := false
@@ -129,17 +130,58 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 
 				if sectionType == "grid" {
 					if !gridOpened {
-						sb.WriteString(`<div class="` + gridWrapperClass + `">`)
+						contentBuilder.WriteString(`<div class="` + gridWrapperClass + `">`)
 						gridOpened = true
 					}
-					sb.WriteString(`<div class="` + gridItemClass + `">` + html + `</div>`)
+					contentBuilder.WriteString(`<div class="` + gridItemClass + `">` + html + `</div>`)
 				} else {
-					sb.WriteString(html)
+					contentBuilder.WriteString(html)
 				}
 			}
 
 			if gridOpened {
-				sb.WriteString(`</div>`)
+				contentBuilder.WriteString(`</div>`)
+			}
+
+			sectionHTML := contentBuilder.String()
+			imageURL := strings.TrimSpace(section.Image)
+			hasSideImage := sectionType == "standard" && imageURL != ""
+
+			if hasSideImage {
+				altText := ""
+				if section.Settings != nil {
+					if rawAlt, ok := section.Settings["image_alt"].(string); ok {
+						altText = strings.TrimSpace(rawAlt)
+					}
+				}
+				if altText == "" {
+					altText = strings.TrimSpace(section.Title)
+				}
+				if altText == "" {
+					altText = strings.TrimSpace(section.Description)
+				}
+				if altText == "" {
+					altText = "Section image"
+				}
+
+				sb.WriteString(
+					`<div class="page-view__section-body page-view__section-body--split">`,
+				)
+				if sectionHTML != "" {
+					sb.WriteString(
+						`<div class="page-view__section-content">` + sectionHTML + `</div>`,
+					)
+				}
+				sb.WriteString(`<figure class="page-view__section-media">`)
+				sb.WriteString(
+					`<img class="page-view__section-media-img" src="` +
+						template.HTMLEscapeString(imageURL) +
+						`" alt="` + template.HTMLEscapeString(altText) +
+						`" loading="lazy" decoding="async" />`,
+				)
+				sb.WriteString(`</figure></div>`)
+			} else {
+				sb.WriteString(sectionHTML)
 			}
 		}
 

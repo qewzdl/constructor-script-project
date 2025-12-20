@@ -3,5 +3,13 @@
     "label": "Standard section",
     "order": 0,
     "description": "Flexible content area for combining paragraphs, media, and lists.",
-    "supports_elements": true
+    "supports_elements": true,
+    "supports_header_image": true,
+    "settings": {
+        "image_alt": {
+            "label": "Image alt text",
+            "type": "text",
+            "placeholder": "Describe the image for accessibility and SEO"
+        }
+    }
 }
