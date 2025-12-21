@@ -144,6 +144,12 @@ type stripeWebhookEvent struct {
 func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	requestID := strings.TrimSpace(c.GetString("request_id"))
 
+	logger.Info("Received Stripe checkout webhook", map[string]interface{}{
+		"request_id": requestID,
+		"content_len": c.Request.ContentLength,
+		"user_agent": c.Request.UserAgent(),
+	})
+
 	if h == nil || h.packageService == nil {
 		logger.Warn("Course webhook unavailable: package service missing", map[string]interface{}{
 			"request_id": requestID,
@@ -208,6 +214,15 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	}
 
 	session := event.Data.Object
+	logger.Info("Stripe checkout session parsed", map[string]interface{}{
+		"request_id":     requestID,
+		"event_type":     event.Type,
+		"session_id":     session.ID,
+		"payment_status": session.PaymentStatus,
+		"session_status": session.Status,
+		"customer_email": session.CustomerEmail,
+	})
+
 	if strings.ToLower(strings.TrimSpace(session.PaymentStatus)) != "paid" && strings.ToLower(strings.TrimSpace(session.Status)) != "complete" {
 		logger.Info("Checkout session not paid yet", map[string]interface{}{
 			"request_id":      requestID,
@@ -244,10 +259,18 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 			"session_id": session.ID,
 			"package_id": packageID,
 			"user_id":    userID,
+			"metadata":   metadata,
 		})
 		c.Status(http.StatusOK)
 		return
 	}
+
+	logger.Info("Attempting to grant course after checkout", map[string]interface{}{
+		"request_id": requestID,
+		"session_id": session.ID,
+		"package_id": packageID,
+		"user_id":    userID,
+	})
 
 	req := models.GrantCoursePackageRequest{UserID: userID}
 	if _, err := h.packageService.GrantToUser(packageID, req, 0); err != nil {
