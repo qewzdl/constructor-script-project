@@ -18,8 +18,9 @@ var stateChangingMethods = map[string]struct{}{
 }
 
 var csrfExemptPaths = map[string]struct{}{
-	"/api/v1/setup":  {},
-	"/api/v1/logout": {},
+	"/api/v1/setup":                   {},
+	"/api/v1/logout":                  {},
+	"/api/v1/courses/checkout/verify": {},
 }
 
 func CSRFMiddleware() gin.HandlerFunc {
