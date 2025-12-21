@@ -37,6 +37,7 @@ type Config struct {
 	Level            zerolog.Level
 	Format           Format
 	Output           io.Writer
+	outputFile       *os.File
 	EnableCaller     bool
 	EnableStackTrace bool
 	AdditionalFields map[string]interface{}
@@ -129,7 +130,18 @@ func ConfigFromEnv() (Config, error) {
 		if err != nil {
 			cfgErr = errors.Join(cfgErr, fmt.Errorf("open log file: %w", err))
 		} else {
-			cfg.Output = f
+			cfg.outputFile = f
+			teeStdout := true
+			if val, ok, err := lookupEnvBool("LOG_FILE_TEE_STDOUT"); err != nil {
+				cfgErr = errors.Join(cfgErr, err)
+			} else if ok {
+				teeStdout = val
+			}
+			if teeStdout {
+				cfg.Output = io.MultiWriter(f, os.Stdout)
+			} else {
+				cfg.Output = f
+			}
 		}
 	}
 
@@ -674,6 +686,9 @@ func errorEvent(event *zerolog.Event, err error) *zerolog.Event {
 func Close() error {
 	if v := configValue.Load(); v != nil {
 		if cfg, ok := v.(Config); ok {
+			if cfg.outputFile != nil {
+				return cfg.outputFile.Close()
+			}
 			if cfg.Output != nil {
 				if f, ok := cfg.Output.(*os.File); ok {
 					if f == os.Stdout || f == os.Stderr {
