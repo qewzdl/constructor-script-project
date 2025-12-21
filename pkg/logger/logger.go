@@ -311,6 +311,8 @@ func GinLogger() gin.HandlerFunc {
 		c.Set("logger", requestLogger)
 		c.Request = c.Request.WithContext(requestCtx)
 
+		skipAccessLog := shouldSkipAccessLog(path, c.FullPath())
+
 		c.Next()
 
 		latency := time.Since(start)
@@ -354,6 +356,10 @@ func GinLogger() gin.HandlerFunc {
 		}
 
 		logger := FromContext(c.Request.Context())
+
+		if skipAccessLog {
+			return
+		}
 
 		switch {
 		case statusCode >= http.StatusInternalServerError:
@@ -614,6 +620,30 @@ func requestIDFromGin(c *gin.Context) string {
 	}
 
 	return ""
+}
+
+func shouldSkipAccessLog(path, route string) bool {
+	if path == "" {
+		return false
+	}
+
+	if path == "/favicon.ico" || route == "/favicon.ico" {
+		return true
+	}
+
+	if strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/uploads/") {
+		return true
+	}
+
+	if strings.HasPrefix(path, "/metrics") || route == "/metrics" {
+		return true
+	}
+
+	if strings.HasPrefix(path, "/health") || route == "/health" {
+		return true
+	}
+
+	return false
 }
 
 func resolveLogLevel(value string) (zerolog.Level, error) {
