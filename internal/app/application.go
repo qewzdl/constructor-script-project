@@ -417,15 +417,24 @@ func (a *Application) runMigrations() error {
 
 	// Fix comment foreign key constraints to cascade delete
 	if migrator.HasTable(&models.Comment{}) {
-		// Drop old constraints without cascade
-		if err := a.db.Migrator().DropConstraint(&models.Comment{}, "fk_users_comments"); err == nil {
-			logger.Info("Dropped old foreign key constraint fk_users_comments", nil)
+		// Drop old constraints without cascade (tolerate absence in existing DBs)
+		legacyConstraints := []string{
+			"fk_users_comments",
+			"fk_posts_comments",
+			"fk_comments_parent_id",
 		}
-		if err := a.db.Migrator().DropConstraint(&models.Comment{}, "fk_posts_comments"); err == nil {
-			logger.Info("Dropped old foreign key constraint fk_posts_comments", nil)
-		}
-		if err := a.db.Migrator().DropConstraint(&models.Comment{}, "fk_comments_parent_id"); err == nil {
-			logger.Info("Dropped old foreign key constraint fk_comments_parent_id", nil)
+		for _, constraint := range legacyConstraints {
+			query := fmt.Sprintf(`ALTER TABLE "comments" DROP CONSTRAINT IF EXISTS "%s"`, constraint)
+			if err := a.db.Exec(query).Error; err != nil {
+				logger.Warn("Failed to drop legacy comment constraint", map[string]interface{}{
+					"constraint": constraint,
+					"error":      err.Error(),
+				})
+				continue
+			}
+			logger.Info("Dropped legacy comment foreign key constraint", map[string]interface{}{
+				"constraint": constraint,
+			})
 		}
 	}
 
