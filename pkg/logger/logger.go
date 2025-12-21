@@ -698,8 +698,6 @@ func Close() error {
 }
 
 func newConsoleWriter(writer io.Writer) zerolog.ConsoleWriter {
-	var fieldIndex int
-
 	cw := zerolog.ConsoleWriter{
 		Out:        writer,
 		TimeFormat: "2006-01-02 15:04:05.000Z07:00",
@@ -708,23 +706,22 @@ func newConsoleWriter(writer io.Writer) zerolog.ConsoleWriter {
 			zerolog.LevelFieldName,
 			zerolog.CallerFieldName,
 			zerolog.MessageFieldName,
+			"path",
 		},
 		FieldsOrder: []string{
-			"request_id",
-			"host",
 			"route",
-			"path",
 			"method",
 			"status",
 			"latency_ms",
 			"duration_ms",
 			"rows",
+			"request_id",
+			"host",
 		},
-		FieldsExclude: []string{"stack", "sql"},
+		FieldsExclude: []string{"stack", "sql", "path"},
 	}
 
 	cw.FormatFieldName = func(i interface{}) string {
-		fieldIndex++
 		if i == nil {
 			return ""
 		}
@@ -739,9 +736,17 @@ func newConsoleWriter(writer io.Writer) zerolog.ConsoleWriter {
 	cw.FormatErrFieldName = cw.FormatFieldName
 	cw.FormatErrFieldValue = cw.FormatFieldValue
 
+	cw.FormatPartValueByName = func(value interface{}, name string) string {
+		if name == "path" {
+			if value == nil {
+				return ""
+			}
+			return fmt.Sprintf("\n    path=%v", value)
+		}
+		return fmt.Sprintf("%v", value)
+	}
+
 	cw.FormatExtra = func(fields map[string]interface{}, buf *bytes.Buffer) error {
-		// Reset index so errors that add fields do not keep growing indentation state.
-		fieldIndex = 0
 		if sql, ok := fields["sql"]; ok {
 			buf.WriteString("\n    sql: ")
 			buf.WriteString(fmt.Sprint(sql))
