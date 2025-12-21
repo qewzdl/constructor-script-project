@@ -91,7 +91,7 @@ func ConfigFromEnv() (Config, error) {
 	version := strings.TrimSpace(os.Getenv("LOG_VERSION"))
 
 	level, levelErr := resolveLogLevel(os.Getenv("LOG_LEVEL"))
-	format, formatErr := resolveLogFormat(os.Getenv("LOG_FORMAT"), env)
+	format, formatErr := resolveLogFormat(os.Getenv("LOG_FORMAT"))
 
 	enableCaller := env != "production"
 	if val, ok, err := lookupEnvBool("LOG_CALLER"); err != nil {
@@ -629,7 +629,7 @@ func resolveLogLevel(value string) (zerolog.Level, error) {
 	return level, nil
 }
 
-func resolveLogFormat(value string, environment string) (Format, error) {
+func resolveLogFormat(value string) (Format, error) {
 	trimmed := strings.ToLower(strings.TrimSpace(value))
 
 	switch trimmed {

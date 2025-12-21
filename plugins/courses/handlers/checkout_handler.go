@@ -185,19 +185,24 @@ type stripeWebhookEvent struct {
 // HandleWebhook processes Stripe checkout webhook events and grants course access.
 func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	baseFields := logContextFields(c)
+	baseFields["webhook"] = "stripe_checkout"
 
 	logger.Info("Received Stripe checkout webhook", map[string]interface{}{
-		"request_id": baseFields["request_id"],
+		"request_id":  baseFields["request_id"],
 		"content_len": c.Request.ContentLength,
-		"user_agent": c.Request.UserAgent(),
-		"path":       baseFields["path"],
-		"method":     baseFields["method"],
-		"client_ip":  baseFields["client_ip"],
+		"user_agent":  c.Request.UserAgent(),
+		"path":        baseFields["path"],
+		"route":       baseFields["route"],
+		"method":      baseFields["method"],
+		"host":        baseFields["host"],
+		"client_ip":   baseFields["client_ip"],
+		"webhook":     baseFields["webhook"],
 	})
 
 	if h == nil || h.packageService == nil {
 		logger.Warn("Course webhook unavailable: package service missing", map[string]interface{}{
 			"request_id": baseFields["request_id"],
+			"webhook":    baseFields["webhook"],
 		})
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "course package service unavailable"})
 		return
@@ -207,6 +212,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	if secret == "" {
 		logger.Warn("Course webhook secret not configured", map[string]interface{}{
 			"request_id": baseFields["request_id"],
+			"webhook":    baseFields["webhook"],
 		})
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "stripe webhook not configured"})
 		return
@@ -216,6 +222,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	if signature == "" {
 		logger.Warn("Stripe webhook missing signature header", map[string]interface{}{
 			"request_id": baseFields["request_id"],
+			"webhook":    baseFields["webhook"],
 		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing stripe signature"})
 		return
@@ -225,6 +232,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	if err != nil {
 		logger.Error(err, "Failed to read Stripe webhook payload", map[string]interface{}{
 			"request_id": baseFields["request_id"],
+			"webhook":    baseFields["webhook"],
 		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read webhook payload"})
 		return
@@ -234,6 +242,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 		logger.Warn("Invalid Stripe webhook signature", map[string]interface{}{
 			"request_id": baseFields["request_id"],
 			"error":      err.Error(),
+			"webhook":    baseFields["webhook"],
 		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid webhook signature"})
 		return
@@ -244,6 +253,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 		logger.Warn("Invalid Stripe webhook payload", map[string]interface{}{
 			"request_id": baseFields["request_id"],
 			"error":      err.Error(),
+			"webhook":    baseFields["webhook"],
 		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid webhook payload"})
 		return
@@ -253,6 +263,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 		logger.Info("Ignored Stripe webhook event", map[string]interface{}{
 			"request_id": baseFields["request_id"],
 			"event_type": event.Type,
+			"webhook":    baseFields["webhook"],
 		})
 		c.Status(http.StatusOK)
 		return
@@ -266,16 +277,18 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 		"payment_status": session.PaymentStatus,
 		"session_status": session.Status,
 		"customer_email": session.CustomerEmail,
+		"webhook":        baseFields["webhook"],
 	})
 
 	if strings.ToLower(strings.TrimSpace(session.PaymentStatus)) != "paid" && strings.ToLower(strings.TrimSpace(session.Status)) != "complete" {
 		logger.Info("Checkout session not paid yet", map[string]interface{}{
-			"request_id":      baseFields["request_id"],
-			"event_type":      event.Type,
-			"session_id":      session.ID,
-			"payment_status":  session.PaymentStatus,
-			"session_status":  session.Status,
-			"customer_email":  session.CustomerEmail,
+			"request_id":     baseFields["request_id"],
+			"event_type":     event.Type,
+			"session_id":     session.ID,
+			"payment_status": session.PaymentStatus,
+			"session_status": session.Status,
+			"customer_email": session.CustomerEmail,
+			"webhook":        baseFields["webhook"],
 		})
 		c.Status(http.StatusOK)
 		return
@@ -287,6 +300,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 			"request_id": baseFields["request_id"],
 			"event_type": event.Type,
 			"session_id": session.ID,
+			"webhook":    baseFields["webhook"],
 		})
 		c.Status(http.StatusOK)
 		return
@@ -305,6 +319,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 			"package_id": packageID,
 			"user_id":    userID,
 			"metadata":   metadata,
+			"webhook":    baseFields["webhook"],
 		})
 		c.Status(http.StatusOK)
 		return
@@ -315,6 +330,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 		"session_id": session.ID,
 		"package_id": packageID,
 		"user_id":    userID,
+		"webhook":    baseFields["webhook"],
 	})
 
 	req := models.GrantCoursePackageRequest{UserID: userID}
@@ -324,6 +340,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 			"session_id": session.ID,
 			"package_id": packageID,
 			"user_id":    userID,
+			"webhook":    baseFields["webhook"],
 		})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to grant course access"})
 		return
@@ -334,16 +351,19 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 		"session_id": session.ID,
 		"package_id": packageID,
 		"user_id":    userID,
+		"webhook":    baseFields["webhook"],
 	})
 	c.Status(http.StatusOK)
 }
 
 func logContextFields(c *gin.Context) map[string]interface{} {
 	fields := map[string]interface{}{
-		"path":    "",
-		"method":  "",
-		"client_ip": "",
+		"path":       "",
+		"route":      "",
+		"method":     "",
+		"client_ip":  "",
 		"user_agent": "",
+		"host":       "",
 	}
 
 	if c != nil && c.Request != nil {
@@ -353,6 +373,8 @@ func logContextFields(c *gin.Context) map[string]interface{} {
 		fields["method"] = c.Request.Method
 		fields["user_agent"] = c.Request.UserAgent()
 		fields["client_ip"] = c.ClientIP()
+		fields["host"] = c.Request.Host
+		fields["route"] = c.FullPath()
 	}
 
 	fields["request_id"] = strings.TrimSpace(c.GetString("request_id"))
