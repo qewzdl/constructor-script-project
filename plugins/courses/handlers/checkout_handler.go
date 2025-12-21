@@ -67,11 +67,12 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 		return
 	}
 
-	requestID := strings.TrimSpace(c.GetString("request_id"))
+	baseFields := logContextFields(c)
 
 	if h.packageService == nil {
 		logger.Warn("Course checkout unavailable: package service missing", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
+			"path":       baseFields["path"],
 		})
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "course package service unavailable"})
 		return
@@ -80,7 +81,10 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	if userID == 0 {
 		logger.Warn("Course checkout blocked: unauthenticated request", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
+			"path":       baseFields["path"],
+			"method":     baseFields["method"],
+			"client_ip":  baseFields["client_ip"],
 		})
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
 		return
@@ -89,7 +93,10 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 	var req models.CourseCheckoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Warn("Course checkout bad request", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
+			"path":       baseFields["path"],
+			"method":     baseFields["method"],
+			"client_ip":  baseFields["client_ip"],
 			"error":      err.Error(),
 		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -105,7 +112,7 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 
 	if owned, err := h.packageService.GetForUser(req.PackageID, userID); err == nil && owned != nil {
 		logger.Info("Course checkout blocked: already owned", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 			"user_id":    userID,
 			"package_id": req.PackageID,
 		})
@@ -118,7 +125,11 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 	}
 
 	logger.Info("Starting course checkout session", map[string]interface{}{
-		"request_id": requestID,
+		"request_id": baseFields["request_id"],
+		"path":       baseFields["path"],
+		"method":     baseFields["method"],
+		"client_ip":  baseFields["client_ip"],
+		"user_agent": baseFields["user_agent"],
 		"user_id":    userID,
 		"package_id": req.PackageID,
 		"email":      strings.TrimSpace(req.CustomerEmail),
@@ -131,7 +142,7 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 	}
 
 	logger.Info("Course checkout session created", map[string]interface{}{
-		"request_id": requestID,
+		"request_id": baseFields["request_id"],
 		"user_id":    userID,
 		"package_id": req.PackageID,
 		"session_id": session.ID,
@@ -173,17 +184,20 @@ type stripeWebhookEvent struct {
 
 // HandleWebhook processes Stripe checkout webhook events and grants course access.
 func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
-	requestID := strings.TrimSpace(c.GetString("request_id"))
+	baseFields := logContextFields(c)
 
 	logger.Info("Received Stripe checkout webhook", map[string]interface{}{
-		"request_id": requestID,
+		"request_id": baseFields["request_id"],
 		"content_len": c.Request.ContentLength,
 		"user_agent": c.Request.UserAgent(),
+		"path":       baseFields["path"],
+		"method":     baseFields["method"],
+		"client_ip":  baseFields["client_ip"],
 	})
 
 	if h == nil || h.packageService == nil {
 		logger.Warn("Course webhook unavailable: package service missing", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 		})
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "course package service unavailable"})
 		return
@@ -192,7 +206,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	secret := strings.TrimSpace(h.webhookSecret)
 	if secret == "" {
 		logger.Warn("Course webhook secret not configured", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 		})
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "stripe webhook not configured"})
 		return
@@ -201,7 +215,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	signature := strings.TrimSpace(c.GetHeader("Stripe-Signature"))
 	if signature == "" {
 		logger.Warn("Stripe webhook missing signature header", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing stripe signature"})
 		return
@@ -210,7 +224,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	payload, err := c.GetRawData()
 	if err != nil {
 		logger.Error(err, "Failed to read Stripe webhook payload", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read webhook payload"})
 		return
@@ -218,7 +232,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 
 	if err := stripe.VerifyWebhookSignature(payload, signature, secret, 5*time.Minute); err != nil {
 		logger.Warn("Invalid Stripe webhook signature", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 			"error":      err.Error(),
 		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid webhook signature"})
@@ -228,7 +242,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	var event stripeWebhookEvent
 	if err := json.Unmarshal(payload, &event); err != nil {
 		logger.Warn("Invalid Stripe webhook payload", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 			"error":      err.Error(),
 		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid webhook payload"})
@@ -237,7 +251,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 
 	if !strings.EqualFold(event.Type, "checkout.session.completed") {
 		logger.Info("Ignored Stripe webhook event", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 			"event_type": event.Type,
 		})
 		c.Status(http.StatusOK)
@@ -246,7 +260,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 
 	session := event.Data.Object
 	logger.Info("Stripe checkout session parsed", map[string]interface{}{
-		"request_id":     requestID,
+		"request_id":     baseFields["request_id"],
 		"event_type":     event.Type,
 		"session_id":     session.ID,
 		"payment_status": session.PaymentStatus,
@@ -256,7 +270,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 
 	if strings.ToLower(strings.TrimSpace(session.PaymentStatus)) != "paid" && strings.ToLower(strings.TrimSpace(session.Status)) != "complete" {
 		logger.Info("Checkout session not paid yet", map[string]interface{}{
-			"request_id":      requestID,
+			"request_id":      baseFields["request_id"],
 			"event_type":      event.Type,
 			"session_id":      session.ID,
 			"payment_status":  session.PaymentStatus,
@@ -270,7 +284,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	metadata := session.Metadata
 	if len(metadata) == 0 {
 		logger.Warn("Stripe checkout session missing metadata", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 			"event_type": event.Type,
 			"session_id": session.ID,
 		})
@@ -286,7 +300,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 
 	if packageID == 0 || userID == 0 {
 		logger.Warn("Checkout webhook missing identifiers", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 			"session_id": session.ID,
 			"package_id": packageID,
 			"user_id":    userID,
@@ -297,7 +311,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	}
 
 	logger.Info("Attempting to grant course after checkout", map[string]interface{}{
-		"request_id": requestID,
+		"request_id": baseFields["request_id"],
 		"session_id": session.ID,
 		"package_id": packageID,
 		"user_id":    userID,
@@ -306,7 +320,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	req := models.GrantCoursePackageRequest{UserID: userID}
 	if _, err := h.packageService.GrantToUser(packageID, req, 0); err != nil {
 		logger.Error(err, "Failed to grant course access after checkout", map[string]interface{}{
-			"request_id": requestID,
+			"request_id": baseFields["request_id"],
 			"session_id": session.ID,
 			"package_id": packageID,
 			"user_id":    userID,
@@ -316,12 +330,33 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	}
 
 	logger.Info("Granted course access after Stripe checkout", map[string]interface{}{
-		"request_id": requestID,
+		"request_id": baseFields["request_id"],
 		"session_id": session.ID,
 		"package_id": packageID,
 		"user_id":    userID,
 	})
 	c.Status(http.StatusOK)
+}
+
+func logContextFields(c *gin.Context) map[string]interface{} {
+	fields := map[string]interface{}{
+		"path":    "",
+		"method":  "",
+		"client_ip": "",
+		"user_agent": "",
+	}
+
+	if c != nil && c.Request != nil {
+		if c.Request.URL != nil {
+			fields["path"] = c.Request.URL.Path
+		}
+		fields["method"] = c.Request.Method
+		fields["user_agent"] = c.Request.UserAgent()
+		fields["client_ip"] = c.ClientIP()
+	}
+
+	fields["request_id"] = strings.TrimSpace(c.GetString("request_id"))
+	return fields
 }
 
 func parseUint(value string) uint {
