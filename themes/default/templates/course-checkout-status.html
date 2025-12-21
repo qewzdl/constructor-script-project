@@ -3,7 +3,11 @@
     {{- if not $status }}
         {{- $status = dict "Status" "info" "Eyebrow" "Status" "Title" "Payment status" "Message" "" -}}
     {{- end }}
-    <section class="checkout-status checkout-status--{{ $status.Status }}" data-page="course-checkout-status">
+    <section
+        class="checkout-status checkout-status--{{ $status.Status }}"
+        data-page="course-checkout-status"
+        data-status="{{ $status.Status }}"
+    >
         <div class="checkout-status__card" role="status">
             <div class="checkout-status__icon-wrapper" aria-hidden="true">
                 {{- if eq $status.Status "success" }}
@@ -127,6 +131,30 @@
                     goHome();
                 }
             }, 1000);
+        })();
+
+        (function () {
+            const section = document.querySelector('[data-page="course-checkout-status"]');
+            if (!section || section.getAttribute("data-status") !== "success") {
+                return;
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const sessionId = params.get("session_id");
+            if (!sessionId) {
+                return;
+            }
+
+            fetch("/api/v1/courses/checkout/verify", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ session_id: sessionId }),
+                credentials: "include",
+            }).catch(() => {
+                // Silent fail; webhook retry will still grant access
+            });
         })();
     </script>
 {{ end }}

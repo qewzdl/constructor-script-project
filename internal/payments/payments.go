@@ -35,7 +35,17 @@ type Session struct {
 	URL string
 }
 
+// SessionDetails represents the state of an existing checkout session retrieved from a payment provider.
+type SessionDetails struct {
+	ID            string
+	Status        string
+	PaymentStatus string
+	Metadata      map[string]string
+	CustomerEmail string
+}
+
 // Provider defines the behaviour required to create checkout sessions across payment vendors.
 type Provider interface {
 	CreateCheckoutSession(ctx context.Context, params CheckoutParams) (*Session, error)
+	GetCheckoutSession(ctx context.Context, sessionID string) (*SessionDetails, error)
 }

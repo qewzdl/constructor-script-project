@@ -1315,6 +1315,7 @@ func (a *Application) initRouter() error {
 			protected.PUT("/profile", a.handlers.Auth.UpdateProfile)
 			protected.PUT("/profile/password", a.handlers.Auth.ChangePassword)
 			protected.POST("/courses/checkout", a.handlers.CourseCheckout.CreateSession)
+			protected.POST("/courses/checkout/verify", a.handlers.CourseCheckout.VerifySession)
 			protected.GET("/courses/packages/:id", a.handlers.CoursePackage.GetForUser)
 			protected.GET("/courses/tests/:id", a.handlers.CourseTest.Get)
 			protected.POST("/courses/tests/:id/submit", a.handlers.CourseTest.Submit)

@@ -182,6 +182,10 @@ type stripeWebhookEvent struct {
 	} `json:"data"`
 }
 
+type verifyCheckoutRequest struct {
+	SessionID string `json:"session_id" binding:"required"`
+}
+
 // HandleWebhook processes Stripe checkout webhook events and grants course access.
 func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	baseFields := logContextFields(c)
@@ -354,6 +358,108 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 		"webhook":    baseFields["webhook"],
 	})
 	c.Status(http.StatusOK)
+}
+
+// VerifySession allows the authenticated user to finalize access if the Stripe webhook was delayed.
+func (h *CheckoutHandler) VerifySession(c *gin.Context) {
+	baseFields := logContextFields(c)
+	baseFields["handler"] = "verify_checkout"
+
+	if !h.ensureService(c) {
+		return
+	}
+	if h.packageService == nil {
+		logger.Warn("Course checkout verify unavailable: package service missing", map[string]interface{}{
+			"request_id": baseFields["request_id"],
+			"handler":    baseFields["handler"],
+		})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "course package service unavailable"})
+		return
+	}
+
+	userID := c.GetUint("user_id")
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+
+	var req verifyCheckoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	sessionID := strings.TrimSpace(req.SessionID)
+	if sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "session_id is required"})
+		return
+	}
+
+	logger.Info("Verifying checkout session after redirect", map[string]interface{}{
+		"request_id": baseFields["request_id"],
+		"user_id":    userID,
+		"session_id": sessionID,
+	})
+
+	session, err := h.service.RetrieveSession(c.Request.Context(), sessionID)
+	if err != nil {
+		logger.Warn("Failed to retrieve checkout session from provider", map[string]interface{}{
+			"request_id": baseFields["request_id"],
+			"user_id":    userID,
+			"session_id": sessionID,
+			"error":      err.Error(),
+		})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "unable to verify checkout session"})
+		return
+	}
+
+	if !strings.EqualFold(strings.TrimSpace(session.PaymentStatus), "paid") && !strings.EqualFold(strings.TrimSpace(session.Status), "complete") {
+		c.JSON(http.StatusAccepted, gin.H{"status": "pending"})
+		return
+	}
+
+	metadata := session.Metadata
+	packageID := parseUint(metadata["course_package_id"])
+	if packageID == 0 {
+		packageID = parseUint(metadata["package_id"])
+	}
+	metaUserID := parseUint(metadata["user_id"])
+
+	if packageID == 0 || metaUserID == 0 {
+		logger.Warn("Checkout verification missing identifiers", map[string]interface{}{
+			"request_id": baseFields["request_id"],
+			"session_id": session.ID,
+			"package_id": packageID,
+			"user_id":    metaUserID,
+			"metadata":   metadata,
+		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "checkout session missing identifiers"})
+		return
+	}
+
+	if metaUserID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "session does not belong to the current user"})
+		return
+	}
+
+	reqGrant := models.GrantCoursePackageRequest{UserID: userID}
+	if _, err := h.packageService.GrantToUser(packageID, reqGrant, 0); err != nil {
+		logger.Error(err, "Failed to grant course access after verification", map[string]interface{}{
+			"request_id": baseFields["request_id"],
+			"session_id": session.ID,
+			"package_id": packageID,
+			"user_id":    userID,
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to grant course access"})
+		return
+	}
+
+	logger.Info("Granted course access after checkout verification", map[string]interface{}{
+		"request_id": baseFields["request_id"],
+		"session_id": session.ID,
+		"package_id": packageID,
+		"user_id":    userID,
+	})
+	c.JSON(http.StatusOK, gin.H{"status": "granted"})
 }
 
 func logContextFields(c *gin.Context) map[string]interface{} {

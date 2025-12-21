@@ -119,7 +119,7 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, req models.
 
 	params := payments.CheckoutParams{
 		Mode:       payments.ModePayment,
-		SuccessURL: s.config.SuccessURL,
+		SuccessURL: ensureSessionIDPlaceholder(s.config.SuccessURL),
 		CancelURL:  s.config.CancelURL,
 		Metadata: map[string]string{
 			"course_package_id":    strconv.FormatUint(uint64(pkg.ID), 10),
@@ -163,6 +163,17 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, req models.
 	return &CheckoutSession{ID: session.ID, URL: session.URL}, nil
 }
 
+// RetrieveSession fetches an existing checkout session from the payment provider.
+func (s *CheckoutService) RetrieveSession(ctx context.Context, sessionID string) (*payments.SessionDetails, error) {
+	if s == nil || s.provider == nil {
+		return nil, ErrCheckoutDisabled
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return s.provider.GetCheckoutSession(ctx, sessionID)
+}
+
 func normalizeCheckoutConfig(cfg CheckoutConfig) CheckoutConfig {
 	return CheckoutConfig{
 		SuccessURL: strings.TrimSpace(cfg.SuccessURL),
@@ -181,6 +192,21 @@ func truncateDescription(value string) string {
 	}
 	runes := []rune(trimmed)
 	return string(runes[:500])
+}
+
+func ensureSessionIDPlaceholder(successURL string) string {
+	url := strings.TrimSpace(successURL)
+	if url == "" {
+		return url
+	}
+	if strings.Contains(url, "{CHECKOUT_SESSION_ID}") {
+		return url
+	}
+	separator := "?"
+	if strings.Contains(url, "?") {
+		separator = "&"
+	}
+	return url + separator + "session_id={CHECKOUT_SESSION_ID}"
 }
 
 // Ensure the service satisfies gorm.ErrRecordNotFound propagation expectations.

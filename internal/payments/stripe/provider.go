@@ -148,3 +148,69 @@ func (p *Provider) CreateCheckoutSession(ctx context.Context, params payments.Ch
 
 	return &payments.Session{ID: payload.ID, URL: payload.URL}, nil
 }
+
+// GetCheckoutSession retrieves an existing Stripe Checkout session by ID.
+func (p *Provider) GetCheckoutSession(ctx context.Context, sessionID string) (*payments.SessionDetails, error) {
+	if p == nil {
+		return nil, errors.New("stripe provider is not configured")
+	}
+
+	id := strings.TrimSpace(sessionID)
+	if id == "" {
+		return nil, errors.New("session id is required")
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	endpoint := fmt.Sprintf("%s/v1/checkout/sessions/%s", strings.TrimRight(p.apiBaseURL, "/"), url.PathEscape(id))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+p.secretKey)
+	req.Header.Set("User-Agent", p.userAgent)
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var payload struct {
+		ID            string            `json:"id"`
+		Status        string            `json:"status"`
+		PaymentStatus string            `json:"payment_status"`
+		Metadata      map[string]string `json:"metadata"`
+		CustomerEmail string            `json:"customer_email"`
+		Error         struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, fmt.Errorf("stripe response decode failed: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		message := strings.TrimSpace(payload.Error.Message)
+		if message == "" {
+			message = fmt.Sprintf("stripe returned status %d", resp.StatusCode)
+		}
+		return nil, errors.New(message)
+	}
+
+	if payload.ID == "" {
+		return nil, errors.New("stripe response missing session id")
+	}
+
+	return &payments.SessionDetails{
+		ID:            payload.ID,
+		Status:        payload.Status,
+		PaymentStatus: payload.PaymentStatus,
+		Metadata:      payload.Metadata,
+		CustomerEmail: payload.CustomerEmail,
+	}, nil
+}
