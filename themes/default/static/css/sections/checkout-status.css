@@ -1,0 +1,104 @@
+.checkout-status {
+    min-height: calc(100vh - var(--header-height));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--size-max) var(--page-side-padding);
+    background: radial-gradient(circle at 20% 20%, var(--color-primary-transparent), transparent 30%),
+        radial-gradient(circle at 80% 30%, var(--color-accent-transparent), transparent 32%),
+        var(--color-bg-bottom);
+}
+
+.checkout-status__card {
+    width: min(720px, 100%);
+    background: var(--color-bg-top);
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    padding: var(--size-max);
+    box-shadow: 0 18px 70px rgba(0, 0, 0, 0.08);
+    text-align: center;
+}
+
+.checkout-status__icon-wrapper {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto var(--size-base);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.checkout-status__icon {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    color: var(--color-primary);
+}
+
+.checkout-status__icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.checkout-status--success .checkout-status__icon-wrapper {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.checkout-status--success .checkout-status__icon {
+    color: var(--color-accent);
+}
+
+.checkout-status--cancel .checkout-status__icon-wrapper {
+    background: color-mix(in srgb, var(--color-error) 12%, transparent);
+}
+
+.checkout-status--cancel .checkout-status__icon {
+    color: var(--color-error);
+}
+
+.checkout-status__eyebrow {
+    font-size: var(--font-size-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-secondary);
+    margin-bottom: var(--size-xs);
+}
+
+.checkout-status__title {
+    font-size: clamp(1.6rem, 2vw + 1rem, 2.3rem);
+    margin-bottom: var(--size-sm);
+}
+
+.checkout-status__message {
+    font-size: var(--font-size-lg);
+    color: var(--color-secondary);
+    margin-bottom: var(--size-sm);
+}
+
+.checkout-status__hint {
+    font-size: var(--font-size-base);
+    color: var(--color-secondary);
+    margin-bottom: var(--size-base);
+}
+
+.checkout-status__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--size-sm);
+}
+
+.checkout-status__actions .button {
+    min-width: 180px;
+}
+
+@media (max-width: 640px) {
+    .checkout-status {
+        padding: var(--size-max) var(--size-base);
+    }
+
+    .checkout-status__card {
+        padding: var(--size-mid);
+    }
+}

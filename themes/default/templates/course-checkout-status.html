@@ -1,0 +1,73 @@
+{{ define "course-checkout-status" }}
+    {{- $status := .CheckoutStatus }}
+    {{- if not $status }}
+        {{- $status = dict "Status" "info" "Eyebrow" "Status" "Title" "Course checkout" "Message" "" -}}
+    {{- end }}
+    <section class="checkout-status checkout-status--{{ $status.Status }}" data-page="course-checkout-status">
+        <div class="checkout-status__card" role="status">
+            <div class="checkout-status__icon-wrapper" aria-hidden="true">
+                {{- if eq $status.Status "success" }}
+                    <span class="checkout-status__icon checkout-status__icon--success">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                                d="M20 6L9 17l-5-5"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </span>
+                {{- else if eq $status.Status "cancel" }}
+                    <span class="checkout-status__icon checkout-status__icon--cancel">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path
+                                d="M8 8l8 8m0-8l-8 8"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                    </span>
+                {{- else }}
+                    <span class="checkout-status__icon checkout-status__icon--info">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+                            <path
+                                d="M12 8.5a.75.75 0 110-1.5.75.75 0 010 1.5zM11.25 11h1.5v6h-1.5z"
+                                fill="currentColor"
+                            />
+                        </svg>
+                    </span>
+                {{- end }}
+            </div>
+
+            {{- if $status.Eyebrow }}
+                <p class="checkout-status__eyebrow">{{ $status.Eyebrow }}</p>
+            {{- end }}
+
+            <h1 class="checkout-status__title">{{ $status.Title }}</h1>
+
+            {{- if $status.Message }}
+                <p class="checkout-status__message">{{ $status.Message }}</p>
+            {{- end }}
+
+            {{- if $status.Hint }}
+                <p class="checkout-status__hint">{{ $status.Hint }}</p>
+            {{- end }}
+
+            <div class="checkout-status__actions">
+                {{- if $status.Primary.Label }}
+                    <a class="button button--primary" href="{{ if $status.Primary.Href }}{{ $status.Primary.Href }}{{ else }}/{{ end }}">
+                        {{ $status.Primary.Label }}
+                    </a>
+                {{- end }}
+                {{- if $status.Secondary.Label }}
+                    <a class="button button--secondary" href="{{ if $status.Secondary.Href }}{{ $status.Secondary.Href }}{{ else }}/{{ end }}">
+                        {{ $status.Secondary.Label }}
+                    </a>
+                {{- end }}
+            </div>
+        </div>
+    </section>
+{{ end }}

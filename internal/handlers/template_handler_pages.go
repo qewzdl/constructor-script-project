@@ -1881,6 +1881,81 @@ func defaultProfileSections() models.PostSections {
 	return sections
 }
 
+type checkoutStatusAction struct {
+	Label string
+	Href  string
+}
+
+type checkoutStatusPage struct {
+	Status    string
+	Eyebrow   string
+	Title     string
+	Message   string
+	Hint      string
+	Primary   checkoutStatusAction
+	Secondary checkoutStatusAction
+}
+
+func (h *TemplateHandler) RenderCourseCheckoutSuccess(c *gin.Context) {
+	site := h.siteSettings()
+	contact := strings.TrimSpace(site.ContactEmail)
+
+	hint := "Access is granted automatically once the payment is confirmed."
+	if contact != "" {
+		hint = fmt.Sprintf("Access is granted automatically once the payment is confirmed. If it does not appear, contact %s.", contact)
+	}
+
+	h.renderCheckoutStatusPage(c, checkoutStatusPage{
+		Status:  "success",
+		Eyebrow: "Payment confirmed",
+		Title:   "Thank you for your purchase",
+		Message: "Your course purchase is complete. You can start learning right away.",
+		Hint:    hint,
+		Primary: checkoutStatusAction{
+			Label: "Go to my courses",
+			Href:  "/profile#courses",
+		},
+		Secondary: checkoutStatusAction{
+			Label: "Back to catalog",
+			Href:  "/",
+		},
+	})
+}
+
+func (h *TemplateHandler) RenderCourseCheckoutCancel(c *gin.Context) {
+	h.renderCheckoutStatusPage(c, checkoutStatusPage{
+		Status:  "cancel",
+		Eyebrow: "Checkout cancelled",
+		Title:   "Purchase was not completed",
+		Message: "You can restart checkout from the course card whenever you are ready.",
+		Hint:    "No charges were made. If you need help completing the payment, please reach out.",
+		Primary: checkoutStatusAction{
+			Label: "Return to courses",
+			Href:  "/",
+		},
+		Secondary: checkoutStatusAction{
+			Label: "Go to profile",
+			Href:  "/profile",
+		},
+	})
+}
+
+func (h *TemplateHandler) renderCheckoutStatusPage(c *gin.Context, page checkoutStatusPage) {
+	title := strings.TrimSpace(page.Title)
+	description := strings.TrimSpace(page.Message)
+	if description == "" {
+		description = title
+	}
+
+	data := gin.H{
+		"CheckoutStatus": page,
+		"Styles":         []string{"/static/css/sections/checkout-status.css"},
+		"NoIndex":        true,
+	}
+
+	h.renderTemplate(c, "course-checkout-status", title, description, data)
+}
+
 func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 	user, ok := h.currentUser(c)
 	if !ok {

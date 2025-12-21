@@ -1232,6 +1232,8 @@ func (a *Application) initRouter() error {
 	router.GET("/setup", a.templateHandler.RenderSetup)
 	router.GET("/setup/key-required", a.templateHandler.RenderSetupKeyRequired)
 	router.GET("/profile", a.templateHandler.RenderProfile)
+	router.GET("/courses/checkout/success", a.templateHandler.RenderCourseCheckoutSuccess)
+	router.GET("/courses/checkout/cancel", a.templateHandler.RenderCourseCheckoutCancel)
 	router.GET("/courses/:slug", a.templateHandler.RenderCourse)
 	router.GET("/admin", a.templateHandler.RenderAdmin)
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
