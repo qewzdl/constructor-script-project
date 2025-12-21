@@ -67,19 +67,31 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 		return
 	}
 
+	requestID := strings.TrimSpace(c.GetString("request_id"))
+
 	if h.packageService == nil {
+		logger.Warn("Course checkout unavailable: package service missing", map[string]interface{}{
+			"request_id": requestID,
+		})
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "course package service unavailable"})
 		return
 	}
 
 	userID := c.GetUint("user_id")
 	if userID == 0 {
+		logger.Warn("Course checkout blocked: unauthenticated request", map[string]interface{}{
+			"request_id": requestID,
+		})
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
 		return
 	}
 
 	var req models.CourseCheckoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warn("Course checkout bad request", map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -92,6 +104,11 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 	}
 
 	if owned, err := h.packageService.GetForUser(req.PackageID, userID); err == nil && owned != nil {
+		logger.Info("Course checkout blocked: already owned", map[string]interface{}{
+			"request_id": requestID,
+			"user_id":    userID,
+			"package_id": req.PackageID,
+		})
 		c.JSON(http.StatusConflict, gin.H{"error": "you already own this course"})
 		return
 	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -100,11 +117,25 @@ func (h *CheckoutHandler) CreateSession(c *gin.Context) {
 		return
 	}
 
+	logger.Info("Starting course checkout session", map[string]interface{}{
+		"request_id": requestID,
+		"user_id":    userID,
+		"package_id": req.PackageID,
+		"email":      strings.TrimSpace(req.CustomerEmail),
+	})
+
 	session, err := h.service.CreateCheckoutSession(c.Request.Context(), req)
 	if err != nil {
 		h.writeError(c, err)
 		return
 	}
+
+	logger.Info("Course checkout session created", map[string]interface{}{
+		"request_id": requestID,
+		"user_id":    userID,
+		"package_id": req.PackageID,
+		"session_id": session.ID,
+	})
 
 	c.JSON(http.StatusOK, models.CourseCheckoutSession{
 		SessionID:   session.ID,

@@ -12,6 +12,7 @@ import (
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/payments"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/pkg/logger"
 )
 
 var (
@@ -89,6 +90,12 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, req models.
 		return nil, ErrCheckoutDisabled
 	}
 
+	logger.Info("Preparing checkout session", map[string]interface{}{
+		"package_id": req.PackageID,
+		"user_id":    req.UserID,
+		"email":      strings.TrimSpace(req.CustomerEmail),
+	})
+
 	if req.PackageID == 0 {
 		return nil, fmt.Errorf("course package id is required")
 	}
@@ -140,8 +147,18 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, req models.
 
 	session, err := s.provider.CreateCheckoutSession(ctx, params)
 	if err != nil {
+		logger.Error(err, "Failed to create checkout session with provider", map[string]interface{}{
+			"package_id": req.PackageID,
+			"user_id":    req.UserID,
+		})
 		return nil, err
 	}
+
+	logger.Info("Checkout session ready", map[string]interface{}{
+		"package_id": req.PackageID,
+		"user_id":    req.UserID,
+		"session_id": session.ID,
+	})
 
 	return &CheckoutSession{ID: session.ID, URL: session.URL}, nil
 }
