@@ -142,54 +142,92 @@ type stripeWebhookEvent struct {
 
 // HandleWebhook processes Stripe checkout webhook events and grants course access.
 func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
+	requestID := strings.TrimSpace(c.GetString("request_id"))
+
 	if h == nil || h.packageService == nil {
+		logger.Warn("Course webhook unavailable: package service missing", map[string]interface{}{
+			"request_id": requestID,
+		})
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "course package service unavailable"})
 		return
 	}
 
 	secret := strings.TrimSpace(h.webhookSecret)
 	if secret == "" {
+		logger.Warn("Course webhook secret not configured", map[string]interface{}{
+			"request_id": requestID,
+		})
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "stripe webhook not configured"})
 		return
 	}
 
 	signature := strings.TrimSpace(c.GetHeader("Stripe-Signature"))
 	if signature == "" {
+		logger.Warn("Stripe webhook missing signature header", map[string]interface{}{
+			"request_id": requestID,
+		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing stripe signature"})
 		return
 	}
 
 	payload, err := c.GetRawData()
 	if err != nil {
+		logger.Error(err, "Failed to read Stripe webhook payload", map[string]interface{}{
+			"request_id": requestID,
+		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read webhook payload"})
 		return
 	}
 
 	if err := stripe.VerifyWebhookSignature(payload, signature, secret, 5*time.Minute); err != nil {
+		logger.Warn("Invalid Stripe webhook signature", map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid webhook signature"})
 		return
 	}
 
 	var event stripeWebhookEvent
 	if err := json.Unmarshal(payload, &event); err != nil {
+		logger.Warn("Invalid Stripe webhook payload", map[string]interface{}{
+			"request_id": requestID,
+			"error":      err.Error(),
+		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid webhook payload"})
 		return
 	}
 
 	if !strings.EqualFold(event.Type, "checkout.session.completed") {
+		logger.Info("Ignored Stripe webhook event", map[string]interface{}{
+			"request_id": requestID,
+			"event_type": event.Type,
+		})
 		c.Status(http.StatusOK)
 		return
 	}
 
 	session := event.Data.Object
 	if strings.ToLower(strings.TrimSpace(session.PaymentStatus)) != "paid" && strings.ToLower(strings.TrimSpace(session.Status)) != "complete" {
+		logger.Info("Checkout session not paid yet", map[string]interface{}{
+			"request_id":      requestID,
+			"event_type":      event.Type,
+			"session_id":      session.ID,
+			"payment_status":  session.PaymentStatus,
+			"session_status":  session.Status,
+			"customer_email":  session.CustomerEmail,
+		})
 		c.Status(http.StatusOK)
 		return
 	}
 
 	metadata := session.Metadata
 	if len(metadata) == 0 {
-		logger.Warn("Stripe checkout session missing metadata", map[string]interface{}{"event_type": event.Type, "session_id": session.ID})
+		logger.Warn("Stripe checkout session missing metadata", map[string]interface{}{
+			"request_id": requestID,
+			"event_type": event.Type,
+			"session_id": session.ID,
+		})
 		c.Status(http.StatusOK)
 		return
 	}
@@ -202,6 +240,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 
 	if packageID == 0 || userID == 0 {
 		logger.Warn("Checkout webhook missing identifiers", map[string]interface{}{
+			"request_id": requestID,
 			"session_id": session.ID,
 			"package_id": packageID,
 			"user_id":    userID,
@@ -213,6 +252,7 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 	req := models.GrantCoursePackageRequest{UserID: userID}
 	if _, err := h.packageService.GrantToUser(packageID, req, 0); err != nil {
 		logger.Error(err, "Failed to grant course access after checkout", map[string]interface{}{
+			"request_id": requestID,
 			"session_id": session.ID,
 			"package_id": packageID,
 			"user_id":    userID,
@@ -221,6 +261,12 @@ func (h *CheckoutHandler) HandleWebhook(c *gin.Context) {
 		return
 	}
 
+	logger.Info("Granted course access after Stripe checkout", map[string]interface{}{
+		"request_id": requestID,
+		"session_id": session.ID,
+		"package_id": packageID,
+		"user_id":    userID,
+	})
 	c.Status(http.StatusOK)
 }
 
