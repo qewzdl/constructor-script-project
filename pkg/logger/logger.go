@@ -637,10 +637,7 @@ func resolveLogFormat(value string, environment string) (Format, error) {
 
 	switch trimmed {
 	case "":
-		if environment == "development" || environment == "test" {
-			return FormatConsole, nil
-		}
-		return FormatJSON, nil
+		return FormatConsole, nil
 	case "json":
 		return FormatJSON, nil
 	case "console", "pretty":
