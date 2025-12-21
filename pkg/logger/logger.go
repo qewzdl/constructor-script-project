@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -484,11 +485,7 @@ func applyConfig(cfg Config) error {
 	var base zerolog.Logger
 	switch cfg.Format {
 	case FormatConsole:
-		consoleWriter := zerolog.ConsoleWriter{
-			Out:        writer,
-			TimeFormat: time.RFC3339,
-		}
-		base = zerolog.New(consoleWriter)
+		base = zerolog.New(newConsoleWriter(writer))
 	default:
 		base = zerolog.New(writer)
 	}
@@ -698,4 +695,77 @@ func Close() error {
 	}
 
 	return nil
+}
+
+func newConsoleWriter(writer io.Writer) zerolog.ConsoleWriter {
+	var fieldIndex int
+
+	cw := zerolog.ConsoleWriter{
+		Out:        writer,
+		TimeFormat: "2006-01-02 15:04:05.000Z07:00",
+		PartsOrder: []string{
+			zerolog.TimestampFieldName,
+			zerolog.LevelFieldName,
+			zerolog.CallerFieldName,
+			zerolog.MessageFieldName,
+		},
+		FieldsOrder: []string{
+			"request_id",
+			"host",
+			"route",
+			"path",
+			"method",
+			"status",
+			"latency_ms",
+			"duration_ms",
+			"rows",
+		},
+		FieldsExclude: []string{"stack", "sql"},
+	}
+
+	cw.FormatFieldName = func(i interface{}) string {
+		fieldIndex++
+		if i == nil {
+			return ""
+		}
+		return fmt.Sprintf("\n    %s=", i)
+	}
+	cw.FormatFieldValue = func(i interface{}) string {
+		if i == nil {
+			return ""
+		}
+		return fmt.Sprintf("%v", i)
+	}
+	cw.FormatErrFieldName = cw.FormatFieldName
+	cw.FormatErrFieldValue = cw.FormatFieldValue
+
+	cw.FormatExtra = func(fields map[string]interface{}, buf *bytes.Buffer) error {
+		// Reset index so errors that add fields do not keep growing indentation state.
+		fieldIndex = 0
+		if sql, ok := fields["sql"]; ok {
+			buf.WriteString("\n    sql: ")
+			buf.WriteString(fmt.Sprint(sql))
+		}
+		if stack, ok := fields["stack"]; ok {
+			buf.WriteString("\n    stack:\n")
+			buf.WriteString(indentMultiline(fmt.Sprint(stack), "      "))
+		}
+		return nil
+	}
+
+	return cw
+}
+
+func indentMultiline(value string, indent string) string {
+	value = strings.TrimRight(value, "\n")
+	if value == "" {
+		return ""
+	}
+
+	lines := strings.Split(value, "\n")
+	for i, line := range lines {
+		lines[i] = indent + line
+	}
+
+	return strings.Join(lines, "\n")
 }
