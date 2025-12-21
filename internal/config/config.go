@@ -274,13 +274,13 @@ func New() *Config {
 	normalizedBase := strings.TrimRight(baseSiteURL, "/")
 
 	if successURL == "" {
-		c.CourseCheckoutSuccessURL = normalizedBase + "/courses/checkout/success"
+		c.CourseCheckoutSuccessURL = normalizedBase + "/checkout/success"
 	} else {
 		c.CourseCheckoutSuccessURL = successURL
 	}
 
 	if cancelURL == "" {
-		c.CourseCheckoutCancelURL = normalizedBase + "/courses/checkout/cancel"
+		c.CourseCheckoutCancelURL = normalizedBase + "/checkout/cancel"
 	} else {
 		c.CourseCheckoutCancelURL = cancelURL
 	}

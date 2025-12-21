@@ -82,6 +82,23 @@
     margin-bottom: var(--size-base);
 }
 
+.checkout-status__redirect {
+    margin: var(--size-sm) 0 var(--size-base);
+    color: var(--color-secondary);
+    font-size: var(--font-size-base);
+}
+
+.checkout-status__redirect a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+}
+
+.checkout-status__redirect a:hover {
+    text-decoration: underline;
+}
+
 .checkout-status__actions {
     display: flex;
     flex-wrap: wrap;

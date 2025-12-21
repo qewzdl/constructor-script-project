@@ -1234,6 +1234,12 @@ func (a *Application) initRouter() error {
 	router.GET("/profile", a.templateHandler.RenderProfile)
 	router.GET("/courses/checkout/success", a.templateHandler.RenderCourseCheckoutSuccess)
 	router.GET("/courses/checkout/cancel", a.templateHandler.RenderCourseCheckoutCancel)
+	router.GET("/checkout/success", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/courses/checkout/success")
+	})
+	router.GET("/checkout/cancel", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/courses/checkout/cancel")
+	})
 	router.GET("/courses/:slug", a.templateHandler.RenderCourse)
 	router.GET("/admin", a.templateHandler.RenderAdmin)
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)

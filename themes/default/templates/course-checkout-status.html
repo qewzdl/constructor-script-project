@@ -1,7 +1,7 @@
 {{ define "course-checkout-status" }}
     {{- $status := .CheckoutStatus }}
     {{- if not $status }}
-        {{- $status = dict "Status" "info" "Eyebrow" "Status" "Title" "Course checkout" "Message" "" -}}
+        {{- $status = dict "Status" "info" "Eyebrow" "Status" "Title" "Payment status" "Message" "" -}}
     {{- end }}
     <section class="checkout-status checkout-status--{{ $status.Status }}" data-page="course-checkout-status">
         <div class="checkout-status__card" role="status">
@@ -56,6 +56,19 @@
                 <p class="checkout-status__hint">{{ $status.Hint }}</p>
             {{- end }}
 
+            <div
+                class="checkout-status__redirect"
+                data-redirect-target="/"
+                data-redirect-seconds="10"
+            >
+                <p class="checkout-status__redirect-text">
+                    Redirecting to the homepage in
+                    <span data-redirect-countdown>10</span>
+                    seconds.
+                    <a href="/" data-redirect-now>Go now</a>
+                </p>
+            </div>
+
             <div class="checkout-status__actions">
                 {{- if $status.Primary.Label }}
                     <a class="button button--primary" href="{{ if $status.Primary.Href }}{{ $status.Primary.Href }}{{ else }}/{{ end }}">
@@ -70,4 +83,50 @@
             </div>
         </div>
     </section>
+    <script>
+        (function () {
+            const container = document.querySelector(".checkout-status__redirect");
+            if (!container) {
+                return;
+            }
+
+            const target = container.getAttribute("data-redirect-target") || "/";
+            const secondsAttr = container.getAttribute("data-redirect-seconds");
+            let remaining = parseInt(secondsAttr, 10);
+            if (!Number.isFinite(remaining) || remaining <= 0) {
+                remaining = 5;
+            }
+
+            const countdown = container.querySelector("[data-redirect-countdown]");
+            const redirectNow = container.querySelector("[data-redirect-now]");
+
+            const updateCountdown = () => {
+                if (countdown) {
+                    countdown.textContent = String(remaining);
+                }
+            };
+
+            const goHome = () => {
+                window.location.assign(target || "/");
+            };
+
+            if (redirectNow) {
+                redirectNow.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    goHome();
+                });
+            }
+
+            updateCountdown();
+
+            const timer = setInterval(() => {
+                remaining -= 1;
+                updateCountdown();
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    goHome();
+                }
+            }, 1000);
+        })();
+    </script>
 {{ end }}

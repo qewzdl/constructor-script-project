@@ -1276,7 +1276,7 @@
             <div>
                 <h2 class="admin-panel__title">Payments</h2>
                 <p class="admin-panel__description">
-                    Manage Stripe credentials and checkout preferences for selling course packages.
+                    Manage Stripe credentials and checkout preferences for selling paid products and access.
                 </p>
             </div>
         </header>
@@ -1285,7 +1285,7 @@
                 <fieldset class="admin-card admin-form__fieldset">
                     <legend class="admin-card__title admin-form__legend">Stripe configuration</legend>
                     <p class="admin-card__description admin-form__hint">
-                        Provide Stripe credentials and checkout preferences for selling course packages.
+                        Provide Stripe credentials and checkout preferences for paid offerings (courses or other products).
                     </p>
                     <label class="admin-form__label">
                         Stripe publishable key
@@ -1311,7 +1311,7 @@
                             type="url"
                             name="course_checkout_success_url"
                             class="admin-form__input"
-                            placeholder="https://example.com/courses/checkout/success"
+                            placeholder="https://example.com/checkout/success"
                         />
                     </label>
                     <label class="admin-form__label">
@@ -1320,7 +1320,7 @@
                             type="url"
                             name="course_checkout_cancel_url"
                             class="admin-form__input"
-                            placeholder="https://example.com/courses/checkout/cancel"
+                            placeholder="https://example.com/checkout/cancel"
                         />
                     </label>
                     <label class="admin-form__label">

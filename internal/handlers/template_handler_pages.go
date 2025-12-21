@@ -1908,15 +1908,15 @@ func (h *TemplateHandler) RenderCourseCheckoutSuccess(c *gin.Context) {
 	h.renderCheckoutStatusPage(c, checkoutStatusPage{
 		Status:  "success",
 		Eyebrow: "Payment confirmed",
-		Title:   "Thank you for your purchase",
-		Message: "Your course purchase is complete. You can start learning right away.",
+		Title:   "Payment complete",
+		Message: "Your purchase is complete. We're preparing your access.",
 		Hint:    hint,
 		Primary: checkoutStatusAction{
-			Label: "Go to my courses",
-			Href:  "/profile#courses",
+			Label: "Go to dashboard",
+			Href:  "/profile",
 		},
 		Secondary: checkoutStatusAction{
-			Label: "Back to catalog",
+			Label: "Back to homepage",
 			Href:  "/",
 		},
 	})
@@ -1926,11 +1926,11 @@ func (h *TemplateHandler) RenderCourseCheckoutCancel(c *gin.Context) {
 	h.renderCheckoutStatusPage(c, checkoutStatusPage{
 		Status:  "cancel",
 		Eyebrow: "Checkout cancelled",
-		Title:   "Purchase was not completed",
-		Message: "You can restart checkout from the course card whenever you are ready.",
+		Title:   "Payment not completed",
+		Message: "You can restart checkout whenever you are ready.",
 		Hint:    "No charges were made. If you need help completing the payment, please reach out.",
 		Primary: checkoutStatusAction{
-			Label: "Return to courses",
+			Label: "Return to catalog",
 			Href:  "/",
 		},
 		Secondary: checkoutStatusAction{
