@@ -10,7 +10,7 @@
 .page-view__hero-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--size-base);
+    gap: var(--size-lg);
     align-items: center;
     max-width: 1200px;
     width: 100%;

@@ -15,10 +15,19 @@
                 >
                     {{ .Site.Name }}
                 </a>
-                {{ if .Site.FooterText }}
+                {{ $tagline := .Site.Description }}
+                {{ $footerText := .Site.FooterText }}
+                {{ if or $tagline $footerText }}
+                {{ if $tagline }}
                 <p class="footer__text">
-                    {{ .Site.FooterText }}
+                    {{ $tagline }}
                 </p>
+                {{ end }}
+                {{ if and $footerText (ne $footerText $tagline) }}
+                <p class="footer__note">
+                    {{ $footerText }}
+                </p>
+                {{ end }}
                 {{ end }}
                 {{ if .Site.ContactEmail }}
                 <p class="footer__contact">

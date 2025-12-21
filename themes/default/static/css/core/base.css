@@ -2575,6 +2575,10 @@ body.post-image-modal-open .post-progress {
     color: var(--color-secondary-darker);
     font-size: var(--font-size-base);
 }
+.footer__note {
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
 
 .footer__contact {
     display: flex;
