@@ -219,7 +219,7 @@ func New() *Config {
 
 		// Features
 		EnableCache:       getEnvAsBool("ENABLE_CACHE", true),
-		EnableEmail:       getEnvAsBool("ENABLE_EMAIL", false),
+		EnableEmail:       true,
 		EnableMetrics:     getEnvAsBool("ENABLE_METRICS", true),
 		EnableCompression: getEnvAsBool("ENABLE_COMPRESSION", true),
 
