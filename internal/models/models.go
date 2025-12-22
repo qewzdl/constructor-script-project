@@ -592,6 +592,7 @@ type Section struct {
 	Image           string                 `json:"image"`
 	Limit           int                    `json:"limit"`
 	Mode            string                 `json:"mode,omitempty"`
+	Disabled        bool                   `json:"disabled,omitempty"`
 	Order           int                    `json:"order"`
 	StyleGridItems  *bool                  `json:"style_grid_items,omitempty"`
 	PaddingVertical *int                   `json:"padding_vertical,omitempty"`

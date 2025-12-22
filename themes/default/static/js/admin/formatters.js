@@ -145,6 +145,17 @@
         }
         const parts = [];
         sections.forEach((section) => {
+            const disabledValue =
+                section?.disabled !== undefined ? section.disabled : section?.Disabled;
+            if (
+                disabledValue === true ||
+                (typeof disabledValue === 'string' &&
+                    ['true', '1', 'yes', 'on'].includes(
+                        disabledValue.trim().toLowerCase()
+                    ))
+            ) {
+                return;
+            }
             if (section.title) {
                 parts.push(section.title);
             }

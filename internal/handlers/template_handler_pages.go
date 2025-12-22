@@ -1573,7 +1573,13 @@ func (h *TemplateHandler) profileSectionsForUser(user *models.User, courses []mo
 		sections = defaultProfileSections()
 	}
 
+	sections = filterActiveSections(sections)
+	if len(sections) == 0 {
+		sections = defaultProfileSections()
+	}
+
 	sections = upgradeProfileCourseSections(sections)
+	sections = filterActiveSections(sections)
 
 	return applyProfileUserContext(sections, user, courses), page
 }

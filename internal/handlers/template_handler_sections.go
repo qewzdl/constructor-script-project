@@ -18,6 +18,27 @@ import (
 
 const pageViewClassPrefix = "page-view"
 
+func filterActiveSections(sections models.PostSections) models.PostSections {
+	if len(sections) == 0 {
+		return sections
+	}
+
+	filtered := make(models.PostSections, 0, len(sections))
+	removed := false
+	for _, section := range sections {
+		if section.Disabled {
+			removed = true
+			continue
+		}
+		filtered = append(filtered, section)
+	}
+
+	if removed {
+		return filtered
+	}
+	return sections
+}
+
 func (h *TemplateHandler) renderSections(sections models.PostSections, c *gin.Context) (template.HTML, []string) {
 	return h.renderSectionsWithPrefix(sections, "post", c)
 }
@@ -32,7 +53,7 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 
 	wrapWithContainer := prefix == pageViewClassPrefix
 
-	for _, section := range sections {
+	for _, section := range filterActiveSections(sections) {
 		sectionType := strings.TrimSpace(strings.ToLower(section.Type))
 		if sectionType == "" {
 			sectionType = "standard"
@@ -1861,7 +1882,7 @@ func (h *TemplateHandler) generateTOC(sections models.PostSections) template.HTM
 	sb.WriteString(`<h2 class="post__toc-title">Table of Contents</h2>`)
 	sb.WriteString(`<ol class="post__toc-list">`)
 
-	for _, section := range sections {
+	for _, section := range filterActiveSections(sections) {
 		title := strings.TrimSpace(section.Title)
 		if title == "" {
 			continue

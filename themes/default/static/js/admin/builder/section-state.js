@@ -51,6 +51,22 @@
         return NaN;
     };
 
+    const parseBoolean = (value, fallback = false) => {
+        if (value === true || value === false) {
+            return Boolean(value);
+        }
+        if (typeof value === 'string') {
+            const normalised = value.trim().toLowerCase();
+            if (['true', '1', 'yes', 'on'].includes(normalised)) {
+                return true;
+            }
+            if (['false', '0', 'no', 'off'].includes(normalised)) {
+                return false;
+            }
+        }
+        return fallback;
+    };
+
     const clampLimit = (value, definition) => {
         if (!definition || typeof definition !== 'object') {
             return value > 0 && Number.isFinite(value)
@@ -288,6 +304,7 @@
         const marginVertical = normaliseMarginValue(marginSource);
         const headerImageSupported =
             sectionDefinitions[type]?.supportsHeaderImage === true;
+        const disabled = parseBoolean(section.disabled ?? section.Disabled, false);
         
         // Handle custom section settings (like hero fields)
         const settingsSource = section.settings ?? section.Settings ?? {};
@@ -318,6 +335,7 @@
             elements,
             limit: limitValue,
             mode: modeValue,
+            disabled,
             styleGridItems,
             paddingVertical,
             marginVertical,
@@ -426,8 +444,8 @@
                         : Boolean(title || description || image || hasSettings);
 
                     if (!hasContent) {
-                        return null;
-                    }
+                    return null;
+                }
 
                     const payload = {
                         id: section.id || '',
@@ -437,6 +455,10 @@
                         order: index + 1,
                         elements: supportsElements(section.type) ? elements : nilSlice,
                     };
+
+                    if (parseBoolean(section.disabled, false)) {
+                        payload.disabled = true;
+                    }
 
                     if (headerImageSupported && image) {
                         payload.image = image;
@@ -722,6 +744,8 @@
                 section.title = value;
             } else if (field === 'section-description') {
                 section.description = value;
+            } else if (field === 'section-disabled') {
+                section.disabled = parseBoolean(value, false);
             } else if (field === 'section-image') {
                 if (supportsHeaderImage(section.type)) {
                     section.image = value;

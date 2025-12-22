@@ -7,6 +7,7 @@ type AddSectionRequest struct {
 	Description     string `json:"description"`
 	PaddingVertical *int   `json:"padding_vertical,omitempty"`
 	MarginVertical  *int   `json:"margin_vertical,omitempty"`
+	Disabled        *bool  `json:"disabled,omitempty"`
 }
 
 // UpdateSectionRequest represents a request to update an existing section.
@@ -20,6 +21,7 @@ type UpdateSectionRequest struct {
 	Limit           *int              `json:"limit,omitempty"`
 	Mode            *string           `json:"mode,omitempty"`
 	StyleGridItems  *bool             `json:"style_grid_items,omitempty"`
+	Disabled        *bool             `json:"disabled,omitempty"`
 }
 
 // PageTemplate represents a predefined page layout template.

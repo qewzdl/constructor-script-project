@@ -332,10 +332,7 @@
 
         const updateSectionField = (sectionClientId, field, value) => {
             state.updateSectionField(sectionClientId, field, value);
-            if (field === 'section-type') {
-                render();
-                emitChange();
-            }
+            return field === 'section-type' || field === 'section-disabled';
         };
 
         const updateElementField = (
@@ -370,7 +367,10 @@
             onGroupFileAdd: addGroupFile,
             onGroupFileRemove: removeGroupFile,
             onSectionFieldChange: (sectionClientId, field, value) => {
-                updateSectionField(sectionClientId, field, value);
+                const needsRender = updateSectionField(sectionClientId, field, value);
+                if (needsRender) {
+                    render();
+                }
                 emitChange();
             },
             onElementFieldChange: (

@@ -1403,16 +1403,22 @@
             const totalSections = sections.length;
 
             sections.forEach((section, index) => {
-                const sectionItem = createElement('li', {
-                    className: 'admin-builder__section',
-                });
-                sectionItem.dataset.sectionClient = section.clientId;
-                sectionItem.dataset.sectionIndex = String(index);
-                if (section.id) {
-                    sectionItem.dataset.sectionId = section.id;
-                }
+            const sectionItem = createElement('li', {
+                className: 'admin-builder__section',
+            });
+            sectionItem.dataset.sectionClient = section.clientId;
+            sectionItem.dataset.sectionIndex = String(index);
+            sectionItem.dataset.sectionType = section.type;
+            const isDisabled = Boolean(section.disabled);
+            sectionItem.dataset.sectionDisabled = String(isDisabled);
+            if (isDisabled) {
+                sectionItem.classList.add('admin-builder__section--disabled');
+            }
+            if (section.id) {
+                sectionItem.dataset.sectionId = section.id;
+            }
 
-                const sectionDefinition = sectionDefinitions?.[section.type] || {};
+            const sectionDefinition = sectionDefinitions?.[section.type] || {};
                 const allowElements = sectionDefinition.supportsElements !== false;
                 const supportsHeaderImage =
                     sectionDefinition.supportsHeaderImage === true;
@@ -1422,10 +1428,23 @@
                 const sectionHeader = createElement('div', {
                     className: 'admin-builder__section-header',
                 });
+                const sectionHeading = createElement('div', {
+                    className: 'admin-builder__section-heading',
+                });
                 const sectionTitle = createElement('h3', {
                     className: 'admin-builder__section-title',
                     textContent: `Section ${index + 1}`,
                 });
+                sectionHeading.append(sectionTitle);
+
+                if (isDisabled) {
+                    const statusBadge = createElement('span', {
+                        className: 'admin-builder__section-status admin-builder__section-status--disabled',
+                        textContent: 'Disabled',
+                    });
+                    sectionHeading.append(statusBadge);
+                }
+
                 const sectionActions = createElement('div', {
                     className: 'admin-builder__section-actions',
                 });
@@ -1447,14 +1466,26 @@
                 moveDownButton.dataset.direction = 'down';
                 moveDownButton.dataset.role = 'section-move-down';
                 moveDownButton.disabled = isLastSection;
+                const toggleButton = createElement('button', {
+                    className: 'admin-builder__button admin-builder__button--ghost',
+                    textContent: isDisabled ? 'Enable section' : 'Disable section',
+                });
+                toggleButton.type = 'button';
+                toggleButton.dataset.action = 'section-toggle';
+                toggleButton.dataset.state = isDisabled ? 'enable' : 'disable';
                 const removeButton = createElement('button', {
                     className: 'admin-builder__remove',
                     textContent: 'Remove section',
                 });
                 removeButton.type = 'button';
                 removeButton.dataset.action = 'section-remove';
-                sectionActions.append(moveUpButton, moveDownButton, removeButton);
-                sectionHeader.append(sectionTitle, sectionActions);
+                sectionActions.append(
+                    moveUpButton,
+                    moveDownButton,
+                    toggleButton,
+                    removeButton
+                );
+                sectionHeader.append(sectionHeading, sectionActions);
                 sectionItem.append(sectionHeader);
 
                 const typeField = createElement('div', {

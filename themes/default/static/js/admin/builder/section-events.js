@@ -200,11 +200,15 @@
         sections.forEach((section, index) => {
             const sectionClientId = section.dataset.sectionClient;
             const sectionId = section.dataset.sectionId;
+            const isDisabled = section.dataset.sectionDisabled === 'true';
+            if (isDisabled) {
+                return;
+            }
             const titleInput = section.querySelector('[data-field="section-title"]');
             const sectionTitle = titleInput ? titleInput.value.trim() : '';
             const sectionType = section.dataset.sectionType || 'unknown';
-            
-            const displayTitle = sectionTitle || `Section ${index + 1}`;
+            const sectionNumber = sectionList.childElementCount + 1;
+            const displayTitle = sectionTitle || `Section ${sectionNumber}`;
             const anchorId = sectionId || sectionClientId;
 
             const button = utils.createElement('button', {
@@ -596,6 +600,14 @@
                 event.preventDefault();
                 const direction = target.dataset.direction || '';
                 onSectionMove?.(sectionClientId, direction);
+                return;
+            }
+
+            if (target.matches('[data-action="section-toggle"]')) {
+                event.preventDefault();
+                const currentDisabled =
+                    sectionNode.dataset.sectionDisabled === 'true';
+                onSectionFieldChange?.(sectionClientId, 'section-disabled', !currentDisabled);
                 return;
             }
 

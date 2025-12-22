@@ -88,6 +88,10 @@ func (s *PageService) AddSection(pageID uint, req models.AddSectionRequest) (*mo
 		Elements:    make([]models.SectionElement, 0),
 	}
 
+	if req.Disabled != nil {
+		newSection.Disabled = *req.Disabled
+	}
+
 	if req.PaddingVertical != nil {
 		newSection.PaddingVertical = req.PaddingVertical
 	}
@@ -140,6 +144,9 @@ func (s *PageService) UpdateSection(pageID uint, sectionID string, req models.Up
 			}
 			if req.StyleGridItems != nil {
 				page.Sections[i].StyleGridItems = req.StyleGridItems
+			}
+			if req.Disabled != nil {
+				page.Sections[i].Disabled = *req.Disabled
 			}
 			found = true
 			break

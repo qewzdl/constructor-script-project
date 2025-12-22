@@ -1301,6 +1301,23 @@
                 if (!section) {
                     continue;
                 }
+                const isDisabled = (() => {
+                    const value =
+                        section.disabled !== undefined
+                            ? section.disabled
+                            : section.Disabled;
+                    if (value === true || value === false) {
+                        return Boolean(value);
+                    }
+                    if (typeof value === 'string') {
+                        const normalised = value.trim().toLowerCase();
+                        return ['true', '1', 'yes', 'on'].includes(normalised);
+                    }
+                    return false;
+                })();
+                if (isDisabled) {
+                    continue;
+                }
                 const rawTitle =
                     section.title === undefined || section.title === null
                         ? ''
