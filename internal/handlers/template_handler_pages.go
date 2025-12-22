@@ -2089,6 +2089,10 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		pageDescription = description
 	}
 
+	if h.courseMaterialProtect != nil {
+		course = h.courseMaterialProtect.ProtectCourseForUser(course, user.ID)
+	}
+
 	courseEndpoint := fmt.Sprintf("/api/v1/courses/packages/%s", slug)
 	if slug == "" {
 		courseEndpoint = fmt.Sprintf("/api/v1/courses/packages/%d", pkg.ID)

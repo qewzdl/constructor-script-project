@@ -124,6 +124,8 @@ func (f *Feature) Activate() error {
 		stripeSecret     string
 		stripePublish    string
 		stripeWebhook    string
+		materialProtect  *courseservice.MaterialProtection
+		uploadDir        string
 	)
 	if cfg != nil {
 		checkoutConfig = courseservice.CheckoutConfig{
@@ -134,6 +136,8 @@ func (f *Feature) Activate() error {
 		stripeSecret = strings.TrimSpace(cfg.StripeSecretKey)
 		stripePublish = strings.TrimSpace(cfg.StripePublishableKey)
 		stripeWebhook = strings.TrimSpace(cfg.StripeWebhookSecret)
+		materialProtect = courseservice.NewMaterialProtection(cfg.JWTSecret)
+		uploadDir = strings.TrimSpace(cfg.UploadDir)
 	} else {
 		logger.Debug("Configuration unavailable; course checkout remains disabled", map[string]interface{}{"feature": "courses"})
 	}
@@ -232,9 +236,12 @@ func (f *Feature) Activate() error {
 	}
 
 	if handler, ok := handlers.Get(courseapi.HandlerPackage).(*coursehandlers.PackageHandler); handler == nil || !ok {
-		handlers.Set(courseapi.HandlerPackage, coursehandlers.NewPackageHandler(packageService))
+		handler = coursehandlers.NewPackageHandler(packageService)
+		handler.SetMaterialProtection(materialProtect)
+		handlers.Set(courseapi.HandlerPackage, handler)
 	} else {
 		handler.SetService(packageService)
+		handler.SetMaterialProtection(materialProtect)
 	}
 
 	if handler, ok := handlers.Get(courseapi.HandlerCheckout).(*coursehandlers.CheckoutHandler); handler == nil || !ok {
@@ -248,9 +255,16 @@ func (f *Feature) Activate() error {
 		handler.SetWebhookSecret(stripeWebhook)
 	}
 
+	if handler, ok := handlers.Get(courseapi.HandlerAsset).(*coursehandlers.AssetHandler); handler == nil || !ok {
+		handlers.Set(courseapi.HandlerAsset, coursehandlers.NewAssetHandler(packageService, materialProtect, uploadDir))
+	} else {
+		handler.SetDependencies(packageService, materialProtect, uploadDir)
+	}
+
 	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
 		templateHandler.SetCoursePackageService(packageService)
 		templateHandler.SetCourseCheckoutService(checkoutService)
+		templateHandler.SetCourseMaterialProtection(materialProtect)
 	}
 
 	if authHandler := f.host.AuthHandler(); authHandler != nil {
@@ -274,6 +288,7 @@ func (f *Feature) Deactivate() error {
 	}
 	if handler, _ := handlers.Get(courseapi.HandlerPackage).(*coursehandlers.PackageHandler); handler != nil {
 		handler.SetService(nil)
+		handler.SetMaterialProtection(nil)
 	}
 	if handler, _ := handlers.Get(courseapi.HandlerTest).(*coursehandlers.TestHandler); handler != nil {
 		handler.SetService(nil)
@@ -282,6 +297,9 @@ func (f *Feature) Deactivate() error {
 		handler.SetService(nil)
 		handler.SetPackageService(nil)
 		handler.SetWebhookSecret("")
+	}
+	if handler, _ := handlers.Get(courseapi.HandlerAsset).(*coursehandlers.AssetHandler); handler != nil {
+		handler.SetDependencies(nil, nil, "")
 	}
 
 	services := f.host.Services(courseapi.Namespace)
@@ -294,6 +312,7 @@ func (f *Feature) Deactivate() error {
 	if templateHandler := f.host.TemplateHandler(); templateHandler != nil {
 		templateHandler.SetCoursePackageService(nil)
 		templateHandler.SetCourseCheckoutService(nil)
+		templateHandler.SetCourseMaterialProtection(nil)
 	}
 
 	if authHandler := f.host.AuthHandler(); authHandler != nil {

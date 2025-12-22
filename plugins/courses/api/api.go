@@ -18,4 +18,5 @@ const (
 	HandlerPackage  = "package"
 	HandlerCheckout = "checkout"
 	HandlerContent  = "content"
+	HandlerAsset    = "asset"
 )

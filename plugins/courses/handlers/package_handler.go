@@ -13,7 +13,8 @@ import (
 )
 
 type PackageHandler struct {
-	service *courseservice.PackageService
+	service    *courseservice.PackageService
+	protection *courseservice.MaterialProtection
 }
 
 func NewPackageHandler(service *courseservice.PackageService) *PackageHandler {
@@ -25,6 +26,14 @@ func (h *PackageHandler) SetService(service *courseservice.PackageService) {
 		return
 	}
 	h.service = service
+}
+
+// SetMaterialProtection configures the signer used to protect course assets in responses.
+func (h *PackageHandler) SetMaterialProtection(protection *courseservice.MaterialProtection) {
+	if h == nil {
+		return
+	}
+	h.protection = protection
 }
 
 func (h *PackageHandler) ensureService(c *gin.Context) bool {
@@ -191,6 +200,10 @@ func (h *PackageHandler) GetForUser(c *gin.Context) {
 	if err != nil {
 		h.writeError(c, err)
 		return
+	}
+
+	if h.protection != nil {
+		course = h.protection.ProtectCourseForUser(course, userID)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"course": course})

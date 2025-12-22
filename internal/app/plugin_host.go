@@ -1129,6 +1129,30 @@ func (a *Application) registerPluginHandlerBindings() {
 
 	a.pluginBindings.register(
 		registryKindHandlers,
+		courseapi.Namespace,
+		courseapi.HandlerAsset,
+		func() any {
+			if a == nil {
+				return nil
+			}
+			return a.handlers.CourseAsset
+		},
+		func(value any) {
+			if a == nil {
+				return
+			}
+			if value == nil {
+				a.handlers.CourseAsset = nil
+				return
+			}
+			if handler, ok := value.(*coursehandlers.AssetHandler); ok {
+				a.handlers.CourseAsset = handler
+			}
+		},
+	)
+
+	a.pluginBindings.register(
+		registryKindHandlers,
 		archiveapi.Namespace,
 		archiveapi.HandlerDirectory,
 		func() any {

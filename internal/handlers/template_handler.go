@@ -24,33 +24,34 @@ import (
 )
 
 type TemplateHandler struct {
-	postService         *blogservice.PostService
-	categoryService     *blogservice.CategoryService
-	pageService         *service.PageService
-	authService         *service.AuthService
-	commentService      *blogservice.CommentService
-	searchService       *blogservice.SearchService
-	setupService        *service.SetupService
-	homepageService     *service.HomepageService
-	languageService     *languageservice.LanguageService
-	socialLinkService   *service.SocialLinkService
-	menuService         *service.MenuService
-	advertisingService  *service.AdvertisingService
-	coursePackageSvc    *courseservice.PackageService
-	courseCheckoutSvc   *courseservice.CheckoutService
-	forumQuestionSvc    *forumservice.QuestionService
-	forumAnswerSvc      *forumservice.AnswerService
-	forumCategorySvc    *forumservice.CategoryService
-	archiveDirectorySvc *archiveservice.DirectoryService
-	archiveFileSvc      *archiveservice.FileService
-	fontService         *service.FontService
-	templates           *template.Template
-	templatesMu         sync.RWMutex
-	currentTheme        string
-	themeManager        *theme.Manager
-	config              *config.Config
-	sanitizer           *bluemonday.Policy
-	sectionRegistry     interface {
+	postService           *blogservice.PostService
+	categoryService       *blogservice.CategoryService
+	pageService           *service.PageService
+	authService           *service.AuthService
+	commentService        *blogservice.CommentService
+	searchService         *blogservice.SearchService
+	setupService          *service.SetupService
+	homepageService       *service.HomepageService
+	languageService       *languageservice.LanguageService
+	socialLinkService     *service.SocialLinkService
+	menuService           *service.MenuService
+	advertisingService    *service.AdvertisingService
+	coursePackageSvc      *courseservice.PackageService
+	courseCheckoutSvc     *courseservice.CheckoutService
+	courseMaterialProtect *courseservice.MaterialProtection
+	forumQuestionSvc      *forumservice.QuestionService
+	forumAnswerSvc        *forumservice.AnswerService
+	forumCategorySvc      *forumservice.CategoryService
+	archiveDirectorySvc   *archiveservice.DirectoryService
+	archiveFileSvc        *archiveservice.FileService
+	fontService           *service.FontService
+	templates             *template.Template
+	templatesMu           sync.RWMutex
+	currentTheme          string
+	themeManager          *theme.Manager
+	config                *config.Config
+	sanitizer             *bluemonday.Policy
+	sectionRegistry       interface {
 		Register(sectionType string, renderer sections.Renderer) error
 		Get(sectionType string) (sections.Renderer, bool)
 	}
@@ -193,6 +194,14 @@ func (h *TemplateHandler) SetCourseCheckoutService(checkoutService *courseservic
 		return
 	}
 	h.courseCheckoutSvc = checkoutService
+}
+
+// SetCourseMaterialProtection configures the asset protection used when rendering course pages.
+func (h *TemplateHandler) SetCourseMaterialProtection(protection *courseservice.MaterialProtection) {
+	if h == nil {
+		return
+	}
+	h.courseMaterialProtect = protection
 }
 
 // SetForumServices updates the forum service dependencies used by the template handler.

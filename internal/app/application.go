@@ -158,6 +158,7 @@ type handlerContainer struct {
 	CourseTest       *coursehandlers.TestHandler
 	CoursePackage    *coursehandlers.PackageHandler
 	CourseCheckout   *coursehandlers.CheckoutHandler
+	CourseAsset      *coursehandlers.AssetHandler
 	ForumCategory    *forumhandlers.CategoryHandler
 	ForumQuestion    *forumhandlers.QuestionHandler
 	ArchiveDirectory *archivehandlers.DirectoryHandler
@@ -1076,6 +1077,7 @@ func (a *Application) initHandlers() error {
 		CourseTest:       coursehandlers.NewTestHandler(nil),
 		CoursePackage:    coursehandlers.NewPackageHandler(nil),
 		CourseCheckout:   coursehandlers.NewCheckoutHandler(nil),
+		CourseAsset:      coursehandlers.NewAssetHandler(nil, nil, ""),
 		ForumCategory:    forumhandlers.NewCategoryHandler(nil),
 		ForumQuestion:    forumhandlers.NewQuestionHandler(nil),
 		ArchiveDirectory: archivehandlers.NewDirectoryHandler(nil),
@@ -1319,6 +1321,7 @@ func (a *Application) initRouter() error {
 			protected.GET("/courses/packages/:id", a.handlers.CoursePackage.GetForUser)
 			protected.GET("/courses/tests/:id", a.handlers.CourseTest.Get)
 			protected.POST("/courses/tests/:id/submit", a.handlers.CourseTest.Submit)
+			protected.GET("/courses/assets/:token", a.handlers.CourseAsset.Serve)
 			protected.POST("/forum/questions", a.handlers.ForumQuestion.Create)
 			protected.PUT("/forum/questions/:id", a.handlers.ForumQuestion.Update)
 			protected.DELETE("/forum/questions/:id", a.handlers.ForumQuestion.Delete)
