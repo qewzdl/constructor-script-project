@@ -3,6 +3,7 @@ package courses
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/payments/stripe"
@@ -173,6 +174,10 @@ func (f *Feature) Activate() error {
 				checkoutConfig.Currency = strings.ToLower(currency)
 			}
 		}
+	}
+
+	if materialProtect != nil && cfg != nil && cfg.CourseAssetTokenTTLMinutes > 0 {
+		materialProtect.SetTokenTTL(time.Duration(cfg.CourseAssetTokenTTLMinutes) * time.Minute)
 	}
 
 	if stripeSecret != "" && !stripe.IsSecretKey(stripeSecret) {

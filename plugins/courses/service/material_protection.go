@@ -16,7 +16,7 @@ const (
 	AssetTypeVideo      = "video"
 	AssetTypeAttachment = "attachment"
 
-	defaultMaterialTokenTTL = 4 * time.Hour
+	defaultMaterialTokenTTL = 10 * time.Minute
 	courseAssetBasePath     = "/api/v1/courses/assets/"
 )
 

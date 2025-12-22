@@ -45,6 +45,9 @@ type Config struct {
 	// Security
 	CSPFrameAncestors []string
 
+	// Course Assets
+	CourseAssetTokenTTLMinutes int
+
 	// Upload
 	UploadDir     string
 	MaxUploadSize int64
@@ -169,6 +172,9 @@ func New() *Config {
 
 		// Security
 		CSPFrameAncestors: frameAncestors,
+
+		// Course Assets
+		CourseAssetTokenTTLMinutes: getEnvAsInt("COURSE_ASSET_TOKEN_TTL_MINUTES", 10),
 
 		// Upload
 		UploadDir:     getEnv("UPLOAD_DIR", "./uploads"),
@@ -340,6 +346,10 @@ func New() *Config {
 
 	if c.CommentMaxLinks < -1 {
 		c.CommentMaxLinks = -1
+	}
+
+	if c.CourseAssetTokenTTLMinutes <= 0 {
+		c.CourseAssetTokenTTLMinutes = 10
 	}
 
 	return c

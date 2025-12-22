@@ -121,7 +121,9 @@ func (h *AssetHandler) Serve(c *gin.Context) {
 		return
 	}
 
-	c.Header("Cache-Control", "private, max-age=600")
+	c.Header("Cache-Control", "private, no-store")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
 
 	if strings.ToLower(strings.TrimSpace(claims.Type)) == courseservice.AssetTypeAttachment {
 		disposition := sanitizeDispositionName(downloadName)
