@@ -2536,6 +2536,13 @@ body.post-image-modal-open .post-progress {
     justify-content: center;
 }
 
+.pagination__button--previous {
+    padding-left: 0.35rem;
+}
+.pagination__button--next {
+    padding-right: 0.35rem;
+}
+
 .pagination__button--spacer {
     visibility: hidden;
     pointer-events: none;
