@@ -336,6 +336,60 @@ textarea {
     font-size: var(--font-size-base);
 }
 
+.form-field__input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.form-field__input-wrapper .form-field__input {
+    padding-right: calc(var(--size-mid) + var(--size-sm));
+}
+
+.password-toggle {
+    position: absolute;
+    right: var(--size-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--size-xs);
+    border: none;
+    background: transparent;
+    color: var(--color-secondary);
+    cursor: pointer;
+}
+
+.password-toggle:hover {
+    color: var(--color-text);
+}
+
+.password-toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: var(--size-xs);
+    color: var(--color-primary);
+}
+
+.password-toggle__icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    stroke: currentColor;
+}
+
+.password-toggle__icon--visible {
+    display: none;
+}
+
+.password-toggle[aria-pressed="true"] .password-toggle__icon--visible {
+    display: inline;
+}
+
+.password-toggle[aria-pressed="true"] .password-toggle__icon--hidden {
+    display: none;
+}
+
 .form-field__hint {
     font-size: var(--font-size-sm);
     color: color-mix(in srgb, var(--color-secondary) 70%, var(--color-text) 30%);

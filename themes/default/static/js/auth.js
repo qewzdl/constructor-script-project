@@ -151,6 +151,53 @@
         form.classList.toggle("is-disabled", disabled);
     };
 
+    const initPasswordToggles = () => {
+        const toggles = document.querySelectorAll("[data-password-toggle]");
+        if (!toggles.length) {
+            return;
+        }
+
+        toggles.forEach((button) => {
+            const targetId = button.dataset.passwordToggle;
+            if (!targetId) {
+                return;
+            }
+
+            const input = document.getElementById(targetId);
+            if (!input) {
+                return;
+            }
+
+            const openIcon = button.querySelector('[data-eye="open"]');
+            const closedIcon = button.querySelector('[data-eye="closed"]');
+
+            const setState = (visible) => {
+                input.type = visible ? "text" : "password";
+                button.setAttribute("aria-pressed", visible ? "true" : "false");
+                button.setAttribute(
+                    "aria-label",
+                    visible ? "Hide password" : "Show password"
+                );
+
+                if (openIcon) {
+                    openIcon.hidden = !visible;
+                }
+                if (closedIcon) {
+                    closedIcon.hidden = visible;
+                }
+            };
+
+            setState(input.type === "text");
+
+            button.addEventListener("click", (event) => {
+                event.preventDefault();
+                const nextState = button.getAttribute("aria-pressed") !== "true";
+                setState(nextState);
+                input.focus();
+            });
+        });
+    };
+
     const buildPasswordStrengthError = (password) => {
         if (typeof password !== "string" || password.length < 6) {
             return "Password must be at least 6 characters long.";
@@ -710,6 +757,7 @@
     document.addEventListener("DOMContentLoaded", () => {
         Auth.syncFromCookie();
         updateNavVisibility();
+        initPasswordToggles();
 
         const logoutButton = document.getElementById("logout-button");
         if (logoutButton) {
