@@ -2529,6 +2529,9 @@ body.post-image-modal-open .post-progress {
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
     color: var(--color-text);
+    display: flex;
+    width: 100px;
+    justify-content: center;
 }
 
 .pagination__button--spacer {
