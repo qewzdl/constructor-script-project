@@ -694,6 +694,23 @@
                 const videoEl = document.createElement("video");
                 videoEl.className = "course-player__video";
                 videoEl.controls = true;
+                videoEl.playsInline = true;
+                videoEl.disablePictureInPicture = true;
+                videoEl.disableRemotePlayback = true;
+                const controlPrefs = ["nodownload", "noremoteplayback"];
+                videoEl.setAttribute("controlsList", controlPrefs.join(" "));
+                if (videoEl.controlsList) {
+                    controlPrefs.forEach((value) => {
+                        try {
+                            videoEl.controlsList.add(value);
+                        } catch (error) {
+                            // continue if the browser does not support a given control list entry
+                        }
+                    });
+                }
+                videoEl.addEventListener("contextmenu", (event) => {
+                    event.preventDefault();
+                });
                 videoEl.src = video.file_url;
                 if (video?.filename) {
                     videoEl.setAttribute("title", video.filename);
