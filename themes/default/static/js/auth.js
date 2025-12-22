@@ -99,17 +99,21 @@
     };
 
     const updateNavVisibility = (explicitState) => {
-        const tokenPresent = Boolean(Auth.getToken());
+        const token = Auth.getToken();
+        const tokenPresent = Boolean(token);
         let isAuthenticated;
 
         if (typeof explicitState === "boolean") {
             isAuthenticated = explicitState;
             syncServerAuthState(explicitState);
+        } else if (typeof serverAuthenticated === "boolean") {
+            isAuthenticated = serverAuthenticated;
+            if (!serverAuthenticated && tokenPresent) {
+                Auth.clearToken();
+            }
         } else if (tokenPresent) {
             isAuthenticated = true;
             syncServerAuthState(true);
-        } else if (typeof serverAuthenticated === "boolean") {
-            isAuthenticated = serverAuthenticated;
         } else {
             isAuthenticated = false;
         }
