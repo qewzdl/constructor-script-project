@@ -18,6 +18,7 @@ import (
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/pkg/logger"
 )
 
 type AuthService struct {
@@ -272,6 +273,12 @@ func (s *AuthService) UpdateUserStatus(userID uint, status string) error {
 
 func (s *AuthService) RequestPasswordReset(email string) error {
 	if s.resetRepo == nil || s.emailService == nil || !s.emailService.Enabled() {
+		logger.Warn("Password reset disabled: email service not configured", map[string]interface{}{
+			"enable_email":      s.config != nil && s.config.EnableEmail,
+			"smtp_host_set":     s.config != nil && strings.TrimSpace(s.config.SMTPHost) != "",
+			"smtp_username_set": s.config != nil && strings.TrimSpace(s.config.SMTPUsername) != "",
+			"smtp_password_set": s.config != nil && strings.TrimSpace(s.config.SMTPPassword) != "",
+		})
 		return ErrPasswordResetDisabled
 	}
 
@@ -321,6 +328,10 @@ func (s *AuthService) RequestPasswordReset(email string) error {
 	)
 
 	if err := s.emailService.Send(user.Email, subject, body); err != nil {
+		logger.Error(err, "Failed to send password reset email", map[string]interface{}{
+			"user_id": user.ID,
+			"email":   user.Email,
+		})
 		return fmt.Errorf("failed to send reset email: %w", err)
 	}
 
