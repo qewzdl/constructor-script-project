@@ -2530,6 +2530,8 @@ body.post-image-modal-open .post-progress {
     background-color: var(--color-bg-top);
     color: var(--color-text);
     display: flex;
+    align-items: center;
+    gap: 0.35rem;
     width: 100px;
     justify-content: center;
 }
@@ -2543,6 +2545,11 @@ body.post-image-modal-open .post-progress {
     border-color: var(--color-primary);
     color: var(--color-primary);
     background-color: rgba(59, 130, 246, 0.08);
+}
+
+.pagination__icon {
+    width: 1em;
+    height: 1em;
 }
 
 .pagination__info {

@@ -6,13 +6,19 @@
             {{ if .PrevURL }}
             <li>
                 <a href="{{ .PrevURL }}" class="pagination__button pagination__button--prev" rel="prev">
-                    {{ default "← Previous" .PrevLabel }}
+                    <svg class="pagination__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                        <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    <span>{{ default "Previous" .PrevLabel }}</span>
                 </a>
             </li>
             {{ else }}
             <li aria-hidden="true">
                 <span class="pagination__button pagination__button--prev pagination__button--spacer">
-                    {{ default "← Previous" .PrevLabel }}
+                    <svg class="pagination__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                        <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    <span>{{ default "Previous" .PrevLabel }}</span>
                 </span>
             </li>
             {{ end }}
@@ -22,13 +28,19 @@
             {{ if .NextURL }}
             <li>
                 <a href="{{ .NextURL }}" class="pagination__button pagination__button--next" rel="next">
-                    {{ default "Next →" .NextLabel }}
+                    <span>{{ default "Next" .NextLabel }}</span>
+                    <svg class="pagination__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                        <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
                 </a>
             </li>
             {{ else }}
             <li aria-hidden="true">
                 <span class="pagination__button pagination__button--next pagination__button--spacer">
-                    {{ default "Next →" .NextLabel }}
+                    <span>{{ default "Next" .NextLabel }}</span>
+                    <svg class="pagination__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                        <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
                 </span>
             </li>
             {{ end }}
