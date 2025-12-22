@@ -19,8 +19,11 @@
         const endpoint = modal.getAttribute("data-course-checkout-endpoint") || "/api/v1/courses/checkout";
         const publishableKey = modal.getAttribute("data-course-checkout-publishable-key") || "";
         const errorElement = modal.querySelector("[data-course-modal-error]");
+        const app = window.App || {};
+        const auth = app.auth || null;
 
         const CSRF_COOKIE_NAME = "csrf_token";
+        const AUTH_STORAGE_KEY = "authToken";
 
         function readCookie(name) {
             if (!name || typeof document?.cookie !== "string") {
@@ -42,6 +45,30 @@
 
         function getCSRFToken() {
             return readCookie(CSRF_COOKIE_NAME);
+        }
+
+        function getAuthToken() {
+            try {
+                if (auth && typeof auth.getToken === "function") {
+                    const token = auth.getToken();
+                    if (token) {
+                        return token;
+                    }
+                }
+            } catch (_) {
+                /* ignore */
+            }
+
+            try {
+                const stored = window.localStorage?.getItem(AUTH_STORAGE_KEY) || window.sessionStorage?.getItem(AUTH_STORAGE_KEY);
+                if (stored) {
+                    return stored;
+                }
+            } catch (_) {
+                /* ignore */
+            }
+
+            return "";
         }
 
         function resolveButton(detail) {
@@ -210,6 +237,12 @@
                 const headers = {
                     "Content-Type": "application/json"
                 };
+
+                const authToken = getAuthToken();
+                if (authToken) {
+                    headers.Authorization = `Bearer ${authToken}`;
+                }
+
                 const csrfToken = getCSRFToken();
                 if (csrfToken) {
                     headers["X-CSRF-Token"] = csrfToken;
@@ -218,7 +251,7 @@
                 const response = await fetch(endpoint, {
                     method: "POST",
                     headers: headers,
-                    credentials: "same-origin",
+                    credentials: "include",
                     body: JSON.stringify(payload)
                 });
 
@@ -226,6 +259,8 @@
                     let message = "Unable to start checkout. Please try again.";
                     if (response.status === 401) {
                         message = "Please sign in to purchase this course.";
+                    } else if (response.status === 403) {
+                        message = "Your session is missing a security token. Please refresh the page or sign in again.";
                     } else if (response.status === 503) {
                         message = "Checkout is temporarily unavailable. Please try again later.";
                     } else if (response.status === 409) {
