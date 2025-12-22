@@ -373,6 +373,98 @@
         }
     };
 
+    const handleForgotPassword = async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const alertId = "forgot-password-alert";
+        setAlert(alertId, "");
+
+        const email = form.email.value.trim();
+        if (!email) {
+            setAlert(alertId, "Please enter your email address.", "error");
+            return;
+        }
+
+        toggleFormDisabled(form, true);
+
+        try {
+            await apiRequest(form.dataset.action || form.action, {
+                method: "POST",
+                body: JSON.stringify({ email }),
+            });
+
+            setAlert(
+                alertId,
+                "If this email is registered, we sent password reset instructions.",
+                "success"
+            );
+        } catch (error) {
+            setAlert(alertId, error.message, "error");
+        } finally {
+            toggleFormDisabled(form, false);
+        }
+    };
+
+    const resolveResetToken = (form) => {
+        const hiddenToken = (form.token && form.token.value ? form.token.value : "").trim();
+        const dataToken = (form.dataset.token || "").trim();
+        return hiddenToken || dataToken;
+    };
+
+    const handlePasswordReset = async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const alertId = "reset-password-alert";
+        setAlert(alertId, "");
+
+        const token = resolveResetToken(form);
+        const password = form.password.value;
+        const confirmPassword = form.password_confirm.value;
+
+        if (!token) {
+            setAlert(alertId, "The reset link is missing or has expired.", "error");
+            return;
+        }
+
+        if (!password || !confirmPassword) {
+            setAlert(alertId, "Please fill in the new password fields.", "error");
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setAlert(alertId, "Passwords do not match.", "error");
+            return;
+        }
+
+        const passwordError = buildPasswordStrengthError(password);
+        if (passwordError) {
+            setAlert(alertId, passwordError, "error");
+            return;
+        }
+
+        toggleFormDisabled(form, true);
+
+        try {
+            await apiRequest(form.dataset.action || form.action, {
+                method: "POST",
+                body: JSON.stringify({
+                    token,
+                    password,
+                    password_confirm: confirmPassword,
+                }),
+            });
+
+            setAlert(alertId, "Password updated. You can sign in now.", "success");
+            window.setTimeout(() => {
+                window.location.href = "/login";
+            }, 900);
+        } catch (error) {
+            setAlert(alertId, error.message, "error");
+        } finally {
+            toggleFormDisabled(form, false);
+        }
+    };
+
     const handleProfileUpdate = async (event) => {
         event.preventDefault();
         const form = event.currentTarget;
@@ -772,6 +864,25 @@
         const registerForm = document.getElementById("register-form");
         if (registerForm) {
             registerForm.addEventListener("submit", handleRegister);
+        }
+
+        const forgotPasswordForm = document.getElementById("forgot-password-form");
+        if (forgotPasswordForm) {
+            forgotPasswordForm.addEventListener("submit", handleForgotPassword);
+        }
+
+        const resetPasswordForm = document.getElementById("reset-password-form");
+        if (resetPasswordForm) {
+            const tokenValue = resolveResetToken(resetPasswordForm);
+            if (!tokenValue) {
+                setAlert(
+                    "reset-password-alert",
+                    "The reset link is missing or has expired. Request a new one.",
+                    "error"
+                );
+                toggleFormDisabled(resetPasswordForm, true);
+            }
+            resetPasswordForm.addEventListener("submit", handlePasswordReset);
         }
 
         const profileForm = document.getElementById("profile-form");

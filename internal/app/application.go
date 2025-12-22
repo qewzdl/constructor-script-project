@@ -7,9 +7,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -78,6 +78,7 @@ type Application struct {
 
 type repositoryContainer struct {
 	User                repository.UserRepository
+	PasswordResetToken  repository.PasswordResetTokenRepository
 	Category            repository.CategoryRepository
 	Post                repository.PostRepository
 	Tag                 repository.TagRepository
@@ -105,6 +106,7 @@ type repositoryContainer struct {
 
 type serviceContainer struct {
 	Auth             *service.AuthService
+	Email            *service.EmailService
 	Category         *blogservice.CategoryService
 	Post             *blogservice.PostService
 	Comment          *blogservice.CommentService
@@ -461,6 +463,7 @@ func (a *Application) runMigrations() error {
 
 	if err := a.db.AutoMigrate(
 		&models.User{},
+		&models.PasswordResetToken{},
 		&models.Category{},
 		&models.Post{},
 		&models.PostViewStat{},
@@ -843,6 +846,7 @@ func (a *Application) initCache() {
 func (a *Application) initRepositories() {
 	a.repositories = repositoryContainer{
 		User:                repository.NewUserRepository(a.db),
+		PasswordResetToken:  repository.NewPasswordResetTokenRepository(a.db),
 		Category:            repository.NewCategoryRepository(a.db),
 		Post:                repository.NewPostRepository(a.db),
 		Tag:                 repository.NewTagRepository(a.db),
@@ -997,8 +1001,9 @@ func (a *Application) initServices() {
 	}
 
 	backupService := service.NewBackupService(a.db, a.repositories.Setting, backupOptions)
+	emailService := service.NewEmailService(a.cfg)
 
-	authService := service.NewAuthService(a.repositories.User, a.cfg.JWTSecret)
+	authService := service.NewAuthService(a.repositories.User, a.repositories.PasswordResetToken, emailService, a.cfg.JWTSecret, a.cfg)
 	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
 	homepageService := service.NewHomepageService(a.repositories.Setting, a.repositories.Page)
 	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
@@ -1020,6 +1025,7 @@ func (a *Application) initServices() {
 
 	a.services = serviceContainer{
 		Auth:           authService,
+		Email:          emailService,
 		Category:       nil,
 		Post:           nil,
 		Comment:        nil,
@@ -1244,6 +1250,8 @@ func (a *Application) initRouter() error {
 	router.GET("/", a.templateHandler.RenderIndex)
 	router.GET("/login", a.templateHandler.RenderLogin)
 	router.GET("/register", a.templateHandler.RenderRegister)
+	router.GET("/forgot-password", a.templateHandler.RenderForgotPassword)
+	router.GET("/reset-password", a.templateHandler.RenderPasswordReset)
 	router.GET("/setup", a.templateHandler.RenderSetup)
 	router.GET("/setup/key-required", a.templateHandler.RenderSetupKeyRequired)
 	router.GET("/profile", a.templateHandler.RenderProfile)
@@ -1282,6 +1290,8 @@ func (a *Application) initRouter() error {
 			public.POST("/login", a.handlers.Auth.Login)
 			public.POST("/logout", a.handlers.Auth.Logout)
 			public.POST("/refresh", a.handlers.Auth.RefreshToken)
+			public.POST("/password/forgot", a.handlers.Auth.RequestPasswordReset)
+			public.POST("/password/reset", a.handlers.Auth.ResetPassword)
 
 			public.GET("/posts", a.handlers.Post.GetAll)
 			public.GET("/posts/:id", a.handlers.Post.GetByID)

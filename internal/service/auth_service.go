@@ -1,7 +1,12 @@
 package service
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -10,19 +15,27 @@ import (
 	"gorm.io/gorm"
 
 	"constructor-script-backend/internal/authorization"
+	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
 )
 
 type AuthService struct {
-	userRepo  repository.UserRepository
-	jwtSecret string
+	userRepo     repository.UserRepository
+	resetRepo    repository.PasswordResetTokenRepository
+	emailService *EmailService
+	jwtSecret    string
+	config       *config.Config
 }
 
 var (
-	ErrIncorrectOldPassword = errors.New("incorrect old password")
-	ErrUserNotFound         = errors.New("user not found")
+	ErrIncorrectOldPassword  = errors.New("incorrect old password")
+	ErrUserNotFound          = errors.New("user not found")
+	ErrPasswordResetDisabled = errors.New("password reset is not available")
+	ErrInvalidResetToken     = errors.New("invalid or expired reset token")
 )
+
+const passwordResetTTL = time.Hour
 
 type validationError struct {
 	message string
@@ -41,10 +54,13 @@ func IsValidationError(err error) bool {
 	return errors.As(err, &vErr)
 }
 
-func NewAuthService(userRepo repository.UserRepository, jwtSecret string) *AuthService {
+func NewAuthService(userRepo repository.UserRepository, resetRepo repository.PasswordResetTokenRepository, emailService *EmailService, jwtSecret string, cfg *config.Config) *AuthService {
 	return &AuthService{
-		userRepo:  userRepo,
-		jwtSecret: jwtSecret,
+		userRepo:     userRepo,
+		resetRepo:    resetRepo,
+		emailService: emailService,
+		jwtSecret:    jwtSecret,
+		config:       cfg,
 	}
 }
 
@@ -252,6 +268,149 @@ func (s *AuthService) UpdateUserStatus(userID uint, status string) error {
 
 	user.Status = status
 	return s.userRepo.Update(user)
+}
+
+func (s *AuthService) RequestPasswordReset(email string) error {
+	if s.resetRepo == nil || s.emailService == nil || !s.emailService.Enabled() {
+		return ErrPasswordResetDisabled
+	}
+
+	normalized := strings.TrimSpace(email)
+	if normalized == "" {
+		return newValidationError("email is required")
+	}
+
+	user, err := s.userRepo.GetByEmail(normalized)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return err
+	}
+
+	if err := s.resetRepo.DeleteByUser(user.ID); err != nil {
+		return fmt.Errorf("failed to prepare reset token: %w", err)
+	}
+
+	token, err := generateResetToken()
+	if err != nil {
+		return fmt.Errorf("failed to generate reset token: %w", err)
+	}
+
+	expiresAt := time.Now().Add(passwordResetTTL)
+	record := &models.PasswordResetToken{
+		UserID:    user.ID,
+		TokenHash: hashResetToken(token),
+		ExpiresAt: expiresAt,
+	}
+
+	if err := s.resetRepo.Create(record); err != nil {
+		return fmt.Errorf("failed to store reset token: %w", err)
+	}
+
+	siteName := "your account"
+	if s.config != nil && strings.TrimSpace(s.config.SiteName) != "" {
+		siteName = strings.TrimSpace(s.config.SiteName)
+	}
+
+	resetURL := s.buildResetURL(token)
+	subject := fmt.Sprintf("Reset your %s password", siteName)
+	body := fmt.Sprintf(
+		"We received a request to reset your password for %s.\n\nUse the link below to set a new password. The link will expire in %d minutes.\n\n%s\n\nIf you did not request this, you can ignore this email.",
+		siteName, int(passwordResetTTL.Minutes()), resetURL,
+	)
+
+	if err := s.emailService.Send(user.Email, subject, body); err != nil {
+		return fmt.Errorf("failed to send reset email: %w", err)
+	}
+
+	go s.cleanupExpiredTokens()
+
+	return nil
+}
+
+func (s *AuthService) ResetPassword(token, newPassword string) error {
+	if s.resetRepo == nil {
+		return ErrPasswordResetDisabled
+	}
+
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return newValidationError("reset token is required")
+	}
+
+	if err := validatePasswordStrength(newPassword); err != nil {
+		return err
+	}
+
+	now := time.Now()
+	record, err := s.resetRepo.GetActiveByHash(hashResetToken(token), now)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrInvalidResetToken
+		}
+		return err
+	}
+
+	user, err := s.userRepo.GetByID(record.UserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrInvalidResetToken
+		}
+		return err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.Password = string(hashedPassword)
+	if err := s.userRepo.Update(user); err != nil {
+		return err
+	}
+
+	if err := s.resetRepo.MarkUsed(record.ID, now); err != nil {
+		return err
+	}
+
+	_ = s.resetRepo.DeleteExpired(now)
+
+	return nil
+}
+
+func (s *AuthService) buildResetURL(token string) string {
+	baseURL := ""
+	if s.config != nil {
+		baseURL = strings.TrimRight(strings.TrimSpace(s.config.SiteURL), "/")
+	}
+
+	if baseURL == "" {
+		baseURL = "http://localhost:8081"
+	}
+
+	return fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)
+}
+
+func (s *AuthService) cleanupExpiredTokens() {
+	if s.resetRepo == nil {
+		return
+	}
+	_ = s.resetRepo.DeleteExpired(time.Now())
+}
+
+func generateResetToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(bytes), nil
+}
+
+func hashResetToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
 }
 
 func validatePasswordStrength(password string) error {

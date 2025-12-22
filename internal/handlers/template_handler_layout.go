@@ -605,7 +605,9 @@ func (h *TemplateHandler) setNavigationState(c *gin.Context, data gin.H) {
 		active = "admin"
 	case strings.HasPrefix(cleanedPath, "/profile"):
 		active = "profile"
-	case strings.HasPrefix(cleanedPath, "/login"):
+	case strings.HasPrefix(cleanedPath, "/login"),
+		strings.HasPrefix(cleanedPath, "/forgot-password"),
+		strings.HasPrefix(cleanedPath, "/reset-password"):
 		active = "login"
 	case strings.HasPrefix(cleanedPath, "/register"):
 		active = "register"

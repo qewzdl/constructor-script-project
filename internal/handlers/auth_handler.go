@@ -6,6 +6,7 @@ import (
 	"constructor-script-backend/internal/service"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -216,4 +217,55 @@ func (h *AuthHandler) UpdateUserRole(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "user role updated successfully"})
+}
+
+func (h *AuthHandler) RequestPasswordReset(c *gin.Context) {
+	var req models.ForgotPasswordRequest
+	if err := bindAuthRequest(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.authService.RequestPasswordReset(req.Email); err != nil {
+		switch {
+		case service.IsValidationError(err):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrPasswordResetDisabled):
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "password reset is temporarily unavailable"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process password reset request"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "If the email is registered, you will receive reset instructions shortly."})
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req models.ResetPasswordRequest
+	if err := bindAuthRequest(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if strings.TrimSpace(req.PasswordConfirm) != "" && req.Password != req.PasswordConfirm {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "passwords do not match"})
+		return
+	}
+
+	if err := h.authService.ResetPassword(req.Token, req.Password); err != nil {
+		switch {
+		case service.IsValidationError(err):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		case errors.Is(err, service.ErrInvalidResetToken):
+			c.JSON(http.StatusBadRequest, gin.H{"error": "the reset link is invalid or has expired"})
+		case errors.Is(err, service.ErrPasswordResetDisabled):
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "password reset is temporarily unavailable"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to reset password"})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
 }

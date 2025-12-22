@@ -1286,6 +1286,33 @@ func (h *TemplateHandler) RenderRegister(c *gin.Context) {
 	})
 }
 
+func (h *TemplateHandler) RenderForgotPassword(c *gin.Context) {
+	if _, ok := h.currentUser(c); ok {
+		c.Redirect(http.StatusFound, "/profile")
+		return
+	}
+
+	h.renderTemplate(c, "forgot-password", "Reset your password", "Enter your email address and we will send you a reset link.", gin.H{
+		"ResetRequestAction": "/api/v1/password/forgot",
+		"NoIndex":            true,
+	})
+}
+
+func (h *TemplateHandler) RenderPasswordReset(c *gin.Context) {
+	if _, ok := h.currentUser(c); ok {
+		c.Redirect(http.StatusFound, "/profile")
+		return
+	}
+
+	token := strings.TrimSpace(c.Query("token"))
+
+	h.renderTemplate(c, "reset-password", "Create a new password", "Set a strong password to secure your account.", gin.H{
+		"ResetAction": "/api/v1/password/reset",
+		"Token":       token,
+		"NoIndex":     true,
+	})
+}
+
 func (h *TemplateHandler) RenderSetup(c *gin.Context) {
 	if h.setupService == nil {
 		h.renderError(c, http.StatusInternalServerError, "500 - Server Error", "Setup is not available")

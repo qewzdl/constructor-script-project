@@ -31,6 +31,17 @@ type User struct {
 	Comments []Comment `gorm:"foreignKey:AuthorID" json:"comments,omitempty"`
 }
 
+type PasswordResetToken struct {
+	ID        uint      `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	UserID    uint       `gorm:"not null;index" json:"user_id"`
+	TokenHash string     `gorm:"uniqueIndex;not null" json:"-"`
+	ExpiresAt time.Time  `gorm:"index;not null" json:"expires_at"`
+	UsedAt    *time.Time `gorm:"index" json:"used_at,omitempty"`
+}
+
 type Category struct {
 	ID        uint           `gorm:"primarykey" json:"id"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -406,6 +417,16 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email" form:"email" binding:"required,email"`
 	Password string `json:"password" form:"password" binding:"required"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" form:"email" binding:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token           string `json:"token" form:"token" binding:"required"`
+	Password        string `json:"password" form:"password" binding:"required,min=6,max=128"`
+	PasswordConfirm string `json:"password_confirm" form:"password_confirm" binding:"omitempty"`
 }
 
 type CreateCategoryRequest struct {

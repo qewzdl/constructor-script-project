@@ -546,6 +546,13 @@ textarea.form-field__input {
     margin-bottom: var(--size-base);
 }
 
+.form-actions__links {
+    display: flex;
+    align-items: center;
+    gap: var(--size-sm);
+    flex-wrap: wrap;
+}
+
 .form-actions__link {
     color: var(--color-primary);
     font-size: var(--font-size-sm);
