@@ -2533,10 +2533,10 @@ body.post-image-modal-open .post-progress {
     align-items: center;
     gap: 0.35rem;
     width: 100px;
-    justify-content: center;
+    justify-content: space-between;
 }
 
-.pagination__button--previous {
+.pagination__button--prev {
     padding-left: 0.35rem;
 }
 .pagination__button--next {
