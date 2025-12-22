@@ -88,3 +88,9 @@
 .courses-list__see-all {
     margin-right: auto;
 }
+
+.courses-list__see-all-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    stroke: currentColor;
+}
