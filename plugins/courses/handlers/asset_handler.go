@@ -90,6 +90,10 @@ func (h *AssetHandler) Serve(c *gin.Context) {
 
 	switch strings.ToLower(strings.TrimSpace(claims.Type)) {
 	case courseservice.AssetTypeVideo:
+		if !isSameSiteMediaRequest(c) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "direct video access is not allowed"})
+			return
+		}
 		targetURL = video.FileURL
 	case courseservice.AssetTypeAttachment:
 		if claims.AttachmentIndex == nil {
@@ -219,4 +223,33 @@ func sanitizeDispositionName(name string) string {
 	normalized = strings.ReplaceAll(normalized, "\"", "'")
 	normalized = strings.ReplaceAll(normalized, "\\", "-")
 	return normalized
+}
+
+// isSameSiteMediaRequest attempts to allow only in-app media requests (e.g., <video> tag) and block
+// direct navigations that come from copied links or cross-site fetches.
+func isSameSiteMediaRequest(c *gin.Context) bool {
+	site := strings.ToLower(strings.TrimSpace(c.GetHeader("Sec-Fetch-Site")))
+	dest := strings.ToLower(strings.TrimSpace(c.GetHeader("Sec-Fetch-Dest")))
+	if (dest == "video" || dest == "audio" || dest == "empty") &&
+		(site == "same-origin" || site == "same-site") {
+		return true
+	}
+
+	if ref := strings.TrimSpace(c.Request.Referer()); ref != "" {
+		if refURL, err := url.Parse(ref); err == nil && refURL.Host != "" {
+			if strings.EqualFold(refURL.Host, c.Request.Host) {
+				return true
+			}
+		}
+	}
+
+	if origin := strings.TrimSpace(c.GetHeader("Origin")); origin != "" {
+		if originURL, err := url.Parse(origin); err == nil && originURL.Host != "" {
+			if strings.EqualFold(originURL.Host, c.Request.Host) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
