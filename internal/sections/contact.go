@@ -231,13 +231,13 @@ func renderContact(ctx RenderContext, prefix string, elem models.SectionElement)
 	messageFieldID := fmt.Sprintf("contact-message-%s", formID)
 
 	actionAttr := ""
-	if formAction != "" {
-		actionAttr = ` action="` + template.HTMLEscapeString(formAction) + `"`
-	}
 	mailtoTarget := ""
 	if strings.HasPrefix(strings.ToLower(formAction), "mailto:") {
 		mailtoTarget = formAction
-	} else if email != "" {
+	} else if formAction != "" {
+		actionAttr = ` action="` + template.HTMLEscapeString(formAction) + `"`
+	}
+	if mailtoTarget == "" && email != "" {
 		mailtoTarget = "mailto:" + email
 	}
 	mailtoAttr := ""
