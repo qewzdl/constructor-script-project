@@ -71,6 +71,65 @@ func getAvailableSectionTypes() []models.SectionTypeConfig {
 			},
 		},
 		{
+			Type:        "contact",
+			Name:        "Contact",
+			Description: "Contact information paired with a short inquiry form.",
+			Category:    "support",
+			Icon:        "phone",
+			AllowedIn:   []string{"page", "homepage"},
+			Schema: map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":  "string",
+					"label": "Section Title",
+				},
+				"email": map[string]interface{}{
+					"type":        "string",
+					"label":       "Contact email",
+					"placeholder": "team@example.com",
+				},
+				"phone": map[string]interface{}{
+					"type":        "string",
+					"label":       "Phone number",
+					"placeholder": "+1 (555) 123-4567",
+				},
+				"location": map[string]interface{}{
+					"type":        "string",
+					"label":       "Location",
+					"placeholder": "City, country or timezone",
+				},
+				"hours": map[string]interface{}{
+					"type":        "string",
+					"label":       "Availability",
+					"placeholder": "Mon-Fri, 9am-6pm",
+				},
+				"response_time": map[string]interface{}{
+					"type":        "string",
+					"label":       "Response time",
+					"placeholder": "We respond within one business day",
+				},
+				"form_title": map[string]interface{}{
+					"type":        "string",
+					"label":       "Form title",
+					"placeholder": "Send us a note",
+				},
+				"form_submit_label": map[string]interface{}{
+					"type":        "string",
+					"label":       "Submit button label",
+					"placeholder": "Send message",
+				},
+				"form_subject": map[string]interface{}{
+					"type":        "string",
+					"label":       "Email subject",
+					"placeholder": "New inquiry from your site",
+				},
+				"privacy_note": map[string]interface{}{
+					"type":        "string",
+					"label":       "Privacy note",
+					"placeholder": "We only use your details to reply.",
+				},
+			},
+		},
+		{
 			Type:        "posts_list",
 			Name:        "Posts List",
 			Description: "Display a list of blog posts",

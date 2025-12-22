@@ -27,7 +27,7 @@ var baseContentSecurityPolicy = map[string][]string{
 	"object-src":      {"'self'"},
 	"base-uri":        {"'self'"},
 	"frame-ancestors": {"'self'"},
-	"form-action":     {"'self'"},
+	"form-action":     {"'self'", "mailto:"},
 	"media-src": {
 		"'self'",
 		"data:",

@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"constructor-script-backend/internal/config"
@@ -153,6 +154,12 @@ func (h *TemplateHandler) SearchService() interface{} {
 // ThemeManager implements sections.ServiceProvider.
 func (h *TemplateHandler) ThemeManager() interface{} {
 	return h.themeManager
+}
+
+// ContactEmail provides site contact email for sections that need it.
+func (h *TemplateHandler) ContactEmail() string {
+	site := h.siteSettings()
+	return strings.TrimSpace(site.ContactEmail)
 }
 
 // SetBlogServices swaps the blog-related services used by the template handler.

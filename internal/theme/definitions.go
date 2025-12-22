@@ -457,6 +457,7 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 	postsSupports := false
 	categoriesSupports := false
 	coursesSupports := false
+	contactSupports := false
 
 	limitDefault := 6
 	limitMin := 1
@@ -486,6 +487,60 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Description:      "Highlight key features with images and supporting text.",
 			AllowedElements:  normaliseElementTypes([]string{"feature_item"}),
 			SupportsElements: &standardSupports,
+		},
+		"contact": {
+			Type:             "contact",
+			Label:            "Contact",
+			Order:            14,
+			Description:      "Displays contact details with a concise inquiry form.",
+			SupportsElements: &contactSupports,
+			Settings: map[string]SectionSettingDefinition{
+				"email": {
+					Label:       "Contact email",
+					Type:        "text",
+					Placeholder: "team@example.com",
+				},
+				"phone": {
+					Label:       "Phone number",
+					Type:        "text",
+					Placeholder: "+1 (555) 123-4567",
+				},
+				"location": {
+					Label:       "Location",
+					Type:        "text",
+					Placeholder: "City, country or timezone",
+				},
+				"hours": {
+					Label:       "Availability",
+					Type:        "text",
+					Placeholder: "Mon-Fri, 9am-6pm",
+				},
+				"response_time": {
+					Label:       "Response time",
+					Type:        "text",
+					Placeholder: "We respond within one business day",
+				},
+				"form_title": {
+					Label:       "Form title",
+					Type:        "text",
+					Placeholder: "Send us a note",
+				},
+				"form_submit_label": {
+					Label:       "Submit button label",
+					Type:        "text",
+					Placeholder: "Send message",
+				},
+				"form_subject": {
+					Label:       "Email subject",
+					Type:        "text",
+					Placeholder: "New inquiry from your site",
+				},
+				"privacy_note": {
+					Label:       "Privacy note",
+					Type:        "text",
+					Placeholder: "We only use your details to reply.",
+				},
+			},
 		},
 		"grid": {
 			Type:             "grid",

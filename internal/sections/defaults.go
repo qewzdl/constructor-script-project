@@ -29,6 +29,7 @@ func RegisterDefaults(reg *Registry) {
 	RegisterList(reg)
 	RegisterSearch(reg)
 	RegisterFeatures(reg)
+	RegisterContact(reg)
 	RegisterHero(reg)
 
 	// Profile sections
@@ -59,6 +60,7 @@ func RegisterDefaultsWithMetadata(reg *RegistryWithMetadata) {
 	RegisterProfileAccount(reg.Registry)
 	RegisterProfileSecurity(reg.Registry)
 	RegisterProfileCourses(reg.Registry)
+	RegisterContactWithMetadata(reg)
 
 	// Register dynamic sections with full metadata
 	RegisterPostsListWithMetadata(reg)

@@ -66,7 +66,7 @@
                 {
                     "type": "paragraph",
                     "content": {
-                        "text": "Mix paragraphs, images, and lists—each card automatically adapts to fill the available space."
+                        "text": "Mix paragraphs, images, and lists - each card automatically adapts to fill the available space."
                     }
                 },
                 {
@@ -98,6 +98,24 @@
                     }
                 }
             ]
+        },
+        {
+            "title": "Contact us",
+            "type": "contact",
+            "description": "Tell us a little about your project and we will reply within one business day.",
+            "settings": {
+                "kicker": "We're here to help",
+                "note": "Share what you are building, where you are blocked, or which feature you would like to see next.",
+                "email": "hello@constructor-script.com",
+                "phone": "+1 (415) 555-0112",
+                "location": "Remote team, GMT+3",
+                "hours": "Mon-Fri, 9am-6pm GMT+3",
+                "response_time": "We reply within one business day.",
+                "form_title": "Send us a note",
+                "form_action": "mailto:hello@constructor-script.com",
+                "form_submit_label": "Send message",
+                "privacy_note": "We only use your details to respond to your request."
+            }
         }
     ]
 }

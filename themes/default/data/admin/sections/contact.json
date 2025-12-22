@@ -1,0 +1,7 @@
+{
+    "type": "contact",
+    "label": "Contact",
+    "order": 14,
+    "description": "Make it easy for visitors to reach you with direct links and a short form.",
+    "supports_elements": false
+}
