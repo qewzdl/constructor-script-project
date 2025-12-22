@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"net"
 	"net/http"
 	"strings"
@@ -1195,7 +1196,10 @@ func (a *Application) initRouter() error {
 	} else {
 		router.Static("/static", "./static")
 	}
-	router.Static("/uploads", a.cfg.UploadDir)
+	uploads := router.Group("/uploads")
+	uploads.Use(middleware.UploadsProtection())
+	uploads.GET("/*filepath", a.serveUpload)
+	uploads.HEAD("/*filepath", a.serveUpload)
 	router.StaticFile("/favicon.ico", "./favicon.ico")
 
 	if a.handlers.SEO != nil {
@@ -1565,6 +1569,40 @@ func (a *Application) initRouter() error {
 
 	a.router = router
 	return nil
+}
+
+func (a *Application) serveUpload(c *gin.Context) {
+	path := strings.TrimPrefix(strings.TrimSpace(c.Param("filepath")), "/")
+	if path == "" {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	cleanPath := filepath.Clean(path)
+	if cleanPath == "." || cleanPath == ".." || strings.Contains(cleanPath, "..") {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	uploadDir := strings.TrimSpace(a.cfg.UploadDir)
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+
+	absRoot, err := filepath.Abs(uploadDir)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	targetPath := filepath.Join(uploadDir, cleanPath)
+	absTarget, err := filepath.Abs(targetPath)
+	if err != nil || !strings.HasPrefix(absTarget, absRoot) {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	c.File(absTarget)
 }
 
 func (a *Application) initPluginRuntime() error {

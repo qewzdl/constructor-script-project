@@ -1981,6 +1981,11 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		return
 	}
 
+	if h.courseMaterialProtect == nil || !h.courseMaterialProtect.Enabled() {
+		h.renderError(c, http.StatusServiceUnavailable, "Course unavailable", "Course materials cannot be displayed securely right now. Please try again later.")
+		return
+	}
+
 	course, err := h.coursePackageSvc.GetForUserByIdentifier(identifier, user.ID)
 	if err == nil && course == nil {
 		err = fmt.Errorf("course package was nil without error")
@@ -2059,7 +2064,7 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		}
 	}
 
-	if h.courseMaterialProtect != nil {
+	if h.courseMaterialProtect != nil && h.courseMaterialProtect.Enabled() {
 		course = h.courseMaterialProtect.ProtectCourseForUser(course, user.ID)
 	}
 

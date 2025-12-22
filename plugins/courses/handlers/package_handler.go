@@ -196,6 +196,11 @@ func (h *PackageHandler) GetForUser(c *gin.Context) {
 		return
 	}
 
+	if h.protection == nil || !h.protection.Enabled() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "course materials are temporarily unavailable"})
+		return
+	}
+
 	course, err := h.service.GetForUserByIdentifier(identifier, userID)
 	if err != nil {
 		h.writeError(c, err)
