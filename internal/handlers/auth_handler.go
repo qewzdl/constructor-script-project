@@ -16,8 +16,9 @@ import (
 )
 
 type AuthHandler struct {
-	authService      *service.AuthService
-	coursePackageSvc *courseservice.PackageService
+	authService           *service.AuthService
+	coursePackageSvc      *courseservice.PackageService
+	courseMaterialProtect *courseservice.MaterialProtection
 }
 
 func NewAuthHandler(authService *service.AuthService) *AuthHandler {
@@ -29,6 +30,13 @@ func (h *AuthHandler) SetCoursePackageService(courseService *courseservice.Packa
 		return
 	}
 	h.coursePackageSvc = courseService
+}
+
+func (h *AuthHandler) SetCourseMaterialProtection(protection *courseservice.MaterialProtection) {
+	if h == nil {
+		return
+	}
+	h.courseMaterialProtect = protection
 }
 
 const (

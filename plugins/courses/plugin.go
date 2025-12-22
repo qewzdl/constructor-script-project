@@ -269,6 +269,7 @@ func (f *Feature) Activate() error {
 
 	if authHandler := f.host.AuthHandler(); authHandler != nil {
 		authHandler.SetCoursePackageService(packageService)
+		authHandler.SetCourseMaterialProtection(materialProtect)
 	}
 
 	return nil
@@ -317,6 +318,7 @@ func (f *Feature) Deactivate() error {
 
 	if authHandler := f.host.AuthHandler(); authHandler != nil {
 		authHandler.SetCoursePackageService(nil)
+		authHandler.SetCourseMaterialProtection(nil)
 	}
 
 	return nil

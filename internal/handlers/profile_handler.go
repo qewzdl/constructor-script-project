@@ -27,6 +27,11 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+		if h.courseMaterialProtect != nil {
+			for idx := range userCourses {
+				h.courseMaterialProtect.ProtectCourseForUser(&userCourses[idx], userID)
+			}
+		}
 		courses = userCourses
 	}
 

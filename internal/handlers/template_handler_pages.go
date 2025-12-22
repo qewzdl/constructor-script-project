@@ -2059,6 +2059,10 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 		}
 	}
 
+	if h.courseMaterialProtect != nil {
+		course = h.courseMaterialProtect.ProtectCourseForUser(course, user.ID)
+	}
+
 	payload, err := json.Marshal(course)
 	if err != nil {
 		logger.Error(err, "Failed to serialise course", map[string]interface{}{"course_identifier": identifier, "user_id": user.ID})
@@ -2087,10 +2091,6 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 	pageDescription := strings.TrimSpace(pkg.MetaDescription)
 	if pageDescription == "" {
 		pageDescription = description
-	}
-
-	if h.courseMaterialProtect != nil {
-		course = h.courseMaterialProtect.ProtectCourseForUser(course, user.ID)
 	}
 
 	courseEndpoint := fmt.Sprintf("/api/v1/courses/packages/%s", slug)
