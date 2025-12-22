@@ -1001,7 +1001,7 @@ func (a *Application) initServices() {
 	}
 
 	backupService := service.NewBackupService(a.db, a.repositories.Setting, backupOptions)
-	emailService := service.NewEmailService(a.cfg)
+	emailService := service.NewEmailService(a.cfg, a.repositories.Setting)
 
 	authService := service.NewAuthService(a.repositories.User, a.repositories.PasswordResetToken, emailService, a.cfg.JWTSecret, a.cfg)
 	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
@@ -1481,6 +1481,8 @@ func (a *Application) initRouter() error {
 		{
 			settings.GET("/settings/site", a.handlers.Setup.GetSiteSettings)
 			settings.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
+			settings.GET("/settings/email", a.handlers.Setup.GetEmailSettings)
+			settings.PUT("/settings/email", a.handlers.Setup.UpdateEmailSettings)
 			settings.GET("/settings/homepage", a.handlers.Homepage.Get)
 			settings.PUT("/settings/homepage", a.handlers.Homepage.Update)
 

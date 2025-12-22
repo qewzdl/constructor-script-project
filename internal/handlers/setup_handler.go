@@ -288,6 +288,33 @@ func (h *SetupHandler) defaultSiteSettings() models.SiteSettings {
 	return settings
 }
 
+func (h *SetupHandler) defaultEmailSettings() models.EmailSettings {
+	if h.config == nil {
+		return models.EmailSettings{
+			Port:        "587",
+			EnableEmail: true,
+		}
+	}
+
+	port := strings.TrimSpace(h.config.SMTPPort)
+	if port == "" {
+		port = "587"
+	}
+	password := strings.TrimSpace(h.config.SMTPPassword)
+	from := strings.TrimSpace(h.config.SMTPFrom)
+	contact := from
+
+	return models.EmailSettings{
+		Host:         strings.TrimSpace(h.config.SMTPHost),
+		Port:         port,
+		Username:     strings.TrimSpace(h.config.SMTPUsername),
+		From:         from,
+		ContactEmail: contact,
+		PasswordSet:  password != "",
+		EnableEmail:  true,
+	}
+}
+
 func (h *SetupHandler) applyFontSettings(settings *models.SiteSettings) {
 	if settings == nil {
 		return
@@ -345,6 +372,24 @@ func (h *SetupHandler) GetSiteSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"site": settings})
 }
 
+func (h *SetupHandler) GetEmailSettings(c *gin.Context) {
+	defaults := h.defaultEmailSettings()
+
+	if h.setupService == nil {
+		c.JSON(http.StatusOK, gin.H{"email": defaults})
+		return
+	}
+
+	settings, err := h.setupService.GetEmailSettings(defaults)
+	if err != nil {
+		logger.Error(err, "Failed to load email settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load email settings"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"email": settings})
+}
+
 func (h *SetupHandler) UpdateSiteSettings(c *gin.Context) {
 	if h.setupService == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Setup service not available"})
@@ -400,6 +445,42 @@ func (h *SetupHandler) UpdateSiteSettings(c *gin.Context) {
 	h.applyFontSettings(&settings)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Site settings updated", "site": settings})
+}
+
+func (h *SetupHandler) UpdateEmailSettings(c *gin.Context) {
+	if h.setupService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Setup service not available"})
+		return
+	}
+
+	var req models.UpdateEmailSettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	defaults := h.defaultEmailSettings()
+
+	if err := h.setupService.UpdateEmailSettings(req, defaults); err != nil {
+		var validationErr *service.ValidationError
+		if errors.As(err, &validationErr) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+			return
+		}
+
+		logger.Error(err, "Failed to update email settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update email settings"})
+		return
+	}
+
+	settings, err := h.setupService.GetEmailSettings(defaults)
+	if err != nil {
+		logger.Error(err, "Failed to load email settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load email settings"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Email settings updated", "email": settings})
 }
 
 func safeKeyPrefix(req models.UpdateSiteSettingsRequest, field string) string {

@@ -966,7 +966,6 @@ type UpdateSiteSettingsRequest struct {
 	URL                      string                         `json:"url" binding:"required"`
 	Favicon                  string                         `json:"favicon"`
 	Logo                     string                         `json:"logo"`
-	ContactEmail             string                         `json:"contact_email" binding:"omitempty,email"`
 	FooterText               string                         `json:"footer_text" binding:"max=500"`
 	UnusedTagRetentionHours  int                            `json:"unused_tag_retention_hours" binding:"required,min=1"`
 	DefaultLanguage          string                         `json:"default_language"`
@@ -978,6 +977,25 @@ type UpdateSiteSettingsRequest struct {
 	CourseCheckoutCancelURL  string                         `json:"course_checkout_cancel_url"`
 	CourseCheckoutCurrency   string                         `json:"course_checkout_currency"`
 	Subtitles                *UpdateSubtitleSettingsRequest `json:"subtitles"`
+}
+
+type EmailSettings struct {
+	Host         string `json:"host"`
+	Port         string `json:"port"`
+	Username     string `json:"username"`
+	From         string `json:"from"`
+	ContactEmail string `json:"contact_email"`
+	PasswordSet  bool   `json:"password_set"`
+	EnableEmail  bool   `json:"enable_email"`
+}
+
+type UpdateEmailSettingsRequest struct {
+	Host         string `json:"host" binding:"required"`
+	Port         string `json:"port" binding:"required"`
+	Username     string `json:"username" binding:"required"`
+	Password     string `json:"password" binding:"omitempty"`
+	From         string `json:"from" binding:"required,email"`
+	ContactEmail string `json:"contact_email" binding:"omitempty,email"`
 }
 
 type UpdateSubtitleSettingsRequest struct {

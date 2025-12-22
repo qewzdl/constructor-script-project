@@ -114,6 +114,7 @@
             tags: root.dataset.endpointTags,
             tagsAdmin: root.dataset.endpointTagsAdmin,
             siteSettings: root.dataset.endpointSiteSettings,
+            emailSettings: root.dataset.endpointEmailSettings,
             homepage: root.dataset.endpointHomepage,
             faviconUpload: root.dataset.endpointFaviconUpload,
             logoUpload: root.dataset.endpointLogoUpload,
@@ -314,6 +315,8 @@
         const categoryForm = root.querySelector('#admin-category-form');
         const userForm = root.querySelector('#admin-user-form');
         const settingsForm = root.querySelector('#admin-settings-form');
+        const emailSettingsForm = root.querySelector('#admin-email-settings-form');
+        const emailPasswordHint = emailSettingsForm?.querySelector('[data-role="email-password-hint"]');
         const paymentsForm = root.querySelector('#admin-payments-form');
         const languageForm = root.querySelector('#admin-language-form');
         const homepageForm = root.querySelector('#admin-homepage-form');
@@ -763,6 +766,7 @@
             editingMenuItemId: '',
             defaultCategoryId: '',
             site: null,
+            email: null,
             advertising: {
                 settings: null,
                 providers: [],
@@ -8675,6 +8679,18 @@
             return '';
         };
 
+        const getEmailFieldValue = (name) => {
+            const field = emailSettingsForm?.querySelector(`[name="${name}"]`);
+            if (field && typeof field.value === 'string') {
+                return field.value.trim();
+            }
+            const stateValue = state.email?.[name];
+            if (typeof stateValue === 'string') {
+                return stateValue.trim();
+            }
+            return '';
+        };
+
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         const getPaymentsFieldValue = (name) => {
@@ -8710,7 +8726,6 @@
                 const entries = [
                     ['name', site?.name],
                     ['description', site?.description],
-                    ['contact_email', site?.contact_email],
                     ['footer_text', site?.footer_text],
                     ['url', site?.url],
                     ['favicon', site?.favicon],
@@ -8746,6 +8761,40 @@
             }
 
             renderLanguageManager();
+        };
+
+        const populateEmailSettingsForm = (emailSettings) => {
+            if (!emailSettingsForm) {
+                return;
+            }
+
+            const entries = [
+                ['host', emailSettings?.host],
+                ['port', emailSettings?.port],
+                ['username', emailSettings?.username],
+                ['from', emailSettings?.from],
+                ['contact_email', emailSettings?.contact_email],
+            ];
+
+            entries.forEach(([key, value]) => {
+                const field = emailSettingsForm.querySelector(`[name="${key}"]`);
+                if (!field) {
+                    return;
+                }
+                field.value = value || '';
+            });
+
+            const passwordField = emailSettingsForm.querySelector('input[name="password"]');
+            if (passwordField) {
+                passwordField.value = '';
+            }
+
+            if (emailPasswordHint) {
+                emailPasswordHint.textContent = emailSettings?.password_set
+                    ? 'Password is set. Leave blank to keep the current password.'
+                    : 'Password is not set. Enter a password to enable sending.';
+                emailPasswordHint.hidden = false;
+            }
         };
 
         const populatePaymentSettingsForm = (site) => {
@@ -10256,6 +10305,20 @@
                 state.site = payload?.site || null;
                 populateSiteSettingsForm(state.site);
                 populatePaymentSettingsForm(state.site);
+            } catch (error) {
+                handleRequestError(error);
+            }
+        };
+
+        const loadEmailSettings = async () => {
+            if (!endpoints.emailSettings) {
+                return;
+            }
+
+            try {
+                const payload = await apiRequest(endpoints.emailSettings);
+                state.email = payload?.email || null;
+                populateEmailSettingsForm(state.email);
             } catch (error) {
                 handleRequestError(error);
             }
@@ -12458,17 +12521,11 @@
             const payload = {
                 name: getSettingsFieldValue('name'),
                 description: getSettingsFieldValue('description'),
-                contact_email: getSettingsFieldValue('contact_email'),
                 footer_text: getSettingsFieldValue('footer_text'),
                 url: getSettingsFieldValue('url'),
                 favicon: getSettingsFieldValue('favicon'),
                 logo: getSettingsFieldValue('logo'),
             };
-
-            if (payload.contact_email && !emailPattern.test(payload.contact_email)) {
-                showAlert('Please provide a valid contact email address or leave the field blank.', 'error');
-                return;
-            }
 
             const stripeSecretKey = getPaymentsFieldValue('stripe_secret_key');
             const stripePublishableKey = getPaymentsFieldValue('stripe_publishable_key');
@@ -12572,6 +12629,71 @@
                 disableForm(settingsForm, false);
                 disableForm(languageForm, false);
                 disableForm(paymentsForm, false);
+            }
+        };
+
+        const handleEmailSettingsSubmit = async (event) => {
+            event.preventDefault();
+            if (!endpoints.emailSettings) {
+                return;
+            }
+
+            const payload = {
+                host: getEmailFieldValue('host'),
+                port: getEmailFieldValue('port'),
+                username: getEmailFieldValue('username'),
+                password: getEmailFieldValue('password'),
+                from: getEmailFieldValue('from'),
+                contact_email: getEmailFieldValue('contact_email'),
+            };
+
+            if (!payload.host) {
+                showAlert('Please provide the SMTP host.', 'error');
+                return;
+            }
+
+            const portNumber = Number.parseInt(payload.port, 10);
+            if (!payload.port || Number.isNaN(portNumber) || portNumber <= 0) {
+                showAlert('Please provide a valid SMTP port (for example, 587).', 'error');
+                return;
+            }
+
+            if (!payload.username) {
+                showAlert('Please provide the SMTP username.', 'error');
+                return;
+            }
+
+            const requirePassword = !state.email?.password_set;
+            if (requirePassword && !payload.password) {
+                showAlert('Please set an SMTP password.', 'error');
+                return;
+            }
+
+            if (payload.from && !emailPattern.test(payload.from)) {
+                showAlert('Please provide a valid sender email address.', 'error');
+                return;
+            }
+
+            if (payload.contact_email && !emailPattern.test(payload.contact_email)) {
+                showAlert('Please provide a valid contact email address or leave it blank.', 'error');
+                return;
+            }
+
+            disableForm(emailSettingsForm, true);
+            clearAlert();
+
+            try {
+                const response = await apiRequest(endpoints.emailSettings, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload),
+                });
+                state.email = response?.email || payload;
+                populateEmailSettingsForm(state.email);
+                showAlert('Email settings updated successfully.', 'success');
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(emailSettingsForm, false);
             }
         };
 
@@ -13793,6 +13915,7 @@
             defaultLanguageInput.setCustomValidity('');
         });
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
+        emailSettingsForm?.addEventListener('submit', handleEmailSettingsSubmit);
         languageForm?.addEventListener('submit', handleSiteSettingsSubmit);
         paymentsForm?.addEventListener('submit', handleSiteSettingsSubmit);
         advertisingForm?.addEventListener('submit', handleAdvertisingSubmit);
@@ -13860,6 +13983,7 @@
         loadUsers();
         loadBackupSettings();
         loadSiteSettings();
+        loadEmailSettings();
         loadHomepageSettings();
         loadAdvertisingSettings();
         loadPlugins();

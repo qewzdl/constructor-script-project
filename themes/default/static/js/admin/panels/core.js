@@ -1125,18 +1125,6 @@
                             </small>
                         </label>
                         <label class="admin-form__label">
-                            Contact email
-                            <input
-                                type="email"
-                                name="contact_email"
-                                class="admin-form__input"
-                                placeholder="contact@example.com"
-                            />
-                            <small class="admin-card__description admin-form__hint">
-                                Shown in the site footer for questions and support. Leave blank to hide.
-                            </small>
-                        </label>
-                        <label class="admin-form__label">
                             Site URL
                             <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
                             <small class="admin-card__description admin-form__hint">Used to generate canonical links and social sharing metadata.</small>
@@ -1252,6 +1240,78 @@
                 </form>
             </div>
             </section>
+`,
+    });
+
+    registerPanelMarkup({
+        id: 'email-settings',
+        order: 61,
+        markup: String.raw`
+<section
+        id="admin-panel-email"
+        class="admin-panel"
+        data-panel="email-settings"
+        data-nav-group="configuration"
+        data-nav-group-label="Configuration"
+        data-nav-group-order="3"
+        data-nav-label="Email & SMTP"
+        data-nav-order="1.1"
+        role="tabpanel"
+        aria-labelledby="admin-tab-email-settings"
+        hidden
+    >
+        <header class="admin-panel__header">
+            <div>
+                <h2 class="admin-panel__title">Email delivery</h2>
+                <p class="admin-panel__description">
+                    Configure how password reset and notification emails are sent from your site.
+                </p>
+            </div>
+        </header>
+        <div class="admin-panel__body">
+            <form id="admin-email-settings-form" class="admin-form" novalidate>
+                <fieldset class="admin-card admin-form__fieldset">
+                    <legend class="admin-card__title admin-form__legend">SMTP settings</legend>
+                    <label class="admin-form__label">
+                        SMTP host
+                        <input type="text" name="host" required class="admin-form__input" placeholder="smtp.example.com" />
+                    </label>
+                    <label class="admin-form__label">
+                        SMTP port
+                        <input type="number" name="port" required class="admin-form__input" min="1" step="1" placeholder="587" />
+                    </label>
+                    <label class="admin-form__label">
+                        SMTP username
+                        <input type="text" name="username" required class="admin-form__input" placeholder="user@example.com" />
+                    </label>
+                    <label class="admin-form__label">
+                        SMTP password
+                        <input type="password" name="password" class="admin-form__input" placeholder="Enter SMTP password" />
+                        <small class="admin-card__description admin-form__hint" data-role="email-password-hint"></small>
+                    </label>
+                    <label class="admin-form__label">
+                        From email
+                        <input type="email" name="from" required class="admin-form__input" placeholder="noreply@example.com" />
+                        <small class="admin-card__description admin-form__hint">
+                            This address is used as the sender for outgoing messages.
+                        </small>
+                    </label>
+                    <label class="admin-form__label">
+                        Contact email
+                        <input type="email" name="contact_email" class="admin-form__input" placeholder="contact@example.com" />
+                        <small class="admin-card__description admin-form__hint">
+                            Shown to visitors in the footer for questions and support.
+                        </small>
+                    </label>
+                    <div class="admin-form__actions">
+                        <button type="submit" class="admin-form__submit">
+                            Save email settings
+                        </button>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </section>
 `,
     });
 

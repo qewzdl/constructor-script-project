@@ -757,21 +757,12 @@ func (s *SetupService) UpdateSiteSettings(req models.UpdateSiteSettingsRequest, 
 		}
 	}
 
-	contactEmail := strings.TrimSpace(req.ContactEmail)
-	if contactEmail != "" && !emailPattern.MatchString(contactEmail) {
-		return &ValidationError{
-			Field:   "contact_email",
-			Message: "invalid contact email address",
-		}
-	}
-
 	updates := map[string]string{
 		settingKeySiteName:                 strings.TrimSpace(req.Name),
 		settingKeySiteDescription:          strings.TrimSpace(req.Description),
 		settingKeySiteURL:                  strings.TrimSpace(req.URL),
 		settingKeySiteFavicon:              strings.TrimSpace(req.Favicon),
 		settingKeySiteLogo:                 strings.TrimSpace(req.Logo),
-		settingKeySiteContactEmail:         contactEmail,
 		settingKeySiteFooterText:           strings.TrimSpace(req.FooterText),
 		settingKeyTagRetentionHours:        strconv.Itoa(req.UnusedTagRetentionHours),
 		settingKeyCourseCheckoutSuccessURL: successURL,
@@ -951,6 +942,93 @@ func (s *SetupService) updateSiteLanguages(defaultLanguage string, supported []s
 	return nil
 }
 
+func (s *SetupService) GetEmailSettings(defaults models.EmailSettings) (models.EmailSettings, error) {
+	if s.settingRepo == nil {
+		return defaults, errors.New("setting repository not configured")
+	}
+
+	result := defaults
+	result.Host = s.currentSettingValue(settingKeySMTPHost, defaults.Host)
+	result.Port = s.currentSettingValue(settingKeySMTPPort, defaults.Port)
+	result.Username = s.currentSettingValue(settingKeySMTPUsername, defaults.Username)
+	result.From = s.currentSettingValue(settingKeySMTPFrom, defaults.From)
+	result.ContactEmail = s.currentSettingValue(settingKeySiteContactEmail, defaults.ContactEmail)
+	password := s.currentSettingValue(settingKeySMTPPassword, "")
+	result.PasswordSet = strings.TrimSpace(password) != ""
+	result.EnableEmail = defaults.EnableEmail
+	return result, nil
+}
+
+func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest, defaults models.EmailSettings) error {
+	if s.settingRepo == nil {
+		return errors.New("setting repository not configured")
+	}
+
+	host := strings.TrimSpace(req.Host)
+	if host == "" {
+		return &ValidationError{Field: "host", Message: "is required"}
+	}
+
+	port := strings.TrimSpace(req.Port)
+	if port == "" {
+		return &ValidationError{Field: "port", Message: "is required"}
+	}
+	if parsed, err := strconv.Atoi(port); err != nil || parsed <= 0 {
+		return &ValidationError{Field: "port", Message: "must be a positive number"}
+	}
+
+	from := strings.TrimSpace(req.From)
+	if from == "" || !emailPattern.MatchString(from) {
+		return &ValidationError{Field: "from", Message: "must be a valid email address"}
+	}
+
+	contactEmail := strings.TrimSpace(req.ContactEmail)
+	if contactEmail != "" && !emailPattern.MatchString(contactEmail) {
+		return &ValidationError{Field: "contact_email", Message: "invalid contact email address"}
+	}
+
+	currentUsername := s.currentSettingValue(settingKeySMTPUsername, defaults.Username)
+	currentPassword := s.currentSettingValue(settingKeySMTPPassword, "")
+
+	resolvedUsername, updateUsername := normalizeCredentialInput(req.Username, currentUsername)
+	if strings.TrimSpace(resolvedUsername) == "" {
+		return &ValidationError{Field: "username", Message: "is required"}
+	}
+
+	resolvedPassword, updatePassword := normalizeCredentialInput(req.Password, currentPassword)
+	if strings.TrimSpace(resolvedPassword) == "" {
+		return &ValidationError{Field: "password", Message: "is required"}
+	}
+
+	updates := map[string]string{
+		settingKeySMTPHost:         host,
+		settingKeySMTPPort:         port,
+		settingKeySMTPFrom:         from,
+		settingKeySiteContactEmail: contactEmail,
+	}
+
+	if updateUsername {
+		updates[settingKeySMTPUsername] = resolvedUsername
+	}
+	if updatePassword {
+		updates[settingKeySMTPPassword] = resolvedPassword
+	}
+
+	for key, value := range updates {
+		if value == "" {
+			if err := s.settingRepo.Delete(key); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+			continue
+		}
+		if err := s.settingRepo.Set(key, value); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *SetupService) getSettingValue(key string) (string, error) {
 	if s.settingRepo == nil {
 		return "", gorm.ErrRecordNotFound
@@ -1067,6 +1145,11 @@ const (
 	settingKeySubtitlesTemperature     = "media.subtitles.temperature"
 	settingKeySubtitlesOpenAIModel     = "media.subtitles.openai_model"
 	settingKeySubtitlesOpenAIAPIKey    = "media.subtitles.openai_api_key"
+	settingKeySMTPHost                 = "smtp.host"
+	settingKeySMTPPort                 = "smtp.port"
+	settingKeySMTPUsername             = "smtp.username"
+	settingKeySMTPPassword             = "smtp.password"
+	settingKeySMTPFrom                 = "smtp.from"
 )
 
 // GetSetupProgress retrieves the current setup progress
