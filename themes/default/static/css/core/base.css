@@ -2547,6 +2547,7 @@ body.post-image-modal-open .post-progress {
 
 .pagination__info {
     color: var(--color-secondary);
+    white-space: nowrap;
 }
 
 .footer {
