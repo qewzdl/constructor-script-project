@@ -964,6 +964,12 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 		return errors.New("setting repository not configured")
 	}
 
+	currentHost := s.currentSettingValue(settingKeySMTPHost, defaults.Host)
+	currentPort := s.currentSettingValue(settingKeySMTPPort, defaults.Port)
+	currentUsername := s.currentSettingValue(settingKeySMTPUsername, defaults.Username)
+	currentPassword := s.currentSettingValue(settingKeySMTPPassword, "")
+	currentFrom := s.currentSettingValue(settingKeySMTPFrom, defaults.From)
+
 	host := strings.TrimSpace(req.Host)
 	if host == "" {
 		return &ValidationError{Field: "host", Message: "is required"}
@@ -987,9 +993,6 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 		return &ValidationError{Field: "contact_email", Message: "invalid contact email address"}
 	}
 
-	currentUsername := s.currentSettingValue(settingKeySMTPUsername, defaults.Username)
-	currentPassword := s.currentSettingValue(settingKeySMTPPassword, "")
-
 	resolvedUsername, updateUsername := normalizeCredentialInput(req.Username, currentUsername)
 	if strings.TrimSpace(resolvedUsername) == "" {
 		return &ValidationError{Field: "username", Message: "is required"}
@@ -999,6 +1002,22 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 	if strings.TrimSpace(resolvedPassword) == "" {
 		return &ValidationError{Field: "password", Message: "is required"}
 	}
+
+	logger.Info("Updating SMTP settings", map[string]interface{}{
+		"host":                     host,
+		"port":                     port,
+		"from":                     from,
+		"contact_email":            contactEmail,
+		"username_set":             strings.TrimSpace(resolvedUsername) != "",
+		"password_provided":        strings.TrimSpace(req.Password) != "",
+		"update_username":          updateUsername,
+		"update_password":          updatePassword,
+		"current_host":             currentHost,
+		"current_port":             currentPort,
+		"current_from":             currentFrom,
+		"current_username_set":     strings.TrimSpace(currentUsername) != "",
+		"current_password_present": strings.TrimSpace(currentPassword) != "",
+	})
 
 	updates := map[string]string{
 		settingKeySMTPHost:         host,
@@ -1025,6 +1044,19 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 			return err
 		}
 	}
+
+	storedPassword := s.currentSettingValue(settingKeySMTPPassword, "")
+	logger.Info("SMTP settings persisted", map[string]interface{}{
+		"host":            s.currentSettingValue(settingKeySMTPHost, ""),
+		"port":            s.currentSettingValue(settingKeySMTPPort, ""),
+		"from":            s.currentSettingValue(settingKeySMTPFrom, ""),
+		"username_set":    strings.TrimSpace(s.currentSettingValue(settingKeySMTPUsername, "")) != "",
+		"contact_email":   s.currentSettingValue(settingKeySiteContactEmail, ""),
+		"password_set":    strings.TrimSpace(storedPassword) != "",
+		"password_length": len(storedPassword),
+		"update_username": updateUsername,
+		"update_password": updatePassword,
+	})
 
 	return nil
 }
