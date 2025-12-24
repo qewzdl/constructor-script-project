@@ -3,11 +3,14 @@ package service
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/smtp"
 	"strings"
+	"time"
 
 	"constructor-script-backend/internal/config"
 	"constructor-script-backend/internal/repository"
+	"constructor-script-backend/pkg/logger"
 )
 
 type EmailService struct {
@@ -44,9 +47,22 @@ func (s *EmailService) Send(to, subject, body string) error {
 	}
 
 	cfg := s.resolveConfig()
+	start := time.Now()
 
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
+
+	var resolvedIPs []string
+	if ips, err := net.LookupIP(cfg.Host); err == nil {
+		for i, ip := range ips {
+			if i >= 3 {
+				break
+			}
+			resolvedIPs = append(resolvedIPs, ip.String())
+		}
+	} else {
+		resolvedIPs = []string{fmt.Sprintf("lookup_error:%s", err.Error())}
+	}
 
 	var builder strings.Builder
 	headers := map[string]string{
@@ -67,7 +83,63 @@ func (s *EmailService) Send(to, subject, body string) error {
 	builder.WriteString("\r\n")
 	builder.WriteString(body)
 
-	return smtp.SendMail(addr, auth, cfg.From, []string{to}, []byte(builder.String()))
+	startFields := map[string]interface{}{
+		"smtp_host":         cfg.Host,
+		"smtp_port":         cfg.Port,
+		"smtp_from":         cfg.From,
+		"smtp_username_set": cfg.Username != "",
+		"smtp_resolved_ips": strings.Join(resolvedIPs, ","),
+		"to":                strings.TrimSpace(to),
+		"subject":           subject,
+	}
+	logger.Info("Starting SMTP send", startFields)
+
+	dialTimeout := 12 * time.Second
+	dialer := net.Dialer{Timeout: dialTimeout}
+	dialStart := time.Now()
+	conn, dialErr := dialer.Dial("tcp", addr)
+	dialDuration := time.Since(dialStart)
+	if dialErr != nil {
+		logger.Error(dialErr, "SMTP dial failed", map[string]interface{}{
+			"smtp_host":          cfg.Host,
+			"smtp_port":          cfg.Port,
+			"smtp_resolved_ips":  strings.Join(resolvedIPs, ","),
+			"dial_timeout_ms":    dialTimeout.Milliseconds(),
+			"dial_duration_ms":   dialDuration.Milliseconds(),
+			"to":                 strings.TrimSpace(to),
+			"subject":            subject,
+		})
+		return fmt.Errorf("failed to dial SMTP server: %w", dialErr)
+	}
+	_ = conn.Close()
+	logger.Info("SMTP dial succeeded", map[string]interface{}{
+		"smtp_host":         cfg.Host,
+		"smtp_port":         cfg.Port,
+		"smtp_resolved_ips": strings.Join(resolvedIPs, ","),
+		"dial_duration_ms":  dialDuration.Milliseconds(),
+	})
+
+	err := smtp.SendMail(addr, auth, cfg.From, []string{to}, []byte(builder.String()))
+	duration := time.Since(start)
+
+	fields := map[string]interface{}{
+		"smtp_host":          cfg.Host,
+		"smtp_port":          cfg.Port,
+		"smtp_from":          cfg.From,
+		"smtp_username_set":  cfg.Username != "",
+		"smtp_resolved_ips":  strings.Join(resolvedIPs, ","),
+		"duration_ms":        duration.Milliseconds(),
+		"to":                 strings.TrimSpace(to),
+		"subject":            subject,
+	}
+
+	if err != nil {
+		logger.Error(err, "Failed to send email via SMTP", fields)
+		return err
+	}
+
+	logger.Info("Email sent via SMTP", fields)
+	return nil
 }
 
 func (s *EmailService) resolveConfig() emailConfig {

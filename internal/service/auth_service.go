@@ -287,9 +287,29 @@ func (s *AuthService) RequestPasswordReset(email string) error {
 		return newValidationError("email is required")
 	}
 
+	cfg := s.emailService.resolveConfig()
+	logger.Info("Password reset email dispatch starting", map[string]interface{}{
+		"email":             normalized,
+		"enable_email":      s.config != nil && s.config.EnableEmail,
+		"smtp_host":         cfg.Host,
+		"smtp_port":         cfg.Port,
+		"smtp_from":         cfg.From,
+		"smtp_username_set": cfg.Username != "",
+		"reset_repo_ready":  s.resetRepo != nil,
+		"site_url": func() string {
+			if s.config == nil {
+				return ""
+			}
+			return strings.TrimSpace(s.config.SiteURL)
+		}(),
+	})
+
 	user, err := s.userRepo.GetByEmail(normalized)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Info("Password reset requested for unknown email", map[string]interface{}{
+				"email": normalized,
+			})
 			return nil
 		}
 		return err
