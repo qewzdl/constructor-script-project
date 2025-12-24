@@ -1190,9 +1190,30 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	dialStart := time.Now()
 	conn, dialErr := dialer.Dial("tcp", addr)
 	dialDuration := time.Since(dialStart)
+
+	startTLSSupported := false
+	authLine := ""
+	var authMechs []string
+	capabilityErr := ""
 	if conn != nil {
+		client, clientErr := smtp.NewClient(conn, host)
+		if clientErr != nil {
+			capabilityErr = clientErr.Error()
+		} else {
+			if ok, _ := client.Extension("STARTTLS"); ok {
+				startTLSSupported = true
+			}
+			if ok, line := client.Extension("AUTH"); ok {
+				authLine = strings.TrimSpace(line)
+				if authLine != "" {
+					authMechs = strings.Fields(authLine)
+				}
+			}
+			_ = client.Close()
+		}
 		_ = conn.Close()
 	}
+
 	if dialErr != nil {
 		logFields["dial_error"] = dialErr.Error()
 		logFields["dial_timeout_ms"] = dialer.Timeout.Milliseconds()
@@ -1202,6 +1223,12 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	}
 	logFields["dial_duration_ms"] = dialDuration.Milliseconds()
 	logFields["dial_timeout_ms"] = dialer.Timeout.Milliseconds()
+	logFields["smtp_starttls_supported"] = startTLSSupported
+	logFields["smtp_auth_line"] = authLine
+	logFields["smtp_auth_mechanisms"] = strings.Join(authMechs, ",")
+	if capabilityErr != "" {
+		logFields["smtp_capability_error"] = capabilityErr
+	}
 
 	err := smtp.SendMail(addr, auth, from, []string{to}, messageBytes)
 	duration := time.Since(start)
@@ -1217,6 +1244,12 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	}
 
 	if err != nil {
+		var smtpErr *smtp.SMTPError
+		if errors.As(err, &smtpErr) {
+			logFields["smtp_error_code"] = smtpErr.Code
+			logFields["smtp_error_command"] = smtpErr.Command
+			logFields["smtp_error_msg"] = smtpErr.Msg
+		}
 		logFields["duration_ms"] = result.DurationMs
 		logFields["username_set"] = result.UsernameSet
 		logger.Error(err, "SMTP test failed", logFields)

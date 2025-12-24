@@ -212,6 +212,12 @@ func (s *EmailService) Send(to, subject, body string) error {
 	}
 
 	if err != nil {
+		var smtpErr *smtp.SMTPError
+		if errors.As(err, &smtpErr) {
+			fields["smtp_error_code"] = smtpErr.Code
+			fields["smtp_error_command"] = smtpErr.Command
+			fields["smtp_error_msg"] = smtpErr.Msg
+		}
 		logger.Error(err, "Failed to send email via SMTP", fields)
 		return err
 	}
