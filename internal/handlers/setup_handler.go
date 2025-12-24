@@ -461,6 +461,15 @@ func (h *SetupHandler) UpdateEmailSettings(c *gin.Context) {
 
 	defaults := h.defaultEmailSettings()
 
+	logger.Info("Email settings update requested", map[string]interface{}{
+		"host":             strings.TrimSpace(req.Host),
+		"port":             strings.TrimSpace(req.Port),
+		"from":             strings.TrimSpace(req.From),
+		"username_set":     strings.TrimSpace(req.Username) != "",
+		"contact_email":    strings.TrimSpace(req.ContactEmail),
+		"password_provided": strings.TrimSpace(req.Password) != "",
+	})
+
 	if err := h.setupService.UpdateEmailSettings(req, defaults); err != nil {
 		var validationErr *service.ValidationError
 		if errors.As(err, &validationErr) {
@@ -479,6 +488,15 @@ func (h *SetupHandler) UpdateEmailSettings(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load email settings"})
 		return
 	}
+
+	logger.Info("Email settings updated", map[string]interface{}{
+		"host":          strings.TrimSpace(settings.Host),
+		"port":          strings.TrimSpace(settings.Port),
+		"from":          strings.TrimSpace(settings.From),
+		"username_set":  strings.TrimSpace(settings.Username) != "",
+		"contact_email": strings.TrimSpace(settings.ContactEmail),
+		"password_set":  settings.PasswordSet,
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Email settings updated", "email": settings})
 }
