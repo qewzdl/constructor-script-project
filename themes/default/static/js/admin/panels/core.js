@@ -1286,7 +1286,7 @@
                     </label>
                     <label class="admin-form__label">
                         SMTP password
-                        <input type="password" name="password" class="admin-form__input" placeholder="Enter SMTP password" />
+                        <input type="password" name="password" class="admin-form__input" placeholder="Enter SMTP password" autocomplete="current-password" />
                         <small class="admin-card__description admin-form__hint" data-role="email-password-hint"></small>
                     </label>
                     <label class="admin-form__label">
@@ -1306,6 +1306,9 @@
                     <div class="admin-form__actions">
                         <button type="submit" class="admin-form__submit">
                             Save email settings
+                        </button>
+                        <button type="button" class="admin-form__submit admin-form__submit--secondary" data-role="email-test">
+                            Test SMTP connection
                         </button>
                     </div>
                 </fieldset>

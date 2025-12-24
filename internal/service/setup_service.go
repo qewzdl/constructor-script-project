@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"net"
+	"net/smtp"
 	"net/url"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -966,9 +969,9 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 
 	currentHost := s.currentSettingValue(settingKeySMTPHost, defaults.Host)
 	currentPort := s.currentSettingValue(settingKeySMTPPort, defaults.Port)
+	currentFrom := s.currentSettingValue(settingKeySMTPFrom, defaults.From)
 	currentUsername := s.currentSettingValue(settingKeySMTPUsername, defaults.Username)
 	currentPassword := s.currentSettingValue(settingKeySMTPPassword, defaults.Password)
-	currentFrom := s.currentSettingValue(settingKeySMTPFrom, defaults.From)
 
 	host := strings.TrimSpace(req.Host)
 	if host == "" {
@@ -1059,6 +1062,125 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 	})
 
 	return nil
+}
+
+type SMTPTestResult struct {
+	Host         string   `json:"host"`
+	Port         string   `json:"port"`
+	From         string   `json:"from"`
+	ContactEmail string   `json:"contact_email"`
+	UsernameSet  bool     `json:"username_set"`
+	ResolvedIPs  []string `json:"resolved_ips"`
+	DurationMs   int64    `json:"duration_ms"`
+}
+
+func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, defaults models.EmailSettings) (*SMTPTestResult, error) {
+	if s == nil {
+		return nil, errors.New("setup service not configured")
+	}
+
+	currentUsername := s.currentSettingValue(settingKeySMTPUsername, defaults.Username)
+	currentPassword := s.currentSettingValue(settingKeySMTPPassword, defaults.Password)
+
+	host := strings.TrimSpace(req.Host)
+	if host == "" {
+		return nil, &ValidationError{Field: "host", Message: "is required"}
+	}
+
+	port := strings.TrimSpace(req.Port)
+	if port == "" {
+		return nil, &ValidationError{Field: "port", Message: "is required"}
+	}
+	if parsed, err := strconv.Atoi(port); err != nil || parsed <= 0 {
+		return nil, &ValidationError{Field: "port", Message: "must be a positive number"}
+	}
+
+	from := strings.TrimSpace(req.From)
+	if from == "" || !emailPattern.MatchString(from) {
+		return nil, &ValidationError{Field: "from", Message: "must be a valid email address"}
+	}
+
+	contactEmail := strings.TrimSpace(req.ContactEmail)
+	if contactEmail != "" && !emailPattern.MatchString(contactEmail) {
+		return nil, &ValidationError{Field: "contact_email", Message: "invalid contact email address"}
+	}
+
+	resolvedUsername, _ := normalizeCredentialInput(req.Username, currentUsername)
+	if strings.TrimSpace(resolvedUsername) == "" {
+		return nil, &ValidationError{Field: "username", Message: "is required"}
+	}
+
+	resolvedPassword, _ := normalizeCredentialInput(req.Password, currentPassword)
+	if strings.TrimSpace(resolvedPassword) == "" {
+		return nil, &ValidationError{Field: "password", Message: "is required"}
+	}
+
+	auth := smtp.PlainAuth("", resolvedUsername, resolvedPassword, host)
+	addr := fmt.Sprintf("%s:%s", host, port)
+
+	var resolvedIPs []string
+	if ips, err := net.LookupIP(host); err == nil {
+		for i, ip := range ips {
+			if i >= 3 {
+				break
+			}
+			resolvedIPs = append(resolvedIPs, ip.String())
+		}
+	}
+
+	to := contactEmail
+	if to == "" {
+		to = from
+	}
+
+	var builder strings.Builder
+	builder.WriteString("From: ")
+	builder.WriteString(from)
+	builder.WriteString("\r\nTo: ")
+	builder.WriteString(to)
+	builder.WriteString("\r\nSubject: SMTP configuration test\r\n")
+	builder.WriteString("MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n")
+	builder.WriteString("This email confirms that your SMTP credentials are valid.\r\n")
+	builder.WriteString("If you did not request this test, you can ignore this message.")
+
+	start := time.Now()
+	err := smtp.SendMail(addr, auth, from, []string{to}, []byte(builder.String()))
+	duration := time.Since(start)
+
+	result := &SMTPTestResult{
+		Host:         host,
+		Port:         port,
+		From:         from,
+		ContactEmail: contactEmail,
+		UsernameSet:  strings.TrimSpace(resolvedUsername) != "",
+		ResolvedIPs:  resolvedIPs,
+		DurationMs:   duration.Milliseconds(),
+	}
+
+	if err != nil {
+		logger.Error(err, "SMTP test failed", map[string]interface{}{
+			"host":          host,
+			"port":          port,
+			"from":          from,
+			"username_set":  result.UsernameSet,
+			"contact_email": contactEmail,
+			"resolved_ips":  strings.Join(resolvedIPs, ","),
+			"duration_ms":   result.DurationMs,
+		})
+		return result, fmt.Errorf("smtp authentication failed: %w", err)
+	}
+
+	logger.Info("SMTP test succeeded", map[string]interface{}{
+		"host":          host,
+		"port":          port,
+		"from":          from,
+		"username_set":  result.UsernameSet,
+		"contact_email": contactEmail,
+		"resolved_ips":  strings.Join(resolvedIPs, ","),
+		"duration_ms":   result.DurationMs,
+	})
+
+	return result, nil
 }
 
 func (s *SetupService) getSettingValue(key string) (string, error) {

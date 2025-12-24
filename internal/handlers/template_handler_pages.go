@@ -2377,6 +2377,7 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"PageBuilderConfig":   "/api/v1/admin/pages/builder/config",
 		"SiteSettings":        "/api/v1/admin/settings/site",
 		"EmailSettings":       "/api/v1/admin/settings/email",
+		"EmailSettingsTest":   "/api/v1/admin/settings/email/test",
 		"Homepage":            "/api/v1/admin/settings/homepage",
 		"FaviconUpload":       "/api/v1/admin/settings/favicon",
 		"LogoUpload":          "/api/v1/admin/settings/logo",

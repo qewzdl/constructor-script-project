@@ -1483,6 +1483,7 @@ func (a *Application) initRouter() error {
 			settings.PUT("/settings/site", a.handlers.Setup.UpdateSiteSettings)
 			settings.GET("/settings/email", a.handlers.Setup.GetEmailSettings)
 			settings.PUT("/settings/email", a.handlers.Setup.UpdateEmailSettings)
+			settings.POST("/settings/email/test", a.handlers.Setup.TestEmailSettings)
 			settings.GET("/settings/homepage", a.handlers.Homepage.Get)
 			settings.PUT("/settings/homepage", a.handlers.Homepage.Update)
 

@@ -115,6 +115,7 @@
             tagsAdmin: root.dataset.endpointTagsAdmin,
             siteSettings: root.dataset.endpointSiteSettings,
             emailSettings: root.dataset.endpointEmailSettings,
+            emailSettingsTest: root.dataset.endpointEmailSettingsTest,
             homepage: root.dataset.endpointHomepage,
             faviconUpload: root.dataset.endpointFaviconUpload,
             logoUpload: root.dataset.endpointLogoUpload,
@@ -317,6 +318,7 @@
         const settingsForm = root.querySelector('#admin-settings-form');
         const emailSettingsForm = root.querySelector('#admin-email-settings-form');
         const emailPasswordHint = emailSettingsForm?.querySelector('[data-role="email-password-hint"]');
+        const emailTestButton = emailSettingsForm?.querySelector('[data-role="email-test"]');
         const paymentsForm = root.querySelector('#admin-payments-form');
         const languageForm = root.querySelector('#admin-language-form');
         const homepageForm = root.querySelector('#admin-homepage-form');
@@ -8800,6 +8802,60 @@
             }
         };
 
+        const buildEmailSettingsPayload = () => {
+            const passwordField = emailSettingsForm?.querySelector('input[name="password"]');
+            const passwordMask = passwordField?.dataset?.mask || EMAIL_PASSWORD_MASK;
+            const rawPassword = getEmailFieldValue('password');
+            const passwordUnchanged =
+                state.email?.password_set &&
+                (rawPassword === '' || rawPassword === passwordMask);
+
+            return {
+                host: getEmailFieldValue('host'),
+                port: getEmailFieldValue('port'),
+                username: getEmailFieldValue('username'),
+                password: passwordUnchanged ? '' : rawPassword,
+                from: getEmailFieldValue('from'),
+                contact_email: getEmailFieldValue('contact_email'),
+                passwordUnchanged,
+            };
+        };
+
+        const validateEmailSettingsPayload = (payload, requirePassword = false) => {
+            if (!payload.host) {
+                showAlert('Please provide the SMTP host.', 'error');
+                return false;
+            }
+
+            const portNumber = Number.parseInt(payload.port, 10);
+            if (!payload.port || Number.isNaN(portNumber) || portNumber <= 0) {
+                showAlert('Please provide a valid SMTP port (for example, 587).', 'error');
+                return false;
+            }
+
+            if (!payload.username) {
+                showAlert('Please provide the SMTP username.', 'error');
+                return false;
+            }
+
+            if (requirePassword && !payload.password) {
+                showAlert('Please set an SMTP password.', 'error');
+                return false;
+            }
+
+            if (payload.from && !emailPattern.test(payload.from)) {
+                showAlert('Please provide a valid sender email address.', 'error');
+                return false;
+            }
+
+            if (payload.contact_email && !emailPattern.test(payload.contact_email)) {
+                showAlert('Please provide a valid contact email address or leave it blank.', 'error');
+                return false;
+            }
+
+            return true;
+        };
+
         const populatePaymentSettingsForm = (site) => {
             if (!paymentsForm) {
                 return;
@@ -12641,50 +12697,9 @@
                 return;
             }
 
-            const passwordField = emailSettingsForm?.querySelector('input[name="password"]');
-            const passwordMask = passwordField?.dataset?.mask || EMAIL_PASSWORD_MASK;
-            const rawPassword = getEmailFieldValue('password');
-            const passwordUnchanged =
-                state.email?.password_set && (rawPassword === '' || rawPassword === passwordMask);
-
-            const payload = {
-                host: getEmailFieldValue('host'),
-                port: getEmailFieldValue('port'),
-                username: getEmailFieldValue('username'),
-                password: passwordUnchanged ? '' : rawPassword,
-                from: getEmailFieldValue('from'),
-                contact_email: getEmailFieldValue('contact_email'),
-            };
-
-            if (!payload.host) {
-                showAlert('Please provide the SMTP host.', 'error');
-                return;
-            }
-
-            const portNumber = Number.parseInt(payload.port, 10);
-            if (!payload.port || Number.isNaN(portNumber) || portNumber <= 0) {
-                showAlert('Please provide a valid SMTP port (for example, 587).', 'error');
-                return;
-            }
-
-            if (!payload.username) {
-                showAlert('Please provide the SMTP username.', 'error');
-                return;
-            }
-
+            const payload = buildEmailSettingsPayload();
             const requirePassword = !state.email?.password_set;
-            if (requirePassword && !payload.password) {
-                showAlert('Please set an SMTP password.', 'error');
-                return;
-            }
-
-            if (payload.from && !emailPattern.test(payload.from)) {
-                showAlert('Please provide a valid sender email address.', 'error');
-                return;
-            }
-
-            if (payload.contact_email && !emailPattern.test(payload.contact_email)) {
-                showAlert('Please provide a valid contact email address or leave it blank.', 'error');
+            if (!validateEmailSettingsPayload(payload, requirePassword)) {
                 return;
             }
 
@@ -12700,7 +12715,7 @@
                 const passwordSet =
                     responseEmail.password_set ??
                     state.email?.password_set ??
-                    Boolean(rawPassword && !passwordUnchanged);
+                    Boolean(payload.password && !payload.passwordUnchanged);
                 const nextEmail = { ...payload, ...responseEmail, password_set: passwordSet };
                 delete nextEmail.password;
                 state.email = nextEmail;
@@ -12710,6 +12725,49 @@
                 handleRequestError(error);
             } finally {
                 disableForm(emailSettingsForm, false);
+            }
+        };
+
+        const handleEmailTestClick = async (event) => {
+            event.preventDefault();
+            if (!endpoints.emailSettingsTest) {
+                return;
+            }
+
+            const payload = buildEmailSettingsPayload();
+            const requirePassword = !state.email?.password_set;
+            if (!validateEmailSettingsPayload(payload, requirePassword)) {
+                return;
+            }
+
+            disableForm(emailSettingsForm, true);
+            if (emailTestButton) {
+                emailTestButton.disabled = true;
+                emailTestButton.setAttribute('data-loading', 'true');
+            }
+            clearAlert();
+
+            try {
+                const response = await apiRequest(endpoints.emailSettingsTest, {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                });
+                const durationText =
+                    typeof response?.result?.duration_ms === 'number'
+                        ? ` (${response.result.duration_ms} ms)`
+                        : '';
+                showAlert(
+                    `${response?.message || 'SMTP test succeeded.'}${durationText}`,
+                    'success'
+                );
+            } catch (error) {
+                handleRequestError(error);
+            } finally {
+                disableForm(emailSettingsForm, false);
+                if (emailTestButton) {
+                    emailTestButton.disabled = false;
+                    emailTestButton.removeAttribute('data-loading');
+                }
             }
         };
 
@@ -13932,6 +13990,7 @@
         });
         settingsForm?.addEventListener('submit', handleSiteSettingsSubmit);
         emailSettingsForm?.addEventListener('submit', handleEmailSettingsSubmit);
+        emailTestButton?.addEventListener('click', handleEmailTestClick);
         languageForm?.addEventListener('submit', handleSiteSettingsSubmit);
         paymentsForm?.addEventListener('submit', handleSiteSettingsSubmit);
         advertisingForm?.addEventListener('submit', handleAdvertisingSubmit);

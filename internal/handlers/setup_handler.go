@@ -502,6 +502,59 @@ func (h *SetupHandler) UpdateEmailSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Email settings updated", "email": settings})
 }
 
+func (h *SetupHandler) TestEmailSettings(c *gin.Context) {
+	if h.setupService == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Setup service not available"})
+		return
+	}
+
+	var req models.UpdateEmailSettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	defaults := h.defaultEmailSettings()
+
+	logger.Info("SMTP test requested", map[string]interface{}{
+		"host":              strings.TrimSpace(req.Host),
+		"port":              strings.TrimSpace(req.Port),
+		"from":              strings.TrimSpace(req.From),
+		"username_set":      strings.TrimSpace(req.Username) != "",
+		"contact_email":     strings.TrimSpace(req.ContactEmail),
+		"password_provided": strings.TrimSpace(req.Password) != "",
+	})
+
+	result, err := h.setupService.TestEmailSettings(req, defaults)
+	if err != nil {
+		var validationErr *service.ValidationError
+		if errors.As(err, &validationErr) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+			return
+		}
+
+		logger.Error(err, "Failed to test email settings", nil)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify SMTP settings", "details": err.Error()})
+		return
+	}
+
+	logger.Info("SMTP test succeeded", map[string]interface{}{
+		"host":              result.Host,
+		"port":              result.Port,
+		"from":              result.From,
+		"username_set":      result.UsernameSet,
+		"contact_email":     result.ContactEmail,
+		"resolved_ips":      strings.Join(result.ResolvedIPs, ","),
+		"duration_ms":       result.DurationMs,
+		"password_retained": strings.TrimSpace(req.Password) == "",
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "SMTP connection succeeded",
+		"result":  result,
+	})
+}
+
 func safeKeyPrefix(req models.UpdateSiteSettingsRequest, field string) string {
 	value := strings.TrimSpace(selectKeyByField(req, field))
 	if value == "" {
