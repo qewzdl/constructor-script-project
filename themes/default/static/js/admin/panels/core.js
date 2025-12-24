@@ -1282,7 +1282,7 @@
                     </label>
                     <label class="admin-form__label">
                         SMTP username
-                        <input type="text" name="username" required class="admin-form__input" placeholder="user@example.com" />
+                        <input type="text" name="username" required class="admin-form__input" placeholder="user@example.com" autocomplete="username" />
                     </label>
                     <label class="admin-form__label">
                         SMTP password
