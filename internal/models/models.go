@@ -985,6 +985,7 @@ type EmailSettings struct {
 	Username     string `json:"username"`
 	From         string `json:"from"`
 	ContactEmail string `json:"contact_email"`
+	Password     string `json:"-"` // internal fallback for config-provided password
 	PasswordSet  bool   `json:"password_set"`
 	EnableEmail  bool   `json:"enable_email"`
 }

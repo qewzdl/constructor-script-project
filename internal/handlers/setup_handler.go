@@ -308,6 +308,7 @@ func (h *SetupHandler) defaultEmailSettings() models.EmailSettings {
 		Host:         strings.TrimSpace(h.config.SMTPHost),
 		Port:         port,
 		Username:     strings.TrimSpace(h.config.SMTPUsername),
+		Password:     password,
 		From:         from,
 		ContactEmail: contact,
 		PasswordSet:  password != "",
@@ -462,11 +463,11 @@ func (h *SetupHandler) UpdateEmailSettings(c *gin.Context) {
 	defaults := h.defaultEmailSettings()
 
 	logger.Info("Email settings update requested", map[string]interface{}{
-		"host":             strings.TrimSpace(req.Host),
-		"port":             strings.TrimSpace(req.Port),
-		"from":             strings.TrimSpace(req.From),
-		"username_set":     strings.TrimSpace(req.Username) != "",
-		"contact_email":    strings.TrimSpace(req.ContactEmail),
+		"host":              strings.TrimSpace(req.Host),
+		"port":              strings.TrimSpace(req.Port),
+		"from":              strings.TrimSpace(req.From),
+		"username_set":      strings.TrimSpace(req.Username) != "",
+		"contact_email":     strings.TrimSpace(req.ContactEmail),
 		"password_provided": strings.TrimSpace(req.Password) != "",
 	})
 

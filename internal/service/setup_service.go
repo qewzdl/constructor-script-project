@@ -953,7 +953,7 @@ func (s *SetupService) GetEmailSettings(defaults models.EmailSettings) (models.E
 	result.Username = s.currentSettingValue(settingKeySMTPUsername, defaults.Username)
 	result.From = s.currentSettingValue(settingKeySMTPFrom, defaults.From)
 	result.ContactEmail = s.currentSettingValue(settingKeySiteContactEmail, defaults.ContactEmail)
-	password := s.currentSettingValue(settingKeySMTPPassword, "")
+	password := s.currentSettingValue(settingKeySMTPPassword, defaults.Password)
 	result.PasswordSet = strings.TrimSpace(password) != ""
 	result.EnableEmail = defaults.EnableEmail
 	return result, nil
@@ -967,7 +967,7 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 	currentHost := s.currentSettingValue(settingKeySMTPHost, defaults.Host)
 	currentPort := s.currentSettingValue(settingKeySMTPPort, defaults.Port)
 	currentUsername := s.currentSettingValue(settingKeySMTPUsername, defaults.Username)
-	currentPassword := s.currentSettingValue(settingKeySMTPPassword, "")
+	currentPassword := s.currentSettingValue(settingKeySMTPPassword, defaults.Password)
 	currentFrom := s.currentSettingValue(settingKeySMTPFrom, defaults.From)
 
 	host := strings.TrimSpace(req.Host)
@@ -1045,7 +1045,7 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 		}
 	}
 
-	storedPassword := s.currentSettingValue(settingKeySMTPPassword, "")
+	storedPassword := s.currentSettingValue(settingKeySMTPPassword, defaults.Password)
 	logger.Info("SMTP settings persisted", map[string]interface{}{
 		"host":            s.currentSettingValue(settingKeySMTPHost, ""),
 		"port":            s.currentSettingValue(settingKeySMTPPort, ""),
