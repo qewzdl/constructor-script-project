@@ -1133,6 +1133,17 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 		to = from
 	}
 
+	logFields := map[string]interface{}{
+		"host":           host,
+		"port":           port,
+		"from":           from,
+		"to":             to,
+		"contact_email":  contactEmail,
+		"username":       resolvedUsername,
+		"resolved_ips":   strings.Join(resolvedIPs, ","),
+		"auth_mechanism": "PLAIN",
+	}
+
 	var builder strings.Builder
 	builder.WriteString("From: ")
 	builder.WriteString(from)
@@ -1144,6 +1155,7 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	builder.WriteString("If you did not request this test, you can ignore this message.")
 
 	start := time.Now()
+	logger.Info("Starting SMTP test", logFields)
 	err := smtp.SendMail(addr, auth, from, []string{to}, []byte(builder.String()))
 	duration := time.Since(start)
 
@@ -1158,27 +1170,15 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	}
 
 	if err != nil {
-		logger.Error(err, "SMTP test failed", map[string]interface{}{
-			"host":          host,
-			"port":          port,
-			"from":          from,
-			"username_set":  result.UsernameSet,
-			"contact_email": contactEmail,
-			"resolved_ips":  strings.Join(resolvedIPs, ","),
-			"duration_ms":   result.DurationMs,
-		})
+		logFields["duration_ms"] = result.DurationMs
+		logFields["username_set"] = result.UsernameSet
+		logger.Error(err, "SMTP test failed", logFields)
 		return result, fmt.Errorf("smtp authentication failed: %w", err)
 	}
 
-	logger.Info("SMTP test succeeded", map[string]interface{}{
-		"host":          host,
-		"port":          port,
-		"from":          from,
-		"username_set":  result.UsernameSet,
-		"contact_email": contactEmail,
-		"resolved_ips":  strings.Join(resolvedIPs, ","),
-		"duration_ms":   result.DurationMs,
-	})
+	logFields["duration_ms"] = result.DurationMs
+	logFields["username_set"] = result.UsernameSet
+	logger.Info("SMTP test succeeded", logFields)
 
 	return result, nil
 }
