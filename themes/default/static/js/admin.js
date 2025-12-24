@@ -8692,6 +8692,7 @@
         };
 
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const EMAIL_PASSWORD_MASK = '********';
 
         const getPaymentsFieldValue = (name) => {
             const field = paymentsForm?.querySelector(`[name="${name}"]`);
@@ -8786,7 +8787,9 @@
 
             const passwordField = emailSettingsForm.querySelector('input[name="password"]');
             if (passwordField) {
-                passwordField.value = '';
+                const maskedPassword = emailSettings?.password_set ? EMAIL_PASSWORD_MASK : '';
+                passwordField.value = maskedPassword;
+                passwordField.dataset.mask = EMAIL_PASSWORD_MASK;
             }
 
             if (emailPasswordHint) {
@@ -12638,11 +12641,17 @@
                 return;
             }
 
+            const passwordField = emailSettingsForm?.querySelector('input[name="password"]');
+            const passwordMask = passwordField?.dataset?.mask || EMAIL_PASSWORD_MASK;
+            const rawPassword = getEmailFieldValue('password');
+            const passwordUnchanged =
+                state.email?.password_set && (rawPassword === '' || rawPassword === passwordMask);
+
             const payload = {
                 host: getEmailFieldValue('host'),
                 port: getEmailFieldValue('port'),
                 username: getEmailFieldValue('username'),
-                password: getEmailFieldValue('password'),
+                password: passwordUnchanged ? '' : rawPassword,
                 from: getEmailFieldValue('from'),
                 contact_email: getEmailFieldValue('contact_email'),
             };
@@ -12687,7 +12696,14 @@
                     method: 'PUT',
                     body: JSON.stringify(payload),
                 });
-                state.email = response?.email || payload;
+                const responseEmail = response?.email || {};
+                const passwordSet =
+                    responseEmail.password_set ??
+                    state.email?.password_set ??
+                    Boolean(rawPassword && !passwordUnchanged);
+                const nextEmail = { ...payload, ...responseEmail, password_set: passwordSet };
+                delete nextEmail.password;
+                state.email = nextEmail;
                 populateEmailSettingsForm(state.email);
                 showAlert('Email settings updated successfully.', 'success');
             } catch (error) {
