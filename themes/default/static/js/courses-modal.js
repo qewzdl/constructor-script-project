@@ -137,6 +137,8 @@
         const errorElement = modal.querySelector("[data-course-modal-error]");
         const titleElement = modal.querySelector("[data-course-modal-title]");
         const priceElement = modal.querySelector("[data-course-modal-price]");
+        const priceCurrentElement = modal.querySelector("[data-course-modal-price-current]");
+        const priceOriginalElement = modal.querySelector("[data-course-modal-price-original]");
         const descriptionElement = modal.querySelector("[data-course-modal-description]");
         const metaElement = modal.querySelector("[data-course-modal-meta]");
         const topicsWrapper = modal.querySelector("[data-course-modal-topics-wrapper]");
@@ -157,6 +159,23 @@
                 return;
             }
             element.hidden = hidden;
+        }
+
+        function updatePriceDisplay(currentText, originalText) {
+            const hasCurrent = typeof currentText === "string" && currentText.trim() !== "";
+            const hasOriginal = typeof originalText === "string" && originalText.trim() !== "";
+
+            if (priceCurrentElement) {
+                priceCurrentElement.textContent = hasCurrent ? currentText.trim() : "";
+                setHidden(priceCurrentElement, !hasCurrent);
+            }
+
+            if (priceOriginalElement) {
+                priceOriginalElement.textContent = hasOriginal ? originalText.trim() : "";
+                setHidden(priceOriginalElement, !hasOriginal);
+            }
+
+            setHidden(priceElement, !(hasCurrent || hasOriginal));
         }
 
         function dispatchLifecycleEvent(name, detail) {
@@ -227,9 +246,21 @@
                 ? details.title.trim()
                 : card.querySelector(".post-card__link")?.textContent.trim() || "";
 
-            const priceText = typeof details.price_text === "string" && details.price_text.trim() !== ""
+            let priceText = typeof details.price_text === "string" && details.price_text.trim() !== ""
                 ? details.price_text.trim()
-                : card.querySelector(".courses-list__price")?.textContent.trim() || "";
+                : "";
+            if (!priceText) {
+                const currentPriceNode = card.querySelector(".courses-list__price--current") || card.querySelector(".courses-list__price");
+                priceText = currentPriceNode?.textContent.trim() || "";
+            }
+
+            let originalPriceText = typeof details.original_price_text === "string" && details.original_price_text.trim() !== ""
+                ? details.original_price_text.trim()
+                : "";
+            if (!originalPriceText) {
+                const originalPriceNode = card.querySelector(".courses-list__price--original");
+                originalPriceText = originalPriceNode?.textContent.trim() || "";
+            }
 
             const descriptionSource = typeof details.description_html === "string" && details.description_html.trim() !== ""
                 ? details.description_html
@@ -243,13 +274,7 @@
 
             titleElement.textContent = title;
 
-            if (priceText) {
-                priceElement.textContent = priceText;
-                setHidden(priceElement, false);
-            } else {
-                priceElement.textContent = "";
-                setHidden(priceElement, true);
-            }
+            updatePriceDisplay(priceText, originalPriceText);
 
             if (metaElement) {
                 metaElement.innerHTML = "";
@@ -367,7 +392,7 @@
             const detail = {
                 id: purchaseButton.dataset.courseId || "",
                 title: titleElement.textContent || "",
-                price: priceElement.textContent || "",
+                price: purchaseButton.dataset.coursePrice || priceElement.textContent || "",
                 card: activeCard
             };
 

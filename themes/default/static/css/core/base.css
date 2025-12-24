@@ -3026,10 +3026,24 @@ body.course-modal-open {
     font-size: var(--font-size-xl);
     font-weight: 600;
     color: var(--color-accent);
+    display: flex;
+    align-items: baseline;
+    gap: var(--size-sm);
 }
 
 .course-modal__price[hidden] {
     display: none;
+}
+
+.course-modal__price-current {
+    color: var(--color-accent);
+}
+
+.course-modal__price-original {
+    color: var(--color-secondary);
+    text-decoration: line-through;
+    font-size: var(--font-size-base);
+    font-weight: 500;
 }
 
 .course-modal__description {

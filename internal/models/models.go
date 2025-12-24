@@ -266,16 +266,38 @@ type CoursePackage struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Title           string `gorm:"not null" json:"title"`
-	Slug            string `gorm:"not null;uniqueIndex:idx_course_packages_slug,where:deleted_at IS NULL" json:"slug"`
-	Summary         string `json:"summary"`
-	Description     string `json:"description"`
-	MetaTitle       string `json:"meta_title"`
-	MetaDescription string `json:"meta_description"`
-	PriceCents      int64  `gorm:"not null" json:"price_cents"`
-	ImageURL        string `json:"image_url"`
+	Title              string `gorm:"not null" json:"title"`
+	Slug               string `gorm:"not null;uniqueIndex:idx_course_packages_slug,where:deleted_at IS NULL" json:"slug"`
+	Summary            string `json:"summary"`
+	Description        string `json:"description"`
+	MetaTitle          string `json:"meta_title"`
+	MetaDescription    string `json:"meta_description"`
+	PriceCents         int64  `gorm:"not null" json:"price_cents"`
+	DiscountPriceCents *int64 `json:"discount_price_cents,omitempty"`
+	ImageURL           string `json:"image_url"`
 
 	Topics []CourseTopic `gorm:"-" json:"topics"`
+}
+
+func (p CoursePackage) HasDiscountPrice() bool {
+	if p.PriceCents <= 0 {
+		return false
+	}
+	if p.DiscountPriceCents == nil {
+		return false
+	}
+	value := *p.DiscountPriceCents
+	if value < 0 {
+		return false
+	}
+	return value < p.PriceCents
+}
+
+func (p CoursePackage) EffectivePriceCents() int64 {
+	if p.HasDiscountPrice() {
+		return *p.DiscountPriceCents
+	}
+	return p.PriceCents
 }
 
 type CoursePackageAccess struct {
@@ -490,26 +512,28 @@ type ReorderCourseTopicVideosRequest struct {
 }
 
 type CreateCoursePackageRequest struct {
-	Title           string `json:"title" binding:"required"`
-	Slug            string `json:"slug" binding:"required,slug"`
-	Summary         string `json:"summary"`
-	Description     string `json:"description"`
-	MetaTitle       string `json:"meta_title"`
-	MetaDescription string `json:"meta_description"`
-	PriceCents      int64  `json:"price_cents" binding:"required"`
-	ImageURL        string `json:"image_url"`
-	TopicIDs        []uint `json:"topic_ids"`
+	Title              string `json:"title" binding:"required"`
+	Slug               string `json:"slug" binding:"required,slug"`
+	Summary            string `json:"summary"`
+	Description        string `json:"description"`
+	MetaTitle          string `json:"meta_title"`
+	MetaDescription    string `json:"meta_description"`
+	PriceCents         int64  `json:"price_cents" binding:"required"`
+	DiscountPriceCents *int64 `json:"discount_price_cents"`
+	ImageURL           string `json:"image_url"`
+	TopicIDs           []uint `json:"topic_ids"`
 }
 
 type UpdateCoursePackageRequest struct {
-	Title           string `json:"title" binding:"required"`
-	Slug            string `json:"slug" binding:"required,slug"`
-	Summary         string `json:"summary"`
-	Description     string `json:"description"`
-	MetaTitle       string `json:"meta_title"`
-	MetaDescription string `json:"meta_description"`
-	PriceCents      int64  `json:"price_cents" binding:"required"`
-	ImageURL        string `json:"image_url"`
+	Title              string `json:"title" binding:"required"`
+	Slug               string `json:"slug" binding:"required,slug"`
+	Summary            string `json:"summary"`
+	Description        string `json:"description"`
+	MetaTitle          string `json:"meta_title"`
+	MetaDescription    string `json:"meta_description"`
+	PriceCents         int64  `json:"price_cents" binding:"required"`
+	DiscountPriceCents *int64 `json:"discount_price_cents"`
+	ImageURL           string `json:"image_url"`
 }
 
 type ReorderCoursePackageTopicsRequest struct {

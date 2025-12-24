@@ -2,26 +2,28 @@ package models
 
 // CreatePackageRequest represents a request to create a course package
 type CreatePackageRequest struct {
-	Title           string `json:"title" binding:"required"`
-	Slug            string `json:"slug"`
-	Summary         string `json:"summary"`
-	Description     string `json:"description"`
-	MetaTitle       string `json:"meta_title"`
-	MetaDescription string `json:"meta_description"`
-	PriceCents      int64  `json:"price_cents"`
-	ImageURL        string `json:"image_url"`
+	Title              string `json:"title" binding:"required"`
+	Slug               string `json:"slug"`
+	Summary            string `json:"summary"`
+	Description        string `json:"description"`
+	MetaTitle          string `json:"meta_title"`
+	MetaDescription    string `json:"meta_description"`
+	PriceCents         int64  `json:"price_cents"`
+	DiscountPriceCents *int64 `json:"discount_price_cents"`
+	ImageURL           string `json:"image_url"`
 }
 
 // UpdatePackageRequest represents a request to update a course package
 type UpdatePackageRequest struct {
-	Title           *string `json:"title"`
-	Slug            *string `json:"slug"`
-	Summary         *string `json:"summary"`
-	Description     *string `json:"description"`
-	MetaTitle       *string `json:"meta_title"`
-	MetaDescription *string `json:"meta_description"`
-	PriceCents      *int64  `json:"price_cents"`
-	ImageURL        *string `json:"image_url"`
+	Title              *string `json:"title"`
+	Slug               *string `json:"slug"`
+	Summary            *string `json:"summary"`
+	Description        *string `json:"description"`
+	MetaTitle          *string `json:"meta_title"`
+	MetaDescription    *string `json:"meta_description"`
+	PriceCents         *int64  `json:"price_cents"`
+	DiscountPriceCents *int64  `json:"discount_price_cents"`
+	ImageURL           *string `json:"image_url"`
 }
 
 // CreateTopicRequest represents a request to create a topic

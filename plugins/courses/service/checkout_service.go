@@ -111,6 +111,10 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, req models.
 	if pkg.PriceCents <= 0 {
 		return nil, ErrInvalidPackagePrice
 	}
+	priceCents := pkg.EffectivePriceCents()
+	if priceCents <= 0 {
+		return nil, ErrInvalidPackagePrice
+	}
 
 	currency := s.config.Currency
 	if currency == "" {
@@ -130,7 +134,7 @@ func (s *CheckoutService) CreateCheckoutSession(ctx context.Context, req models.
 			{
 				Name:        pkg.Title,
 				Description: truncateDescription(pkg.Description),
-				AmountCents: pkg.PriceCents,
+				AmountCents: priceCents,
 				Quantity:    1,
 				Currency:    currency,
 			},

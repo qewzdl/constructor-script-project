@@ -37,6 +37,7 @@ type courseCardTemplateData struct {
 	Topics        []courseCardTopic
 	ModalDetails  template.JS
 	Interactive   bool
+	PriceBlock    *courseCardPriceBlock
 }
 
 type courseCardMetaItem struct {
@@ -58,6 +59,13 @@ type courseCardTopic struct {
 type courseCardImage struct {
 	URL string
 	Alt string
+}
+
+type courseCardPriceBlock struct {
+	Current       string
+	CurrentClass  string
+	Original      string
+	OriginalClass string
 }
 
 func formatCourseCardDate(t time.Time, format string) string {

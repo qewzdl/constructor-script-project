@@ -46,6 +46,24 @@
 .courses-list__price {
     font-weight: 600;
     color: var(--color-accent, var(--color-primary));
+    font-size: 1rem;
+}
+
+.courses-list__price-block {
+    display: inline-flex;
+    gap: var(--size-xs);
+}
+
+.courses-list__price--current {
+    color: var(--color-accent, var(--color-primary));
+}
+
+.courses-list__price--original {
+    color: var(--color-secondary);
+    text-decoration: line-through;
+    font-weight: 300;
+    font-size: 0.8rem;
+    height: 100%;
 }
 
 .courses-list__topics {

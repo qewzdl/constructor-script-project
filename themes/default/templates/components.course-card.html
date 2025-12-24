@@ -49,8 +49,22 @@
                 {{- end }}
             </h3>
 
-            {{- if $card.MetaItems }}
+            {{- if or $card.PriceBlock $card.MetaItems }}
             <div class="{{ $card.MetaClass }}" aria-label="Course summary">
+                {{- if $card.PriceBlock }}
+                <div class="courses-list__price-block">
+                    {{- if $card.PriceBlock.Current }}
+                    <span class="{{ default "courses-list__price courses-list__price--current" $card.PriceBlock.CurrentClass }}">
+                        {{ $card.PriceBlock.Current }}
+                    </span>
+                    {{- end }}
+                    {{- if $card.PriceBlock.Original }}
+                    <span class="{{ default "courses-list__price courses-list__price--original" $card.PriceBlock.OriginalClass }}">
+                        {{ $card.PriceBlock.Original }}
+                    </span>
+                    {{- end }}
+                </div>
+                {{- end }}
                 {{- range $card.MetaItems }}
                 <span class="{{ .Class }}">
                     {{- if .Label -}}

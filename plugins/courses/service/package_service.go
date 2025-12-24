@@ -76,6 +76,10 @@ func (s *PackageService) Create(req models.CreateCoursePackageRequest) (*models.
 	if req.PriceCents < 0 {
 		return nil, newValidationError("package price must be zero or positive")
 	}
+	discount, err := normalizeDiscountPrice(req.PriceCents, req.DiscountPriceCents)
+	if err != nil {
+		return nil, err
+	}
 
 	slug := normalizeSlug(req.Slug)
 	if slug == "" {
@@ -91,14 +95,15 @@ func (s *PackageService) Create(req models.CreateCoursePackageRequest) (*models.
 	}
 
 	pkg := models.CoursePackage{
-		Title:           title,
-		Slug:            slug,
-		Summary:         strings.TrimSpace(req.Summary),
-		Description:     strings.TrimSpace(req.Description),
-		MetaTitle:       strings.TrimSpace(req.MetaTitle),
-		MetaDescription: strings.TrimSpace(req.MetaDescription),
-		PriceCents:      req.PriceCents,
-		ImageURL:        strings.TrimSpace(req.ImageURL),
+		Title:              title,
+		Slug:               slug,
+		Summary:            strings.TrimSpace(req.Summary),
+		Description:        strings.TrimSpace(req.Description),
+		MetaTitle:          strings.TrimSpace(req.MetaTitle),
+		MetaDescription:    strings.TrimSpace(req.MetaDescription),
+		PriceCents:         req.PriceCents,
+		DiscountPriceCents: discount,
+		ImageURL:           strings.TrimSpace(req.ImageURL),
 	}
 
 	if err := s.packageRepo.Create(&pkg); err != nil {
@@ -134,6 +139,10 @@ func (s *PackageService) Update(id uint, req models.UpdateCoursePackageRequest) 
 	if req.PriceCents < 0 {
 		return nil, newValidationError("package price must be zero or positive")
 	}
+	discount, err := normalizeDiscountPrice(req.PriceCents, req.DiscountPriceCents)
+	if err != nil {
+		return nil, err
+	}
 
 	slug := normalizeSlug(req.Slug)
 	if slug == "" {
@@ -155,6 +164,7 @@ func (s *PackageService) Update(id uint, req models.UpdateCoursePackageRequest) 
 	pkg.MetaTitle = strings.TrimSpace(req.MetaTitle)
 	pkg.MetaDescription = strings.TrimSpace(req.MetaDescription)
 	pkg.PriceCents = req.PriceCents
+	pkg.DiscountPriceCents = discount
 	pkg.ImageURL = strings.TrimSpace(req.ImageURL)
 
 	if err := s.packageRepo.Update(pkg); err != nil {
@@ -701,6 +711,24 @@ func (s *PackageService) populateTopicSteps(topics map[uint]*models.CourseTopic)
 	}
 
 	return nil
+}
+
+func normalizeDiscountPrice(priceCents int64, discount *int64) (*int64, error) {
+	if discount == nil {
+		return nil, nil
+	}
+	value := *discount
+	if value < 0 {
+		return nil, newValidationError("discount price must be zero or positive")
+	}
+	if priceCents <= 0 {
+		return nil, nil
+	}
+	if value >= priceCents {
+		return nil, newValidationError("discount price must be less than the original price")
+	}
+	normalized := value
+	return &normalized, nil
 }
 
 func uniqueOrdered(values []uint) []uint {

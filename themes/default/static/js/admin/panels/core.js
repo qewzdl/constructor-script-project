@@ -2116,6 +2116,20 @@
                                 </small>
                             </label>
                             <label class="admin-form__label">
+                                Discounted price
+                                <input
+                                    type="number"
+                                    name="discount_price"
+                                    step="0.01"
+                                    min="0"
+                                    class="admin-form__input"
+                                    placeholder="Optional sale price"
+                                />
+                                <small class="admin-card__description admin-form__hint">
+                                    Shown as a sale price with the original crossed out. Leave blank to charge full price.
+                                </small>
+                            </label>
+                            <label class="admin-form__label">
                                 Image URL
                                 <input
                                     type="text"

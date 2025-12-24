@@ -874,7 +874,6 @@ func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.Cour
 	contentClass := fmt.Sprintf("%s__course-content post-card__content", prefix)
 	titleClass := fmt.Sprintf("%s__course-title post-card__title", prefix)
 	linkClass := fmt.Sprintf("%s__course-link post-card__link post-card__link--static", prefix)
-	priceClass := fmt.Sprintf("%s__course-price courses-list__price", prefix)
 	metaClass := fmt.Sprintf("%s__course-meta post-card__meta", prefix)
 	metaItemClass := fmt.Sprintf("%s__course-meta-item courses-list__meta-item", prefix)
 	durationClass := fmt.Sprintf("%s__course-duration courses-list__duration", prefix)
@@ -911,9 +910,18 @@ func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.Cour
 
 		metaItems := make([]courseCardMetaItem, 0, 4)
 
-		priceLabel := formatCoursePrice(pkg.PriceCents)
+		priceLabel, originalPriceLabel := coursePriceLabels(pkg)
+		var priceBlock *courseCardPriceBlock
 		if priceLabel != "" {
-			metaItems = append(metaItems, courseCardMetaItem{Class: priceClass, Label: priceLabel})
+			priceClass := fmt.Sprintf("%s__course-price courses-list__price", prefix)
+			priceBlock = &courseCardPriceBlock{
+				Current:      priceLabel,
+				CurrentClass: strings.TrimSpace(priceClass + " courses-list__price--current"),
+			}
+			if originalPriceLabel != "" {
+				priceBlock.Original = originalPriceLabel
+				priceBlock.OriginalClass = strings.TrimSpace(priceClass + " courses-list__price--original")
+			}
 		}
 
 		topicCount, lessonCount, totalDuration := coursePackageStats(pkg)
@@ -979,6 +987,7 @@ func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.Cour
 			Description:      descriptionHTML,
 			Topics:           topicsData,
 			Interactive:      true,
+			PriceBlock:       priceBlock,
 		}
 
 		if image := strings.TrimSpace(pkg.ImageURL); image != "" {
@@ -990,16 +999,17 @@ func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.Cour
 
 		modalTopics := buildCourseModalTopics(pkg.Topics, h)
 		if detailsJSON := buildCourseModalDetails(courseModalDetailsInput{
-			Package:         pkg,
-			Title:           title,
-			DescriptionHTML: sanitizedDescription,
-			ImageURL:        strings.TrimSpace(pkg.ImageURL),
-			PriceLabel:      priceLabel,
-			TopicLabel:      topicLabel,
-			LessonLabel:     lessonLabel,
-			DurationLabel:   durationLabel,
-			Topics:          modalTopics,
-			CourseID:        courseID,
+			Package:            pkg,
+			Title:              title,
+			DescriptionHTML:    sanitizedDescription,
+			ImageURL:           strings.TrimSpace(pkg.ImageURL),
+			PriceLabel:         priceLabel,
+			OriginalPriceLabel: originalPriceLabel,
+			TopicLabel:         topicLabel,
+			LessonLabel:        lessonLabel,
+			DurationLabel:      durationLabel,
+			Topics:             modalTopics,
+			CourseID:           courseID,
 		}); detailsJSON != "" {
 			card.ModalDetails = template.JS(detailsJSON)
 		}
@@ -1401,27 +1411,29 @@ type courseModalTopic struct {
 }
 
 type courseModalDetails struct {
-	ID              string             `json:"id,omitempty"`
-	Title           string             `json:"title,omitempty"`
-	PriceText       string             `json:"price_text,omitempty"`
-	DescriptionHTML string             `json:"description_html,omitempty"`
-	ImageURL        string             `json:"image_url,omitempty"`
-	ImageAlt        string             `json:"image_alt,omitempty"`
-	Meta            []string           `json:"meta,omitempty"`
-	Topics          []courseModalTopic `json:"topics,omitempty"`
+	ID                string             `json:"id,omitempty"`
+	Title             string             `json:"title,omitempty"`
+	PriceText         string             `json:"price_text,omitempty"`
+	OriginalPriceText string             `json:"original_price_text,omitempty"`
+	DescriptionHTML   string             `json:"description_html,omitempty"`
+	ImageURL          string             `json:"image_url,omitempty"`
+	ImageAlt          string             `json:"image_alt,omitempty"`
+	Meta              []string           `json:"meta,omitempty"`
+	Topics            []courseModalTopic `json:"topics,omitempty"`
 }
 
 type courseModalDetailsInput struct {
-	Package         models.CoursePackage
-	Title           string
-	DescriptionHTML string
-	ImageURL        string
-	PriceLabel      string
-	TopicLabel      string
-	LessonLabel     string
-	DurationLabel   string
-	Topics          []courseModalTopic
-	CourseID        string
+	Package            models.CoursePackage
+	Title              string
+	DescriptionHTML    string
+	ImageURL           string
+	PriceLabel         string
+	OriginalPriceLabel string
+	TopicLabel         string
+	LessonLabel        string
+	DurationLabel      string
+	Topics             []courseModalTopic
+	CourseID           string
 }
 
 func buildCourseModalTopics(topics []models.CourseTopic, h *TemplateHandler) []courseModalTopic {
@@ -1545,15 +1557,17 @@ func buildCourseModalTopics(topics []models.CourseTopic, h *TemplateHandler) []c
 func buildCourseModalDetails(input courseModalDetailsInput) string {
 	title := strings.TrimSpace(input.Title)
 	priceText := strings.TrimSpace(input.PriceLabel)
+	originalPriceText := strings.TrimSpace(input.OriginalPriceLabel)
 	descriptionHTML := strings.TrimSpace(input.DescriptionHTML)
 	imageURL := strings.TrimSpace(input.ImageURL)
 
 	details := courseModalDetails{
-		ID:              input.CourseID,
-		Title:           title,
-		PriceText:       priceText,
-		DescriptionHTML: descriptionHTML,
-		Topics:          input.Topics,
+		ID:                input.CourseID,
+		Title:             title,
+		PriceText:         priceText,
+		OriginalPriceText: originalPriceText,
+		DescriptionHTML:   descriptionHTML,
+		Topics:            input.Topics,
 	}
 
 	if imageURL != "" {
@@ -1605,6 +1619,15 @@ func (h *TemplateHandler) renderPostCard(tmpl *template.Template, post *models.P
 	}
 
 	return buf.String(), nil
+}
+
+func coursePriceLabels(pkg models.CoursePackage) (string, string) {
+	current := formatCoursePrice(pkg.EffectivePriceCents())
+	original := ""
+	if pkg.HasDiscountPrice() {
+		original = formatCoursePrice(pkg.PriceCents)
+	}
+	return current, original
 }
 
 func formatCoursePrice(priceCents int64) string {

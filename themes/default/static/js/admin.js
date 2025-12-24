@@ -493,6 +493,7 @@
         const coursePackageMetaTitleInput = coursePackageForm?.querySelector('input[name="meta_title"]');
         const coursePackageMetaDescriptionInput = coursePackageForm?.querySelector('textarea[name="meta_description"]');
         const coursePackagePriceInput = coursePackageForm?.querySelector('input[name="price"]');
+        const coursePackageDiscountInput = coursePackageForm?.querySelector('input[name="discount_price"]');
         const coursePackageImageInput = coursePackageForm?.querySelector('input[name="image_url"]');
         const coursePackageTopicSelect = coursePackageForm?.querySelector('[data-role="course-package-topic-select"]');
         const coursePackageTopicAddButton = coursePackageForm?.querySelector('[data-role="course-package-topic-add"]');
@@ -3899,6 +3900,35 @@
             return Math.round(amount * 100);
         };
 
+        const getPackagePriceCents = (pkg) =>
+            pkg?.price_cents ?? pkg?.priceCents ?? pkg?.PriceCents;
+
+        const getPackageDiscountCents = (pkg) =>
+            pkg?.discount_price_cents ??
+            pkg?.discountPriceCents ??
+            pkg?.DiscountPriceCents;
+
+        const formatPackagePriceLabel = (pkg) => {
+            const basePrice = getPackagePriceCents(pkg);
+            const discountPrice = getPackageDiscountCents(pkg);
+            const baseValue = Number(basePrice);
+            const discountValue = Number(discountPrice);
+            const hasDiscount =
+                discountPrice !== undefined &&
+                discountPrice !== null &&
+                Number.isFinite(baseValue) &&
+                Number.isFinite(discountValue) &&
+                discountValue >= 0 &&
+                baseValue > 0 &&
+                discountValue < baseValue;
+
+            const formattedBase = formatPriceAmount(basePrice);
+            if (hasDiscount) {
+                return `${formatPriceAmount(discountPrice)} (was ${formattedBase})`;
+            }
+            return formattedBase;
+        };
+
         const slugifyPreferredName = (value) => {
             const normalised = normaliseString(value).toLowerCase();
             if (!normalised) {
@@ -4238,9 +4268,7 @@
                 );
                 row.appendChild(
                     createElement('td', {
-                        textContent: formatPriceAmount(
-                            pkg?.price_cents ?? pkg?.priceCents ?? pkg?.PriceCents
-                        ),
+                        textContent: formatPackagePriceLabel(pkg),
                     })
                 );
                 const topics = getCoursePackageTopics(pkg);
@@ -7054,7 +7082,12 @@
             }
             if (coursePackagePriceInput) {
                 coursePackagePriceInput.value = formatPriceInputValue(
-                    pkg?.price_cents ?? pkg?.priceCents ?? pkg?.PriceCents
+                    getPackagePriceCents(pkg)
+                );
+            }
+            if (coursePackageDiscountInput) {
+                coursePackageDiscountInput.value = formatPriceInputValue(
+                    getPackageDiscountCents(pkg)
                 );
             }
             if (coursePackageImageInput) {
@@ -7718,6 +7751,20 @@
                 showAlert('Enter a valid package price (e.g. 99.90).', 'error');
                 return;
             }
+            const discountValue = coursePackageDiscountInput?.value || '';
+            const discountPriceCents = parsePriceInputValue(discountValue);
+            if (discountValue && discountPriceCents === null) {
+                showAlert('Enter a valid discounted price (e.g. 79.90) or leave it blank.', 'error');
+                return;
+            }
+            if (
+                discountPriceCents !== null &&
+                priceCents > 0 &&
+                discountPriceCents >= priceCents
+            ) {
+                showAlert('Discounted price must be lower than the original price.', 'error');
+                return;
+            }
             if (!endpoints.coursesPackages) {
                 showAlert('Package management is not configured.', 'error');
                 return;
@@ -7746,6 +7793,7 @@
                                 meta_title: metaTitle,
                                 meta_description: metaDescription,
                                 price_cents: priceCents,
+                                discount_price_cents: discountPriceCents,
                                 image_url: imageUrl,
                             }),
                         }
@@ -7775,6 +7823,7 @@
                             meta_title: metaTitle,
                             meta_description: metaDescription,
                             price_cents: priceCents,
+                            discount_price_cents: discountPriceCents,
                             image_url: imageUrl,
                             topic_ids: topicIds,
                         }),
