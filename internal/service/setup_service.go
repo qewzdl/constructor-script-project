@@ -1119,6 +1119,7 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	addr := fmt.Sprintf("%s:%s", host, port)
 
 	var resolvedIPs []string
+	var lookupErr error
 	if ips, err := net.LookupIP(host); err == nil {
 		for i, ip := range ips {
 			if i >= 3 {
@@ -1126,22 +1127,17 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 			}
 			resolvedIPs = append(resolvedIPs, ip.String())
 		}
+	} else {
+		lookupErr = err
+		logger.Warn("SMTP test DNS lookup failed", map[string]interface{}{
+			"smtp_host": host,
+			"error":     err.Error(),
+		})
 	}
 
 	to := contactEmail
 	if to == "" {
 		to = from
-	}
-
-	logFields := map[string]interface{}{
-		"host":           host,
-		"port":           port,
-		"from":           from,
-		"to":             to,
-		"contact_email":  contactEmail,
-		"username":       resolvedUsername,
-		"resolved_ips":   strings.Join(resolvedIPs, ","),
-		"auth_mechanism": "PLAIN",
 	}
 
 	var builder strings.Builder
@@ -1154,9 +1150,28 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	builder.WriteString("This email confirms that your SMTP credentials are valid.\r\n")
 	builder.WriteString("If you did not request this test, you can ignore this message.")
 
+	messageBytes := []byte(builder.String())
+	messageSize := len(messageBytes)
+
+	logFields := map[string]interface{}{
+		"host":           host,
+		"port":           port,
+		"from":           from,
+		"to":             to,
+		"contact_email":  contactEmail,
+		"username":       resolvedUsername,
+		"resolved_ips":   strings.Join(resolvedIPs, ","),
+		"auth_mechanism": "PLAIN",
+		"smtp_address":   addr,
+		"message_bytes":  messageSize,
+	}
+	if lookupErr != nil {
+		logFields["lookup_error"] = lookupErr.Error()
+	}
+
 	start := time.Now()
 	logger.Info("Starting SMTP test", logFields)
-	err := smtp.SendMail(addr, auth, from, []string{to}, []byte(builder.String()))
+	err := smtp.SendMail(addr, auth, from, []string{to}, messageBytes)
 	duration := time.Since(start)
 
 	result := &SMTPTestResult{

@@ -42,17 +42,45 @@ func (s *EmailService) Enabled() bool {
 }
 
 func (s *EmailService) Send(to, subject, body string) error {
-	if s == nil || !s.Enabled() {
+	if s == nil {
 		return errors.New("email service is disabled or not configured")
 	}
 
 	cfg := s.resolveConfig()
+	if s.config != nil && !s.config.EnableEmail {
+		logger.Warn("Email service disabled by config flag", map[string]interface{}{
+			"enable_email":      s.config.EnableEmail,
+			"smtp_host_set":     strings.TrimSpace(cfg.Host) != "",
+			"smtp_port_set":     strings.TrimSpace(cfg.Port) != "",
+			"smtp_username_set": strings.TrimSpace(cfg.Username) != "",
+			"smtp_password_set": strings.TrimSpace(cfg.Password) != "",
+			"smtp_from_set":     strings.TrimSpace(cfg.From) != "",
+			"to":                strings.TrimSpace(to),
+			"subject":           subject,
+		})
+		return errors.New("email service is disabled or not configured")
+	}
+
+	if strings.TrimSpace(cfg.Host) == "" || strings.TrimSpace(cfg.Username) == "" || strings.TrimSpace(cfg.Password) == "" {
+		logger.Warn("Email service disabled: missing SMTP configuration", map[string]interface{}{
+			"smtp_host_set":     strings.TrimSpace(cfg.Host) != "",
+			"smtp_port_set":     strings.TrimSpace(cfg.Port) != "",
+			"smtp_username_set": strings.TrimSpace(cfg.Username) != "",
+			"smtp_password_set": strings.TrimSpace(cfg.Password) != "",
+			"smtp_from_set":     strings.TrimSpace(cfg.From) != "",
+			"to":                strings.TrimSpace(to),
+			"subject":           subject,
+		})
+		return errors.New("email service is disabled or not configured")
+	}
+
 	start := time.Now()
 
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
 	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
 
 	var resolvedIPs []string
+	var dnsLookupErr error
 	if ips, err := net.LookupIP(cfg.Host); err == nil {
 		for i, ip := range ips {
 			if i >= 3 {
@@ -61,7 +89,12 @@ func (s *EmailService) Send(to, subject, body string) error {
 			resolvedIPs = append(resolvedIPs, ip.String())
 		}
 	} else {
+		dnsLookupErr = err
 		resolvedIPs = []string{fmt.Sprintf("lookup_error:%s", err.Error())}
+		logger.Warn("SMTP DNS lookup failed", map[string]interface{}{
+			"smtp_host": cfg.Host,
+			"error":     err.Error(),
+		})
 	}
 
 	var builder strings.Builder
@@ -83,32 +116,48 @@ func (s *EmailService) Send(to, subject, body string) error {
 	builder.WriteString("\r\n")
 	builder.WriteString(body)
 
+	dialTimeout := 12 * time.Second
+	messageBytes := []byte(builder.String())
+	messageSize := len(messageBytes)
 	startFields := map[string]interface{}{
 		"smtp_host":         cfg.Host,
 		"smtp_port":         cfg.Port,
 		"smtp_from":         cfg.From,
 		"smtp_username_set": cfg.Username != "",
+		"smtp_password_set": cfg.Password != "",
 		"smtp_resolved_ips": strings.Join(resolvedIPs, ","),
+		"smtp_lookup_error": "",
+		"smtp_address":      addr,
 		"to":                strings.TrimSpace(to),
 		"subject":           subject,
+		"message_bytes":     messageSize,
+		"auth_mechanism":    "PLAIN",
+		"dial_timeout_ms":   dialTimeout.Milliseconds(),
+	}
+	if dnsLookupErr != nil {
+		startFields["smtp_lookup_error"] = dnsLookupErr.Error()
 	}
 	logger.Info("Starting SMTP send", startFields)
 
-	dialTimeout := 12 * time.Second
 	dialer := net.Dialer{Timeout: dialTimeout}
 	dialStart := time.Now()
 	conn, dialErr := dialer.Dial("tcp", addr)
 	dialDuration := time.Since(dialStart)
 	if dialErr != nil {
-		logger.Error(dialErr, "SMTP dial failed", map[string]interface{}{
-			"smtp_host":          cfg.Host,
-			"smtp_port":          cfg.Port,
-			"smtp_resolved_ips":  strings.Join(resolvedIPs, ","),
-			"dial_timeout_ms":    dialTimeout.Milliseconds(),
-			"dial_duration_ms":   dialDuration.Milliseconds(),
-			"to":                 strings.TrimSpace(to),
-			"subject":            subject,
-		})
+		fields := map[string]interface{}{
+			"smtp_host":         cfg.Host,
+			"smtp_port":         cfg.Port,
+			"smtp_resolved_ips": strings.Join(resolvedIPs, ","),
+			"smtp_lookup_error": startFields["smtp_lookup_error"],
+			"dial_timeout_ms":   dialTimeout.Milliseconds(),
+			"dial_duration_ms":  dialDuration.Milliseconds(),
+			"to":                strings.TrimSpace(to),
+			"subject":           subject,
+			"message_bytes":     messageSize,
+			"smtp_address":      addr,
+			"auth_mechanism":    "PLAIN",
+		}
+		logger.Error(dialErr, "SMTP dial failed", fields)
 		return fmt.Errorf("failed to dial SMTP server: %w", dialErr)
 	}
 	_ = conn.Close()
@@ -116,21 +165,33 @@ func (s *EmailService) Send(to, subject, body string) error {
 		"smtp_host":         cfg.Host,
 		"smtp_port":         cfg.Port,
 		"smtp_resolved_ips": strings.Join(resolvedIPs, ","),
+		"smtp_lookup_error": startFields["smtp_lookup_error"],
+		"dial_timeout_ms":   dialTimeout.Milliseconds(),
 		"dial_duration_ms":  dialDuration.Milliseconds(),
+		"message_bytes":     messageSize,
+		"smtp_address":      addr,
+		"auth_mechanism":    "PLAIN",
 	})
 
-	err := smtp.SendMail(addr, auth, cfg.From, []string{to}, []byte(builder.String()))
+	err := smtp.SendMail(addr, auth, cfg.From, []string{to}, messageBytes)
 	duration := time.Since(start)
 
 	fields := map[string]interface{}{
-		"smtp_host":          cfg.Host,
-		"smtp_port":          cfg.Port,
-		"smtp_from":          cfg.From,
-		"smtp_username_set":  cfg.Username != "",
-		"smtp_resolved_ips":  strings.Join(resolvedIPs, ","),
-		"duration_ms":        duration.Milliseconds(),
-		"to":                 strings.TrimSpace(to),
-		"subject":            subject,
+		"smtp_host":         cfg.Host,
+		"smtp_port":         cfg.Port,
+		"smtp_from":         cfg.From,
+		"smtp_username_set": cfg.Username != "",
+		"smtp_password_set": cfg.Password != "",
+		"smtp_resolved_ips": strings.Join(resolvedIPs, ","),
+		"smtp_lookup_error": startFields["smtp_lookup_error"],
+		"smtp_address":      addr,
+		"duration_ms":       duration.Milliseconds(),
+		"dial_timeout_ms":   dialTimeout.Milliseconds(),
+		"dial_duration_ms":  dialDuration.Milliseconds(),
+		"to":                strings.TrimSpace(to),
+		"subject":           subject,
+		"message_bytes":     messageSize,
+		"auth_mechanism":    "PLAIN",
 	}
 
 	if err != nil {
