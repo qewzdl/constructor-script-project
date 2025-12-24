@@ -8695,6 +8695,14 @@
 
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const EMAIL_PASSWORD_MASK = '********';
+        const buildPasswordMask = (isSet, length) => {
+            if (!isSet) {
+                return '';
+            }
+            const maskLength =
+                Number.isFinite(length) && length > 0 ? length : EMAIL_PASSWORD_MASK.length;
+            return '*'.repeat(maskLength);
+        };
 
         const getPaymentsFieldValue = (name) => {
             const field = paymentsForm?.querySelector(`[name="${name}"]`);
@@ -8789,9 +8797,11 @@
 
             const passwordField = emailSettingsForm.querySelector('input[name="password"]');
             if (passwordField) {
-                const maskedPassword = emailSettings?.password_set ? EMAIL_PASSWORD_MASK : '';
+                const passwordLength = Number.parseInt(emailSettings?.password_length, 10);
+                const hasPassword = Boolean(emailSettings?.password_set);
+                const maskedPassword = buildPasswordMask(hasPassword, passwordLength);
                 passwordField.value = maskedPassword;
-                passwordField.dataset.mask = EMAIL_PASSWORD_MASK;
+                passwordField.dataset.mask = maskedPassword || EMAIL_PASSWORD_MASK;
             }
 
             if (emailPasswordHint) {

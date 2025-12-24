@@ -957,7 +957,9 @@ func (s *SetupService) GetEmailSettings(defaults models.EmailSettings) (models.E
 	result.From = s.currentSettingValue(settingKeySMTPFrom, defaults.From)
 	result.ContactEmail = s.currentSettingValue(settingKeySiteContactEmail, defaults.ContactEmail)
 	password := s.currentSettingValue(settingKeySMTPPassword, defaults.Password)
-	result.PasswordSet = strings.TrimSpace(password) != ""
+	trimmedPassword := strings.TrimSpace(password)
+	result.PasswordSet = trimmedPassword != ""
+	result.PasswordLength = len(trimmedPassword)
 	result.EnableEmail = defaults.EnableEmail
 	return result, nil
 }
@@ -1002,9 +1004,7 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 	}
 
 	resolvedPassword, updatePassword := normalizeCredentialInput(req.Password, currentPassword)
-	if strings.TrimSpace(resolvedPassword) == "" {
-		return &ValidationError{Field: "password", Message: "is required"}
-	}
+	passwordSet := strings.TrimSpace(resolvedPassword) != ""
 
 	logger.Info("Updating SMTP settings", map[string]interface{}{
 		"host":                     host,
@@ -1013,6 +1013,7 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 		"contact_email":            contactEmail,
 		"username_set":             strings.TrimSpace(resolvedUsername) != "",
 		"password_provided":        strings.TrimSpace(req.Password) != "",
+		"password_set":             passwordSet,
 		"update_username":          updateUsername,
 		"update_password":          updatePassword,
 		"current_host":             currentHost,
@@ -1050,15 +1051,16 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 
 	storedPassword := s.currentSettingValue(settingKeySMTPPassword, defaults.Password)
 	logger.Info("SMTP settings persisted", map[string]interface{}{
-		"host":            s.currentSettingValue(settingKeySMTPHost, ""),
-		"port":            s.currentSettingValue(settingKeySMTPPort, ""),
-		"from":            s.currentSettingValue(settingKeySMTPFrom, ""),
-		"username_set":    strings.TrimSpace(s.currentSettingValue(settingKeySMTPUsername, "")) != "",
-		"contact_email":   s.currentSettingValue(settingKeySiteContactEmail, ""),
-		"password_set":    strings.TrimSpace(storedPassword) != "",
-		"password_length": len(storedPassword),
-		"update_username": updateUsername,
-		"update_password": updatePassword,
+		"host":              s.currentSettingValue(settingKeySMTPHost, ""),
+		"port":              s.currentSettingValue(settingKeySMTPPort, ""),
+		"from":              s.currentSettingValue(settingKeySMTPFrom, ""),
+		"username_set":      strings.TrimSpace(s.currentSettingValue(settingKeySMTPUsername, "")) != "",
+		"contact_email":     s.currentSettingValue(settingKeySiteContactEmail, ""),
+		"password_set":      strings.TrimSpace(storedPassword) != "",
+		"password_length":   len(storedPassword),
+		"password_provided": strings.TrimSpace(req.Password) != "",
+		"update_username":   updateUsername,
+		"update_password":   updatePassword,
 	})
 
 	return nil

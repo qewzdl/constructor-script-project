@@ -980,14 +980,15 @@ type UpdateSiteSettingsRequest struct {
 }
 
 type EmailSettings struct {
-	Host         string `json:"host"`
-	Port         string `json:"port"`
-	Username     string `json:"username"`
-	From         string `json:"from"`
-	ContactEmail string `json:"contact_email"`
-	Password     string `json:"-"` // internal fallback for config-provided password
-	PasswordSet  bool   `json:"password_set"`
-	EnableEmail  bool   `json:"enable_email"`
+	Host           string `json:"host"`
+	Port           string `json:"port"`
+	Username       string `json:"username"`
+	From           string `json:"from"`
+	ContactEmail   string `json:"contact_email"`
+	Password       string `json:"-"` // internal fallback for config-provided password
+	PasswordSet    bool   `json:"password_set"`
+	PasswordLength int    `json:"password_length,omitempty"`
+	EnableEmail    bool   `json:"enable_email"`
 }
 
 type UpdateEmailSettingsRequest struct {

@@ -303,16 +303,18 @@ func (h *SetupHandler) defaultEmailSettings() models.EmailSettings {
 	password := strings.TrimSpace(h.config.SMTPPassword)
 	from := strings.TrimSpace(h.config.SMTPFrom)
 	contact := from
+	passwordLength := len(password)
 
 	return models.EmailSettings{
-		Host:         strings.TrimSpace(h.config.SMTPHost),
-		Port:         port,
-		Username:     strings.TrimSpace(h.config.SMTPUsername),
-		Password:     password,
-		From:         from,
-		ContactEmail: contact,
-		PasswordSet:  password != "",
-		EnableEmail:  true,
+		Host:           strings.TrimSpace(h.config.SMTPHost),
+		Port:           port,
+		Username:       strings.TrimSpace(h.config.SMTPUsername),
+		Password:       password,
+		From:           from,
+		ContactEmail:   contact,
+		PasswordSet:    password != "",
+		PasswordLength: passwordLength,
+		EnableEmail:    true,
 	}
 }
 
