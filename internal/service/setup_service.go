@@ -1004,7 +1004,10 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 	}
 
 	resolvedPassword, updatePassword := normalizeCredentialInput(req.Password, currentPassword)
-	passwordSet := strings.TrimSpace(resolvedPassword) != ""
+	trimmedPassword := strings.TrimSpace(resolvedPassword)
+	passwordSet := trimmedPassword != ""
+	usernameLength := len(strings.TrimSpace(resolvedUsername))
+	passwordLength := len(trimmedPassword)
 
 	logger.Info("Updating SMTP settings", map[string]interface{}{
 		"host":                     host,
@@ -1012,8 +1015,10 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 		"from":                     from,
 		"contact_email":            contactEmail,
 		"username_set":             strings.TrimSpace(resolvedUsername) != "",
+		"username_length":          usernameLength,
 		"password_provided":        strings.TrimSpace(req.Password) != "",
 		"password_set":             passwordSet,
+		"password_length":          passwordLength,
 		"update_username":          updateUsername,
 		"update_password":          updatePassword,
 		"current_host":             currentHost,
@@ -1050,14 +1055,15 @@ func (s *SetupService) UpdateEmailSettings(req models.UpdateEmailSettingsRequest
 	}
 
 	storedPassword := s.currentSettingValue(settingKeySMTPPassword, defaults.Password)
+	trimmedStored := strings.TrimSpace(storedPassword)
 	logger.Info("SMTP settings persisted", map[string]interface{}{
 		"host":              s.currentSettingValue(settingKeySMTPHost, ""),
 		"port":              s.currentSettingValue(settingKeySMTPPort, ""),
 		"from":              s.currentSettingValue(settingKeySMTPFrom, ""),
 		"username_set":      strings.TrimSpace(s.currentSettingValue(settingKeySMTPUsername, "")) != "",
 		"contact_email":     s.currentSettingValue(settingKeySiteContactEmail, ""),
-		"password_set":      strings.TrimSpace(storedPassword) != "",
-		"password_length":   len(storedPassword),
+		"password_set":      trimmedStored != "",
+		"password_length":   len(trimmedStored),
 		"password_provided": strings.TrimSpace(req.Password) != "",
 		"update_username":   updateUsername,
 		"update_password":   updatePassword,
@@ -1108,12 +1114,14 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	}
 
 	resolvedUsername, _ := normalizeCredentialInput(req.Username, currentUsername)
-	if strings.TrimSpace(resolvedUsername) == "" {
+	trimmedUsername := strings.TrimSpace(resolvedUsername)
+	if trimmedUsername == "" {
 		return nil, &ValidationError{Field: "username", Message: "is required"}
 	}
 
 	resolvedPassword, _ := normalizeCredentialInput(req.Password, currentPassword)
-	if strings.TrimSpace(resolvedPassword) == "" {
+	trimmedPassword := strings.TrimSpace(resolvedPassword)
+	if trimmedPassword == "" {
 		return nil, &ValidationError{Field: "password", Message: "is required"}
 	}
 
@@ -1156,16 +1164,21 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	messageSize := len(messageBytes)
 
 	logFields := map[string]interface{}{
-		"host":           host,
-		"port":           port,
-		"from":           from,
-		"to":             to,
-		"contact_email":  contactEmail,
-		"username":       resolvedUsername,
-		"resolved_ips":   strings.Join(resolvedIPs, ","),
-		"auth_mechanism": "PLAIN",
-		"smtp_address":   addr,
-		"message_bytes":  messageSize,
+		"host":                  host,
+		"port":                  port,
+		"from":                  from,
+		"to":                    to,
+		"contact_email":         contactEmail,
+		"contact_email_default": contactEmail == "",
+		"from_matches_username": strings.EqualFold(from, trimmedUsername),
+		"username":              resolvedUsername,
+		"username_length":       len(trimmedUsername),
+		"password_set":          trimmedPassword != "",
+		"password_length":       len(trimmedPassword),
+		"resolved_ips":          strings.Join(resolvedIPs, ","),
+		"auth_mechanism":        "PLAIN",
+		"smtp_address":          addr,
+		"message_bytes":         messageSize,
 	}
 	if lookupErr != nil {
 		logFields["lookup_error"] = lookupErr.Error()
@@ -1173,6 +1186,23 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 
 	start := time.Now()
 	logger.Info("Starting SMTP test", logFields)
+	dialer := net.Dialer{Timeout: 12 * time.Second}
+	dialStart := time.Now()
+	conn, dialErr := dialer.Dial("tcp", addr)
+	dialDuration := time.Since(dialStart)
+	if conn != nil {
+		_ = conn.Close()
+	}
+	if dialErr != nil {
+		logFields["dial_error"] = dialErr.Error()
+		logFields["dial_timeout_ms"] = dialer.Timeout.Milliseconds()
+		logFields["dial_duration_ms"] = dialDuration.Milliseconds()
+		logger.Error(dialErr, "SMTP test dial failed", logFields)
+		return nil, fmt.Errorf("failed to dial SMTP server: %w", dialErr)
+	}
+	logFields["dial_duration_ms"] = dialDuration.Milliseconds()
+	logFields["dial_timeout_ms"] = dialer.Timeout.Milliseconds()
+
 	err := smtp.SendMail(addr, auth, from, []string{to}, messageBytes)
 	duration := time.Since(start)
 
