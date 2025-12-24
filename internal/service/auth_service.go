@@ -27,6 +27,7 @@ type AuthService struct {
 	emailService *EmailService
 	jwtSecret    string
 	config       *config.Config
+	settingRepo  repository.SettingRepository
 }
 
 var (
@@ -55,13 +56,21 @@ func IsValidationError(err error) bool {
 	return errors.As(err, &vErr)
 }
 
-func NewAuthService(userRepo repository.UserRepository, resetRepo repository.PasswordResetTokenRepository, emailService *EmailService, jwtSecret string, cfg *config.Config) *AuthService {
+func NewAuthService(
+	userRepo repository.UserRepository,
+	resetRepo repository.PasswordResetTokenRepository,
+	emailService *EmailService,
+	settingRepo repository.SettingRepository,
+	jwtSecret string,
+	cfg *config.Config,
+) *AuthService {
 	return &AuthService{
 		userRepo:     userRepo,
 		resetRepo:    resetRepo,
 		emailService: emailService,
 		jwtSecret:    jwtSecret,
 		config:       cfg,
+		settingRepo:  settingRepo,
 	}
 }
 
@@ -288,6 +297,7 @@ func (s *AuthService) RequestPasswordReset(email string) error {
 	}
 
 	cfg := s.emailService.resolveConfig()
+	siteName, baseURL := s.resolveSiteMeta()
 	logger.Info("Password reset email dispatch starting", map[string]interface{}{
 		"email":             normalized,
 		"enable_email":      s.config != nil && s.config.EnableEmail,
@@ -296,12 +306,8 @@ func (s *AuthService) RequestPasswordReset(email string) error {
 		"smtp_from":         cfg.From,
 		"smtp_username_set": cfg.Username != "",
 		"reset_repo_ready":  s.resetRepo != nil,
-		"site_url": func() string {
-			if s.config == nil {
-				return ""
-			}
-			return strings.TrimSpace(s.config.SiteURL)
-		}(),
+		"site_url_resolved": baseURL,
+		"site_name":         siteName,
 	})
 
 	user, err := s.userRepo.GetByEmail(normalized)
@@ -335,12 +341,7 @@ func (s *AuthService) RequestPasswordReset(email string) error {
 		return fmt.Errorf("failed to store reset token: %w", err)
 	}
 
-	siteName := "your account"
-	if s.config != nil && strings.TrimSpace(s.config.SiteName) != "" {
-		siteName = strings.TrimSpace(s.config.SiteName)
-	}
-
-	resetURL := s.buildResetURL(token)
+	resetURL := s.buildResetURL(baseURL, token)
 	subject := fmt.Sprintf("Reset your %s password", siteName)
 	body := fmt.Sprintf(
 		"We received a request to reset your password for %s.\n\nUse the link below to set a new password. The link will expire in %d minutes.\n\n%s\n\nIf you did not request this, you can ignore this email.",
@@ -410,17 +411,51 @@ func (s *AuthService) ResetPassword(token, newPassword string) error {
 	return nil
 }
 
-func (s *AuthService) buildResetURL(token string) string {
-	baseURL := ""
+func (s *AuthService) buildResetURL(baseURL, token string) string {
+	return fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)
+}
+
+func (s *AuthService) resolveSiteMeta() (siteName, baseURL string) {
+	siteName = "your account"
+	baseURL = ""
+
 	if s.config != nil {
+		if trimmedName := strings.TrimSpace(s.config.SiteName); trimmedName != "" {
+			siteName = trimmedName
+		}
 		baseURL = strings.TrimRight(strings.TrimSpace(s.config.SiteURL), "/")
 	}
 
-	if baseURL == "" {
+	if s.settingRepo != nil {
+		if setting, err := s.settingRepo.Get(settingKeySiteName); err == nil {
+			if value := strings.TrimSpace(setting.Value); value != "" {
+				siteName = value
+			}
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Warn("Failed to read site name from settings", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		if setting, err := s.settingRepo.Get(settingKeySiteURL); err == nil {
+			if value := strings.TrimRight(strings.TrimSpace(setting.Value), "/"); value != "" {
+				baseURL = value
+			}
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			logger.Warn("Failed to read site URL from settings", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+	}
+
+	if strings.TrimSpace(siteName) == "" {
+		siteName = "your account"
+	}
+	if strings.TrimSpace(baseURL) == "" {
 		baseURL = "http://localhost:8081"
 	}
 
-	return fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)
+	return siteName, baseURL
 }
 
 func (s *AuthService) cleanupExpiredTokens() {

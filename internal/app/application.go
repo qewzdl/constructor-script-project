@@ -1003,7 +1003,14 @@ func (a *Application) initServices() {
 	backupService := service.NewBackupService(a.db, a.repositories.Setting, backupOptions)
 	emailService := service.NewEmailService(a.cfg, a.repositories.Setting)
 
-	authService := service.NewAuthService(a.repositories.User, a.repositories.PasswordResetToken, emailService, a.cfg.JWTSecret, a.cfg)
+	authService := service.NewAuthService(
+		a.repositories.User,
+		a.repositories.PasswordResetToken,
+		emailService,
+		a.repositories.Setting,
+		a.cfg.JWTSecret,
+		a.cfg,
+	)
 	pageService := service.NewPageService(a.repositories.Page, a.cache, a.themeManager)
 	homepageService := service.NewHomepageService(a.repositories.Setting, a.repositories.Page)
 	socialLinkService := service.NewSocialLinkService(a.repositories.SocialLink)
