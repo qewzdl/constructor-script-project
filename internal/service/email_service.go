@@ -1,6 +1,7 @@
 package service
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -120,6 +121,8 @@ func (s *EmailService) Send(to, subject, body string) error {
 	overallTimeout := 20 * time.Second
 	messageBytes := []byte(builder.String())
 	messageSize := len(messageBytes)
+	startTLSSupported := false
+	startTLSEnabled := false
 
 	startFields := map[string]interface{}{
 		"smtp_host":             cfg.Host,
@@ -189,15 +192,32 @@ func (s *EmailService) Send(to, subject, body string) error {
 	}
 	defer client.Close()
 
+	tlsConfig := &tls.Config{ServerName: cfg.Host}
+	if ok, _ := client.Extension("STARTTLS"); ok {
+		startTLSSupported = true
+		if startTLSErr := client.StartTLS(tlsConfig); startTLSErr != nil {
+			logger.Error(startTLSErr, "SMTP STARTTLS failed", map[string]interface{}{
+				"smtp_host":        cfg.Host,
+				"smtp_port":        cfg.Port,
+				"smtp_address":     addr,
+				"dial_duration_ms": dialDuration.Milliseconds(),
+			})
+			return fmt.Errorf("failed to start TLS for SMTP: %w", startTLSErr)
+		}
+		startTLSEnabled = true
+	}
+
 	if auth != nil {
 		if authErr := client.Auth(auth); authErr != nil {
 			fields := map[string]interface{}{
-				"smtp_host":         cfg.Host,
-				"smtp_port":         cfg.Port,
-				"smtp_username_set": cfg.Username != "",
-				"dial_duration_ms":  dialDuration.Milliseconds(),
-				"smtp_address":      addr,
-				"auth_mechanism":    "PLAIN",
+				"smtp_host":          cfg.Host,
+				"smtp_port":          cfg.Port,
+				"smtp_username_set":  cfg.Username != "",
+				"dial_duration_ms":   dialDuration.Milliseconds(),
+				"smtp_address":       addr,
+				"auth_mechanism":     "PLAIN",
+				"starttls_enabled":   startTLSEnabled,
+				"starttls_supported": startTLSSupported,
 			}
 			logger.Error(authErr, "SMTP authentication failed", fields)
 			return fmt.Errorf("smtp authentication failed: %w", authErr)
@@ -290,6 +310,8 @@ func (s *EmailService) Send(to, subject, body string) error {
 		"message_bytes":         messageSize,
 		"auth_mechanism":        "PLAIN",
 		"from_matches_username": strings.EqualFold(strings.TrimSpace(cfg.From), strings.TrimSpace(cfg.Username)),
+		"starttls_supported":    startTLSSupported,
+		"starttls_enabled":      startTLSEnabled,
 	}
 
 	logger.Info("Email sent via SMTP", fields)
