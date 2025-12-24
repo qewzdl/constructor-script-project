@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/smtp"
+	"net/textproto"
 	"strings"
 	"time"
 
@@ -76,7 +77,7 @@ func (s *EmailService) Send(to, subject, body string) error {
 
 	start := time.Now()
 
-	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
+	addr := net.JoinHostPort(cfg.Host, cfg.Port)
 	auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
 
 	var resolvedIPs []string
@@ -212,12 +213,12 @@ func (s *EmailService) Send(to, subject, body string) error {
 	}
 
 	if err != nil {
-		var smtpErr *smtp.SMTPError
+		var smtpErr *textproto.Error
 		if errors.As(err, &smtpErr) {
 			fields["smtp_error_code"] = smtpErr.Code
-			fields["smtp_error_command"] = smtpErr.Command
 			fields["smtp_error_msg"] = smtpErr.Msg
 		}
+		fields["smtp_error_raw"] = err.Error()
 		logger.Error(err, "Failed to send email via SMTP", fields)
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/smtp"
+	"net/textproto"
 	"net/url"
 	"os"
 	"regexp"
@@ -1126,7 +1127,7 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	}
 
 	auth := smtp.PlainAuth("", resolvedUsername, resolvedPassword, host)
-	addr := fmt.Sprintf("%s:%s", host, port)
+	addr := net.JoinHostPort(host, port)
 
 	var resolvedIPs []string
 	var lookupErr error
@@ -1244,12 +1245,12 @@ func (s *SetupService) TestEmailSettings(req models.UpdateEmailSettingsRequest, 
 	}
 
 	if err != nil {
-		var smtpErr *smtp.SMTPError
+		var smtpErr *textproto.Error
 		if errors.As(err, &smtpErr) {
 			logFields["smtp_error_code"] = smtpErr.Code
-			logFields["smtp_error_command"] = smtpErr.Command
 			logFields["smtp_error_msg"] = smtpErr.Msg
 		}
+		logFields["smtp_error_raw"] = err.Error()
 		logFields["duration_ms"] = result.DurationMs
 		logFields["username_set"] = result.UsernameSet
 		logger.Error(err, "SMTP test failed", logFields)
