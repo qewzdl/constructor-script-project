@@ -245,9 +245,13 @@ func renderContact(ctx RenderContext, prefix string, elem models.SectionElement)
 		mailtoAttr = ` data-contact-mailto="` + template.HTMLEscapeString(mailtoTarget) + `"`
 	}
 	subjectAttr := ` data-contact-subject="` + template.HTMLEscapeString(formSubject) + `"`
+	enctypeAttr := ""
+	if mailtoTarget != "" && actionAttr == "" {
+		enctypeAttr = ` enctype="text/plain"`
+	}
 
 	var formBuilder strings.Builder
-	formBuilder.WriteString(`<form class="` + formClass + `" method="post"` + actionAttr + mailtoAttr + subjectAttr + ` enctype="text/plain" data-contact-form>`)
+	formBuilder.WriteString(`<form class="` + formClass + `" method="post"` + actionAttr + mailtoAttr + subjectAttr + enctypeAttr + ` data-contact-form>`)
 	formBuilder.WriteString(`<div class="` + formHeaderClass + `">`)
 	formBuilder.WriteString(`<span class="` + pillClass + `">Contact form</span>`)
 	formBuilder.WriteString(`<h3 class="` + formTitleClass + `">` + template.HTMLEscapeString(formTitle) + `</h3>`)
