@@ -352,6 +352,272 @@
             courseTests: root.querySelector('#admin-course-tests-table'),
             coursePackages: root.querySelector('#admin-course-packages-table'),
         };
+        const PAGINATED_TABLE_KEYS = [
+            'posts',
+            'pages',
+            'categories',
+            'users',
+            'courseVideos',
+            'courseContents',
+            'courseTopics',
+            'courseTests',
+            'coursePackages',
+        ];
+        const TABLE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+        const DEFAULT_TABLE_PAGE_SIZE = 20;
+        const TABLE_PAGE_SIZE_STORAGE_KEY = 'constructor.admin.tablePageSize';
+
+        const tableRenderers = new Map();
+        const paginationContainers = new Map();
+        const paginationMeta = new Map();
+        const paginationState = {
+            pageSize: loadStoredTablePageSize(),
+            pages: Object.fromEntries(
+                PAGINATED_TABLE_KEYS.map((key) => [key, 1])
+            ),
+        };
+
+        function loadStoredTablePageSize() {
+            try {
+                const storage = window.localStorage;
+                if (!storage) {
+                    return DEFAULT_TABLE_PAGE_SIZE;
+                }
+                const stored = Number.parseInt(
+                    storage.getItem(TABLE_PAGE_SIZE_STORAGE_KEY) || '',
+                    10
+                );
+                if (Number.isFinite(stored) && stored > 0) {
+                    if (TABLE_PAGE_SIZE_OPTIONS.includes(stored)) {
+                        return stored;
+                    }
+                    return DEFAULT_TABLE_PAGE_SIZE;
+                }
+            } catch (error) {
+                /* ignore storage errors */
+            }
+            return DEFAULT_TABLE_PAGE_SIZE;
+        }
+
+        const persistTablePageSize = (value) => {
+            try {
+                const storage = window.localStorage;
+                if (storage) {
+                    storage.setItem(
+                        TABLE_PAGE_SIZE_STORAGE_KEY,
+                        String(Math.max(1, value))
+                    );
+                }
+            } catch (error) {
+                /* ignore storage errors */
+            }
+        };
+
+        const registerTableRenderer = (key, renderer) => {
+            if (typeof renderer === 'function') {
+                tableRenderers.set(key, renderer);
+            }
+        };
+
+        const rerenderTable = (key) => {
+            const renderer = tableRenderers.get(key);
+            if (typeof renderer === 'function') {
+                renderer();
+            }
+        };
+
+        const resetPaginationFor = (key) => {
+            if (paginationState.pages[key] !== 1) {
+                paginationState.pages[key] = 1;
+            }
+        };
+
+        const setTablePageSize = (value) => {
+            const numeric = Number.parseInt(String(value || ''), 10);
+            if (!Number.isFinite(numeric) || numeric <= 0) {
+                return;
+            }
+            const pageSize = TABLE_PAGE_SIZE_OPTIONS.includes(numeric)
+                ? numeric
+                : DEFAULT_TABLE_PAGE_SIZE;
+            if (paginationState.pageSize === pageSize) {
+                return;
+            }
+            paginationState.pageSize = pageSize;
+            PAGINATED_TABLE_KEYS.forEach((key) => {
+                paginationState.pages[key] = 1;
+                rerenderTable(key);
+            });
+            persistTablePageSize(pageSize);
+        };
+
+        const changeTablePage = (key, delta) => {
+            const current = paginationState.pages[key] || 1;
+            const meta = paginationMeta.get(key);
+            const totalPages = meta?.totalPages || 1;
+            const target = Math.min(Math.max(1, current + delta), totalPages);
+            if (target === current) {
+                return;
+            }
+            paginationState.pages[key] = target;
+            rerenderTable(key);
+        };
+
+        const ensurePaginationContainer = (key, tableBody) => {
+            if (paginationContainers.has(key)) {
+                return paginationContainers.get(key);
+            }
+            if (!tableBody) {
+                return null;
+            }
+            const tableElement = tableBody.closest('table');
+            if (!tableElement) {
+                return null;
+            }
+
+            const container = document.createElement('div');
+            container.className = 'admin-table__pagination';
+            container.dataset.paginationFor = key;
+
+            const info = document.createElement('div');
+            info.className = 'admin-table__pagination-info';
+            info.dataset.role = 'pagination-info';
+            container.appendChild(info);
+
+            const controls = document.createElement('div');
+            controls.className = 'admin-table__pagination-controls';
+
+            const sizeLabel = document.createElement('label');
+            sizeLabel.className = 'admin-table__pagination-size';
+            sizeLabel.textContent = 'Rows per page';
+
+            const sizeSelect = document.createElement('select');
+            sizeSelect.dataset.role = 'pagination-size';
+            sizeSelect.className = 'admin-table__pagination-select';
+            TABLE_PAGE_SIZE_OPTIONS.forEach((option) => {
+                const optionElement = document.createElement('option');
+                optionElement.value = String(option);
+                optionElement.textContent = String(option);
+                sizeSelect.appendChild(optionElement);
+            });
+            sizeSelect.value = String(paginationState.pageSize);
+            sizeSelect.addEventListener('change', (event) => {
+                const nextValue = event?.target?.value;
+                setTablePageSize(nextValue);
+            });
+            sizeLabel.appendChild(sizeSelect);
+
+            const buttonGroup = document.createElement('div');
+            buttonGroup.className = 'admin-table__pagination-buttons';
+
+            const prevButton = document.createElement('button');
+            prevButton.type = 'button';
+            prevButton.dataset.role = 'pagination-prev';
+            prevButton.className = 'admin-table__pagination-button';
+            prevButton.textContent = 'Previous';
+            prevButton.addEventListener('click', () => changeTablePage(key, -1));
+
+            const status = document.createElement('span');
+            status.className = 'admin-table__pagination-status';
+            status.dataset.role = 'pagination-status';
+
+            const nextButton = document.createElement('button');
+            nextButton.type = 'button';
+            nextButton.dataset.role = 'pagination-next';
+            nextButton.className = 'admin-table__pagination-button';
+            nextButton.textContent = 'Next';
+            nextButton.addEventListener('click', () => changeTablePage(key, 1));
+
+            buttonGroup.appendChild(prevButton);
+            buttonGroup.appendChild(status);
+            buttonGroup.appendChild(nextButton);
+
+            controls.appendChild(sizeLabel);
+            controls.appendChild(buttonGroup);
+            container.appendChild(controls);
+
+            tableElement.insertAdjacentElement('afterend', container);
+            paginationContainers.set(key, container);
+            return container;
+        };
+
+        const updatePaginationControls = (key, meta) => {
+            const container = paginationContainers.get(key);
+            if (!container) {
+                return;
+            }
+            const info = container.querySelector('[data-role="pagination-info"]');
+            const status = container.querySelector('[data-role="pagination-status"]');
+            const prevButton = container.querySelector(
+                '[data-role="pagination-prev"]'
+            );
+            const nextButton = container.querySelector(
+                '[data-role="pagination-next"]'
+            );
+            const sizeSelect = container.querySelector(
+                '[data-role="pagination-size"]'
+            );
+
+            if (sizeSelect && String(sizeSelect.value) !== String(meta.pageSize)) {
+                sizeSelect.value = String(meta.pageSize);
+            }
+
+            if (info) {
+                if (meta.totalItems === 0) {
+                    info.textContent = 'No items to display';
+                } else {
+                    info.textContent = `Showing ${meta.start} - ${meta.end} of ${meta.totalItems}`;
+                }
+            }
+
+            if (status) {
+                status.textContent = `Page ${meta.currentPage} of ${meta.totalPages}`;
+            }
+            if (prevButton) {
+                prevButton.disabled = !meta.hasPrev;
+            }
+            if (nextButton) {
+                nextButton.disabled = !meta.hasNext;
+            }
+        };
+
+        const paginateTable = (key, items, tableBody) => {
+            const list = Array.isArray(items) ? items : [];
+            const pageSize = Math.max(
+                1,
+                paginationState.pageSize || DEFAULT_TABLE_PAGE_SIZE
+            );
+            const totalItems = list.length;
+            const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+            const currentPage = Math.min(
+                Math.max(1, paginationState.pages[key] || 1),
+                totalPages
+            );
+            paginationState.pages[key] = currentPage;
+            const startIndex =
+                totalItems === 0 ? 0 : (currentPage - 1) * pageSize;
+            const pageItems =
+                totalItems === 0
+                    ? []
+                    : list.slice(startIndex, startIndex + pageSize);
+            const meta = {
+                key,
+                pageSize,
+                totalItems,
+                totalPages,
+                currentPage,
+                start: totalItems === 0 ? 0 : startIndex + 1,
+                end: totalItems === 0 ? 0 : startIndex + pageItems.length,
+                hasPrev: currentPage > 1,
+                hasNext: currentPage < totalPages,
+            };
+            paginationMeta.set(key, meta);
+            if (tableBody) {
+                ensurePaginationContainer(key, tableBody);
+                updatePaginationControls(key, meta);
+            }
+            return { items: pageItems, meta };
+        };
         const postSearchInput = root.querySelector('[data-role="post-search"]');
         const pageSearchInput = root.querySelector('[data-role="page-search"]');
         const categorySearchInput = root.querySelector('[data-role="category-search"]');
@@ -3012,13 +3278,18 @@
             if (!table) {
                 return;
             }
-            table.innerHTML = '';
             const posts = state.posts.filter((post) =>
                 matchesSearchQuery(
                     getPostSearchFields(post),
                     state.postSearchQuery
                 )
             );
+            const { items: visiblePosts } = paginateTable(
+                'posts',
+                posts,
+                table
+            );
+            table.innerHTML = '';
             if (!posts.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -3033,7 +3304,7 @@
                 table.appendChild(row);
                 return;
             }
-            posts.forEach((post) => {
+            visiblePosts.forEach((post) => {
                 const row = createElement('tr');
                 row.dataset.id = post.id;
                 row.appendChild(
@@ -3070,19 +3341,25 @@
             });
             highlightRow(table, postForm?.dataset.id);
         };
+        registerTableRenderer('posts', renderPosts);
 
         const renderPages = () => {
             const table = tables.pages;
             if (!table) {
                 return;
             }
-            table.innerHTML = '';
             const pages = state.pages.filter((page) =>
                 matchesSearchQuery(
                     getPageSearchFields(page),
                     state.pageSearchQuery
                 )
             );
+            const { items: visiblePages } = paginateTable(
+                'pages',
+                pages,
+                table
+            );
+            table.innerHTML = '';
             if (!pages.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -3097,7 +3374,7 @@
                 table.appendChild(row);
                 return;
             }
-            pages.forEach((page) => {
+            visiblePages.forEach((page) => {
                 const row = createElement('tr');
                 row.dataset.id = page.id;
                 row.appendChild(
@@ -3132,6 +3409,7 @@
             });
             highlightRow(table, pageForm?.dataset.id);
         };
+        registerTableRenderer('pages', renderPages);
 
         const setPostSearchQuery = (value) => {
             const next = normaliseSearchQuery(value);
@@ -3139,6 +3417,7 @@
                 return;
             }
             state.postSearchQuery = next;
+            resetPaginationFor('posts');
             if (state.hasLoadedPosts) {
                 renderPosts();
             }
@@ -3150,6 +3429,7 @@
                 return;
             }
             state.pageSearchQuery = next;
+            resetPaginationFor('pages');
             if (state.hasLoadedPages) {
                 renderPages();
             }
@@ -3161,6 +3441,7 @@
                 return;
             }
             state.categorySearchQuery = next;
+            resetPaginationFor('categories');
             if (state.hasLoadedCategories) {
                 renderCategories();
             }
@@ -3172,6 +3453,7 @@
                 return;
             }
             state.courses.videoSearchQuery = next;
+            resetPaginationFor('courseVideos');
             if (state.courses.hasLoadedVideos) {
                 renderCourseVideos();
             }
@@ -3183,6 +3465,7 @@
                 return;
             }
             state.courses.contentSearchQuery = next;
+            resetPaginationFor('courseContents');
             if (state.courses.hasLoadedContents) {
                 renderCourseContents();
             }
@@ -3194,6 +3477,7 @@
                 return;
             }
             state.courses.topicSearchQuery = next;
+            resetPaginationFor('courseTopics');
             if (state.courses.hasLoadedTopics) {
                 renderCourseTopics();
             }
@@ -3205,6 +3489,7 @@
                 return;
             }
             state.courses.testSearchQuery = next;
+            resetPaginationFor('courseTests');
             if (state.courses.hasLoadedTests) {
                 renderCourseTests();
             }
@@ -3216,6 +3501,7 @@
                 return;
             }
             state.courses.packageSearchQuery = next;
+            resetPaginationFor('coursePackages');
             if (state.courses.hasLoadedPackages) {
                 renderCoursePackages();
             }
@@ -3409,13 +3695,18 @@
             if (!table) {
                 return;
             }
-            table.innerHTML = '';
             const users = state.users.filter((user) =>
                 matchesSearchQuery(
                     getUserSearchFields(user),
                     state.userSearchQuery
                 )
             );
+            const { items: visibleUsers } = paginateTable(
+                'users',
+                users,
+                table
+            );
+            table.innerHTML = '';
             if (!users.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -3430,7 +3721,7 @@
                 table.appendChild(row);
                 return;
             }
-            users.forEach((user) => {
+            visibleUsers.forEach((user) => {
                 const id = extractUserId(user);
                 if (!id) {
                     return;
@@ -3476,6 +3767,7 @@
             });
             highlightRow(table, userForm?.dataset.id);
         };
+        registerTableRenderer('users', renderUsers);
 
         const setUserSearchQuery = (value) => {
             const next = normaliseSearchQuery(value);
@@ -3483,6 +3775,7 @@
                 return;
             }
             state.userSearchQuery = next;
+            resetPaginationFor('users');
             if (state.hasLoadedUsers) {
                 renderUsers();
             }
@@ -3493,13 +3786,18 @@
             if (!table) {
                 return;
             }
-            table.innerHTML = '';
             const categories = state.categories.filter((category) =>
                 matchesSearchQuery(
                     getCategorySearchFields(category),
                     state.categorySearchQuery
                 )
             );
+            const { items: visibleCategories } = paginateTable(
+                'categories',
+                categories,
+                table
+            );
+            table.innerHTML = '';
             if (!categories.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -3514,7 +3812,7 @@
                 table.appendChild(row);
                 return;
             }
-            categories.forEach((category) => {
+            visibleCategories.forEach((category) => {
                 const id = extractCategoryId(category);
                 if (!id) {
                     return;
@@ -3550,6 +3848,7 @@
             });
             highlightRow(table, categoryForm?.dataset.id);
         };
+        registerTableRenderer('categories', renderCategories);
 
         const renderCategoryOptions = () => {
             if (!postCategorySelect) {
@@ -4032,10 +4331,30 @@
             if (!table) {
                 return;
             }
-            table.innerHTML = '';
             const videos = Array.isArray(state.courses.videos)
                 ? state.courses.videos.slice()
                 : [];
+            const query = state.courses.videoSearchQuery;
+            const filteredVideos = query
+                ? videos.filter((video) =>
+                      matchesSearchQuery(getCourseVideoSearchFields(video), query)
+                  )
+                : videos;
+            filteredVideos.sort((a, b) => {
+                const aDate = new Date(
+                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
+                ).getTime();
+                const bDate = new Date(
+                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
+                ).getTime();
+                return bDate - aDate;
+            });
+            const { items: visibleVideos } = paginateTable(
+                'courseVideos',
+                filteredVideos,
+                table
+            );
+            table.innerHTML = '';
             if (!videos.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4048,12 +4367,6 @@
                 table.appendChild(row);
                 return;
             }
-            const query = state.courses.videoSearchQuery;
-            const filteredVideos = query
-                ? videos.filter((video) =>
-                      matchesSearchQuery(getCourseVideoSearchFields(video), query)
-                  )
-                : videos;
             if (!filteredVideos.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4066,16 +4379,7 @@
                 table.appendChild(row);
                 return;
             }
-            filteredVideos.sort((a, b) => {
-                const aDate = new Date(
-                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
-                ).getTime();
-                const bDate = new Date(
-                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
-                ).getTime();
-                return bDate - aDate;
-            });
-            filteredVideos.forEach((video) => {
+            visibleVideos.forEach((video) => {
                 const id = extractCourseVideoId(video);
                 if (!id) {
                     return;
@@ -4102,16 +4406,40 @@
             });
             highlightRow(table, courseVideoForm?.dataset.id);
         };
+        registerTableRenderer('courseVideos', renderCourseVideos);
 
         const renderCourseContents = () => {
             const table = tables.courseContents;
             if (!table) {
                 return;
             }
-            table.innerHTML = '';
             const contents = Array.isArray(state.courses.contents)
                 ? state.courses.contents.slice()
                 : [];
+            const query = state.courses.contentSearchQuery;
+            const filteredContents = query
+                ? contents.filter((content) =>
+                      matchesSearchQuery(
+                          getCourseContentSearchFields(content),
+                          query
+                      )
+                  )
+                : contents;
+            filteredContents.sort((a, b) => {
+                const aDate = new Date(
+                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
+                ).getTime();
+                const bDate = new Date(
+                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
+                ).getTime();
+                return bDate - aDate;
+            });
+            const { items: visibleContents } = paginateTable(
+                'courseContents',
+                filteredContents,
+                table
+            );
+            table.innerHTML = '';
             if (!contents.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4124,15 +4452,6 @@
                 table.appendChild(row);
                 return;
             }
-            const query = state.courses.contentSearchQuery;
-            const filteredContents = query
-                ? contents.filter((content) =>
-                      matchesSearchQuery(
-                          getCourseContentSearchFields(content),
-                          query
-                      )
-                  )
-                : contents;
             if (!filteredContents.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4145,16 +4464,7 @@
                 table.appendChild(row);
                 return;
             }
-            filteredContents.sort((a, b) => {
-                const aDate = new Date(
-                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
-                ).getTime();
-                const bDate = new Date(
-                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
-                ).getTime();
-                return bDate - aDate;
-            });
-            filteredContents.forEach((content) => {
+            visibleContents.forEach((content) => {
                 const id = extractCourseContentId(content);
                 if (!id) {
                     return;
@@ -4187,16 +4497,37 @@
             });
             highlightRow(table, courseContentForm?.dataset.id);
         };
+        registerTableRenderer('courseContents', renderCourseContents);
 
         const renderCourseTopics = () => {
             const table = tables.courseTopics;
             if (!table) {
                 return;
             }
-            table.innerHTML = '';
             const topics = Array.isArray(state.courses.topics)
                 ? state.courses.topics.slice()
                 : [];
+            const topicQuery = state.courses.topicSearchQuery;
+            const filteredTopics = topicQuery
+                ? topics.filter((topic) =>
+                      matchesSearchQuery(getCourseTopicSearchFields(topic), topicQuery)
+                  )
+                : topics;
+            filteredTopics.sort((a, b) => {
+                const aDate = new Date(
+                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
+                ).getTime();
+                const bDate = new Date(
+                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
+                ).getTime();
+                return bDate - aDate;
+            });
+            const { items: visibleTopics } = paginateTable(
+                'courseTopics',
+                filteredTopics,
+                table
+            );
+            table.innerHTML = '';
             if (!topics.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4209,12 +4540,6 @@
                 table.appendChild(row);
                 return;
             }
-            const topicQuery = state.courses.topicSearchQuery;
-            const filteredTopics = topicQuery
-                ? topics.filter((topic) =>
-                      matchesSearchQuery(getCourseTopicSearchFields(topic), topicQuery)
-                  )
-                : topics;
             if (!filteredTopics.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4227,16 +4552,7 @@
                 table.appendChild(row);
                 return;
             }
-            filteredTopics.sort((a, b) => {
-                const aDate = new Date(
-                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
-                ).getTime();
-                const bDate = new Date(
-                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
-                ).getTime();
-                return bDate - aDate;
-            });
-            filteredTopics.forEach((topic) => {
+            visibleTopics.forEach((topic) => {
                 const id = extractCourseTopicId(topic);
                 if (!id) {
                     return;
@@ -4269,16 +4585,37 @@
             });
             highlightRow(table, courseTopicForm?.dataset.id);
         };
+        registerTableRenderer('courseTopics', renderCourseTopics);
 
         const renderCoursePackages = () => {
             const table = tables.coursePackages;
             if (!table) {
                 return;
             }
-            table.innerHTML = '';
             const packages = Array.isArray(state.courses.packages)
                 ? state.courses.packages.slice()
                 : [];
+            const packageQuery = state.courses.packageSearchQuery;
+            const filteredPackages = packageQuery
+                ? packages.filter((pkg) =>
+                      matchesSearchQuery(getCoursePackageSearchFields(pkg), packageQuery)
+                  )
+                : packages;
+            filteredPackages.sort((a, b) => {
+                const aDate = new Date(
+                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
+                ).getTime();
+                const bDate = new Date(
+                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
+                ).getTime();
+                return bDate - aDate;
+            });
+            const { items: visiblePackages } = paginateTable(
+                'coursePackages',
+                filteredPackages,
+                table
+            );
+            table.innerHTML = '';
             if (!packages.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4291,12 +4628,6 @@
                 table.appendChild(row);
                 return;
             }
-            const packageQuery = state.courses.packageSearchQuery;
-            const filteredPackages = packageQuery
-                ? packages.filter((pkg) =>
-                      matchesSearchQuery(getCoursePackageSearchFields(pkg), packageQuery)
-                  )
-                : packages;
             if (!filteredPackages.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4309,16 +4640,7 @@
                 table.appendChild(row);
                 return;
             }
-            filteredPackages.sort((a, b) => {
-                const aDate = new Date(
-                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
-                ).getTime();
-                const bDate = new Date(
-                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
-                ).getTime();
-                return bDate - aDate;
-            });
-            filteredPackages.forEach((pkg) => {
+            visiblePackages.forEach((pkg) => {
                 const id = extractCoursePackageId(pkg);
                 if (!id) {
                     return;
@@ -4356,6 +4678,7 @@
             });
             highlightRow(table, coursePackageForm?.dataset.id);
         };
+        registerTableRenderer('coursePackages', renderCoursePackages);
 
         const parseTopicStepValue = (value) => {
             if (!value && value !== 0) {
@@ -4680,10 +5003,30 @@
             if (!table) {
                 return;
             }
-            table.innerHTML = '';
             const tests = Array.isArray(state.courses.tests)
                 ? state.courses.tests.slice()
                 : [];
+            const testQuery = state.courses.testSearchQuery;
+            const filteredTests = testQuery
+                ? tests.filter((test) =>
+                      matchesSearchQuery(getCourseTestSearchFields(test), testQuery)
+                  )
+                : tests;
+            filteredTests.sort((a, b) => {
+                const aDate = new Date(
+                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
+                ).getTime();
+                const bDate = new Date(
+                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
+                ).getTime();
+                return bDate - aDate;
+            });
+            const { items: visibleTests } = paginateTable(
+                'courseTests',
+                filteredTests,
+                table
+            );
+            table.innerHTML = '';
             if (!tests.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4696,12 +5039,6 @@
                 table.appendChild(row);
                 return;
             }
-            const testQuery = state.courses.testSearchQuery;
-            const filteredTests = testQuery
-                ? tests.filter((test) =>
-                      matchesSearchQuery(getCourseTestSearchFields(test), testQuery)
-                  )
-                : tests;
             if (!filteredTests.length) {
                 const row = createElement('tr', {
                     className: 'admin-table__placeholder',
@@ -4714,16 +5051,7 @@
                 table.appendChild(row);
                 return;
             }
-            filteredTests.sort((a, b) => {
-                const aDate = new Date(
-                    a?.updated_at || a?.updatedAt || a?.UpdatedAt || 0
-                ).getTime();
-                const bDate = new Date(
-                    b?.updated_at || b?.updatedAt || b?.UpdatedAt || 0
-                ).getTime();
-                return bDate - aDate;
-            });
-            filteredTests.forEach((test) => {
+            visibleTests.forEach((test) => {
                 const id = extractCourseTestId(test);
                 if (!id) {
                     return;
@@ -4755,6 +5083,7 @@
             });
             highlightRow(table, courseTestForm?.dataset.id);
         };
+        registerTableRenderer('courseTests', renderCourseTests);
 
         const renderCourseTestQuestionList = () => {
             if (!courseTestQuestionList || !courseTestQuestionEmpty) {
