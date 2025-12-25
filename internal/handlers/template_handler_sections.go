@@ -81,8 +81,24 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		if marginClass := buildSectionMarginClass(pageViewClassPrefix, section.MarginVertical); marginClass != "" {
 			sectionClasses = append(sectionClasses, marginClass)
 		}
-
 		sectionAttributes := ""
+		animation := constants.NormaliseSectionAnimation(section.Animation)
+		animationBlur := constants.NormaliseSectionAnimationBlur(section.AnimationBlur)
+		if animation != "" {
+			sectionClasses = append(
+				sectionClasses,
+				fmt.Sprintf("%s__section--animation-%s", pageViewClassPrefix, animation),
+			)
+			sectionAttributes += fmt.Sprintf(
+				` data-section-animation="%s"`,
+				template.HTMLEscapeString(animation),
+			)
+			sectionAttributes += fmt.Sprintf(
+				` data-section-animation-blur="%t"`,
+				animationBlur,
+			)
+		}
+
 		if settings := section.Settings; settings != nil {
 			if tab, ok := settings["profile_tab"].(string); ok {
 				if trimmed := strings.TrimSpace(tab); trimmed != "" {

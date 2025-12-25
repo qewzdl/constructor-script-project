@@ -642,6 +642,8 @@ type Section struct {
 	StyleGridItems  *bool                  `json:"style_grid_items,omitempty"`
 	PaddingVertical *int                   `json:"padding_vertical,omitempty"`
 	MarginVertical  *int                   `json:"margin_vertical,omitempty"`
+	Animation       string                 `json:"animation,omitempty"`
+	AnimationBlur   *bool                  `json:"animation_blur,omitempty"`
 	Settings        map[string]interface{} `json:"settings,omitempty"`
 	Elements        []SectionElement       `json:"elements"`
 }

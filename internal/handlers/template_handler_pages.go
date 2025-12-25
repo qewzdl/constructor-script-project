@@ -2617,6 +2617,9 @@ func (h *TemplateHandler) builderConfigJSON() template.JS {
 		"marginOptions":         constants.SectionMarginOptions(),
 		"defaultSectionPadding": defaultPadding,
 		"defaultSectionMargin":  constants.DefaultSectionMargin,
+		"sectionAnimations":     constants.SectionAnimationOptions(),
+		"defaultSectionAnimation": constants.DefaultSectionAnimation,
+		"defaultAnimationBlur":  constants.DefaultSectionAnimationBlur,
 	}
 
 	configJSON, err := json.Marshal(config)

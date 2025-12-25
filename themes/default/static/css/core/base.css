@@ -2007,6 +2007,91 @@ body.post-image-modal-open .post-progress {
     margin-block: 128px;
 }
 
+.section-reveal {
+    --section-reveal-start-transform: translateY(28px) scale(0.985) rotateX(4deg);
+    --section-reveal-end-transform: translateY(0) scale(1) rotateX(0deg);
+    --section-reveal-filter: blur(10px) saturate(0.9);
+    --section-reveal-visible-filter: blur(0) saturate(1.05);
+    --section-reveal-opacity-duration: 0.9s;
+    --section-reveal-transform-duration: 1s;
+    --section-reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --section-reveal-origin: 50% 70%;
+    opacity: 0;
+    transform: perspective(1200px) var(--section-reveal-start-transform);
+    filter: var(--section-reveal-filter);
+    transform-origin: var(--section-reveal-origin);
+    transition:
+        opacity var(--section-reveal-opacity-duration) var(--section-reveal-ease),
+        transform var(--section-reveal-transform-duration) var(--section-reveal-ease),
+        filter 0.8s ease;
+    transition-delay: var(--section-reveal-delay, 0ms);
+    will-change: opacity, transform, filter;
+    backface-visibility: hidden;
+}
+
+.section-reveal.is-visible {
+    opacity: 1;
+    transform: perspective(1200px) var(--section-reveal-end-transform);
+    filter: var(--section-reveal-visible-filter);
+}
+
+.section-reveal--float-up {
+    --section-reveal-start-transform: translateY(32px) scale(0.985) rotateX(4deg);
+}
+
+.section-reveal--fade-in {
+    --section-reveal-start-transform: translateY(18px);
+    --section-reveal-end-transform: translateY(0);
+    --section-reveal-filter: blur(8px) saturate(0.95);
+    --section-reveal-visible-filter: blur(0) saturate(1.02);
+    --section-reveal-opacity-duration: 0.85s;
+    --section-reveal-transform-duration: 0.9s;
+    --section-reveal-ease: cubic-bezier(0.33, 1, 0.68, 1);
+    --section-reveal-origin: 50% 50%;
+}
+
+.section-reveal--slide-left {
+    --section-reveal-start-transform: translateX(64px);
+    --section-reveal-end-transform: translateX(0);
+    --section-reveal-filter: blur(10px) saturate(0.95);
+    --section-reveal-visible-filter: blur(0) saturate(1.05);
+    --section-reveal-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --section-reveal-origin: 40% 50%;
+}
+
+.section-reveal--zoom-in {
+    --section-reveal-start-transform: translateY(10px) scale(0.92);
+    --section-reveal-end-transform: translateY(0) scale(1);
+    --section-reveal-filter: blur(8px) saturate(0.92);
+    --section-reveal-visible-filter: blur(0) saturate(1.08);
+    --section-reveal-opacity-duration: 0.85s;
+    --section-reveal-transform-duration: 0.9s;
+    --section-reveal-ease: cubic-bezier(0.2, 0.8, 0.3, 1);
+    --section-reveal-origin: 50% 55%;
+}
+
+.section-reveal--no-blur {
+    --section-reveal-filter: none;
+    --section-reveal-visible-filter: none;
+}
+
+.section-reveal--none,
+.section-reveal--none.is-visible {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .section-reveal {
+        opacity: 1;
+        transform: none;
+        filter: none;
+        transition: none !important;
+    }
+}
+
 .post__header {
     display: grid;
     padding: var(--size-mid);

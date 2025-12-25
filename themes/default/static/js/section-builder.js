@@ -309,6 +309,49 @@
         return closest;
     };
 
+    const SECTION_ANIMATIONS = [
+        { value: 'float-up', label: 'Float up' },
+        { value: 'fade-in', label: 'Fade in' },
+        { value: 'slide-left', label: 'Slide from right' },
+        { value: 'zoom-in', label: 'Zoom in' },
+        { value: 'none', label: 'None' },
+    ];
+    const DEFAULT_SECTION_ANIMATION = 'float-up';
+    const DEFAULT_SECTION_ANIMATION_BLUR = true;
+    const ANIMATION_VALUES = new Set(
+        SECTION_ANIMATIONS.map((option) => (option.value || '').toLowerCase()).filter(Boolean)
+    );
+    const normaliseSectionAnimation = (value) => {
+        const normalised = (value || '').toString().trim().toLowerCase();
+        if (normalised && ANIMATION_VALUES.has(normalised)) {
+            return normalised;
+        }
+        if (ANIMATION_VALUES.has(DEFAULT_SECTION_ANIMATION)) {
+            return DEFAULT_SECTION_ANIMATION;
+        }
+        return ANIMATION_VALUES.values().next().value || 'none';
+    };
+    const describeSectionAnimation = (value) => {
+        const normalised = normaliseSectionAnimation(value);
+        const option = SECTION_ANIMATIONS.find(
+            (entry) => (entry.value || '').toLowerCase() === normalised
+        );
+        return option?.label || normalised || 'None';
+    };
+    const normaliseSectionAnimationBlur = (value) => {
+        if (value === true || value === false) {
+            return Boolean(value);
+        }
+        const normalised = (value || '').toString().trim().toLowerCase();
+        if (['false', '0', 'no', 'off'].includes(normalised)) {
+            return false;
+        }
+        if (['true', '1', 'yes', 'on'].includes(normalised)) {
+            return true;
+        }
+        return DEFAULT_SECTION_ANIMATION_BLUR;
+    };
+
     const createSectionTypeRegistry = () => {
         const definitions = new Map();
         let defaultType = '';
@@ -719,6 +762,18 @@
                 section.margin_vertical ??
                 section.Margin_vertical
         );
+        normalised.animation = normaliseSectionAnimation(
+            section.animation ??
+                section.Animation ??
+                section.animation_type ??
+                section.Animation_type
+        );
+        normalised.animationBlur = normaliseSectionAnimationBlur(
+            section.animationBlur ??
+                section.AnimationBlur ??
+                section.animation_blur ??
+                section.Animation_blur
+        );
 
         if (type === 'grid') {
             const styleGridItemsSource =
@@ -776,6 +831,8 @@
         }
         section.paddingVertical = DEFAULT_SECTION_PADDING;
         section.marginVertical = DEFAULT_SECTION_MARGIN;
+        section.animation = DEFAULT_SECTION_ANIMATION;
+        section.animationBlur = DEFAULT_SECTION_ANIMATION_BLUR;
         return section;
     };
 
@@ -1066,6 +1123,12 @@
                     section.MarginVertical ??
                     section.margin_vertical ??
                     section.Margin_vertical
+            );
+            payload.animation = normaliseSectionAnimation(
+                section.animation ?? section.Animation ?? payload.animation
+            );
+            payload.animation_blur = normaliseSectionAnimationBlur(
+                section.animationBlur ?? section.AnimationBlur ?? payload.animation_blur
             );
             return payload;
         });

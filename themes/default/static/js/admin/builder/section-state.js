@@ -119,6 +119,47 @@
     const defaultMargin = marginOptions[0] || 0;
     const newSectionDefaultPadding = builderConfig.defaultSectionPadding || 16;
     const newSectionDefaultMargin = builderConfig.defaultSectionMargin || 0;
+    const animationOptions =
+        (Array.isArray(builderConfig.sectionAnimations) && builderConfig.sectionAnimations.length
+            ? builderConfig.sectionAnimations
+            : [
+                  { value: 'float-up', label: 'Float up' },
+                  { value: 'fade-in', label: 'Fade in' },
+                  { value: 'slide-left', label: 'Slide from right' },
+                  { value: 'zoom-in', label: 'Zoom in' },
+                  { value: 'none', label: 'None' },
+              ]);
+    const animationValues = new Set(
+        animationOptions
+            .map((option) => normaliseString(option?.value).toLowerCase())
+            .filter(Boolean)
+    );
+    const defaultAnimation = (() => {
+        const candidate = normaliseString(
+            builderConfig.defaultSectionAnimation ?? builderConfig.default_animation ?? ''
+        ).toLowerCase();
+        if (candidate && animationValues.has(candidate)) {
+            return candidate;
+        }
+        const fallback = normaliseString(animationOptions[0]?.value).toLowerCase();
+        return fallback || 'float-up';
+    })();
+    const defaultAnimationBlur = parseBoolean(
+        builderConfig.defaultAnimationBlur ?? builderConfig.default_animation_blur,
+        true
+    );
+    const normaliseAnimationValue = (value) => {
+        const normalised = normaliseString(value).toLowerCase();
+        if (normalised && animationValues.has(normalised)) {
+            return normalised;
+        }
+        if (animationValues.has(defaultAnimation)) {
+            return defaultAnimation;
+        }
+        return animationValues.values().next().value || 'none';
+    };
+    const normaliseAnimationBlurValue = (value) =>
+        parseBoolean(value, defaultAnimationBlur);
 
     const clampPaddingValue = (value) => {
         if (!paddingOptions.length) {
@@ -302,6 +343,18 @@
             section.margin_vertical ??
             section.Margin_vertical;
         const marginVertical = normaliseMarginValue(marginSource);
+        const animation = normaliseAnimationValue(
+            section.animation ??
+                section.Animation ??
+                section.animation_type ??
+                section.Animation_type
+        );
+        const animationBlur = normaliseAnimationBlurValue(
+            section.animationBlur ??
+                section.AnimationBlur ??
+                section.animation_blur ??
+                section.Animation_blur
+        );
         const headerImageSupported =
             sectionDefinitions[type]?.supportsHeaderImage === true;
         const disabled = parseBoolean(section.disabled ?? section.Disabled, false);
@@ -339,6 +392,8 @@
             styleGridItems,
             paddingVertical,
             marginVertical,
+            animation,
+            animationBlur,
             settings,
         };
     };
@@ -502,6 +557,10 @@
                     payload.margin_vertical = clampMarginValue(
                         Number(section.marginVertical)
                     );
+                    payload.animation = normaliseAnimationValue(section.animation);
+                    payload.animation_blur = normaliseAnimationBlurValue(
+                        section.animationBlur
+                    );
 
                     // Include custom section settings (like hero fields)
                     if (section.settings && Object.keys(section.settings).length > 0) {
@@ -552,6 +611,8 @@
             section.elements = [];
             section.paddingVertical = clampPaddingValue(newSectionDefaultPadding);
             section.marginVertical = clampMarginValue(newSectionDefaultMargin);
+            section.animation = normaliseAnimationValue(defaultAnimation);
+            section.animationBlur = normaliseAnimationBlurValue(defaultAnimationBlur);
             sections.push(section);
             return section;
         };
@@ -773,6 +834,10 @@
                 section.paddingVertical = clampPaddingValue(Number(value));
             } else if (field === 'section-margin-vertical') {
                 section.marginVertical = clampMarginValue(Number(value));
+            } else if (field === 'section-animation') {
+                section.animation = normaliseAnimationValue(value);
+            } else if (field === 'section-animation-blur') {
+                section.animationBlur = normaliseAnimationBlurValue(value);
             } else if (field === 'section-type') {
                 const nextType = normaliseString(value);
                 const ensuredType = sectionDefs[nextType]

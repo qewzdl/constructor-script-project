@@ -1,5 +1,7 @@
 package constants
 
+import "strings"
+
 const (
 	// DefaultPostListSectionLimit defines the default number of posts shown in a post list section.
 	DefaultPostListSectionLimit = 6
@@ -39,10 +41,49 @@ const (
 	DefaultSectionPadding = 64
 	// DefaultSectionMargin defines the default vertical margin (in pixels) applied to newly created sections.
 	DefaultSectionMargin = 0
+
+	// DefaultSectionAnimation defines the default scroll animation applied to sections.
+	DefaultSectionAnimation = "float-up"
+	// DefaultSectionAnimationBlur controls whether blur is applied during the section animation.
+	DefaultSectionAnimationBlur = true
 )
 
 var sectionPaddingOptions = []int{0, 4, 8, 16, 32, 64, 128}
 var sectionMarginOptions = []int{0, 4, 8, 16, 32, 64, 128}
+var sectionAnimationOptions = []SectionAnimationOption{
+	{
+		Value:       "float-up",
+		Label:       "Float up",
+		Description: "Tilted lift with a soft blur fade",
+	},
+	{
+		Value:       "fade-in",
+		Label:       "Fade in",
+		Description: "Gentle fade with a slight rise",
+	},
+	{
+		Value:       "slide-left",
+		Label:       "Slide from right",
+		Description: "Horizontal slide-in with easing",
+	},
+	{
+		Value:       "zoom-in",
+		Label:       "Zoom in",
+		Description: "Scale up softly from the center",
+	},
+	{
+		Value:       "none",
+		Label:       "None",
+		Description: "Disable section animation",
+	},
+}
+
+// SectionAnimationOption describes an available section animation.
+type SectionAnimationOption struct {
+	Value       string `json:"value"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+}
 
 // SectionPaddingOptions returns the allowed vertical padding options for sections in pixels.
 // A copy of the slice is returned to prevent external mutation of the internal list.
@@ -58,4 +99,34 @@ func SectionMarginOptions() []int {
 	options := make([]int, len(sectionMarginOptions))
 	copy(options, sectionMarginOptions)
 	return options
+}
+
+// SectionAnimationOptions returns the allowed section animations.
+// A copy of the slice is returned to prevent external mutation of the internal list.
+func SectionAnimationOptions() []SectionAnimationOption {
+	options := make([]SectionAnimationOption, len(sectionAnimationOptions))
+	copy(options, sectionAnimationOptions)
+	return options
+}
+
+// NormaliseSectionAnimation returns a known animation value or the default.
+func NormaliseSectionAnimation(value string) string {
+	trimmed := strings.TrimSpace(strings.ToLower(value))
+	if trimmed == "" {
+		return DefaultSectionAnimation
+	}
+	for _, option := range sectionAnimationOptions {
+		if option.Value == trimmed {
+			return trimmed
+		}
+	}
+	return DefaultSectionAnimation
+}
+
+// NormaliseSectionAnimationBlur returns whether blur should be applied for the animation.
+func NormaliseSectionAnimationBlur(value *bool) bool {
+	if value == nil {
+		return DefaultSectionAnimationBlur
+	}
+	return *value
 }

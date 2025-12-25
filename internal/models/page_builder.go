@@ -8,6 +8,8 @@ type AddSectionRequest struct {
 	PaddingVertical *int   `json:"padding_vertical,omitempty"`
 	MarginVertical  *int   `json:"margin_vertical,omitempty"`
 	Disabled        *bool  `json:"disabled,omitempty"`
+	Animation       string `json:"animation,omitempty"`
+	AnimationBlur   *bool  `json:"animation_blur,omitempty"`
 }
 
 // UpdateSectionRequest represents a request to update an existing section.
@@ -22,6 +24,8 @@ type UpdateSectionRequest struct {
 	Mode            *string           `json:"mode,omitempty"`
 	StyleGridItems  *bool             `json:"style_grid_items,omitempty"`
 	Disabled        *bool             `json:"disabled,omitempty"`
+	Animation       *string           `json:"animation,omitempty"`
+	AnimationBlur   *bool             `json:"animation_blur,omitempty"`
 }
 
 // PageTemplate represents a predefined page layout template.
@@ -36,11 +40,14 @@ type PageTemplate struct {
 
 // PageBuilderConfig contains configuration for the page builder UI.
 type PageBuilderConfig struct {
-	AvailableSections []SectionTypeConfig `json:"available_sections"`
-	DefaultPadding    int                 `json:"default_padding"`
-	DefaultMargin     int                 `json:"default_margin"`
-	PaddingOptions    []int               `json:"padding_options"`
-	MarginOptions     []int               `json:"margin_options"`
+	AvailableSections []SectionTypeConfig     `json:"available_sections"`
+	DefaultPadding    int                     `json:"default_padding"`
+	DefaultMargin     int                     `json:"default_margin"`
+	PaddingOptions    []int                   `json:"padding_options"`
+	MarginOptions     []int                   `json:"margin_options"`
+	SectionAnimations []SectionAnimationOption `json:"section_animations,omitempty"`
+	DefaultAnimation  string                  `json:"default_animation,omitempty"`
+	DefaultAnimationBlur bool                 `json:"default_animation_blur,omitempty"`
 }
 
 // SectionTypeConfig describes a section type available in the builder.
@@ -53,4 +60,11 @@ type SectionTypeConfig struct {
 	Preview     string                 `json:"preview,omitempty"`
 	Schema      map[string]interface{} `json:"schema,omitempty"`
 	AllowedIn   []string               `json:"allowed_in,omitempty"` // e.g., ["page", "post", "homepage"]
+}
+
+// SectionAnimationOption represents an available animation for sections.
+type SectionAnimationOption struct {
+	Value       string `json:"value"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
 }

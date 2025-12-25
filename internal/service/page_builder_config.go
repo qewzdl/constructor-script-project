@@ -7,12 +7,25 @@ import (
 
 // GetPageBuilderConfig returns configuration for the page builder UI.
 func (s *PageService) GetPageBuilderConfig() models.PageBuilderConfig {
+	animationOptions := constants.SectionAnimationOptions()
+	animations := make([]models.SectionAnimationOption, 0, len(animationOptions))
+	for _, option := range animationOptions {
+		animations = append(animations, models.SectionAnimationOption{
+			Value:       option.Value,
+			Label:       option.Label,
+			Description: option.Description,
+		})
+	}
+
 	return models.PageBuilderConfig{
 		AvailableSections: getAvailableSectionTypes(),
 		DefaultPadding:    constants.DefaultSectionPadding,
 		DefaultMargin:     constants.DefaultSectionMargin,
 		PaddingOptions:    constants.SectionPaddingOptions(),
 		MarginOptions:     constants.SectionMarginOptions(),
+		SectionAnimations: animations,
+		DefaultAnimation:  constants.DefaultSectionAnimation,
+		DefaultAnimationBlur: constants.DefaultSectionAnimationBlur,
 	}
 }
 

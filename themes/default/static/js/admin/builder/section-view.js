@@ -318,6 +318,14 @@
             marginOptions: [0, 4, 8, 16, 32, 64, 128],
             defaultSectionPadding: 16,
             defaultSectionMargin: 0,
+            sectionAnimations: [
+                { value: 'float-up', label: 'Float up' },
+                { value: 'fade-in', label: 'Fade in' },
+                { value: 'slide-left', label: 'Slide from right' },
+                { value: 'zoom-in', label: 'Zoom in' },
+                { value: 'none', label: 'None' },
+            ],
+            defaultSectionAnimation: 'float-up',
         };
     };
 
@@ -421,6 +429,65 @@
         return marginOptions[numeric] ?? marginOptions[0];
     };
 
+    const animationOptions =
+        (Array.isArray(builderConfig.sectionAnimations) && builderConfig.sectionAnimations.length
+            ? builderConfig.sectionAnimations
+            : [
+                  { value: 'float-up', label: 'Float up' },
+                  { value: 'fade-in', label: 'Fade in' },
+                  { value: 'slide-left', label: 'Slide from right' },
+                  { value: 'zoom-in', label: 'Zoom in' },
+                  { value: 'none', label: 'None' },
+              ]);
+    const animationValues = new Set(
+        animationOptions
+            .map((option) => normaliseString(option?.value).toLowerCase())
+            .filter(Boolean)
+    );
+    const defaultAnimation = (() => {
+        const candidate = normaliseString(
+            builderConfig.defaultSectionAnimation ?? builderConfig.default_animation ?? ''
+        ).toLowerCase();
+        if (candidate && animationValues.has(candidate)) {
+            return candidate;
+        }
+        const fallback = normaliseString(animationOptions[0]?.value).toLowerCase();
+        return fallback || 'float-up';
+    })();
+    const normaliseAnimationValue = (value) => {
+        const normalised = normaliseString(value).toLowerCase();
+        if (normalised && animationValues.has(normalised)) {
+            return normalised;
+        }
+        if (animationValues.has(defaultAnimation)) {
+            return defaultAnimation;
+        }
+        return animationValues.values().next().value || 'none';
+    };
+    const describeAnimationValue = (value) => {
+        const normalised = normaliseAnimationValue(value);
+        const option = animationOptions.find(
+            (entry) => normaliseString(entry?.value).toLowerCase() === normalised
+        );
+        return option?.label || normalised || 'None';
+    };
+    const isBlurEnabled = (value) => {
+        if (value === true) {
+            return true;
+        }
+        if (value === false) {
+            return false;
+        }
+        const normalised = normaliseString(value).toLowerCase();
+        if (['false', '0', 'no', 'off'].includes(normalised)) {
+            return false;
+        }
+        if (['true', '1', 'yes', 'on'].includes(normalised)) {
+            return true;
+        }
+        return true;
+    };
+
     const elementLabel = (definitions, type) => {
         const definition = definitions[type];
         if (definition && definition.label) {
@@ -506,6 +573,8 @@
             parts.push(
                 `Vertical margin: ${clampMarginValue(section.marginVertical)}px`
             );
+            parts.push(`Animation: ${describeAnimationValue(section.animation)}`);
+            parts.push(`Blur: ${isBlurEnabled(section.animationBlur) ? 'on' : 'off'}`);
             if (sectionDefinition?.supportsHeaderImage === true) {
                 parts.push(section.image ? 'Side image: added' : 'Side image: none');
             }
@@ -1072,6 +1141,86 @@
                     }
                 });
             }
+
+            const animationValue = normaliseAnimationValue(section.animation);
+            const animationField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            animationField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Section animation',
+                })
+            );
+            const animationSelect = createElement('select', {
+                className: 'admin-builder__input',
+                dataset: {
+                    field: 'section-animation',
+                },
+            });
+            animationOptions.forEach((option) => {
+                const optionNode = createElement('option', {
+                    value: option.value,
+                    textContent: option.label || option.value,
+                });
+                if (option.description) {
+                    optionNode.title = option.description;
+                }
+                animationSelect.append(optionNode);
+            });
+            animationSelect.value =
+                animationValues.has(animationValue) && animationValue
+                    ? animationValue
+                    : defaultAnimation;
+            const animationHint = createElement('p', {
+                className: 'admin-builder__hint',
+            });
+            const updateAnimationHint = () => {
+                const option = animationOptions.find(
+                    (entry) =>
+                        normaliseString(entry?.value).toLowerCase() ===
+                        normaliseString(animationSelect.value).toLowerCase()
+                );
+                if (option?.description) {
+                    animationHint.textContent = option.description;
+                    animationHint.hidden = false;
+                } else {
+                    animationHint.textContent = '';
+                    animationHint.hidden = true;
+                }
+            };
+            updateAnimationHint();
+            animationSelect.addEventListener('change', () => {
+                if (!animationValues.has(normaliseString(animationSelect.value).toLowerCase())) {
+                    animationSelect.value = defaultAnimation;
+                }
+                updateAnimationHint();
+                scheduleChange();
+            });
+            animationField.append(animationSelect, animationHint);
+            appendField(animationField);
+            const animationBlurField = createElement('label', {
+                className: 'admin-builder__field admin-builder__field--checkbox',
+            });
+            const animationBlurInput = createElement('input', {
+                className: 'admin-builder__checkbox checkbox__input',
+                attributes: { type: 'checkbox' },
+                dataset: {
+                    field: 'section-animation-blur',
+                },
+            });
+            animationBlurInput.checked = isBlurEnabled(section.animationBlur);
+            animationBlurInput.addEventListener('change', scheduleChange);
+            const animationBlurLabel = createElement('span', {
+                className: 'admin-builder__label',
+                textContent: 'Use blur in animation',
+            });
+            const animationBlurHint = createElement('p', {
+                className: 'admin-builder__hint',
+                textContent: 'Disable to keep edges crisp while animating.',
+            });
+            animationBlurField.append(animationBlurInput, animationBlurLabel, animationBlurHint);
+            appendField(animationBlurField);
 
             const paddingValue = clampPaddingValue(section.paddingVertical);
             const paddingField = createElement('label', {

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
 
 	"github.com/google/uuid"
@@ -86,7 +87,13 @@ func (s *PageService) AddSection(pageID uint, req models.AddSectionRequest) (*mo
 		Description: req.Description,
 		Order:       len(page.Sections),
 		Elements:    make([]models.SectionElement, 0),
+		Animation:   constants.NormaliseSectionAnimation(req.Animation),
 	}
+	blurEnabled := constants.DefaultSectionAnimationBlur
+	if req.AnimationBlur != nil {
+		blurEnabled = *req.AnimationBlur
+	}
+	newSection.AnimationBlur = &blurEnabled
 
 	if req.Disabled != nil {
 		newSection.Disabled = *req.Disabled
@@ -147,6 +154,13 @@ func (s *PageService) UpdateSection(pageID uint, sectionID string, req models.Up
 			}
 			if req.Disabled != nil {
 				page.Sections[i].Disabled = *req.Disabled
+			}
+			if req.Animation != nil {
+				page.Sections[i].Animation = constants.NormaliseSectionAnimation(*req.Animation)
+			}
+			if req.AnimationBlur != nil {
+				blur := constants.NormaliseSectionAnimationBlur(req.AnimationBlur)
+				page.Sections[i].AnimationBlur = &blur
 			}
 			found = true
 			break
