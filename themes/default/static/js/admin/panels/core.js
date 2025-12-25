@@ -1497,6 +1497,62 @@
                     </div>
                     <div class="admin-panel__details">
                         <form id="admin-course-video-form" class="admin-form admin-courses__form" novalidate>
+                            <div class="admin-form__group" data-role="course-video-upload-group">
+                                <label class="admin-form__label">
+                                    Video file
+                                    <input
+                                        type="url"
+                                        name="upload_url"
+                                        id="admin-course-video-upload-url"
+                                        class="admin-form__input"
+                                        placeholder="/uploads/lesson.mp4"
+                                        data-role="course-video-upload-url"
+                                        required
+                                    />
+                                    <div class="admin-form__upload-actions">
+                                        <button
+                                            type="button"
+                                            class="admin-form__upload-button"
+                                            data-action="open-media-library"
+                                            data-media-target="#admin-course-video-upload-url"
+                                            data-media-allowed-types="video"
+                                        >
+                                            Browse media library
+                                        </button>
+                                    </div>
+                                    <small class="admin-card__description admin-form__hint">
+                                        Select an existing upload or add a new file through the media library. Pick a video first to unlock the rest of the fields; duration is stored automatically.
+                                    </small>
+                                </label>
+                            </div>
+                            <p
+                                class="admin-card__description admin-form__hint"
+                                data-role="course-video-upload-hint"
+                                hidden
+                            >
+                                Uploads are only available when creating a new video. Delete and recreate the entry to replace the file.
+                            </p>
+                            <p class="admin-courses__meta">
+                                Duration:
+                                <span data-role="course-video-duration">—</span>
+                            </p>
+                            <figure
+                                class="admin-courses__preview"
+                                data-role="course-video-preview-wrapper"
+                                hidden
+                            >
+                                <video
+                                    class="admin-courses__preview-media"
+                                    controls
+                                    preload="metadata"
+                                    data-role="course-video-preview"
+                                >
+                                    Your browser does not support HTML5 video.
+                                </video>
+                                <figcaption class="admin-card__description admin-courses__preview-caption">
+                                    Video preview
+                                </figcaption>
+                            </figure>
                             <label class="admin-form__label">
                                 Title
                                 <input type="text" name="title" required class="admin-form__input" />
@@ -1612,62 +1668,6 @@
                                     ></p>
                                 </div>
                             </fieldset>
-                            <div class="admin-form__group" data-role="course-video-upload-group">
-                                <label class="admin-form__label">
-                                    Video file
-                                    <input
-                                        type="url"
-                                        name="upload_url"
-                                        id="admin-course-video-upload-url"
-                                        class="admin-form__input"
-                                        placeholder="/uploads/lesson.mp4"
-                                        data-role="course-video-upload-url"
-                                        required
-                                    />
-                                    <div class="admin-form__upload-actions">
-                                        <button
-                                            type="button"
-                                            class="admin-form__upload-button"
-                                            data-action="open-media-library"
-                                            data-media-target="#admin-course-video-upload-url"
-                                            data-media-allowed-types="video"
-                                        >
-                                            Browse media library
-                                        </button>
-                                    </div>
-                                    <small class="admin-card__description admin-form__hint">
-                                        Select an existing upload or add a new file through the media library. Duration is stored automatically.
-                                    </small>
-                                </label>
-                            </div>
-                            <p
-                                class="admin-card__description admin-form__hint"
-                                data-role="course-video-upload-hint"
-                                hidden
-                            >
-                                Uploads are only available when creating a new video. Delete and recreate the entry to replace the file.
-                            </p>
-                            <p class="admin-courses__meta">
-                                Duration:
-                                <span data-role="course-video-duration">—</span>
-                            </p>
-                            <figure
-                                class="admin-courses__preview"
-                                data-role="course-video-preview-wrapper"
-                                hidden
-                            >
-                                <video
-                                    class="admin-courses__preview-media"
-                                    controls
-                                    preload="metadata"
-                                    data-role="course-video-preview"
-                                >
-                                    Your browser does not support HTML5 video.
-                                </video>
-                                <figcaption class="admin-card__description admin-courses__preview-caption">
-                                    Video preview
-                                </figcaption>
-                            </figure>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="course-video-submit">
                                     Upload video
