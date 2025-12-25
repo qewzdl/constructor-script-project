@@ -103,6 +103,125 @@
         return String(value).toLowerCase().trim();
     };
 
+    const CYRILLIC_TO_LATIN = {
+        а: 'a',
+        б: 'b',
+        в: 'v',
+        г: 'g',
+        д: 'd',
+        е: 'e',
+        ё: 'e',
+        ж: 'zh',
+        з: 'z',
+        и: 'i',
+        й: 'y',
+        к: 'k',
+        л: 'l',
+        м: 'm',
+        н: 'n',
+        о: 'o',
+        п: 'p',
+        р: 'r',
+        с: 's',
+        т: 't',
+        у: 'u',
+        ф: 'f',
+        х: 'h',
+        ц: 'ts',
+        ч: 'ch',
+        ш: 'sh',
+        щ: 'sch',
+        ъ: '',
+        ы: 'y',
+        ь: '',
+        э: 'e',
+        ю: 'yu',
+        я: 'ya',
+    };
+
+    const fallbackSlugify = (value, { maxLength = 80 } = {}) => {
+        const stringValue =
+            typeof value === 'string'
+                ? value
+                : value === null || value === undefined
+                ? ''
+                : String(value);
+        const normalised = stringValue.trim().toLowerCase();
+        if (!normalised) {
+            return '';
+        }
+        const transliterated = normalised.replace(
+            /[а-яё]/g,
+            (char) => CYRILLIC_TO_LATIN[char] ?? ''
+        );
+        const withoutDiacritics =
+            typeof transliterated.normalize === 'function'
+                ? transliterated.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                : transliterated;
+        const cleaned = withoutDiacritics
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/-{2,}/g, '-')
+            .replace(/^-+|-+$/g, '');
+        const limited =
+            Number.isFinite(maxLength) && maxLength > 0
+                ? cleaned.slice(0, maxLength)
+                : cleaned;
+        return limited.replace(/^-+|-+$/g, '');
+    };
+
+    const slugify =
+        typeof window.AdminUtils?.slugify === 'function'
+            ? window.AdminUtils.slugify
+            : fallbackSlugify;
+
+    const createAutoSlugManager = (sourceInput, slugInput) => {
+        if (!sourceInput || !slugInput || typeof slugify !== 'function') {
+            return {
+                reset: () => {},
+                lock: () => {},
+                forceUpdate: () => {},
+            };
+        }
+        let locked = false;
+
+        const generate = (force = false) => {
+            if (locked && !force) {
+                return;
+            }
+            if (slugInput.disabled) {
+                return;
+            }
+            const next = slugify(sourceInput.value);
+            slugInput.value = next;
+        };
+
+        const normaliseSlugValue = () => {
+            const cleaned = slugify(slugInput.value);
+            if (cleaned !== slugInput.value) {
+                slugInput.value = cleaned;
+            }
+            locked = Boolean(cleaned);
+        };
+
+        sourceInput.addEventListener('input', () => generate(false));
+        sourceInput.addEventListener('change', () => generate(false));
+        slugInput.addEventListener('input', () => {
+            locked = Boolean(slugInput.value.trim());
+        });
+        slugInput.addEventListener('blur', normaliseSlugValue);
+
+        return {
+            reset: () => {
+                locked = false;
+                generate(false);
+            },
+            lock: () => {
+                locked = true;
+            },
+            forceUpdate: () => generate(true),
+        };
+    };
+
     layout.whenReady((context) => {
         if (!context || !context.archiveEnabled) {
             return;
@@ -146,6 +265,15 @@
         if (!directoriesTableBody || !directoryForm || !filesTable || !fileForm) {
             return;
         }
+        const directoryNameInput = directoryForm.querySelector('[name="name"]');
+        const directorySlugInput = directoryForm.querySelector('[name="slug"]');
+        const fileNameInput = fileForm.querySelector('[name="name"]');
+        const fileSlugInput = fileForm.querySelector('[name="slug"]');
+        const directorySlugManager = createAutoSlugManager(
+            directoryNameInput,
+            directorySlugInput
+        );
+        const fileSlugManager = createAutoSlugManager(fileNameInput, fileSlugInput);
 
         const state = {
             tree: [],
@@ -373,6 +501,9 @@
 
         const resetDirectoryForm = (defaultParentId = '') => {
             directoryForm.reset();
+            if (directorySlugManager) {
+                directorySlugManager.reset();
+            }
             if (directoryStatus) {
                 directoryStatus.hidden = true;
                 directoryStatus.textContent = '';
@@ -390,6 +521,9 @@
         const resetFileForm = (options = {}) => {
             const { directoryId = '', preserveDirectory = false } = options;
             fileForm.reset();
+            if (fileSlugManager) {
+                fileSlugManager.reset();
+            }
             if (fileStatus) {
                 fileStatus.hidden = true;
                 fileStatus.textContent = '';
@@ -587,6 +721,13 @@
             if (slugInput) {
                 slugInput.value = directory.slug || '';
             }
+            if (directorySlugManager) {
+                if (slugInput?.value.trim()) {
+                    directorySlugManager.lock();
+                } else {
+                    directorySlugManager.reset();
+                }
+            }
             if (orderInput) {
                 const value = coerceNumber(directory.order);
                 orderInput.value = value === null ? '' : String(value);
@@ -632,6 +773,13 @@
             }
             if (slugInput) {
                 slugInput.value = file.slug || '';
+            }
+            if (fileSlugManager) {
+                if (slugInput?.value.trim()) {
+                    fileSlugManager.lock();
+                } else {
+                    fileSlugManager.reset();
+                }
             }
             if (descriptionInput) {
                 descriptionInput.value = file.description || '';
@@ -861,9 +1009,15 @@
                 name: (formData.get('name') || '').toString().trim(),
                 published: Boolean(formData.get('published')),
             };
-            const slug = (formData.get('slug') || '').toString().trim();
+            const slug = slugify(
+                (formData.get('slug') || '').toString().trim() ||
+                    (formData.get('name') || '').toString().trim()
+            );
             if (slug) {
                 payload.slug = slug;
+                if (directorySlugInput) {
+                    directorySlugInput.value = slug;
+                }
             }
             const orderValue = coerceNumber(formData.get('order'));
             if (orderValue !== null) {
@@ -955,9 +1109,15 @@
                 file_type: (formData.get('file_type') || '').toString().trim(),
                 published: Boolean(formData.get('published')),
             };
-            const slug = (formData.get('slug') || '').toString().trim();
+            const slug = slugify(
+                (formData.get('slug') || '').toString().trim() ||
+                    (formData.get('name') || '').toString().trim()
+            );
             if (slug) {
                 payload.slug = slug;
+                if (fileSlugInput) {
+                    fileSlugInput.value = slug;
+                }
             }
             const directoryValue = coerceNumber(formData.get('directory_id'));
             if (directoryValue === null) {

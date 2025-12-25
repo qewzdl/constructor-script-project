@@ -50,6 +50,7 @@
         normaliseString,
         ensureArray,
         randomId,
+        slugify,
         parseContentDispositionFilename,
     } = utils;
 
@@ -212,6 +213,56 @@
             }
             backupSummary.hidden = false;
             backupSummary.textContent = message;
+        };
+
+        const createAutoSlugManager = (sourceInput, slugInput, options = {}) => {
+            if (!sourceInput || !slugInput || typeof slugify !== 'function') {
+                return {
+                    update: () => {},
+                    forceUpdate: () => {},
+                    reset: () => {},
+                    lock: () => {},
+                };
+            }
+            let locked = false;
+
+            const generate = (force = false) => {
+                if (locked && !force) {
+                    return;
+                }
+                if (slugInput.disabled) {
+                    return;
+                }
+                const next = slugify(sourceInput.value, options);
+                slugInput.value = next;
+            };
+
+            const normaliseSlugValue = () => {
+                const cleaned = slugify(slugInput.value, options);
+                if (cleaned !== slugInput.value) {
+                    slugInput.value = cleaned;
+                }
+                locked = Boolean(cleaned);
+            };
+
+            sourceInput.addEventListener('input', () => generate(false));
+            sourceInput.addEventListener('change', () => generate(false));
+            slugInput.addEventListener('input', () => {
+                locked = Boolean(slugInput.value.trim());
+            });
+            slugInput.addEventListener('blur', normaliseSlugValue);
+
+            return {
+                update: () => generate(false),
+                forceUpdate: () => generate(true),
+                reset: () => {
+                    locked = false;
+                    generate(false);
+                },
+                lock: () => {
+                    locked = true;
+                },
+            };
         };
 
         const metricElements = new Map();
@@ -615,10 +666,20 @@
         const userDeleteButton = userForm?.querySelector('[data-role="user-delete"]');
         const userHint = userForm?.querySelector('[data-role="user-hint"]');
         const DEFAULT_CATEGORY_SLUG = 'uncategorized';
+        const pageTitleInput = pageForm?.querySelector('input[name="title"]');
         const pagePathInput = pageForm?.querySelector('input[name="path"]');
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
         const postSectionsManager = createSectionBuilder(postForm);
         let pageSectionsManager = null;
+        const courseTopicSlugManager = createAutoSlugManager(
+            courseTopicTitleInput,
+            courseTopicSlugInput
+        );
+        const coursePackageSlugManager = createAutoSlugManager(
+            coursePackageTitleInput,
+            coursePackageSlugInput
+        );
+        const pageSlugManager = createAutoSlugManager(pageTitleInput, pageSlugInput);
 
         const applyPaddingToAllPageSections = async (padding) => {
             if (!endpoints.pageSectionsPadding) {
@@ -6990,6 +7051,13 @@
                     topic?.slug ?? topic?.Slug ?? ''
                 );
             }
+            if (courseTopicSlugManager) {
+                if (courseTopicSlugInput?.value.trim()) {
+                    courseTopicSlugManager.lock();
+                } else {
+                    courseTopicSlugManager.reset();
+                }
+            }
             if (courseTopicSummaryInput) {
                 courseTopicSummaryInput.value = normaliseString(
                     topic?.summary ?? topic?.Summary ?? ''
@@ -7059,6 +7127,13 @@
                 coursePackageSlugInput.value = normaliseString(
                     pkg?.slug ?? pkg?.Slug ?? ''
                 );
+            }
+            if (coursePackageSlugManager) {
+                if (coursePackageSlugInput?.value.trim()) {
+                    coursePackageSlugManager.lock();
+                } else {
+                    coursePackageSlugManager.reset();
+                }
             }
             if (coursePackageSummaryInput) {
                 coursePackageSummaryInput.value = normaliseString(
@@ -7140,6 +7215,9 @@
                 return;
             }
             courseTopicForm.reset();
+            if (courseTopicSlugManager) {
+                courseTopicSlugManager.reset();
+            }
             delete courseTopicForm.dataset.id;
             state.courses.selectedTopicId = '';
             state.courses.topicSteps = [];
@@ -7160,6 +7238,9 @@
                 return;
             }
             coursePackageForm.reset();
+            if (coursePackageSlugManager) {
+                coursePackageSlugManager.reset();
+            }
             delete coursePackageForm.dataset.id;
             state.courses.selectedPackageId = '';
             state.courses.packageTopicIds = [];
@@ -7489,7 +7570,8 @@
             }
             event.preventDefault();
             const title = normaliseString(courseTopicTitleInput?.value).trim();
-            const slug = normaliseString(courseTopicSlugInput?.value).trim();
+            const slugInputValue = normaliseString(courseTopicSlugInput?.value).trim();
+            const slug = slugify(slugInputValue || title);
             const summary = normaliseString(courseTopicSummaryInput?.value).trim();
             const description = normaliseString(
                 courseTopicDescriptionInput?.value
@@ -7499,12 +7581,11 @@
                 return;
             }
             if (!slug) {
-                showAlert('Please provide a topic slug.', 'error');
+                showAlert('Topic slug could not be generated. Use letters, numbers, or hyphens.', 'error');
                 return;
             }
-            if (!/^[a-z0-9-]+$/.test(slug)) {
-                showAlert('Topic slugs may only contain lowercase letters, numbers, and hyphens.', 'error');
-                return;
+            if (courseTopicSlugInput) {
+                courseTopicSlugInput.value = slug;
             }
             if (!endpoints.coursesTopics) {
                 showAlert('Topic management is not configured.', 'error');
@@ -7728,7 +7809,8 @@
             }
             event.preventDefault();
             const title = normaliseString(coursePackageTitleInput?.value).trim();
-            const slug = normaliseString(coursePackageSlugInput?.value).trim();
+            const slugInputValue = normaliseString(coursePackageSlugInput?.value).trim();
+            const slug = slugify(slugInputValue || title);
             const summary = normaliseString(coursePackageSummaryInput?.value).trim();
             const description = normaliseString(
                 coursePackageDescriptionInput?.value
@@ -7738,12 +7820,11 @@
                 return;
             }
             if (!slug) {
-                showAlert('Please provide a package slug.', 'error');
+                showAlert('Package slug could not be generated. Use letters, numbers, or hyphens.', 'error');
                 return;
             }
-            if (!/^[a-z0-9-]+$/.test(slug)) {
-                showAlert('Package slugs may only contain lowercase letters, numbers, and hyphens.', 'error');
-                return;
+            if (coursePackageSlugInput) {
+                coursePackageSlugInput.value = slug;
             }
             const priceValue = coursePackagePriceInput?.value || '';
             const priceCents = parsePriceInputValue(priceValue);
@@ -8403,6 +8484,9 @@
                 pageSlugInput.title =
                     'The slug is generated from the title when updating';
             }
+            if (pageSlugManager) {
+                pageSlugManager.lock();
+            }
             pageForm.description.value = page.description || '';
             const orderInput = pageForm.querySelector('input[name="order"]');
             if (orderInput) {
@@ -8483,6 +8567,9 @@
             if (pageSlugInput) {
                 pageSlugInput.disabled = false;
                 pageSlugInput.title = 'Optional custom slug';
+            }
+            if (pageSlugManager) {
+                pageSlugManager.reset();
             }
             const orderInput = pageForm.querySelector('input[name="order"]');
             if (orderInput) {
@@ -13015,9 +13102,12 @@
                 payload.path = pathValue;
             }
             if (!id && pageSlugInput) {
-                const slugValue = pageSlugInput.value.trim();
+                const slugValue = slugify(
+                    pageSlugInput.value.trim() || title
+                );
                 if (slugValue) {
                     payload.slug = slugValue;
+                    pageSlugInput.value = slugValue;
                 }
             }
             if (pageSectionsManager) {
@@ -13878,8 +13968,15 @@
         }
 
         pageSlugInput?.addEventListener('blur', async function() {
-            const slug = this.value.trim();
-            if (!slug || this.disabled) {
+            if (this.disabled) {
+                return;
+            }
+            const slug = slugify(this.value || '');
+            if (slug !== this.value) {
+                this.value = slug;
+            }
+            if (!slug) {
+                this.setCustomValidity('');
                 return;
             }
             const pageId = pageForm?.dataset.id;
@@ -13887,6 +13984,7 @@
                 return;
             }
             try {
+                this.setCustomValidity('');
                 const result = await window.SectionBuilder.PageBuilderAPI.validateSlug(slug, pageId);
                 if (result.available === false) {
                     this.setCustomValidity('This slug is already in use by another page.');

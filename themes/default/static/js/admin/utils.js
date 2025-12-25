@@ -173,6 +173,66 @@
 
     const ensureArray = (value) => (Array.isArray(value) ? value : []);
 
+    const CYRILLIC_TO_LATIN = {
+        а: 'a',
+        б: 'b',
+        в: 'v',
+        г: 'g',
+        д: 'd',
+        е: 'e',
+        ё: 'e',
+        ж: 'zh',
+        з: 'z',
+        и: 'i',
+        й: 'y',
+        к: 'k',
+        л: 'l',
+        м: 'm',
+        н: 'n',
+        о: 'o',
+        п: 'p',
+        р: 'r',
+        с: 's',
+        т: 't',
+        у: 'u',
+        ф: 'f',
+        х: 'h',
+        ц: 'ts',
+        ч: 'ch',
+        ш: 'sh',
+        щ: 'sch',
+        ъ: '',
+        ы: 'y',
+        ь: '',
+        э: 'e',
+        ю: 'yu',
+        я: 'ya',
+    };
+
+    const slugify = (value, { maxLength = 80 } = {}) => {
+        const normalised = normaliseString(value).trim().toLowerCase();
+        if (!normalised) {
+            return '';
+        }
+        const transliterated = normalised.replace(
+            /[а-яё]/g,
+            (char) => CYRILLIC_TO_LATIN[char] ?? ''
+        );
+        const withoutDiacritics =
+            typeof transliterated.normalize === 'function'
+                ? transliterated.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                : transliterated;
+        const cleaned = withoutDiacritics
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/-{2,}/g, '-')
+            .replace(/^-+|-+$/g, '');
+        const limited =
+            Number.isFinite(maxLength) && maxLength > 0
+                ? cleaned.slice(0, maxLength)
+                : cleaned;
+        return limited.replace(/^-+|-+$/g, '');
+    };
+
     const createImageState = (image = {}) => ({
         clientId: randomId(),
         url: normaliseString(image.url ?? image.URL ?? ''),
@@ -271,6 +331,7 @@
         randomId,
         normaliseString,
         ensureArray,
+        slugify,
         createImageState,
         createFileState,
         createSvgElement,
