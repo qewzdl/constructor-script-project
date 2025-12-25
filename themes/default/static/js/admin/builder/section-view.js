@@ -726,12 +726,18 @@
             };
 
             const generalSettings = createSettingsGroup('Content & layout');
+            const spacingSettings = createSettingsGroup('Section spacing');
             const animationSettings = createSettingsGroup('Section animation');
-            body.append(generalSettings.group, animationSettings.group);
+            body.append(generalSettings.group, spacingSettings.group, animationSettings.group);
 
             const appendField = (field) => {
                 if (field) {
                     generalSettings.content.append(field);
+                }
+            };
+            const appendSpacingField = (field) => {
+                if (field) {
+                    spacingSettings.content.append(field);
                 }
             };
             const appendAnimationField = (field) => {
@@ -1359,7 +1365,7 @@
                 });
             }
 
-            appendField(paddingField);
+            appendSpacingField(paddingField);
 
             const marginValue = clampMarginValue(section.marginVertical);
             const marginField = createElement('label', {
@@ -1415,7 +1421,7 @@
                 scheduleChange();
             });
             marginField.append(marginRangeWrapper);
-            appendField(marginField);
+            appendSpacingField(marginField);
 
             const footer = createElement('div', {
                 className: 'admin-builder__settings-footer',
