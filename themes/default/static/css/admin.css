@@ -3332,6 +3332,26 @@
     overflow-y: auto;
 }
 
+.admin-builder__settings-group {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--size-base);
+    background: var(--color-bg-subtle);
+    display: grid;
+    gap: var(--size-sm);
+}
+
+.admin-builder__settings-group-title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+}
+
+.admin-builder__settings-group-body {
+    display: grid;
+    gap: var(--size-base);
+}
+
 .admin-builder__settings-footer {
     padding: var(--size-base);
     border-top: 1px solid var(--color-border);

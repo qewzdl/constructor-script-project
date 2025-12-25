@@ -706,9 +706,37 @@
                 className: 'admin-builder__settings-body',
             });
 
+            const createSettingsGroup = (title) => {
+                const group = createElement('section', {
+                    className: 'admin-builder__settings-group',
+                });
+                if (title) {
+                    group.append(
+                        createElement('h3', {
+                            className: 'admin-builder__settings-group-title',
+                            textContent: title,
+                        })
+                    );
+                }
+                const content = createElement('div', {
+                    className: 'admin-builder__settings-group-body',
+                });
+                group.append(content);
+                return { group, content };
+            };
+
+            const generalSettings = createSettingsGroup('Content & layout');
+            const animationSettings = createSettingsGroup('Section animation');
+            body.append(generalSettings.group, animationSettings.group);
+
             const appendField = (field) => {
                 if (field) {
-                    body.append(field);
+                    generalSettings.content.append(field);
+                }
+            };
+            const appendAnimationField = (field) => {
+                if (field) {
+                    animationSettings.content.append(field);
                 }
             };
 
@@ -1198,7 +1226,7 @@
                 scheduleChange();
             });
             animationField.append(animationSelect, animationHint);
-            appendField(animationField);
+            appendAnimationField(animationField);
             const animationBlurField = createElement('label', {
                 className: 'admin-builder__field admin-builder__field--checkbox',
             });
@@ -1220,7 +1248,7 @@
                 textContent: 'Disable to keep edges crisp while animating.',
             });
             animationBlurField.append(animationBlurInput, animationBlurLabel, animationBlurHint);
-            appendField(animationBlurField);
+            appendAnimationField(animationBlurField);
 
             const paddingValue = clampPaddingValue(section.paddingVertical);
             const paddingField = createElement('label', {
