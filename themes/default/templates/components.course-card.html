@@ -82,13 +82,9 @@
             {{- if $card.Description }}
             {{- $descriptionTag := default "div" $card.DescriptionTag }}
             {{- if eq $descriptionTag "p" }}
-            <p class="{{ $card.DescriptionClass }}"{{ if $card.DescriptionID }} id="{{ $card.DescriptionID }}"{{ end }}>
-                {{ $card.Description }}
-            </p>
+            <p class="{{ $card.DescriptionClass }}"{{ if $card.DescriptionID }} id="{{ $card.DescriptionID }}"{{ end }}>{{- $card.Description -}}</p>
             {{- else }}
-            <div class="{{ $card.DescriptionClass }}"{{ if $card.DescriptionID }} id="{{ $card.DescriptionID }}"{{ end }}>
-                {{ $card.Description }}
-            </div>
+            <div class="{{ $card.DescriptionClass }}"{{ if $card.DescriptionID }} id="{{ $card.DescriptionID }}"{{ end }}>{{- $card.Description -}}</div>
             {{- end }}
             {{- end }}
 
