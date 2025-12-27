@@ -92,7 +92,7 @@
             <ul class="{{ $card.TopicsClass }}" aria-label="Included topics">
                 {{- range $card.Topics }}
                 <li class="{{ $card.TopicItemClass }}">
-                    <span class="{{ $card.TopicNameClass }}">{{ .Name }}{{ if .Meta }} <span class="{{ $card.TopicMetaClass }}">{{ .Meta }}</span>{{ end }}</span>
+                    <span class="{{ $card.TopicNameClass }}">{{ .Name }}</span>
                 </li>
                 {{- end }}
             </ul>

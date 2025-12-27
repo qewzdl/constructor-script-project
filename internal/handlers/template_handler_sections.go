@@ -897,7 +897,7 @@ func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.Cour
 	topicsClass := fmt.Sprintf("%s__course-topics post-card__tags courses-list__topics", prefix)
 	topicItemClass := fmt.Sprintf("%s__course-topic post-card__tag", prefix)
 	topicNameClass := fmt.Sprintf("%s__course-topic-name post-card__tag-link post-card__tag-link--static", prefix)
-	topicMetaClass := fmt.Sprintf("%s__course-topic-meta courses-list__topic-meta", prefix)
+	topicMetaClass := ""
 
 	cards := make([]courseCardTemplateData, 0, len(packages))
 
