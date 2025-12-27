@@ -1854,7 +1854,8 @@ textarea.form-field__input {
 .post-card__description {
     color: var(--color-secondary);
     font-size: var(--font-size-base);
-    display: none;
+    height: 3.6em;
+    overflow: hidden;
 }
 
 .post-card__meta {
