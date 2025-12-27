@@ -1112,19 +1112,6 @@
                             <textarea name="description" rows="2" class="admin-form__input"></textarea>
                         </label>
                         <label class="admin-form__label">
-                            Footer text
-                            <textarea
-                                name="footer_text"
-                                rows="2"
-                                class="admin-form__input"
-                                maxlength="500"
-                                placeholder="Short footer note or contact hint"
-                            ></textarea>
-                            <small class="admin-card__description admin-form__hint">
-                                Optional short text shown in the footer. Max 500 characters.
-                            </small>
-                        </label>
-                        <label class="admin-form__label">
                             Site URL
                             <input type="url" name="url" required class="admin-form__input" placeholder="https://example.com" />
                             <small class="admin-card__description admin-form__hint">Used to generate canonical links and social sharing metadata.</small>

@@ -9329,7 +9329,6 @@
                 const entries = [
                     ['name', site?.name],
                     ['description', site?.description],
-                    ['footer_text', site?.footer_text],
                     ['url', site?.url],
                     ['favicon', site?.favicon],
                     ['logo', site?.logo],
@@ -13182,7 +13181,6 @@
             const payload = {
                 name: getSettingsFieldValue('name'),
                 description: getSettingsFieldValue('description'),
-                footer_text: getSettingsFieldValue('footer_text'),
                 url: getSettingsFieldValue('url'),
                 favicon: getSettingsFieldValue('favicon'),
                 logo: getSettingsFieldValue('logo'),
