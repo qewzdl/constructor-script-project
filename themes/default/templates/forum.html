@@ -55,36 +55,6 @@
             {{ if not .IsAuthenticated }}
             <a class="forum__cta forum__cta--ghost" href="{{ $loginURL }}">Sign in to ask</a>
             {{ end }}
-            {{ if gt (len $categoryFilters) 0 }}
-            {{ $activeFilterName := default "All discussions" .ForumActiveCategoryName }}
-            <div class="forum__filter-dropdown" data-role="forum-filter">
-                <button
-                    class="forum__filter-toggle"
-                    type="button"
-                    data-role="forum-filter-toggle"
-                    aria-haspopup="listbox"
-                    aria-expanded="false"
-                >
-                    <span class="forum__filter-toggle-label">Category</span>
-                    <span class="forum__filter-toggle-value" data-role="forum-filter-value">
-                        {{ $activeFilterName }}
-                    </span>
-                </button>
-                <div class="forum__filter-menu" role="listbox" data-role="forum-filter-menu" hidden>
-                    {{ range $categoryFilters }}
-                    {{ $isActive := .Active }}
-                    <a
-                        class="forum__filter-option{{ if $isActive }} is-active{{ end }}"
-                        role="option"
-                        href="{{ .URL }}"
-                        {{- if $isActive }} aria-selected="true"{{ end }}
-                    >
-                        {{ .Name }}
-                    </a>
-                    {{ end }}
-                </div>
-            </div>
-            {{ end }}
         </div>
 
         {{ if .IsAuthenticated }}
@@ -173,6 +143,69 @@
         {{ end }}
 
         <section class="forum__list" aria-live="polite" aria-busy="false">
+            <div class="forum__filter-bar">
+                {{ if gt (len $categoryFilters) 0 }}
+                {{ $activeFilterName := default "All discussions" .ForumActiveCategoryName }}
+                <div class="forum__filter-dropdown" data-role="forum-filter">
+                    <button
+                        class="forum__filter-toggle"
+                        type="button"
+                        data-role="forum-filter-toggle"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                    >
+                        <span class="forum__filter-toggle-label">Category</span>
+                        <span class="forum__filter-toggle-value" data-role="forum-filter-value">
+                            {{ $activeFilterName }}
+                        </span>
+                    </button>
+                    <div class="forum__filter-menu" role="listbox" data-role="forum-filter-menu" hidden>
+                        {{ range $categoryFilters }}
+                        {{ $isActive := .Active }}
+                        <a
+                            class="forum__filter-option{{ if $isActive }} is-active{{ end }}"
+                            role="option"
+                            href="{{ .URL }}"
+                            {{- if $isActive }} aria-selected="true"{{ end }}
+                        >
+                            {{ .Name }}
+                        </a>
+                        {{ end }}
+                    </div>
+                </div>
+                {{ end }}
+
+                {{ if gt (len .ForumStatusFilters) 0 }}
+                {{ $activeStatusName := default "All statuses" .ForumActiveStatusName }}
+                <div class="forum__filter-dropdown" data-role="forum-filter">
+                    <button
+                        class="forum__filter-toggle"
+                        type="button"
+                        data-role="forum-filter-toggle"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                    >
+                        <span class="forum__filter-toggle-label">Status</span>
+                        <span class="forum__filter-toggle-value" data-role="forum-filter-value">
+                            {{ $activeStatusName }}
+                        </span>
+                    </button>
+                    <div class="forum__filter-menu" role="listbox" data-role="forum-filter-menu" hidden>
+                        {{ range .ForumStatusFilters }}
+                        {{ $isActive := .Active }}
+                        <a
+                            class="forum__filter-option{{ if $isActive }} is-active{{ end }}"
+                            role="option"
+                            href="{{ .URL }}"
+                            {{- if $isActive }} aria-selected="true"{{ end }}
+                        >
+                            {{ .Name }}
+                        </a>
+                        {{ end }}
+                    </div>
+                </div>
+                {{ end }}
+            </div>
             <p class="forum__empty" data-role="forum-empty" {{ if gt (len $questions) 0 }}hidden{{ end }}>
                 No discussions yet. Be the first to ask a question.
             </p>

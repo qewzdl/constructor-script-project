@@ -14,7 +14,7 @@ type ForumQuestionRepository interface {
 	Delete(id uint) error
 	GetByID(id uint) (*models.ForumQuestion, error)
 	GetBySlug(slug string) (*models.ForumQuestion, error)
-	List(offset, limit int, search string, authorID *uint, categoryID *uint) ([]models.ForumQuestion, int64, error)
+	List(offset, limit int, search string, authorID *uint, categoryID *uint, status string) ([]models.ForumQuestion, int64, error)
 	ExistsBySlug(slug string) (bool, error)
 	IncrementViews(id uint) error
 }
@@ -87,7 +87,7 @@ func (r *forumQuestionRepository) GetBySlug(slug string) (*models.ForumQuestion,
 	return &question, nil
 }
 
-func (r *forumQuestionRepository) List(offset, limit int, search string, authorID *uint, categoryID *uint) ([]models.ForumQuestion, int64, error) {
+func (r *forumQuestionRepository) List(offset, limit int, search string, authorID *uint, categoryID *uint, status string) ([]models.ForumQuestion, int64, error) {
 	if r == nil || r.db == nil {
 		return nil, 0, gorm.ErrInvalidDB
 	}
@@ -107,6 +107,13 @@ func (r *forumQuestionRepository) List(offset, limit int, search string, authorI
 
 	if categoryID != nil {
 		query = query.Where("category_id = ?", *categoryID)
+	}
+
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "resolved", "answered":
+		query = query.Where("(SELECT COUNT(*) FROM forum_answers WHERE forum_answers.question_id = forum_questions.id AND forum_answers.deleted_at IS NULL) > 0")
+	case "unresolved", "unanswered":
+		query = query.Where("(SELECT COUNT(*) FROM forum_answers WHERE forum_answers.question_id = forum_questions.id AND forum_answers.deleted_at IS NULL) = 0")
 	}
 
 	var total int64

@@ -14,14 +14,14 @@
 }
 
 .forum__header {
-    display: grid;
+    gap: var(--size-base);
     gap: var(--size-base);
 }
 
 .forum__heading {
     display: grid;
     gap: var(--size-xs);
-    max-width: 720px;
+    width: 100%;
 }
 
 .forum__title {
@@ -35,9 +35,9 @@
 }
 
 .forum__search {
+    width: 100%;
     display: grid;
     gap: var(--size-xs);
-    width: min(100%, 520px);
 }
 
 .forum__search-label {
@@ -99,6 +99,15 @@
     background-color: var(--color-bg-top);
 }
 
+.forum__filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-xs);
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: var(--size-sm);
+}
+
 .forum__ask {
     margin-top: var(--size-max);
     padding: var(--size-base);
@@ -139,8 +148,7 @@
 .forum__filter-dropdown {
     position: relative;
     display: flex;
-    flex: 1 1 100%;
-    order: 3;
+    flex: 0 0 auto;
 }
 
 .forum__filter-toggle {
@@ -244,9 +252,7 @@
 
 @media (min-width: 768px) {
     .forum__filter-dropdown {
-        flex: 0 0 auto;
         min-width: 240px;
-        order: 0;
     }
 }
 
@@ -270,7 +276,7 @@
 }
 
 .forum__stat-value {
-    font-size: clamp(1.5rem, 1.4vw + 1.2rem, 2.2rem);
+    font-size: clamp(1.5rem, 1.4vw + 1.2rem, 1.8rem);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
 }

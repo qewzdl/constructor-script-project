@@ -47,6 +47,7 @@ type QuestionListOptions struct {
 	AuthorID     *uint
 	CategoryID   *uint
 	CategorySlug string
+	Status       string
 }
 
 func (s *QuestionService) List(page, limit int, opts QuestionListOptions) ([]models.ForumQuestion, int64, error) {
@@ -80,7 +81,8 @@ func (s *QuestionService) List(page, limit int, opts QuestionListOptions) ([]mod
 	}
 
 	search := strings.TrimSpace(opts.Search)
-	return s.questionRepo.List(offset, limit, search, opts.AuthorID, categoryID)
+	status := strings.TrimSpace(strings.ToLower(opts.Status))
+	return s.questionRepo.List(offset, limit, search, opts.AuthorID, categoryID, status)
 }
 
 func (s *QuestionService) GetByID(id uint) (*models.ForumQuestion, error) {

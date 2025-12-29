@@ -648,6 +648,7 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 	}
 
 	search := strings.TrimSpace(c.Query("search"))
+	status := strings.TrimSpace(strings.ToLower(c.Query("status")))
 	categorySlug := strings.TrimSpace(c.Query("category"))
 
 	var categories []models.ForumCategory
@@ -667,6 +668,10 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 				}
 			}
 		}
+	}
+
+	if status != "" && status != "resolved" && status != "unresolved" {
+		status = ""
 	}
 
 	var categoryID *uint
@@ -690,6 +695,7 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 		Search:       search,
 		CategoryID:   categoryID,
 		CategorySlug: categorySlug,
+		Status:       status,
 	}
 
 	questions, total, listErr := h.forumQuestionSvc.List(pageNumber, limit, options)
@@ -712,10 +718,39 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 		if search != "" {
 			params.Set("search", search)
 		}
+		if status != "" {
+			params.Set("status", status)
+		}
 		if slug != "" {
 			params.Set("category", slug)
 		} else if id != nil {
 			params.Set("category_id", strconv.FormatUint(uint64(*id), 10))
+		}
+		if limitParam != "" && limitParam != strconv.Itoa(limit) {
+			params.Set("limit", limitParam)
+		}
+		base := "/forum"
+		if len(params) == 0 {
+			return base
+		}
+		return base + "?" + params.Encode()
+	}
+
+	buildStatusURL := func(value string) string {
+		params := url.Values{}
+		if search != "" {
+			params.Set("search", search)
+		}
+		if categorySlug != "" {
+			params.Set("category", categorySlug)
+		} else if categoryID != nil {
+			params.Set("category_id", strconv.FormatUint(uint64(*categoryID), 10))
+		}
+		if value != "" {
+			params.Set("status", value)
+		}
+		if pageNumber > 1 {
+			params.Set("page", strconv.Itoa(pageNumber))
 		}
 		if limitParam != "" && limitParam != strconv.Itoa(limit) {
 			params.Set("limit", limitParam)
@@ -739,6 +774,9 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 		}
 		if p > 1 {
 			params.Set("page", strconv.Itoa(p))
+		}
+		if status != "" {
+			params.Set("status", status)
 		}
 		if limitParam != "" && limitParam != strconv.Itoa(limit) {
 			params.Set("limit", limitParam)
@@ -775,6 +813,9 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 	}
 	if pageNumber > 1 {
 		params.Set("page", strconv.Itoa(pageNumber))
+	}
+	if status != "" {
+		params.Set("status", status)
 	}
 	if limitParam != "" && limitParam != strconv.Itoa(limit) {
 		params.Set("limit", limitParam)
@@ -817,9 +858,40 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 		categoryFilters = append(categoryFilters, filter)
 	}
 
+	statusFilters := []gin.H{
+		{
+			"Name":   "All statuses",
+			"Value":  "",
+			"URL":    buildStatusURL(""),
+			"Active": status == "",
+		},
+		{
+			"Name":   "Resolved",
+			"Value":  "resolved",
+			"URL":    buildStatusURL("resolved"),
+			"Active": status == "resolved",
+		},
+		{
+			"Name":   "Unresolved",
+			"Value":  "unresolved",
+			"URL":    buildStatusURL("unresolved"),
+			"Active": status == "unresolved",
+		},
+	}
+	activeStatusName := "All statuses"
+	for _, filter := range statusFilters {
+		if isActive, ok := filter["Active"].(bool); ok && isActive {
+			if name, ok := filter["Name"].(string); ok && name != "" {
+				activeStatusName = name
+				break
+			}
+		}
+	}
+
 	extra := gin.H{
 		"ForumQuestions": questions,
 		"ForumSearch":    search,
+		"ForumStatus":    status,
 		"ForumTotal":     total,
 		"ForumPage": gin.H{
 			"Current":    pageNumber,
@@ -837,6 +909,8 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 		"ForumActiveCategorySlug": categorySlug,
 		"ForumCategoryFilters":    categoryFilters,
 		"ForumActiveCategoryName": activeFilterName,
+		"ForumStatusFilters":      statusFilters,
+		"ForumActiveStatusName":   activeStatusName,
 	}
 
 	if pagination != nil {
