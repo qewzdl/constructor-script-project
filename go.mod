@@ -15,6 +15,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.34.0
 	golang.org/x/crypto v0.42.0
+	golang.org/x/image v0.21.0
 	golang.org/x/text v0.29.0
 	golang.org/x/time v0.14.0
 	gorm.io/driver/postgres v1.6.0

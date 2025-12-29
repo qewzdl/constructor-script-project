@@ -25,6 +25,8 @@ type User struct {
 	Password string                 `gorm:"not null" json:"-"`
 	Role     authorization.UserRole `gorm:"type:varchar(32);default:'user'" json:"role"`
 
+	Avatar string `json:"avatar"`
+
 	Status string `gorm:"default:'active'" json:"status"`
 
 	Posts    []Post    `gorm:"foreignKey:AuthorID" json:"posts,omitempty"`

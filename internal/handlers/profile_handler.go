@@ -45,8 +45,9 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	userID := c.GetUint("user_id")
 
 	var req struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
+		Username string  `json:"username"`
+		Email    string  `json:"email"`
+		Avatar   *string `json:"avatar"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -54,13 +55,44 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.authService.UpdateProfile(userID, req.Username, req.Email)
+	user, err := h.authService.UpdateProfile(userID, req.Username, req.Email, req.Avatar)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
+func (h *AuthHandler) UploadAvatar(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		file, err = c.FormFile("file")
+	}
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no avatar uploaded"})
+		return
+	}
+
+	user, err := h.authService.UploadAvatar(userID, file)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrUploadMissing),
+			errors.Is(err, service.ErrUploadTooLarge),
+			errors.Is(err, service.ErrUnsupportedUpload):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user":   user,
+		"avatar": user.Avatar,
+	})
 }
 
 func (h *AuthHandler) ChangePassword(c *gin.Context) {

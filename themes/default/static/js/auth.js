@@ -3,6 +3,7 @@
     const COOKIE_NAME = "auth_token";
     const CSRF_COOKIE_NAME = "csrf_token";
     const TOKEN_TTL_SECONDS = 72 * 60 * 60;
+    const AVATAR_UPLOAD_ENDPOINT = "/api/v1/profile/avatar";
 
     const bodyElement = document.body;
     const parseBooleanAttribute = (value) => {
@@ -20,6 +21,22 @@
         : null;
 
     let serverAuthenticated = initialServerAuthState;
+    const avatarState = {
+        pendingFile: null,
+        previewUrl: null,
+    };
+
+    let avatarInput;
+    let avatarImage;
+    let avatarUrlField;
+    let avatarRemoveButton;
+    let profileUsernameInput;
+    let avatarPreview;
+
+    const isInitialAvatar = (url) => {
+        const trimmed = (url || "").trim();
+        return trimmed.startsWith("/uploads/avatar-initial-");
+    };
 
     const syncServerAuthState = (value) => {
         if (!bodyElement || typeof value !== "boolean") {
@@ -153,6 +170,190 @@
             element.disabled = disabled;
         });
         form.classList.toggle("is-disabled", disabled);
+    };
+
+    const setAvatarValue = (value) => {
+        if (avatarUrlField) {
+            avatarUrlField.value = value || "";
+        }
+    };
+
+    const ensureAvatarImage = () => {
+        if (avatarImage && avatarImage.isConnected) {
+            return avatarImage;
+        }
+        if (!avatarPreview) {
+            return null;
+        }
+        const img = document.createElement("img");
+        img.className = "profile-avatar__image";
+        img.loading = "lazy";
+        img.setAttribute("data-avatar-image", "");
+        img.alt = "Profile avatar";
+        avatarPreview.appendChild(img);
+        avatarImage = img;
+        return img;
+    };
+
+    const removeAvatarImage = () => {
+        if (avatarImage && avatarImage.parentElement) {
+            avatarImage.parentElement.removeChild(avatarImage);
+        }
+        avatarImage = null;
+    };
+
+    const renderAvatar = (url, { commitValue = true } = {}) => {
+        const trimmed = (url || "").trim();
+        const hasAvatar = Boolean(trimmed);
+        const placeholderAvatar = isInitialAvatar(trimmed);
+        if (commitValue) {
+            setAvatarValue(trimmed);
+        }
+        if (hasAvatar) {
+            const img = ensureAvatarImage();
+            if (img) {
+                img.src = trimmed;
+                img.hidden = false;
+            }
+        } else {
+            removeAvatarImage();
+        }
+        if (avatarRemoveButton) {
+            const hideRemove = !hasAvatar || placeholderAvatar;
+            avatarRemoveButton.hidden = hideRemove;
+            avatarRemoveButton.disabled = hideRemove;
+        }
+    };
+
+    const revokeAvatarPreviewURL = () => {
+        if (avatarState.previewUrl) {
+            if (avatarState.previewUrl.startsWith("blob:")) {
+                URL.revokeObjectURL(avatarState.previewUrl);
+            }
+            avatarState.previewUrl = null;
+        }
+    };
+
+    const previewAvatarFile = (file) => {
+        avatarState.pendingFile = file || null;
+        revokeAvatarPreviewURL();
+
+        if (!file) {
+            renderAvatar(avatarUrlField ? avatarUrlField.value : "", { commitValue: false });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+            avatarState.previewUrl = typeof reader.result === "string" ? reader.result : "";
+            renderAvatar(avatarState.previewUrl, { commitValue: false });
+            if (avatarRemoveButton) {
+                avatarRemoveButton.hidden = false;
+                avatarRemoveButton.disabled = false;
+            }
+        });
+        reader.addEventListener("error", () => {
+            avatarState.previewUrl = null;
+            setAlert("profile-details-alert", "Failed to preview avatar. Try another file.", "error");
+        });
+        reader.readAsDataURL(file);
+    };
+
+    const populateAvatarFromUser = (user) => {
+        const avatar = (user && user.avatar) || "";
+        avatarState.pendingFile = null;
+        revokeAvatarPreviewURL();
+        renderAvatar(avatar, { commitValue: true });
+    };
+
+    const uploadPendingAvatar = async () => {
+        if (!avatarState.pendingFile) {
+            return avatarUrlField ? avatarUrlField.value.trim() : "";
+        }
+
+        const formData = new FormData();
+        formData.append("avatar", avatarState.pendingFile);
+
+        const payload = await apiRequest(AVATAR_UPLOAD_ENDPOINT, {
+            method: "POST",
+            body: formData,
+        });
+
+        const newAvatar =
+            (payload && (payload.avatar || (payload.user && payload.user.avatar))) || "";
+
+        avatarState.pendingFile = null;
+        revokeAvatarPreviewURL();
+        renderAvatar(newAvatar, { commitValue: true });
+        if (avatarInput) {
+            avatarInput.value = "";
+        }
+
+        return newAvatar;
+    };
+
+    const handleAvatarRemove = async (event) => {
+        if (event) {
+            event.preventDefault();
+        }
+
+        const profileForm = document.getElementById("profile-form");
+        const emailInput = document.getElementById("profile-email");
+        const alertId = "profile-details-alert";
+        const username = profileUsernameInput ? profileUsernameInput.value.trim() : "";
+        const email = emailInput ? emailInput.value.trim() : "";
+
+        if (!username || !email) {
+            setAlert(alertId, "Username and email cannot be empty.", "error");
+            return;
+        }
+
+        if (avatarRemoveButton) {
+            avatarRemoveButton.disabled = true;
+        }
+        if (profileForm) {
+            toggleFormDisabled(profileForm, true);
+        }
+
+        try {
+            const payload = await apiRequest("/api/v1/profile", {
+                method: "PUT",
+                body: JSON.stringify({ username, email, avatar: "" }),
+            });
+
+            if (payload && payload.user) {
+                populateAvatarFromUser(payload.user);
+                if (profileUsernameInput) {
+                    profileUsernameInput.value = payload.user.username || profileUsernameInput.value;
+                }
+                if (emailInput) {
+                    emailInput.value = payload.user.email || email;
+                }
+            } else {
+                renderAvatar("", { commitValue: true });
+            }
+
+            if (avatarInput) {
+                avatarInput.value = "";
+            }
+
+            setAlert(alertId, "Avatar removed. Placeholder applied.", "info");
+        } catch (error) {
+            if (error.status === 401) {
+                Auth.clearToken();
+                updateNavVisibility(false);
+                window.location.href = "/login?redirect=/profile";
+                return;
+            }
+            setAlert(alertId, error.message || "Failed to remove avatar.", "error");
+        } finally {
+            if (profileForm) {
+                toggleFormDisabled(profileForm, false);
+            }
+            if (avatarRemoveButton) {
+                avatarRemoveButton.disabled = false;
+            }
+        }
     };
 
     const initPasswordToggles = () => {
@@ -477,6 +678,7 @@
 
         const username = form.username.value.trim();
         const email = form.email.value.trim();
+        let avatarValue = avatarUrlField ? avatarUrlField.value : undefined;
 
         if (!username || !email) {
             setAlert(alertId, "Username and email cannot be empty.", "error");
@@ -486,15 +688,25 @@
         toggleFormDisabled(form, true);
 
         try {
+            if (avatarState.pendingFile) {
+                avatarValue = await uploadPendingAvatar();
+            }
+
+            const body = { username, email };
+            if (typeof avatarValue === "string") {
+                body.avatar = avatarValue;
+            }
+
             const payload = await apiRequest(form.dataset.action, {
                 method: "PUT",
-                body: JSON.stringify({ username, email }),
+                body: JSON.stringify(body),
             });
 
             if (payload && payload.user) {
                 const { username: updatedUsername, email: updatedEmail } = payload.user;
                 form.username.value = updatedUsername;
                 form.email.value = updatedEmail;
+                populateProfileFromResponse(payload.user);
             }
 
             setAlert(alertId, "Profile updated successfully.", "success");
@@ -818,6 +1030,11 @@
         if (user && roleField) {
             roleField.value = user.role || "user";
         }
+        if (user) {
+            populateAvatarFromUser(user);
+        } else {
+            populateAvatarFromUser(null);
+        }
     };
 
     const loadProfileData = async () => {
@@ -855,10 +1072,17 @@
         updateNavVisibility();
         initPasswordToggles();
 
-        const logoutButton = document.getElementById("logout-button");
-        if (logoutButton) {
-            logoutButton.addEventListener("click", handleLogout);
+        const logoutButtons = [];
+        const legacyLogoutButton = document.getElementById("logout-button");
+        if (legacyLogoutButton) {
+            logoutButtons.push(legacyLogoutButton);
         }
+        document.querySelectorAll("[data-profile-logout]").forEach((button) => {
+            logoutButtons.push(button);
+        });
+        logoutButtons.forEach((button) => {
+            button.addEventListener("click", handleLogout);
+        });
 
         const loginForm = document.getElementById("login-form");
         if (loginForm) {
@@ -892,12 +1116,51 @@
         const profileForm = document.getElementById("profile-form");
         const passwordForm = document.getElementById("password-form");
         const profilePage = document.querySelector('[data-page="profile"], .page-view--profile');
+        avatarInput = document.querySelector("[data-avatar-input]");
+        avatarPreview = document.querySelector("[data-avatar-preview]");
+        avatarImage = document.querySelector("[data-avatar-image]");
+        avatarUrlField = document.querySelector("[data-avatar-url]");
+        avatarRemoveButton = document.querySelector("[data-avatar-remove]");
+        profileUsernameInput = document.getElementById("profile-username");
 
         if (profilePage) {
             if (!Auth.getToken() && serverAuthenticated !== true) {
                 window.location.href = "/login?redirect=/profile";
                 return;
             }
+
+            if (avatarUrlField) {
+                renderAvatar(avatarUrlField.value, { commitValue: true });
+            }
+
+        if (avatarInput) {
+            avatarInput.addEventListener("change", (event) => {
+                const [file] = event.target.files || [];
+                if (file) {
+                    previewAvatarFile(file);
+                        setAlert(
+                            "profile-details-alert",
+                            "Avatar selected. Save changes to apply.",
+                            "info"
+                        );
+                } else {
+                    previewAvatarFile(null);
+                }
+            });
+        }
+
+        document.querySelectorAll("[data-avatar-trigger]").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.preventDefault();
+                if (avatarInput) {
+                    avatarInput.click();
+                }
+            });
+        });
+
+        if (avatarRemoveButton) {
+            avatarRemoveButton.addEventListener("click", handleAvatarRemove);
+        }
 
             initProfileTabs();
             loadProfileData();

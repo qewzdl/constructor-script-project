@@ -1008,6 +1008,7 @@ func (a *Application) initServices() {
 		a.repositories.PasswordResetToken,
 		emailService,
 		a.repositories.Setting,
+		uploadService,
 		a.cfg.JWTSecret,
 		a.cfg,
 	)
@@ -1336,6 +1337,7 @@ func (a *Application) initRouter() error {
 
 			protected.GET("/profile", a.handlers.Auth.GetProfile)
 			protected.PUT("/profile", a.handlers.Auth.UpdateProfile)
+			protected.POST("/profile/avatar", middleware.UploadRateLimitMiddleware(a.cfg), a.handlers.Auth.UploadAvatar)
 			protected.PUT("/profile/password", a.handlers.Auth.ChangePassword)
 			protected.POST("/courses/checkout", a.handlers.CourseCheckout.CreateSession)
 			protected.POST("/courses/checkout/verify", a.handlers.CourseCheckout.VerifySession)

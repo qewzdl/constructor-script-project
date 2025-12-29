@@ -45,6 +45,7 @@ func renderProfileAccount(ctx RenderContext, prefix string, elem models.SectionE
 		action = "/api/v1/profile"
 	}
 
+	avatar := strings.TrimSpace(getString(content, "avatar"))
 	username := getString(content, "username")
 	email := getString(content, "email")
 	role := getString(content, "role")
@@ -68,6 +69,26 @@ func renderProfileAccount(ctx RenderContext, prefix string, elem models.SectionE
 	sb.WriteString(`<form id="profile-form" class="profile-form" method="post" data-action="`)
 	sb.WriteString(template.HTMLEscapeString(action))
 	sb.WriteString(`" novalidate>`)
+
+	sb.WriteString(`<div class="profile-avatar" data-profile-avatar>`)
+	sb.WriteString(`<button type="button" class="profile-avatar__preview" data-avatar-preview data-avatar-trigger aria-label="Change avatar">`)
+	if strings.TrimSpace(avatar) != "" {
+		sb.WriteString(`<img src="`)
+		sb.WriteString(template.HTMLEscapeString(avatar))
+		sb.WriteString(`" alt="Profile avatar" class="profile-avatar__image" loading="lazy" data-avatar-image />`)
+	}
+	sb.WriteString(`</button>`)
+	sb.WriteString(`<div class="profile-avatar__controls">`)
+	sb.WriteString(`<div class="profile-avatar__buttons">`)
+	sb.WriteString(`<button type="button" class="button button--ghost profile-avatar__remove" data-avatar-remove aria-label="Remove avatar">Remove avatar</button>`)
+	sb.WriteString(`</div>`)
+	sb.WriteString(`<p class="profile-avatar__hint">Use JPG, PNG, or WEBP up to 10MB.</p>`)
+	sb.WriteString(`<input type="file" id="profile-avatar-input" name="avatar" accept="image/*" data-avatar-input hidden />`)
+	sb.WriteString(`<input type="hidden" id="profile-avatar-url" name="avatar_url" value="`)
+	sb.WriteString(template.HTMLEscapeString(avatar))
+	sb.WriteString(`" data-avatar-url />`)
+	sb.WriteString(`</div>`)
+	sb.WriteString(`</div>`)
 
 	sb.WriteString(`<div class="form-grid">`)
 	sb.WriteString(`<div class="form-field">`)

@@ -23,6 +23,55 @@
         data-action="{{ .ProfileAction }}"
         novalidate
     >
+        <div class="profile-avatar" data-profile-avatar>
+            <button
+                type="button"
+                class="profile-avatar__preview"
+                data-avatar-preview
+                data-avatar-trigger
+                aria-label="Change avatar"
+            >
+                {{ if and .CurrentUser (ne .CurrentUser.Avatar "") }}
+                <img
+                    src="{{ .CurrentUser.Avatar }}"
+                    alt="Profile avatar"
+                    class="profile-avatar__image"
+                    loading="lazy"
+                    data-avatar-image
+                />
+                {{ end }}
+            </button>
+            <div class="profile-avatar__controls">
+                <div class="profile-avatar__buttons">
+                    <button
+                        type="button"
+                        class="button button--ghost profile-avatar__remove"
+                        data-avatar-remove
+                        aria-label="Remove avatar"
+                    >
+                        Remove avatar
+                    </button>
+                </div>
+                <p class="profile-avatar__hint">
+                    Use JPG, PNG, or WEBP up to 10MB.
+                </p>
+                <input
+                    type="file"
+                    id="profile-avatar-input"
+                    name="avatar"
+                    accept="image/*"
+                    data-avatar-input
+                    hidden
+                />
+                <input
+                    type="hidden"
+                    id="profile-avatar-url"
+                    name="avatar_url"
+                    value="{{ if .CurrentUser }}{{ .CurrentUser.Avatar }}{{ end }}"
+                    data-avatar-url
+                />
+            </div>
+        </div>
         <div class="form-grid">
             <div class="form-field">
                 <label class="form-field__label" for="profile-username"

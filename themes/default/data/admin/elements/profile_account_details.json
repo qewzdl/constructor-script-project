@@ -2,5 +2,5 @@
     "type": "profile_account_details",
     "label": "Account details form",
     "order": 60,
-    "description": "Profile form for updating username, email, and role."
+    "description": "Profile form for updating avatar, username, email, and role."
 }

@@ -1697,6 +1697,7 @@ func applyProfileUserContext(sections models.PostSections, user *models.User, co
 	username := ""
 	email := ""
 	role := "user"
+	avatar := ""
 	if user != nil {
 		if trimmed := strings.TrimSpace(user.Username); trimmed != "" {
 			username = trimmed
@@ -1706,6 +1707,9 @@ func applyProfileUserContext(sections models.PostSections, user *models.User, co
 		}
 		if trimmed := strings.TrimSpace(string(user.Role)); trimmed != "" {
 			role = trimmed
+		}
+		if trimmed := strings.TrimSpace(user.Avatar); trimmed != "" {
+			avatar = trimmed
 		}
 	}
 
@@ -1740,6 +1744,7 @@ func applyProfileUserContext(sections models.PostSections, user *models.User, co
 				content["username"] = username
 				content["email"] = email
 				content["role"] = role
+				content["avatar"] = avatar
 			case "profile_security":
 				content := ensureContentMap(element)
 				content["action"] = "/api/v1/profile/password"
@@ -2613,13 +2618,13 @@ func (h *TemplateHandler) builderConfigJSON() template.JS {
 	}
 
 	config := gin.H{
-		"paddingOptions":        constants.SectionPaddingOptions(),
-		"marginOptions":         constants.SectionMarginOptions(),
-		"defaultSectionPadding": defaultPadding,
-		"defaultSectionMargin":  constants.DefaultSectionMargin,
-		"sectionAnimations":     constants.SectionAnimationOptions(),
+		"paddingOptions":          constants.SectionPaddingOptions(),
+		"marginOptions":           constants.SectionMarginOptions(),
+		"defaultSectionPadding":   defaultPadding,
+		"defaultSectionMargin":    constants.DefaultSectionMargin,
+		"sectionAnimations":       constants.SectionAnimationOptions(),
 		"defaultSectionAnimation": constants.DefaultSectionAnimation,
-		"defaultAnimationBlur":  constants.DefaultSectionAnimationBlur,
+		"defaultAnimationBlur":    constants.DefaultSectionAnimationBlur,
 	}
 
 	configJSON, err := json.Marshal(config)

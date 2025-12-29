@@ -7,8 +7,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"mime/multipart"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -22,12 +24,13 @@ import (
 )
 
 type AuthService struct {
-	userRepo     repository.UserRepository
-	resetRepo    repository.PasswordResetTokenRepository
-	emailService *EmailService
-	jwtSecret    string
-	config       *config.Config
-	settingRepo  repository.SettingRepository
+	userRepo      repository.UserRepository
+	resetRepo     repository.PasswordResetTokenRepository
+	emailService  *EmailService
+	uploadService *UploadService
+	jwtSecret     string
+	config        *config.Config
+	settingRepo   repository.SettingRepository
 }
 
 var (
@@ -61,16 +64,18 @@ func NewAuthService(
 	resetRepo repository.PasswordResetTokenRepository,
 	emailService *EmailService,
 	settingRepo repository.SettingRepository,
+	uploadService *UploadService,
 	jwtSecret string,
 	cfg *config.Config,
 ) *AuthService {
 	return &AuthService{
-		userRepo:     userRepo,
-		resetRepo:    resetRepo,
-		emailService: emailService,
-		jwtSecret:    jwtSecret,
-		config:       cfg,
-		settingRepo:  settingRepo,
+		userRepo:      userRepo,
+		resetRepo:     resetRepo,
+		emailService:  emailService,
+		uploadService: uploadService,
+		jwtSecret:     jwtSecret,
+		config:        cfg,
+		settingRepo:   settingRepo,
 	}
 }
 
@@ -111,6 +116,13 @@ func (s *AuthService) Register(req models.RegisterRequest) (*models.User, error)
 		return nil, err
 	}
 
+	if err := s.ensureUserAvatar(user); err != nil {
+		logger.Warn("Failed to assign placeholder avatar for new user", map[string]interface{}{
+			"user_id": user.ID,
+			"error":   err.Error(),
+		})
+	}
+
 	return user, nil
 }
 
@@ -122,6 +134,13 @@ func (s *AuthService) Login(req models.LoginRequest) (string, *models.User, erro
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		return "", nil, errors.New("invalid credentials")
+	}
+
+	if err := s.ensureUserAvatar(user); err != nil {
+		logger.Warn("Failed to assign placeholder avatar during login", map[string]interface{}{
+			"user_id": user.ID,
+			"error":   err.Error(),
+		})
 	}
 
 	token, err := s.generateToken(user)
@@ -187,33 +206,104 @@ func (s *AuthService) UpdateUserRole(id uint, role string) error {
 }
 
 func (s *AuthService) GetUserByID(id uint) (*models.User, error) {
-	return s.userRepo.GetByID(id)
-}
-
-func (s *AuthService) UpdateProfile(userID uint, username, email string) (*models.User, error) {
-	user, err := s.userRepo.GetByID(userID)
+	user, err := s.userRepo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if username != user.Username {
-		existingUser, _ := s.userRepo.GetByUsername(username)
-		if existingUser != nil {
-			return nil, errors.New("username already taken")
-		}
-		user.Username = username
+	if err := s.ensureUserAvatar(user); err != nil {
+		logger.Warn("Failed to ensure user avatar", map[string]interface{}{
+			"user_id": id,
+			"error":   err.Error(),
+		})
 	}
 
-	if email != user.Email {
-		existingUser, _ := s.userRepo.GetByEmail(email)
-		if existingUser != nil {
+	return user, nil
+}
+
+func (s *AuthService) UpdateProfile(userID uint, username, email string, avatar *string) (*models.User, error) {
+	user, err := s.GetUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	currentAvatar := strings.TrimSpace(user.Avatar)
+	avatarChanged := false
+	var oldAvatar string
+
+	trimmedUsername := strings.TrimSpace(username)
+	if trimmedUsername != "" && trimmedUsername != user.Username {
+		existingUser, _ := s.userRepo.GetByUsername(trimmedUsername)
+		if existingUser != nil && existingUser.ID != user.ID {
+			return nil, errors.New("username already taken")
+		}
+		user.Username = trimmedUsername
+	}
+
+	trimmedEmail := strings.TrimSpace(email)
+	if trimmedEmail != "" && trimmedEmail != user.Email {
+		existingUser, _ := s.userRepo.GetByEmail(trimmedEmail)
+		if existingUser != nil && existingUser.ID != user.ID {
 			return nil, errors.New("email already taken")
 		}
-		user.Email = email
+		user.Email = trimmedEmail
+	}
+
+	if avatar != nil {
+		newAvatar := strings.TrimSpace(*avatar)
+		if newAvatar != currentAvatar {
+			oldAvatar = currentAvatar
+			user.Avatar = newAvatar
+			avatarChanged = true
+		}
 	}
 
 	if err := s.userRepo.Update(user); err != nil {
 		return nil, err
+	}
+
+	if avatarChanged && s.uploadService != nil && oldAvatar != "" && oldAvatar != user.Avatar && s.uploadService.IsManagedURL(oldAvatar) && !s.uploadService.IsInitialAvatar(oldAvatar) {
+		if err := s.uploadService.DeleteUpload(oldAvatar); err != nil {
+			logger.Warn("Failed to delete old avatar", map[string]interface{}{"user_id": user.ID, "avatar": oldAvatar, "error": err.Error()})
+		}
+	}
+
+	if err := s.ensureUserAvatar(user); err != nil {
+		logger.Warn("Failed to ensure user avatar after update", map[string]interface{}{
+			"user_id": user.ID,
+			"error":   err.Error(),
+		})
+	}
+
+	return user, nil
+}
+
+func (s *AuthService) UploadAvatar(userID uint, file *multipart.FileHeader) (*models.User, error) {
+	if s.uploadService == nil {
+		return nil, errUploadServiceMissing
+	}
+	if file == nil {
+		return nil, ErrUploadMissing
+	}
+
+	preferredName := fmt.Sprintf("avatar-%d", userID)
+	url, _, err := s.uploadService.UploadImage(file, preferredName)
+	if err != nil {
+		return nil, err
+	}
+
+	user, updateErr := s.UpdateProfile(userID, "", "", &url)
+	if updateErr != nil {
+		if s.uploadService.IsManagedURL(url) {
+			if deleteErr := s.uploadService.DeleteUpload(url); deleteErr != nil {
+				logger.Warn("Failed to rollback uploaded avatar after update error", map[string]interface{}{
+					"user_id": userID,
+					"avatar":  url,
+					"error":   deleteErr.Error(),
+				})
+			}
+		}
+		return nil, updateErr
 	}
 
 	return user, nil
@@ -257,7 +347,7 @@ func (s *AuthService) RefreshToken(refreshToken string) (string, *models.User, e
 	}
 
 	userID := uint(claims["user_id"].(float64))
-	user, err := s.userRepo.GetByID(userID)
+	user, err := s.GetUserByID(userID)
 	if err != nil {
 		return "", nil, err
 	}
@@ -268,6 +358,44 @@ func (s *AuthService) RefreshToken(refreshToken string) (string, *models.User, e
 	}
 
 	return newToken, user, nil
+}
+
+func (s *AuthService) ensureUserAvatar(user *models.User) error {
+	if s == nil || user == nil {
+		return nil
+	}
+
+	if s.uploadService == nil {
+		return nil
+	}
+
+	if strings.TrimSpace(user.Avatar) != "" {
+		return nil
+	}
+
+	initial := ""
+	if trimmed := strings.TrimSpace(user.Username); trimmed != "" {
+		r, _ := utf8.DecodeRuneInString(trimmed)
+		if r != utf8.RuneError {
+			initial = string(r)
+		}
+	}
+
+	if initial == "" {
+		return nil
+	}
+
+	url, err := s.uploadService.EnsureInitialAvatar(initial)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(url) == "" || strings.TrimSpace(user.Avatar) == url {
+		return nil
+	}
+
+	user.Avatar = url
+	return s.userRepo.Update(user)
 }
 
 func (s *AuthService) UpdateUserStatus(userID uint, status string) error {
