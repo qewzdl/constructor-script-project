@@ -48,7 +48,7 @@
 
 .forum__search-controls {
     display: flex;
-    gap: var(--size-xs);
+    gap: var(--size-sm);
 }
 
 .forum__search-input {
