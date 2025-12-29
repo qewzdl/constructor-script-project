@@ -208,10 +208,18 @@
                     type: 'select',
                     options: [
                         { value: 'limited', label: 'Limited (latest posts)' },
+                        { value: 'carousel', label: 'Carousel' },
                         { value: 'paginated', label: 'Paginated (all posts)' },
                         { value: 'selected', label: 'Selected posts' },
                     ],
                     defaultValue: 'limited',
+                },
+                carousel_columns: {
+                    label: 'Columns in carousel',
+                    type: 'range',
+                    min: 1,
+                    max: 4,
+                    default: 3,
                 },
                 limit: {
                     label: 'Number of posts to display',
@@ -242,10 +250,18 @@
                     type: 'select',
                     options: [
                         { value: 'limited', label: 'Limited (latest courses)' },
+                        { value: 'carousel', label: 'Carousel' },
                         { value: 'paginated', label: 'Paginated (all courses)' },
                         { value: 'selected', label: 'Selected courses' },
                     ],
                     defaultValue: 'limited',
+                },
+                carousel_columns: {
+                    label: 'Columns in carousel',
+                    type: 'range',
+                    min: 1,
+                    max: 4,
+                    default: 3,
                 },
                 limit: {
                     label: 'Number of courses to display',

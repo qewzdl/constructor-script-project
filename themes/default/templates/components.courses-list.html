@@ -1,11 +1,37 @@
 {{ define "components/courses-list" }}
     {{- $hasList := and .ListClass .Cards }}
     {{- if $hasList }}
+        {{- if .Carousel }}
+    <div class="{{ .ListClass }} content-carousel"{{ if .Carousel.ID }} id="{{ .Carousel.ID }}"{{ end }}{{ if gt .Carousel.Columns 0 }} style="--carousel-columns: {{ .Carousel.Columns }}"{{ end }}{{ if gt .Carousel.Columns 0 }} data-carousel-columns="{{ .Carousel.Columns }}"{{ end }} data-carousel>
+        <div class="content-carousel__viewport" aria-label="{{ default "Courses carousel" .Carousel.Label }}">
+            <div class="content-carousel__track" data-carousel-track>
+                {{- range .Cards }}
+                <div class="content-carousel__slide">
+                    {{- template "components/course-card" . }}
+                </div>
+                {{- end }}
+            </div>
+        </div>
+        <div class="content-carousel__controls">
+            <button class="content-carousel__button content-carousel__button--prev" type="button" aria-label="{{ default "Previous course" .Carousel.PrevLabel }}" data-carousel-prev>
+                <svg class="content-carousel__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                    <path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </button>
+            <button class="content-carousel__button content-carousel__button--next" type="button" aria-label="{{ default "Next course" .Carousel.NextLabel }}" data-carousel-next>
+                <svg class="content-carousel__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                    <path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+        {{- else }}
     <div class="{{ .ListClass }}">
         {{- range .Cards }}
             {{- template "components/course-card" . }}
         {{- end }}
     </div>
+        {{- end }}
     {{- end }}
     {{- if and $hasList (or .Pagination .SeeAll) }}
     <div class="courses-list__actions">

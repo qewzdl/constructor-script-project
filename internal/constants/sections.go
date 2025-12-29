@@ -19,6 +19,8 @@ const (
 	PostListDisplayPaginated = "paginated"
 	// PostListDisplaySelected shows only administrator-selected posts (with optional pagination).
 	PostListDisplaySelected = "selected"
+	// PostListDisplayCarousel shows posts inside a horizontal carousel.
+	PostListDisplayCarousel = "carousel"
 
 	// DefaultCourseListSectionLimit defines the default number of courses shown in a course list section.
 	DefaultCourseListSectionLimit = 3
@@ -36,6 +38,15 @@ const (
 	CourseListDisplayPaginated = "paginated"
 	// CourseListDisplaySelected shows only administrator-selected courses (with optional pagination).
 	CourseListDisplaySelected = "selected"
+	// CourseListDisplayCarousel shows courses inside a horizontal carousel.
+	CourseListDisplayCarousel = "carousel"
+
+	// DefaultCarouselColumns defines how many items are shown in a carousel by default.
+	DefaultCarouselColumns = 3
+	// MinCarouselColumns sets the lower bound for carousel column count.
+	MinCarouselColumns = 1
+	// MaxCarouselColumns sets the upper bound for carousel column count.
+	MaxCarouselColumns = 4
 
 	// DefaultSectionPadding defines the default vertical padding (in pixels) applied to newly created sections.
 	DefaultSectionPadding = 64

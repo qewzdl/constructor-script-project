@@ -397,6 +397,15 @@ type coursesListTemplateData struct {
 	Cards      []courseCardTemplateData
 	Pagination gin.H
 	SeeAll     *coursesListSeeAll
+	Carousel   *carouselTemplateData
+}
+
+type carouselTemplateData struct {
+	ID        string
+	Label     string
+	PrevLabel string
+	NextLabel string
+	Columns   int
 }
 
 type profileCoursesTemplateData struct {
@@ -419,6 +428,7 @@ const defaultCoursesListSeeAllLabel = "All courses"
 type courseListRenderOptions struct {
 	Pagination gin.H
 	SeeAll     *coursesListSeeAll
+	Carousel   *carouselTemplateData
 }
 
 type courseListDisplaySettings struct {
@@ -429,10 +439,12 @@ type courseListDisplaySettings struct {
 	AllCoursesLabel     string
 	SelectedIdentifiers []string
 	PageParam           string
+	CarouselColumns     int
 }
 
 type postsListRenderOptions struct {
 	Pagination gin.H
+	Carousel   *carouselTemplateData
 }
 
 type postListDisplaySettings struct {
@@ -440,6 +452,7 @@ type postListDisplaySettings struct {
 	PerPage             int
 	SelectedIdentifiers []string
 	PageParam           string
+	CarouselColumns     int
 }
 
 func (h *TemplateHandler) renderCoursesListSection(prefix string, section models.Section, c *gin.Context) string {
@@ -481,6 +494,13 @@ func (h *TemplateHandler) renderCatalogCoursesList(prefix string, section models
 	case constants.CourseListDisplaySelected:
 		selected := filterSelectedPackages(packages, settings.SelectedIdentifiers)
 		return h.renderPaginatedCoursesList(prefix, section, selected, settings, c)
+	case constants.CourseListDisplayCarousel:
+		selected := filterSelectedPackages(packages, settings.SelectedIdentifiers)
+		courseList := packages
+		if len(selected) > 0 {
+			courseList = selected
+		}
+		return h.renderCarouselCoursesList(prefix, section, courseList, settings)
 	default:
 		return h.renderLimitedCoursesList(prefix, section, packages, settings.PerPage)
 	}
@@ -635,24 +655,55 @@ func (h *TemplateHandler) renderPaginatedCoursesList(prefix string, section mode
 		return buildCourseListPageURL(c, settings.PageParam, page)
 	})
 
-	var seeAll *coursesListSeeAll
-	if settings.ShowAllButton {
-		link := strings.TrimSpace(settings.AllCoursesURL)
-		if link != "" {
-			label := strings.TrimSpace(settings.AllCoursesLabel)
-			if label == "" {
-				label = defaultCoursesListSeeAllLabel
-			}
-			seeAll = &coursesListSeeAll{
-				URL:   link,
-				Label: label,
-			}
-		}
-	}
+	seeAll := buildCoursesSeeAll(settings)
 
 	return h.renderCourseListContent(prefix, section, pagePackages, courseListRenderOptions{
 		Pagination: pagination,
 		SeeAll:     seeAll,
+	})
+}
+
+func buildCoursesSeeAll(settings courseListDisplaySettings) *coursesListSeeAll {
+	if !settings.ShowAllButton {
+		return nil
+	}
+
+	link := strings.TrimSpace(settings.AllCoursesURL)
+	if link == "" {
+		return nil
+	}
+
+	label := strings.TrimSpace(settings.AllCoursesLabel)
+	if label == "" {
+		label = defaultCoursesListSeeAllLabel
+	}
+
+	return &coursesListSeeAll{
+		URL:   link,
+		Label: label,
+	}
+}
+
+func (h *TemplateHandler) renderCarouselCoursesList(prefix string, section models.Section, packages []models.CoursePackage, settings courseListDisplaySettings) string {
+	emptyClass := fmt.Sprintf("%s__course-list-empty courses-list__empty", prefix)
+
+	if len(packages) == 0 {
+		return `<p class="` + emptyClass + `">No courses available yet. Check back soon!</p>`
+	}
+
+	limit := clampCourseListLimit(settings.PerPage)
+	if limit <= 0 {
+		limit = clampCourseListLimit(constants.DefaultCourseListSectionLimit)
+	}
+	if limit > 0 && limit < len(packages) {
+		packages = packages[:limit]
+	}
+
+	carousel := buildCarouselData(prefix, section, "Courses carousel", "Previous course", "Next course", settings.CarouselColumns)
+
+	return h.renderCourseListContent(prefix, section, packages, courseListRenderOptions{
+		Carousel: carousel,
+		SeeAll:   buildCoursesSeeAll(settings),
 	})
 }
 
@@ -678,6 +729,10 @@ func (h *TemplateHandler) renderCourseListContent(prefix string, section models.
 	data := coursesListTemplateData{
 		ListClass: listClass,
 		Cards:     cards,
+	}
+	if opts.Carousel != nil {
+		data.Carousel = normaliseCarouselData(opts.Carousel, prefix, "courses", "Courses carousel", "Previous course", "Next course")
+		data.ListClass = strings.TrimSpace(listClass + " courses-list--carousel")
 	}
 
 	if len(opts.Pagination) > 0 {
@@ -717,6 +772,8 @@ func (h *TemplateHandler) renderPostsListSection(prefix string, section models.S
 		return h.renderPaginatedPostsList(prefix, section, settings, c)
 	case constants.PostListDisplaySelected:
 		return h.renderSelectedPostsList(prefix, settings, c)
+	case constants.PostListDisplayCarousel:
+		return h.renderCarouselPostsList(prefix, section, settings)
 	default:
 		return h.renderLimitedPostsList(prefix, section, settings.PerPage)
 	}
@@ -828,6 +885,39 @@ func (h *TemplateHandler) renderSelectedPostsList(prefix string, settings postLi
 	})
 }
 
+func (h *TemplateHandler) renderCarouselPostsList(prefix string, section models.Section, settings postListDisplaySettings) string {
+	emptyClass := fmt.Sprintf("%s__post-list-empty posts-list__empty", prefix)
+	postSvc := h.postService
+	if postSvc == nil {
+		return `<p class="` + emptyClass + `">Posts are not available right now.</p>`
+	}
+
+	limit := clampPostListLimit(settings.PerPage)
+	if limit <= 0 {
+		limit = constants.DefaultPostListSectionLimit
+	}
+
+	posts := h.loadSelectedPosts(settings.SelectedIdentifiers)
+	if len(posts) == 0 {
+		recent, err := postSvc.GetRecentPosts(limit)
+		if err != nil {
+			logger.Error(err, "Failed to load posts for section", map[string]interface{}{"section_id": section.ID})
+			return `<p class="` + emptyClass + `">Unable to load posts at the moment. Please try again later.</p>`
+		}
+		posts = recent
+	}
+
+	if limit > 0 && limit < len(posts) {
+		posts = posts[:limit]
+	}
+
+	carousel := buildCarouselData(prefix, section, "Posts carousel", "Previous post", "Next post", settings.CarouselColumns)
+
+	return h.renderPostListContent(prefix, posts, postsListRenderOptions{
+		Carousel: carousel,
+	})
+}
+
 func (h *TemplateHandler) renderPostListContent(prefix string, posts []models.Post, opts postsListRenderOptions) string {
 	emptyClass := fmt.Sprintf("%s__post-list-empty posts-list__empty", prefix)
 	if len(posts) == 0 {
@@ -842,35 +932,89 @@ func (h *TemplateHandler) renderPostListContent(prefix string, posts []models.Po
 
 	listClass := fmt.Sprintf("%s__post-list posts-list", prefix)
 	cardClass := fmt.Sprintf("%s__post-card post-card", prefix)
+	carousel := opts.Carousel
+	if carousel != nil {
+		listClass = strings.TrimSpace(listClass + " posts-list--carousel")
+	}
 
 	var sb strings.Builder
-	sb.WriteString(`<div class="` + listClass + `">`)
 	rendered := 0
-	for i := range posts {
-		post := posts[i]
-		titleID := fmt.Sprintf("%s-post-%d", prefix, i+1)
-		data := map[string]interface{}{
-			"Post":         &post,
-			"WrapperClass": cardClass,
-			"TitleID":      titleID,
-			"Heading":      "h3",
-			"LazyLoad":     true,
+
+	if carousel != nil {
+		carouselData := normaliseCarouselData(carousel, prefix, "posts", "Posts carousel", "Previous post", "Next post")
+
+		sb.WriteString(`<div class="` + listClass + ` content-carousel"`)
+		if carouselData.ID != "" {
+			sb.WriteString(` id="` + template.HTMLEscapeString(carouselData.ID) + `"`)
 		}
-		var buf strings.Builder
-		if err := tmpl.ExecuteTemplate(&buf, "components/post-card", data); err != nil {
-			logger.Error(err, "Failed to render post card", map[string]interface{}{"post_id": post.ID})
-			continue
+		if carouselData.Columns > 0 {
+			sb.WriteString(` style="--carousel-columns: ` + strconv.Itoa(carouselData.Columns) + `" data-carousel-columns="` + strconv.Itoa(carouselData.Columns) + `"`)
 		}
-		sb.WriteString(buf.String())
-		rendered++
+		sb.WriteString(` data-carousel>`)
+		sb.WriteString(`<div class="content-carousel__viewport" aria-label="` + template.HTMLEscapeString(carouselData.Label) + `">`)
+		sb.WriteString(`<div class="content-carousel__track" data-carousel-track>`)
+		for i := range posts {
+			post := posts[i]
+			titleID := fmt.Sprintf("%s-post-%d", prefix, i+1)
+			cardData := map[string]interface{}{
+				"Post":         &post,
+				"WrapperClass": cardClass,
+				"TitleID":      titleID,
+				"Heading":      "h3",
+				"LazyLoad":     true,
+			}
+			var buf strings.Builder
+			if err := tmpl.ExecuteTemplate(&buf, "components/post-card", cardData); err != nil {
+				logger.Error(err, "Failed to render post card", map[string]interface{}{"post_id": post.ID})
+				continue
+			}
+			sb.WriteString(`<div class="content-carousel__slide">`)
+			sb.WriteString(buf.String())
+			sb.WriteString(`</div>`)
+			rendered++
+		}
+		sb.WriteString(`</div></div>`)
+		sb.WriteString(`<div class="content-carousel__controls">`)
+		sb.WriteString(`<button class="content-carousel__button content-carousel__button--prev" type="button" aria-label="` + template.HTMLEscapeString(carouselData.PrevLabel) + `" data-carousel-prev>`)
+		sb.WriteString(`<svg class="content-carousel__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">`)
+		sb.WriteString(`<path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>`)
+		sb.WriteString(`</svg>`)
+		sb.WriteString(`</button>`)
+		sb.WriteString(`<button class="content-carousel__button content-carousel__button--next" type="button" aria-label="` + template.HTMLEscapeString(carouselData.NextLabel) + `" data-carousel-next>`)
+		sb.WriteString(`<svg class="content-carousel__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">`)
+		sb.WriteString(`<path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>`)
+		sb.WriteString(`</svg>`)
+		sb.WriteString(`</button>`)
+		sb.WriteString(`</div>`)
+		sb.WriteString(`</div>`)
+	} else {
+		sb.WriteString(`<div class="` + listClass + `">`)
+		for i := range posts {
+			post := posts[i]
+			titleID := fmt.Sprintf("%s-post-%d", prefix, i+1)
+			data := map[string]interface{}{
+				"Post":         &post,
+				"WrapperClass": cardClass,
+				"TitleID":      titleID,
+				"Heading":      "h3",
+				"LazyLoad":     true,
+			}
+			var buf strings.Builder
+			if err := tmpl.ExecuteTemplate(&buf, "components/post-card", data); err != nil {
+				logger.Error(err, "Failed to render post card", map[string]interface{}{"post_id": post.ID})
+				continue
+			}
+			sb.WriteString(buf.String())
+			rendered++
+		}
+		sb.WriteString(`</div>`)
 	}
-	sb.WriteString(`</div>`)
 
 	if rendered == 0 {
 		return `<p class="` + emptyClass + `">Unable to display posts at the moment.</p>`
 	}
 
-	if len(opts.Pagination) > 0 {
+	if len(opts.Pagination) > 0 && carousel == nil {
 		sb.WriteString(`<div class="posts-list__actions">`)
 		if err := tmpl.ExecuteTemplate(&sb, "components/pagination", opts.Pagination); err != nil {
 			logger.Error(err, "Failed to render post list pagination", map[string]interface{}{"prefix": prefix})
@@ -1056,11 +1200,25 @@ func clampPostListLimit(limit int) int {
 	return limit
 }
 
+func clampCarouselColumns(value int) int {
+	if value <= 0 {
+		return constants.DefaultCarouselColumns
+	}
+	if value < constants.MinCarouselColumns {
+		return constants.MinCarouselColumns
+	}
+	if value > constants.MaxCarouselColumns {
+		return constants.MaxCarouselColumns
+	}
+	return value
+}
+
 func parseCourseListSettings(section models.Section) courseListDisplaySettings {
 	settings := courseListDisplaySettings{
-		DisplayMode: constants.CourseListDisplayLimited,
-		PerPage:     clampCourseListLimit(section.Limit),
-		PageParam:   courseListPageParam(section),
+		DisplayMode:     constants.CourseListDisplayLimited,
+		PerPage:         clampCourseListLimit(section.Limit),
+		PageParam:       courseListPageParam(section),
+		CarouselColumns: constants.DefaultCarouselColumns,
 	}
 
 	rawSettings := section.Settings
@@ -1071,7 +1229,7 @@ func parseCourseListSettings(section models.Section) courseListDisplaySettings {
 	if displayMode, ok := rawSettings["display_mode"]; ok {
 		mode := strings.TrimSpace(strings.ToLower(fmt.Sprint(displayMode)))
 		switch mode {
-		case constants.CourseListDisplayPaginated, constants.CourseListDisplaySelected, constants.CourseListDisplayLimited:
+		case constants.CourseListDisplayPaginated, constants.CourseListDisplaySelected, constants.CourseListDisplayLimited, constants.CourseListDisplayCarousel:
 			settings.DisplayMode = mode
 		}
 	}
@@ -1093,15 +1251,19 @@ func parseCourseListSettings(section models.Section) courseListDisplaySettings {
 	if rawLabel, ok := rawSettings["all_courses_label"]; ok {
 		settings.AllCoursesLabel = strings.TrimSpace(fmt.Sprint(rawLabel))
 	}
+	if rawCols, ok := rawSettings["carousel_columns"]; ok {
+		settings.CarouselColumns = parseCarouselColumns(rawCols)
+	}
 
 	return settings
 }
 
 func parsePostListSettings(section models.Section) postListDisplaySettings {
 	settings := postListDisplaySettings{
-		DisplayMode: constants.PostListDisplayLimited,
-		PerPage:     clampPostListLimit(section.Limit),
-		PageParam:   postListPageParam(section),
+		DisplayMode:     constants.PostListDisplayLimited,
+		PerPage:         clampPostListLimit(section.Limit),
+		PageParam:       postListPageParam(section),
+		CarouselColumns: constants.DefaultCarouselColumns,
 	}
 
 	rawSettings := section.Settings
@@ -1112,13 +1274,16 @@ func parsePostListSettings(section models.Section) postListDisplaySettings {
 	if displayMode, ok := rawSettings["display_mode"]; ok {
 		mode := strings.TrimSpace(strings.ToLower(fmt.Sprint(displayMode)))
 		switch mode {
-		case constants.PostListDisplayPaginated, constants.PostListDisplaySelected, constants.PostListDisplayLimited:
+		case constants.PostListDisplayPaginated, constants.PostListDisplaySelected, constants.PostListDisplayLimited, constants.PostListDisplayCarousel:
 			settings.DisplayMode = mode
 		}
 	}
 
 	if rawSelected, ok := rawSettings["selected_posts"]; ok {
 		settings.SelectedIdentifiers = parsePostIdentifiers(rawSelected)
+	}
+	if rawCols, ok := rawSettings["carousel_columns"]; ok {
+		settings.CarouselColumns = parseCarouselColumns(rawCols)
 	}
 
 	return settings
@@ -1237,6 +1402,61 @@ func buildPostListPageURL(c *gin.Context, param string, page int) string {
 	cloned := *c.Request.URL
 	cloned.RawQuery = values.Encode()
 	return cloned.String()
+}
+
+func buildCarouselData(prefix string, section models.Section, label, prevLabel, nextLabel string, columns int) *carouselTemplateData {
+	carouselID := fmt.Sprintf("%s-carousel", prefix)
+	if normalised := normaliseQueryKey(section.ID); normalised != "" {
+		carouselID = fmt.Sprintf("%s-%s-carousel", prefix, normalised)
+	}
+
+	return normaliseCarouselData(&carouselTemplateData{
+		ID:        carouselID,
+		Label:     label,
+		PrevLabel: prevLabel,
+		NextLabel: nextLabel,
+		Columns:   columns,
+	}, prefix, section.Type, label, prevLabel, nextLabel)
+}
+
+func normaliseCarouselData(data *carouselTemplateData, prefix, fallbackSuffix, defaultLabel, defaultPrev, defaultNext string) *carouselTemplateData {
+	result := carouselTemplateData{}
+	if data != nil {
+		result = *data
+	}
+
+	if trimmed := strings.TrimSpace(result.ID); trimmed != "" {
+		result.ID = trimmed
+	} else {
+		suffix := strings.TrimSpace(normaliseQueryKey(fallbackSuffix))
+		if suffix != "" {
+			result.ID = fmt.Sprintf("%s-%s-carousel", prefix, suffix)
+		} else {
+			result.ID = fmt.Sprintf("%s-carousel", prefix)
+		}
+	}
+
+	if label := strings.TrimSpace(result.Label); label != "" {
+		result.Label = label
+	} else {
+		result.Label = defaultLabel
+	}
+
+	if prev := strings.TrimSpace(result.PrevLabel); prev != "" {
+		result.PrevLabel = prev
+	} else {
+		result.PrevLabel = defaultPrev
+	}
+
+	if next := strings.TrimSpace(result.NextLabel); next != "" {
+		result.NextLabel = next
+	} else {
+		result.NextLabel = defaultNext
+	}
+
+	result.Columns = clampCarouselColumns(result.Columns)
+
+	return &result
 }
 
 func (h *TemplateHandler) loadSelectedPosts(identifiers []string) []models.Post {
@@ -1362,6 +1582,31 @@ func splitIdentifiers(value interface{}) []string {
 	}
 
 	return result
+}
+
+func parseCarouselColumns(value interface{}) int {
+	if value == nil {
+		return constants.DefaultCarouselColumns
+	}
+
+	switch v := value.(type) {
+	case int:
+		return clampCarouselColumns(v)
+	case int64:
+		return clampCarouselColumns(int(v))
+	case float64:
+		return clampCarouselColumns(int(v))
+	case string:
+		if parsed, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			return clampCarouselColumns(parsed)
+		}
+	}
+
+	if parsed, err := strconv.Atoi(fmt.Sprint(value)); err == nil {
+		return clampCarouselColumns(parsed)
+	}
+
+	return constants.DefaultCarouselColumns
 }
 
 func filterSelectedPackages(all []models.CoursePackage, identifiers []string) []models.CoursePackage {
@@ -1790,12 +2035,22 @@ func (h *TemplateHandler) renderSpecialSection(prefix string, section models.Sec
 			scripts = append(scripts, "/static/js/courses-checkout.js")
 		}
 
+		courseSettings := parseCourseListSettings(section)
+		if courseSettings.DisplayMode == constants.CourseListDisplayCarousel {
+			scripts = appendScripts(scripts, []string{"/static/js/content-carousel.js"})
+		}
+
 		return html, scripts
 	}
 
 	if sectionType == "posts_list" {
 		html := h.renderPostsListSection(prefix, section, c)
-		return html, nil
+		scripts := []string(nil)
+		postSettings := parsePostListSettings(section)
+		if postSettings.DisplayMode == constants.PostListDisplayCarousel {
+			scripts = appendScripts(scripts, []string{"/static/js/content-carousel.js"})
+		}
+		return html, scripts
 	}
 
 	// Create a pseudo element to pass the section data to the renderer

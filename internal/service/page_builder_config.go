@@ -18,13 +18,13 @@ func (s *PageService) GetPageBuilderConfig() models.PageBuilderConfig {
 	}
 
 	return models.PageBuilderConfig{
-		AvailableSections: getAvailableSectionTypes(),
-		DefaultPadding:    constants.DefaultSectionPadding,
-		DefaultMargin:     constants.DefaultSectionMargin,
-		PaddingOptions:    constants.SectionPaddingOptions(),
-		MarginOptions:     constants.SectionMarginOptions(),
-		SectionAnimations: animations,
-		DefaultAnimation:  constants.DefaultSectionAnimation,
+		AvailableSections:    getAvailableSectionTypes(),
+		DefaultPadding:       constants.DefaultSectionPadding,
+		DefaultMargin:        constants.DefaultSectionMargin,
+		PaddingOptions:       constants.SectionPaddingOptions(),
+		MarginOptions:        constants.SectionMarginOptions(),
+		SectionAnimations:    animations,
+		DefaultAnimation:     constants.DefaultSectionAnimation,
 		DefaultAnimationBlur: constants.DefaultSectionAnimationBlur,
 	}
 }
@@ -159,10 +159,18 @@ func getAvailableSectionTypes() []models.SectionTypeConfig {
 					"label": "Display mode",
 					"options": []map[string]string{
 						{"value": constants.PostListDisplayLimited, "label": "Limited (latest posts)"},
+						{"value": constants.PostListDisplayCarousel, "label": "Carousel"},
 						{"value": constants.PostListDisplayPaginated, "label": "Paginated (all posts)"},
 						{"value": constants.PostListDisplaySelected, "label": "Selected posts"},
 					},
 					"default": constants.PostListDisplayLimited,
+				},
+				"carousel_columns": map[string]interface{}{
+					"type":    "range",
+					"label":   "Columns in carousel",
+					"min":     constants.MinCarouselColumns,
+					"max":     constants.MaxCarouselColumns,
+					"default": constants.DefaultCarouselColumns,
 				},
 				"limit": map[string]interface{}{
 					"type":         "number",
@@ -226,10 +234,18 @@ func getAvailableSectionTypes() []models.SectionTypeConfig {
 					"label": "Course list layout",
 					"options": []map[string]string{
 						{"value": constants.CourseListDisplayLimited, "label": "Limited (latest courses)"},
+						{"value": constants.CourseListDisplayCarousel, "label": "Carousel"},
 						{"value": constants.CourseListDisplayPaginated, "label": "Paginated (all courses)"},
 						{"value": constants.CourseListDisplaySelected, "label": "Selected courses"},
 					},
 					"default": constants.CourseListDisplayLimited,
+				},
+				"carousel_columns": map[string]interface{}{
+					"type":    "range",
+					"label":   "Columns in carousel",
+					"min":     constants.MinCarouselColumns,
+					"max":     constants.MaxCarouselColumns,
+					"default": constants.DefaultCarouselColumns,
 				},
 				"selected_courses": map[string]interface{}{
 					"type":              "text",

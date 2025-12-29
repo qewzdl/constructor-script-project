@@ -1072,6 +1072,71 @@
                             showAllCheckbox = input;
                         }
                         appendField(field);
+                    } else if (fieldType === 'range') {
+                        const min = Number.isFinite(settingDef.min)
+                            ? settingDef.min
+                            : 0;
+                        const max = Number.isFinite(settingDef.max)
+                            ? settingDef.max
+                            : min + 10;
+                        const step = Number.isFinite(settingDef.step)
+                            ? settingDef.step
+                            : 1;
+                        const defaultValue = Number.isFinite(settingDef.default)
+                            ? settingDef.default
+                            : Number.parseInt(settingDef.default, 10);
+                        const currentValue = Number.isFinite(section.settings[key])
+                            ? section.settings[key]
+                            : Number.isFinite(defaultValue)
+                              ? defaultValue
+                              : min;
+
+                        const field = createElement('label', {
+                            className: 'admin-builder__field',
+                        });
+                        const labelSpan = createElement('span', {
+                            className: 'admin-builder__label',
+                            textContent: fieldLabel,
+                        });
+                        if (isRequired) {
+                            labelSpan.append(
+                                createElement('em', {
+                                    className: 'admin-builder__required',
+                                    textContent: ' (required)',
+                                })
+                            );
+                        }
+                        field.append(labelSpan);
+
+                        const rangeWrapper = createElement('div', {
+                            className: 'admin-builder__range',
+                        });
+                        const rangeInput = createElement('input', {
+                            className: 'admin-builder__range-input',
+                        });
+                        rangeInput.type = 'range';
+                        rangeInput.min = String(min);
+                        rangeInput.max = String(max);
+                        rangeInput.step = String(step);
+                        rangeInput.value = String(currentValue);
+                        rangeInput.dataset.field = `section-setting-${key}`;
+                        rangeInput.setAttribute('aria-valuemin', String(min));
+                        rangeInput.setAttribute('aria-valuemax', String(max));
+                        rangeInput.setAttribute('aria-valuenow', String(currentValue));
+                        const rangeValue = createElement('span', {
+                            className: 'admin-builder__range-value',
+                            textContent: String(currentValue),
+                        });
+                        rangeWrapper.append(rangeInput, rangeValue);
+                        rangeInput.addEventListener('input', () => {
+                            const value = Number.parseInt(rangeInput.value, 10);
+                            rangeValue.textContent = String(value);
+                            rangeInput.setAttribute('aria-valuenow', String(value));
+                            section.settings[key] = value;
+                            scheduleChange();
+                        });
+                        field.append(rangeWrapper);
+                        appendField(field);
                     } else {
                         const field = createElement('label', {
                             className: 'admin-builder__field',

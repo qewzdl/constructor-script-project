@@ -3,6 +3,9 @@
     gap: var(--common-gap);
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
+.courses-list--carousel {
+    grid-template-columns: none;
+}
 
 .courses-list__item {
     cursor: pointer;

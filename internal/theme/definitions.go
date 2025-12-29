@@ -219,6 +219,11 @@ func mergeSectionSetting(base, override SectionSettingDefinition) SectionSetting
 	return result
 }
 
+func intPtr(value int) *int {
+	v := value
+	return &v
+}
+
 func readSectionDefinitionFile(filePath string) ([]SectionDefinition, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -575,8 +580,15 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 				"display_mode": {
 					Label:        "Display mode",
 					Type:         "select",
-					Options:      []SectionSettingOption{{Value: constants.PostListDisplayLimited, Label: "Limited (latest posts)"}, {Value: constants.PostListDisplayPaginated, Label: "Paginated (all posts)"}, {Value: constants.PostListDisplaySelected, Label: "Selected posts"}},
+					Options:      []SectionSettingOption{{Value: constants.PostListDisplayLimited, Label: "Limited (latest posts)"}, {Value: constants.PostListDisplayCarousel, Label: "Carousel"}, {Value: constants.PostListDisplayPaginated, Label: "Paginated (all posts)"}, {Value: constants.PostListDisplaySelected, Label: "Selected posts"}},
 					DefaultValue: constants.PostListDisplayLimited,
+				},
+				"carousel_columns": {
+					Label:   "Columns in carousel",
+					Type:    "range",
+					Min:     intPtr(constants.MinCarouselColumns),
+					Max:     intPtr(constants.MaxCarouselColumns),
+					Default: intPtr(constants.DefaultCarouselColumns),
 				},
 				"selected_posts": {
 					Label:           "Selected posts",
@@ -618,8 +630,15 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 				"display_mode": {
 					Label:        "Display mode",
 					Type:         "select",
-					Options:      []SectionSettingOption{{Value: constants.CourseListDisplayLimited, Label: "Limited (latest courses)"}, {Value: constants.CourseListDisplayPaginated, Label: "Paginated (all courses)"}, {Value: constants.CourseListDisplaySelected, Label: "Selected courses"}},
+					Options:      []SectionSettingOption{{Value: constants.CourseListDisplayLimited, Label: "Limited (latest courses)"}, {Value: constants.CourseListDisplayCarousel, Label: "Carousel"}, {Value: constants.CourseListDisplayPaginated, Label: "Paginated (all courses)"}, {Value: constants.CourseListDisplaySelected, Label: "Selected courses"}},
 					DefaultValue: constants.CourseListDisplayLimited,
+				},
+				"carousel_columns": {
+					Label:   "Columns in carousel",
+					Type:    "range",
+					Min:     intPtr(constants.MinCarouselColumns),
+					Max:     intPtr(constants.MaxCarouselColumns),
+					Default: intPtr(constants.DefaultCarouselColumns),
 				},
 				"selected_courses": {
 					Label:             "Selected courses",
