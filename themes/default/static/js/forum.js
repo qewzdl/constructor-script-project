@@ -416,7 +416,7 @@
             return;
         }
 
-        const rows = Array.from(list.querySelectorAll('.forum-table__row[data-question-url]'));
+        const rows = Array.from(list.querySelectorAll('.forum-table__row[data-topic-url]'));
         rows.forEach((row) => {
             if (!(row instanceof HTMLElement)) {
                 return;
@@ -438,7 +438,7 @@
                     return;
                 }
 
-                const url = row.dataset.questionUrl;
+                const url = row.dataset.topicUrl;
                 if (url) {
                     window.location.href = url;
                 }
@@ -455,7 +455,7 @@
                 }
 
                 if (event.key === "Enter" || event.key === " ") {
-                    const url = row.dataset.questionUrl;
+                    const url = row.dataset.topicUrl;
                     if (url) {
                         event.preventDefault();
                         window.location.href = url;
@@ -466,10 +466,10 @@
     };
 
     const initForumList = (root) => {
-        const modal = root.querySelector('[data-role="question-modal"]');
+        const modal = root.querySelector('[data-role="topic-modal"]');
         const container = modal || root;
         const alertElement = container.querySelector('[data-role="forum-alert"]');
-        const form = container.querySelector('[data-role="question-form"]');
+        const form = container.querySelector('[data-role="topic-form"]');
         if (!form) {
             return;
         }
@@ -496,7 +496,7 @@
                 return;
             }
 
-            if (modal.classList.contains("forum-question-modal--active")) {
+            if (modal.classList.contains("forum-topic-modal--active")) {
                 return;
             }
 
@@ -521,10 +521,10 @@
             modal.hidden = false;
             modal.setAttribute("aria-hidden", "false");
             requestAnimationFrame(() => {
-                modal.classList.add("forum-question-modal--active");
+                modal.classList.add("forum-topic-modal--active");
             });
-            document.body.classList.add("forum-question-modal-open");
-            document.documentElement.classList.add("forum-question-modal-open");
+            document.body.classList.add("forum-topic-modal-open");
+            document.documentElement.classList.add("forum-topic-modal-open");
 
             const focusable = getFocusableElements();
             const preferredTarget = focusable.find((element) =>
@@ -552,15 +552,15 @@
                 return;
             }
 
-            if (!modal.classList.contains("forum-question-modal--active")) {
+            if (!modal.classList.contains("forum-topic-modal--active")) {
                 clearHash();
                 return;
             }
 
-            modal.classList.remove("forum-question-modal--active");
+            modal.classList.remove("forum-topic-modal--active");
             modal.setAttribute("aria-hidden", "true");
-            document.body.classList.remove("forum-question-modal-open");
-            document.documentElement.classList.remove("forum-question-modal-open");
+            document.body.classList.remove("forum-topic-modal-open");
+            document.documentElement.classList.remove("forum-topic-modal-open");
 
             const handleTransitionEnd = (event) => {
                 if (event.target === modal) {
@@ -582,7 +582,7 @@
         };
 
         if (modal) {
-            const openButtons = root.querySelectorAll('[data-role="question-modal-open"]');
+            const openButtons = root.querySelectorAll('[data-role="topic-modal-open"]');
             openButtons.forEach((button) => {
                 button.addEventListener("click", (event) => {
                     event.preventDefault();
@@ -590,7 +590,7 @@
                 });
             });
 
-            const closeButton = modal.querySelector('[data-role="question-modal-close"]');
+            const closeButton = modal.querySelector('[data-role="topic-modal-close"]');
             if (closeButton) {
                 closeButton.addEventListener("click", (event) => {
                     event.preventDefault();
@@ -652,7 +652,7 @@
             showAlert(alertElement, "");
 
             if (!endpoint) {
-                showAlert(alertElement, "Question submission is unavailable right now.", "error");
+                showAlert(alertElement, "Topic submission is unavailable right now.", "error");
                 return;
             }
 
@@ -690,44 +690,44 @@
                     method: "POST",
                     body: JSON.stringify(body),
                 });
-                const question = payload?.question;
-                if (question) {
-                    const slug = getString(question, "slug", "Slug") || String(getNumber(question, "id", "ID"));
-                    showAlert(alertElement, "Your question has been posted. Redirecting…", "success");
+                const topic = payload?.topic || payload?.question;
+                if (topic) {
+                    const slug = getString(topic, "slug", "Slug") || String(getNumber(topic, "id", "ID"));
+                    showAlert(alertElement, "Your topic has been posted. Redirecting...", "success");
                     if (slug) {
                         window.location.href = `/forum/${slug}`;
                         return;
                     }
                 }
-                showAlert(alertElement, "Question created successfully.", "success");
+                showAlert(alertElement, "Topic created successfully.", "success");
                 form.reset();
             } catch (error) {
                 if (error && error.status === 401) {
                     window.location.href = loginURL;
                     return;
                 }
-                showAlert(alertElement, error?.message || "Failed to submit question.", "error");
+                showAlert(alertElement, error?.message || "Failed to submit topic.", "error");
             } finally {
                 toggleFormDisabled(form, false);
             }
         });
     };
 
-    const initForumQuestion = (root) => {
+    const initForumTopic = (root) => {
         const alertElement = root.querySelector('[data-role="forum-alert"]');
-        const questionRatingOutput = root.querySelector('[data-role="question-rating"]');
+        const topicRatingOutput = root.querySelector('[data-role="topic-rating"]');
         const answerList = root.querySelector('[data-role="answer-list"]');
         const answerEmpty = root.querySelector('[data-role="answer-empty"]');
         const answerCountElement = root.querySelector('[data-role="answer-count"]');
         const answerForm = root.querySelector('[data-role="answer-form"]');
         const answerTextarea = root.querySelector('[data-role="answer-content"]');
-        const questionDeleteButton = root.querySelector('[data-role="question-delete"]');
+        const topicDeleteButton = root.querySelector('[data-role="topic-delete"]');
         const answerSubmitButton = answerForm?.querySelector('[data-role="answer-submit"]') || null;
         const answerCancelButton = answerForm?.querySelector('[data-role="answer-cancel"]') || null;
 
         const loginURL = root.dataset.loginUrl || "/login";
-        const questionEndpoint = normalizeEndpoint(root.dataset.endpointQuestion || "");
-        const questionVoteEndpoint = normalizeEndpoint(root.dataset.endpointQuestionVote || "");
+        const topicEndpoint = normalizeEndpoint(root.dataset.endpointTopic || "");
+        const topicVoteEndpoint = normalizeEndpoint(root.dataset.endpointTopicVote || "");
         const answerCreateEndpoint = normalizeEndpoint(root.dataset.endpointAnswerCreate || "");
         const answerBaseEndpoint = normalizeEndpoint(root.dataset.endpointAnswerBase || "");
         const answerVoteEndpoint = normalizeEndpoint(root.dataset.endpointAnswerVote || "");
@@ -737,7 +737,7 @@
         const answerSubmitDefaultText = answerSubmitButton ? answerSubmitButton.textContent : "Post answer";
 
         const answerVotes = new Map();
-        let questionVoteState = 0;
+        let topicVoteState = 0;
 
         const getCurrentAnswerCount = () => {
             const value = Number(root.dataset.answerCount || "0");
@@ -762,7 +762,7 @@
             if (!container) {
                 return;
             }
-            container.querySelectorAll('[data-role="answer-vote"], [data-role="question-vote"]').forEach((button) => {
+            container.querySelectorAll('[data-role="answer-vote"], [data-role="topic-vote"]').forEach((button) => {
                 const value = Number(button.dataset.value || "0");
                 button.classList.toggle("is-active", currentValue !== 0 && value === currentValue);
             });
@@ -822,10 +822,10 @@
             });
         };
 
-        const handleQuestionDelete = async () => {
+        const handleTopicDelete = async () => {
             showAlert(alertElement, "");
-            if (!questionEndpoint) {
-                showAlert(alertElement, "Question deletion is unavailable right now.", "error");
+            if (!topicEndpoint) {
+                showAlert(alertElement, "Topic deletion is unavailable right now.", "error");
                 return;
             }
             if (!isAuthenticated()) {
@@ -833,32 +833,32 @@
                 return;
             }
             const confirmation = window.confirm(
-                "Are you sure you want to delete this question? This action cannot be undone."
+                "Are you sure you want to delete this topic? This action cannot be undone."
             );
             if (!confirmation) {
                 return;
             }
-            if (questionDeleteButton) {
-                questionDeleteButton.disabled = true;
+            if (topicDeleteButton) {
+                topicDeleteButton.disabled = true;
             }
             try {
-                await apiRequest(questionEndpoint, { method: "DELETE" });
+                await apiRequest(topicEndpoint, { method: "DELETE" });
                 window.location.href = forumPath || "/forum";
             } catch (error) {
-                if (questionDeleteButton) {
-                    questionDeleteButton.disabled = false;
+                if (topicDeleteButton) {
+                    topicDeleteButton.disabled = false;
                 }
                 if (error && error.status === 401) {
                     window.location.href = loginURL;
                     return;
                 }
-                showAlert(alertElement, error?.message || "Failed to delete question.", "error");
+                showAlert(alertElement, error?.message || "Failed to delete topic.", "error");
             }
         };
 
-        const handleQuestionVote = async (button) => {
+        const handleTopicVote = async (button) => {
             showAlert(alertElement, "");
-            if (!questionVoteEndpoint) {
+            if (!topicVoteEndpoint) {
                 showAlert(alertElement, "Voting is unavailable right now.", "error");
                 return;
             }
@@ -871,19 +871,19 @@
                 return;
             }
 
-            const submitValue = questionVoteState === value ? 0 : value;
+            const submitValue = topicVoteState === value ? 0 : value;
 
             try {
-                const payload = await apiRequest(questionVoteEndpoint, {
+                const payload = await apiRequest(topicVoteEndpoint, {
                     method: "POST",
                     body: JSON.stringify({ value: submitValue }),
                 });
                 const rating = Number(payload?.rating);
-                if (Number.isFinite(rating) && questionRatingOutput) {
-                    questionRatingOutput.textContent = String(rating);
+                if (Number.isFinite(rating) && topicRatingOutput) {
+                    topicRatingOutput.textContent = String(rating);
                 }
-                questionVoteState = submitValue === 0 ? 0 : value;
-                updateVoteIndicators(root.querySelector('[data-role="question-votes"]'), questionVoteState);
+                topicVoteState = submitValue === 0 ? 0 : value;
+                updateVoteIndicators(root.querySelector('[data-role="topic-votes"]'), topicVoteState);
                 showAlert(alertElement, "Thanks for your feedback.", "success");
             } catch (error) {
                 if (error && error.status === 401) {
@@ -1041,10 +1041,10 @@
             }
         };
 
-        if (questionDeleteButton) {
-            questionDeleteButton.addEventListener("click", (event) => {
+        if (topicDeleteButton) {
+            topicDeleteButton.addEventListener("click", (event) => {
                 event.preventDefault();
-                handleQuestionDelete();
+                handleTopicDelete();
             });
         }
 
@@ -1064,10 +1064,10 @@
             if (!(target instanceof Element)) {
                 return;
             }
-            const questionVoteButton = target.closest('[data-role="question-vote"]');
-            if (questionVoteButton) {
+            const topicVoteButton = target.closest('[data-role="topic-vote"]');
+            if (topicVoteButton) {
                 event.preventDefault();
-                handleQuestionVote(questionVoteButton);
+                handleTopicVote(topicVoteButton);
                 return;
             }
             const answerEditButton = target.closest('[data-role="answer-edit"]');
@@ -1215,9 +1215,9 @@
             initForumList(forumListRoot);
             initForumTableNavigation(forumListRoot);
         }
-        const forumQuestionRoot = document.querySelector('[data-forum="question"]');
-        if (forumQuestionRoot) {
-            initForumQuestion(forumQuestionRoot);
+        const forumTopicRoot = document.querySelector('[data-forum="topic"]');
+        if (forumTopicRoot) {
+            initForumTopic(forumTopicRoot);
         }
     };
 

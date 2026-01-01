@@ -46,10 +46,10 @@
     });
 
     registerQuickAction({
-        id: 'quick-create-forum-question',
+        id: 'quick-create-forum-topic',
         label: 'Start forum discussion',
         navTarget: 'forum',
-        panelAction: 'forum-question-reset',
+        panelAction: 'forum-topic-reset',
         order: 15,
         shouldRender: (context) => Boolean(context?.forumEnabled),
     });
@@ -713,40 +713,40 @@
                 <div>
                     <h2 class="admin-panel__title">Forum discussions</h2>
                     <p class="admin-panel__description">
-                        Moderate questions, update their content, and manage community answers.
+                        Moderate topics, update their content, and manage community answers.
                     </p>
                 </div>
             </header>
             <div class="admin-panel__body admin-panel__body--stacked">
                 <section
                     class="admin-card admin__section"
-                    id="admin-forum-questions-section"
-                    aria-labelledby="admin-forum-questions-title"
+                    id="admin-forum-topics-section"
+                    aria-labelledby="admin-forum-topics-title"
                     data-nav-child-of="forum"
-                    data-nav-child-label="Questions"
+                    data-nav-child-label="Topics"
                     data-nav-child-order="1"
                 >
                     <header class="admin-card__header">
                         <div>
-                            <h3 id="admin-forum-questions-title" class="admin-card__title">Moderate questions</h3>
+                            <h3 id="admin-forum-topics-title" class="admin-card__title">Moderate topics</h3>
                             <p class="admin-card__description">
-                                Update question content, review activity, and curate community replies.
+                                Update topic content, review activity, and curate community replies.
                             </p>
                         </div>
                         <div class="admin-panel__actions">
                             <label class="admin-search" for="admin-forum-search">
-                                <span class="admin-search__label">Search questions</span>
+                                <span class="admin-search__label">Search topics</span>
                                 <input
                                     id="admin-forum-search"
                                     type="search"
                                     class="admin-search__input"
-                                    placeholder="Search questions…"
+                                    placeholder="Search topics..."
                                     autocomplete="off"
-                                    data-role="forum-question-search"
+                                    data-role="forum-topic-search"
                                 />
                             </label>
-                            <button type="button" class="admin-panel__reset" data-action="forum-question-reset">
-                                New question
+                            <button type="button" class="admin-panel__reset" data-action="forum-topic-reset">
+                                New topic
                             </button>
                         </div>
                     </header>
@@ -756,7 +756,7 @@
                                 <table class="admin-table">
                                     <thead>
                                         <tr>
-                                            <th scope="col">Question</th>
+                                            <th scope="col">Topic</th>
                                             <th scope="col">Category</th>
                                             <th scope="col">Author</th>
                                             <th scope="col">Answers</th>
@@ -764,18 +764,18 @@
                                             <th scope="col">Updated</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="admin-forum-questions-table">
+                                    <tbody id="admin-forum-topics-table">
                                         <tr class="admin-table__placeholder">
-                                            <td colspan="6">Loading questions…</td>
+                                            <td colspan="6">Loading topics...</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                             <div class="admin-panel__details">
-                                <form id="admin-forum-question-form" class="admin-form" novalidate>
+                                <form id="admin-forum-topic-form" class="admin-form" novalidate>
                                     <fieldset class="admin-card admin-form__fieldset">
-                                        <legend class="admin-card__title admin-form__legend">Question details</legend>
-                                        <p class="admin-card__description admin-form__hint" data-role="forum-question-status" hidden></p>
+                                        <legend class="admin-card__title admin-form__legend">Topic details</legend>
+                                        <p class="admin-card__description admin-form__hint" data-role="forum-topic-status" hidden></p>
                                         <label class="admin-form__label">
                                             Title
                                             <input type="text" name="title" class="admin-form__input" required />
@@ -789,17 +789,17 @@
                                             <select
                                                 name="category_id"
                                                 class="admin-form__input"
-                                                data-role="forum-question-category"
+                                                data-role="forum-topic-category"
                                             >
                                                 <option value="">No category</option>
                                             </select>
                                         </label>
                                         <div class="admin-form__actions">
-                                            <button type="submit" class="admin-form__submit" data-role="forum-question-submit">
-                                                Save question
+                                            <button type="submit" class="admin-form__submit" data-role="forum-topic-submit">
+                                                Save topic
                                             </button>
-                                            <button type="button" class="admin-form__delete" data-role="forum-question-delete" hidden>
-                                                Delete question
+                                            <button type="button" class="admin-form__delete" data-role="forum-topic-delete" hidden>
+                                                Delete topic
                                             </button>
                                         </div>
                                     </fieldset>
@@ -817,7 +817,7 @@
                                     </div>
                                     <div class="admin-forum-answers" data-role="forum-answer-container">
                                         <p class="admin-card__description" data-role="forum-answer-empty">
-                                            Select a question to see submitted answers.
+                                            Select a topic to see submitted answers.
                                         </p>
                                         <ul class="admin-forum-answers__list" data-role="forum-answer-list"></ul>
                                     </div>
@@ -864,9 +864,9 @@
                 >
                     <header class="admin-card__header">
                         <div>
-                            <h3 id="admin-forum-categories-title" class="admin-card__title">Question categories</h3>
+                            <h3 id="admin-forum-categories-title" class="admin-card__title">Topic categories</h3>
                             <p class="admin-card__description">
-                                Group related questions so members can browse focused discussions.
+                                Group related topics so members can browse focused discussions.
                             </p>
                         </div>
                         <div class="admin-panel__actions">
@@ -893,7 +893,7 @@
                                     <thead>
                                         <tr>
                                             <th scope="col">Name</th>
-                                            <th scope="col">Questions</th>
+                                            <th scope="col">Topics</th>
                                             <th scope="col">Updated</th>
                                         </tr>
                                     </thead>

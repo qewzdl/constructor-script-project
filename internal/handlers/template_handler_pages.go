@@ -700,8 +700,8 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 
 	questions, total, listErr := h.forumQuestionSvc.List(pageNumber, limit, options)
 	if listErr != nil {
-		logger.Error(listErr, "Failed to load forum questions", map[string]interface{}{"page": pageNumber, "search": search, "category": categorySlug})
-		h.renderError(c, http.StatusInternalServerError, "Forum unavailable", "We couldn't load the forum questions right now.")
+		logger.Error(listErr, "Failed to load forum topics", map[string]interface{}{"page": pageNumber, "search": search, "category": categorySlug})
+		h.renderError(c, http.StatusInternalServerError, "Forum unavailable", "We couldn't load the forum topics right now.")
 		return
 	}
 
@@ -789,16 +789,16 @@ func (h *TemplateHandler) RenderForum(c *gin.Context) {
 	})
 
 	pageTitle := "Community forum"
-	description := "Join the community forum to ask questions, share insights, and collaborate with other members."
+	description := "Join the community forum to start topics, share insights, and collaborate with other members."
 	if activeCategory != nil && search == "" {
 		pageTitle = fmt.Sprintf("%s discussions", strings.TrimSpace(activeCategory.Name))
 		description = fmt.Sprintf("Community conversations in the %s category.", strings.TrimSpace(activeCategory.Name))
 	} else if activeCategory != nil && search != "" {
 		pageTitle = fmt.Sprintf("Results for \"%s\" in %s", search, strings.TrimSpace(activeCategory.Name))
-		description = fmt.Sprintf("Questions matching \"%s\" within the %s forum category.", search, strings.TrimSpace(activeCategory.Name))
+		description = fmt.Sprintf("Topics matching \"%s\" within the %s forum category.", search, strings.TrimSpace(activeCategory.Name))
 	} else if search != "" {
 		pageTitle = fmt.Sprintf("Forum results for \"%s\"", search)
-		description = fmt.Sprintf("Questions matching \"%s\" from the community discussion board.", search)
+		description = fmt.Sprintf("Topics matching \"%s\" from the community discussion board.", search)
 	}
 
 	canonicalPath := "/forum"
@@ -934,14 +934,14 @@ func (h *TemplateHandler) RenderForumQuestion(c *gin.Context) {
 
 	identifier := strings.TrimSpace(c.Param("slug"))
 	if identifier == "" {
-		h.renderError(c, http.StatusNotFound, "404 - Question not found", "The requested discussion could not be found.")
+		h.renderError(c, http.StatusNotFound, "404 - Topic not found", "The requested discussion could not be found.")
 		return
 	}
 
 	question, err := h.forumQuestionSvc.GetBySlug(identifier)
 	if err != nil {
 		if !errors.Is(err, forumservice.ErrQuestionNotFound) {
-			logger.Error(err, "Failed to load forum question", map[string]interface{}{"identifier": identifier})
+			logger.Error(err, "Failed to load forum topic", map[string]interface{}{"identifier": identifier})
 		}
 		if idValue, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil {
 			question, err = h.forumQuestionSvc.GetByID(uint(idValue))
@@ -950,9 +950,9 @@ func (h *TemplateHandler) RenderForumQuestion(c *gin.Context) {
 
 	if err != nil {
 		if errors.Is(err, forumservice.ErrQuestionNotFound) {
-			h.renderError(c, http.StatusNotFound, "404 - Question not found", "The requested discussion could not be found.")
+			h.renderError(c, http.StatusNotFound, "404 - Topic not found", "The requested discussion could not be found.")
 		} else {
-			logger.Error(err, "Failed to load forum question", map[string]interface{}{"identifier": identifier})
+			logger.Error(err, "Failed to load forum topic", map[string]interface{}{"identifier": identifier})
 			h.renderError(c, http.StatusInternalServerError, "Forum unavailable", "We couldn't load this discussion right now.")
 		}
 		return

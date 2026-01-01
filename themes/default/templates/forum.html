@@ -19,7 +19,7 @@
             <div class="forum__heading">
                 <h1 class="forum__title">Community forum</h1>
                 <p class="forum__subtitle">
-                    Ask questions, share knowledge, and collaborate with fellow builders across the community.
+                    Start topics, share knowledge, and collaborate with fellow builders across the community.
                 </p>
             </div>
             <form class="forum__search" action="/forum" method="get" role="search" aria-label="Forum search">
@@ -42,7 +42,7 @@
         <div class="forum__toolbar">
             <dl class="forum__stats">
                 <div class="forum__stat">
-                    <dt class="forum__stat-label">Questions</dt>
+                    <dt class="forum__stat-label">Topics</dt>
                     <dd class="forum__stat-value" data-role="forum-total">{{ $total }}</dd>
                 </div>
                 {{ with $page }}
@@ -53,46 +53,46 @@
                 {{ end }}
             </dl>
             {{ if not .IsAuthenticated }}
-            <a class="forum__cta forum__cta--ghost" href="{{ $loginURL }}">Sign in to ask</a>
+            <a class="forum__cta forum__cta--ghost" href="{{ $loginURL }}">Sign in to start a topic</a>
             {{ end }}
         </div>
 
         {{ if .IsAuthenticated }}
         <div
-            class="forum-question-modal"
-            data-role="question-modal"
+            class="forum-topic-modal"
+            data-role="topic-modal"
             hidden
             aria-hidden="true"
         >
             <div
-                class="forum-question-modal__dialog"
+                class="forum-topic-modal__dialog"
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="forum-question-modal-title"
+                aria-labelledby="forum-topic-modal-title"
             >
                 <button
                     type="button"
-                    class="forum-question-modal__close"
-                    data-role="question-modal-close"
-                    aria-label="Close question form"
+                    class="forum-topic-modal__close"
+                    data-role="topic-modal-close"
+                    aria-label="Close topic form"
                 ></button>
                 <form
-                    id="forum-question-form"
+                    id="forum-topic-form"
                     class="forum__form"
                     novalidate
-                    data-role="question-form"
+                    data-role="topic-form"
                 >
-                    <h2 class="forum__form-title" id="forum-question-modal-title">
+                    <h2 class="forum__form-title" id="forum-topic-modal-title">
                         Start a new discussion
                     </h2>
                     <p class="forum__form-hint">
                         Keep titles specific and include any context in the description so others can help quickly.
                     </p>
                     <div class="forum__alert" data-role="forum-alert" role="status" hidden></div>
-                    <label class="forum__label" for="forum-question-title">
+                    <label class="forum__label" for="forum-topic-title">
                         Title
                         <input
-                            id="forum-question-title"
+                            id="forum-topic-title"
                             class="forum__input"
                             type="text"
                             name="title"
@@ -101,10 +101,10 @@
                             required
                         />
                     </label>
-                    <label class="forum__label" for="forum-question-content">
+                    <label class="forum__label" for="forum-topic-content">
                         Description
                         <textarea
-                            id="forum-question-content"
+                            id="forum-topic-content"
                             class="forum__textarea"
                             name="content"
                             rows="5"
@@ -113,13 +113,13 @@
                         ></textarea>
                     </label>
                     {{ if gt (len $categories) 0 }}
-                    <label class="forum__label" for="forum-question-category">
+                    <label class="forum__label" for="forum-topic-category">
                         Category
                         <select
-                            id="forum-question-category"
+                            id="forum-topic-category"
                             class="forum__input"
                             name="category_id"
-                            data-role="question-category"
+                            data-role="topic-category"
                         >
                             <option value="">No category</option>
                             {{ range $categories }}
@@ -129,7 +129,7 @@
                     </label>
                     {{ end }}
                     <div class="forum__form-actions">
-                        <button type="submit" class="forum__submit">Post question</button>
+                        <button type="submit" class="forum__submit">Post topic</button>
                         <button type="reset" class="forum__reset">Clear</button>
                     </div>
                 </form>
@@ -137,7 +137,7 @@
         </div>
         {{ else }}
         <p class="forum__signin">
-            Have a question to ask? <a href="{{ $loginURL }}">Sign in</a> or
+            Want to start a topic? <a href="{{ $loginURL }}">Sign in</a> or
             <a href="/register?redirect={{ urlquery $forumPath }}">create an account</a> to start a new thread.
         </p>
         {{ end }}
@@ -207,7 +207,7 @@
                 {{ end }}
             </div>
             <p class="forum__empty" data-role="forum-empty" {{ if gt (len $questions) 0 }}hidden{{ end }}>
-                No discussions yet. Be the first to ask a question.
+                No discussions yet. Be the first to start a topic.
             </p>
             <div
                 class="forum__table-wrapper"
@@ -215,15 +215,13 @@
                 {{ if not (gt (len $questions) 0) }}hidden{{ end }}
             >
                 <table class="forum-table">
-                    <caption class="visually-hidden">Community forum questions</caption>
+                    <caption class="visually-hidden">Community forum topics</caption>
                     <thead class="forum-table__header">
                         <tr>
-                            <th scope="col" class="forum-table__heading forum-table__heading--question">
-                                Question
+                            <th scope="col" class="forum-table__heading forum-table__heading--topic">
+                                Topic
                             </th>
-                            <th scope="col" class="forum-table__heading forum-table__heading--category">
-                                Category
-                            </th>
+                            <th scope="col" class="forum-table__heading forum-table__heading--avatar" aria-label="Author avatar"></th>
                             <th scope="col" class="forum-table__heading forum-table__heading--numeric">
                                 Votes
                             </th>
@@ -246,51 +244,49 @@
                         {{ end }}
                         {{ $answers := .AnswersCount }}
                         {{ $author := trim .Author.Username }}
+                        {{ $avatar := trim .Author.Avatar }}
                         {{ $updatedAt := .UpdatedAt }}
                         <tr
                             class="forum-table__row"
-                            data-question-id="{{ .ID }}"
-                            data-question-slug="{{ $slug }}"
-                            data-question-url="/forum/{{ $slug }}"
+                            data-topic-id="{{ .ID }}"
+                            data-topic-slug="{{ $slug }}"
+                            data-topic-url="/forum/{{ $slug }}"
                             role="link"
                             tabindex="0"
                             aria-label="View discussion: {{ .Title }}"
                         >
                             <th
                                 scope="row"
-                                class="forum-table__cell forum-table__cell--question"
-                                data-label="Question"
-                            >
-                                <a class="forum-table__title" href="/forum/{{ $slug }}">{{ .Title }}</a>
-                                <p class="forum-table__excerpt">{{ truncate (trim .Content) 200 }}</p>
-                                <div class="forum-table__meta">
-                                    <span class="forum-table__meta-item">
-                                        {{ if $author }}Asked by {{ $author }}{{ else }}Asked by Community member{{ end }}
-                                    </span>
-                                    {{ with $updatedAt }}
-                                    <time
-                                        class="forum-table__meta-item"
-                                        datetime="{{ .Format "2006-01-02T15:04:05Z07:00" }}"
-                                    >
-                                        Updated {{ timeAgo . }}
-                                    </time>
-                                    {{ end }}
-                                </div>
-                            </th>
-                            <td
-                                class="forum-table__cell forum-table__cell--category"
-                                data-label="Category"
-                            >
-                                {{ with .Category }}
-                                <span class="forum-table__category">{{ .Name }}</span>
+                            class="forum-table__cell forum-table__cell--topic"
+                            data-label="Topic"
+                        >
+                            <a class="forum-table__title" href="/forum/{{ $slug }}">{{ .Title }}</a>
+                        </th>
+                            <td class="forum-table__cell forum-table__cell--avatar" data-label="Author">
+                                {{ if $avatar }}
+                                <img
+                                    src="{{ $avatar }}"
+                                    alt="{{ if $author }}{{ $author }}{{ else }}Author{{ end }} avatar"
+                                    class="forum-table__avatar"
+                                    loading="lazy"
+                                />
+                                {{ else if $author }}
+                                <span
+                                    class="forum-table__avatar forum-table__avatar--placeholder"
+                                    aria-hidden="true"
+                                >
+                                    {{ index $author 0 }}
+                                </span>
                                 {{ else }}
-                                <span class="forum-table__category forum-table__category--empty">No category</span>
+                                <span
+                                    class="forum-table__avatar forum-table__avatar--placeholder"
+                                    aria-hidden="true"
+                                >
+                                    ?
+                                </span>
                                 {{ end }}
                             </td>
-                            <td
-                                class="forum-table__cell forum-table__cell--numeric"
-                                data-label="Votes"
-                            >
+                            <td class="forum-table__cell forum-table__cell--numeric" data-label="Votes">
                                 <span class="forum-table__numeric">{{ .Rating }}</span>
                             </td>
                             <td
@@ -334,7 +330,7 @@
                 <button
                     type="button"
                     class="forum__ask-trigger"
-                    data-role="question-modal-open"
+                    data-role="topic-modal-open"
                     aria-haspopup="dialog"
                 >
                     Start a new discussion

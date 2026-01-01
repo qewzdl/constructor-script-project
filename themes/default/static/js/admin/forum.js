@@ -115,29 +115,29 @@
             return;
         }
 
-        const questionsEndpointRaw = (context.dataset?.endpointForumQuestions || '').trim();
-        const adminQuestionsEndpointRaw = (context.dataset?.endpointAdminForumQuestions || '').trim();
-        if (!questionsEndpointRaw) {
+        const topicsEndpointRaw = (context.dataset?.endpointForumTopics || '').trim();
+        const adminTopicsEndpointRaw = (context.dataset?.endpointAdminForumTopics || '').trim();
+        if (!topicsEndpointRaw) {
             return;
         }
         const answersEndpointRaw = (context.dataset?.endpointForumAnswers || '').trim();
         const categoriesEndpointRaw = (context.dataset?.endpointForumCategories || '').trim();
-        const questionsEndpoint = questionsEndpointRaw.replace(/\/+$/, '');
-        const adminQuestionsEndpoint = adminQuestionsEndpointRaw
-            ? adminQuestionsEndpointRaw.replace(/\/+$/, '')
+        const topicsEndpoint = topicsEndpointRaw.replace(/\/+$/, '');
+        const adminTopicsEndpoint = adminTopicsEndpointRaw
+            ? adminTopicsEndpointRaw.replace(/\/+$/, '')
             : '';
         const answersEndpoint = answersEndpointRaw ? answersEndpointRaw.replace(/\/+$/, '') : '';
         const categoriesEndpoint = categoriesEndpointRaw ? categoriesEndpointRaw.replace(/\/+$/, '') : '';
-        const questionManageEndpoint = adminQuestionsEndpoint || questionsEndpoint;
+        const topicManageEndpoint = adminTopicsEndpoint || topicsEndpoint;
 
-        const questionTable = panel.querySelector('#admin-forum-questions-table');
-        const questionForm = panel.querySelector('#admin-forum-question-form');
-        const questionStatus = panel.querySelector('[data-role="forum-question-status"]');
-        const questionSubmitButton = panel.querySelector('[data-role="forum-question-submit"]');
-        const questionDeleteButton = panel.querySelector('[data-role="forum-question-delete"]');
-        const questionResetButton = panel.querySelector('[data-action="forum-question-reset"]');
-        const searchInput = panel.querySelector('[data-role="forum-question-search"]');
-        const questionCategorySelect = panel.querySelector('[data-role="forum-question-category"]');
+        const topicTable = panel.querySelector('#admin-forum-topics-table');
+        const topicForm = panel.querySelector('#admin-forum-topic-form');
+        const topicStatus = panel.querySelector('[data-role="forum-topic-status"]');
+        const topicSubmitButton = panel.querySelector('[data-role="forum-topic-submit"]');
+        const topicDeleteButton = panel.querySelector('[data-role="forum-topic-delete"]');
+        const topicResetButton = panel.querySelector('[data-action="forum-topic-reset"]');
+        const topicSearchInput = panel.querySelector('[data-role="forum-topic-search"]');
+        const topicCategorySelect = panel.querySelector('[data-role="forum-topic-category"]');
 
         const answersContainer = panel.querySelector('[data-role="forum-answer-container"]');
         const answersList = panel.querySelector('[data-role="forum-answer-list"]');
@@ -157,9 +157,9 @@
         const categorySearchInput = panel.querySelector('[data-role="forum-category-search"]');
 
         const state = {
-            questions: [],
+            topics: [],
             categories: [],
-            selectedQuestionId: '',
+            selectedTopicId: '',
             selectedAnswerId: '',
             selectedCategoryId: '',
         };
@@ -172,9 +172,9 @@
             setAlert(globalAlertId, message, type);
         };
 
-        const buildQuestionEndpoint = (id, suffix = '', options = {}) => {
+        const buildTopicEndpoint = (id, suffix = '', options = {}) => {
             const useManagementEndpoint = Boolean(options?.useManagementEndpoint);
-            const baseEndpoint = useManagementEndpoint ? questionManageEndpoint : questionsEndpoint;
+            const baseEndpoint = useManagementEndpoint ? topicManageEndpoint : topicsEndpoint;
             if (!id) {
                 return baseEndpoint;
             }
@@ -222,65 +222,65 @@
                 answersList.innerHTML = '';
             }
             if (answerEmpty) {
-                answerEmpty.textContent = 'Select a question to see submitted answers.';
+                answerEmpty.textContent = 'Select a topic to see submitted answers.';
                 answerEmpty.hidden = false;
             }
             if (answerForm) {
-                delete answerForm.dataset.questionId;
+                delete answerForm.dataset.topicId;
             }
             resetAnswerForm();
             setAnswerFormEnabled(false);
         };
 
-        const resolveQuestionCategoryId = (question) => {
-            if (!question) {
-                return '';
+        const resolveTopicCategoryId = (topic) => {
+            if (!topic) {
+                return "";
             }
-            const direct = question.category_id ?? question.CategoryID;
+            const direct = topic.category_id ?? topic.CategoryID;
             if (direct !== undefined && direct !== null) {
                 const numeric = Number(direct);
-                return Number.isFinite(numeric) && numeric > 0 ? String(numeric) : '';
+                return Number.isFinite(numeric) && numeric > 0 ? String(numeric) : "";
             }
-            const category = question.category || question.Category;
+            const category = topic.category || topic.Category;
             if (category && (category.id || category.ID)) {
                 const numeric = Number(category.id ?? category.ID);
-                return Number.isFinite(numeric) && numeric > 0 ? String(numeric) : '';
+                return Number.isFinite(numeric) && numeric > 0 ? String(numeric) : "";
             }
-            return '';
+            return "";
         };
 
-        const resolveQuestionCategoryName = (question) => {
-            if (!question) {
-                return '';
+        const resolveTopicCategoryName = (topic) => {
+            if (!topic) {
+                return "";
             }
-            const category = question.category || question.Category;
-            if (category && (category.name || category.Name)) {
-                return category.name || category.Name || '';
+            const category = topic.category || topic.Category;
+            if (category) {
+                return category.name || category.Name || "";
             }
-            const categoryId = resolveQuestionCategoryId(question);
+            const categoryId = resolveTopicCategoryId(topic);
             if (!categoryId) {
-                return '';
+                return "";
             }
             const matched = state.categories.find((entry) => {
                 const identifier = entry?.id ?? entry?.ID;
                 return identifier !== undefined && String(identifier) === categoryId;
             });
             if (matched) {
-                return matched.name || matched.Name || '';
+                return matched.name || matched.Name || "";
             }
-            return '';
+            return "";
         };
 
-        const updateQuestionCategoryOptions = () => {
-            if (!questionCategorySelect) {
+        const updateTopicCategoryOptions = () => {
+            if (!topicCategorySelect) {
                 return;
             }
-            const previousValue = questionCategorySelect.value;
-            questionCategorySelect.innerHTML = '';
+            const previousValue = topicCategorySelect.value;
+            topicCategorySelect.innerHTML = '';
             const defaultOption = document.createElement('option');
             defaultOption.value = '';
             defaultOption.textContent = 'No category';
-            questionCategorySelect.appendChild(defaultOption);
+            topicCategorySelect.appendChild(defaultOption);
             state.categories.forEach((category) => {
                 const identifier = category?.id ?? category?.ID;
                 if (!identifier) {
@@ -289,17 +289,17 @@
                 const option = document.createElement('option');
                 option.value = String(identifier);
                 option.textContent = category?.name || category?.Name || `Category ${identifier}`;
-                questionCategorySelect.appendChild(option);
+                topicCategorySelect.appendChild(option);
             });
 
-            const selectedQuestion = state.questions.find(
-                (question) => String(question?.id) === state.selectedQuestionId
+            const selectedTopic = state.topics.find(
+                (topic) => String(topic?.id) === state.selectedTopicId
             );
-            const desiredValue = selectedQuestion ? resolveQuestionCategoryId(selectedQuestion) : previousValue;
-            if (desiredValue && questionCategorySelect.querySelector(`option[value="${CSS.escape(desiredValue)}"]`)) {
-                questionCategorySelect.value = desiredValue;
+            const desiredValue = selectedTopic ? resolveTopicCategoryId(selectedTopic) : previousValue;
+            if (desiredValue && topicCategorySelect.querySelector(`option[value="${CSS.escape(desiredValue)}"]`)) {
+                topicCategorySelect.value = desiredValue;
             } else {
-                questionCategorySelect.value = '';
+                topicCategorySelect.value = '';
             }
         };
 
@@ -353,14 +353,14 @@
                 if (String(identifier) === state.selectedCategoryId) {
                     row.classList.add('is-selected');
                 }
-                const questions = Number(category?.question_count ?? category?.QuestionCount ?? 0);
+                const topicCount = Number(category?.question_count ?? category?.QuestionCount ?? 0);
                 const updatedValue =
                     resolveDateValue(category, 'updated_at', 'updatedAt', 'UpdatedAt') ||
                     resolveDateValue(category, 'created_at', 'createdAt', 'CreatedAt');
 
                 row.innerHTML = `
                     <td>${escapeHtml(category?.name || category?.Name || '')}</td>
-                    <td>${Number.isFinite(questions) ? questions : 0}</td>
+                    <td>${Number.isFinite(topicCount) ? topicCount : 0}</td>
                     <td>${escapeHtml(formatDateTime(updatedValue))}</td>
                 `;
 
@@ -410,8 +410,8 @@
                 categoryDeleteButton.hidden = false;
             }
             if (categoryStatus) {
-                const questions = Number(category?.question_count ?? category?.QuestionCount ?? 0);
-                categoryStatus.textContent = `Assigned to ${questions} ${questions === 1 ? 'question' : 'questions'}.`;
+                const topicCount = Number(category?.question_count ?? category?.QuestionCount ?? 0);
+                categoryStatus.textContent = `Assigned to ${topicCount} ${topicCount === 1 ? 'topic' : 'topics'}.`;
                 categoryStatus.hidden = false;
             }
         };
@@ -438,7 +438,7 @@
                 const payload = await apiClient(`${categoriesEndpoint}?include_counts=true`);
                 state.categories = Array.isArray(payload?.categories) ? payload.categories : [];
                 renderCategories();
-                updateQuestionCategoryOptions();
+                updateTopicCategoryOptions();
                 if (state.selectedCategoryId) {
                     highlightCategoryRow(state.selectedCategoryId);
                 }
@@ -447,38 +447,38 @@
             }
         };
 
-        const highlightQuestionRow = (questionId) => {
-            if (!questionTable) {
+        const highlightTopicRow = (topicId) => {
+            if (!topicTable) {
                 return;
             }
-            Array.from(questionTable.querySelectorAll('tr')).forEach((row) => {
+            Array.from(topicTable.querySelectorAll('tr')).forEach((row) => {
                 if (!row.dataset || !row.dataset.id) {
                     return;
                 }
-                row.classList.toggle('is-selected', row.dataset.id === questionId);
+                row.classList.toggle('is-selected', row.dataset.id === topicId);
             });
         };
 
-        const renderQuestions = () => {
-            if (!questionTable) {
+        const renderTopics = () => {
+            if (!topicTable) {
                 return;
             }
-            const filterValue = searchInput?.value ? searchInput.value.trim().toLowerCase() : '';
-            const filtered = state.questions.filter((question) => {
+            const filterValue = topicSearchInput?.value ? topicSearchInput.value.trim().toLowerCase() : '';
+            const filtered = state.topics.filter((topic) => {
                 if (!filterValue) {
                     return true;
                 }
-                const titleMatch = (question.title || '').toLowerCase().includes(filterValue);
-                const authorMatch = (question.author?.username || '')
+                const titleMatch = (topic.title || '').toLowerCase().includes(filterValue);
+                const authorMatch = (topic.author?.username || '')
                     .toLowerCase()
                     .includes(filterValue);
-                const categoryMatch = resolveQuestionCategoryName(question)
+                const categoryMatch = resolveTopicCategoryName(topic)
                     .toLowerCase()
                     .includes(filterValue);
                 return titleMatch || authorMatch || categoryMatch;
             });
 
-            questionTable.innerHTML = '';
+            topicTable.innerHTML = '';
 
             if (!filtered.length) {
                 const placeholder = document.createElement('tr');
@@ -486,43 +486,43 @@
                 const cell = document.createElement('td');
                 cell.colSpan = 6;
                 cell.textContent = filterValue
-                    ? 'No questions match your search.'
-                    : 'No questions available yet.';
+                    ? 'No topics match your search.'
+                    : 'No topics available yet.';
                 placeholder.appendChild(cell);
-                questionTable.appendChild(placeholder);
+                topicTable.appendChild(placeholder);
                 return;
             }
 
             const fragment = document.createDocumentFragment();
-            filtered.forEach((question) => {
+            filtered.forEach((topic) => {
                 const row = document.createElement('tr');
-                row.dataset.id = String(question.id);
-                if (String(question.id) === state.selectedQuestionId) {
+                row.dataset.id = String(topic.id);
+                if (String(topic.id) === state.selectedTopicId) {
                     row.classList.add('is-selected');
                 }
-                const author = question.author?.username || '—';
-                const categoryName = resolveQuestionCategoryName(question) || '—';
-                const answersCount = Number.isFinite(question.answers_count)
-                    ? question.answers_count
-                    : Array.isArray(question.answers)
-                    ? question.answers.length
+                const author = topic.author?.username || '—';
+                const categoryName = resolveTopicCategoryName(topic) || '—';
+                const answersCount = Number.isFinite(topic.answers_count)
+                    ? topic.answers_count
+                    : Array.isArray(topic.answers)
+                    ? topic.answers.length
                     : 0;
                 const updatedValue =
-                    resolveDateValue(question, 'updated_at', 'updatedAt', 'UpdatedAt') ||
-                    resolveDateValue(question, 'created_at', 'createdAt', 'CreatedAt');
+                    resolveDateValue(topic, 'updated_at', 'updatedAt', 'UpdatedAt') ||
+                    resolveDateValue(topic, 'created_at', 'createdAt', 'CreatedAt');
 
                 row.innerHTML = `
-                    <td>${escapeHtml(question.title || '')}</td>
+                    <td>${escapeHtml(topic.title || '')}</td>
                     <td>${escapeHtml(categoryName)}</td>
                     <td>${escapeHtml(author)}</td>
                     <td>${answersCount}</td>
-                    <td>${Number.isFinite(question.rating) ? question.rating : 0}</td>
+                    <td>${Number.isFinite(topic.rating) ? topic.rating : 0}</td>
                     <td>${escapeHtml(formatDateTime(updatedValue))}</td>
                 `;
 
                 fragment.appendChild(row);
             });
-            questionTable.appendChild(fragment);
+            topicTable.appendChild(fragment);
         };
 
         const renderAnswers = (answers) => {
@@ -588,117 +588,118 @@
             answersList.appendChild(fragment);
         };
 
-        const resetQuestionForm = () => {
-            if (questionForm) {
-                questionForm.reset();
-                delete questionForm.dataset.id;
+        const resetTopicForm = () => {
+            if (topicForm) {
+                topicForm.reset();
+                delete topicForm.dataset.id;
             }
-            state.selectedQuestionId = '';
-            highlightQuestionRow('');
-            if (questionCategorySelect) {
-                questionCategorySelect.value = '';
+            state.selectedTopicId = '';
+            highlightTopicRow('');
+            if (topicCategorySelect) {
+                topicCategorySelect.value = '';
             }
-            if (questionStatus) {
-                questionStatus.textContent = '';
-                questionStatus.hidden = true;
+            if (topicStatus) {
+                topicStatus.textContent = '';
+                topicStatus.hidden = true;
             }
-            if (questionDeleteButton) {
-                questionDeleteButton.hidden = true;
+            if (topicDeleteButton) {
+                topicDeleteButton.hidden = true;
             }
-            if (questionSubmitButton) {
-                questionSubmitButton.textContent = 'Save question';
+            if (topicSubmitButton) {
+                topicSubmitButton.textContent = 'Save topic';
             }
             resetAnswersView();
-            renderQuestions();
+            renderTopics();
         };
 
-        const populateQuestionForm = (question) => {
-            if (!questionForm || !question) {
+        const populateTopicForm = (topic) => {
+            if (!topicForm || !topic) {
                 return;
             }
-            questionForm.dataset.id = String(question.id);
-            const titleField = questionForm.querySelector('input[name="title"]');
-            const contentField = questionForm.querySelector('textarea[name="content"]');
+            topicForm.dataset.id = String(topic.id);
+            const titleField = topicForm.querySelector('input[name="title"]');
+            const contentField = topicForm.querySelector('textarea[name="content"]');
             if (titleField) {
-                titleField.value = question.title || '';
+                titleField.value = topic.title || '';
             }
             if (contentField) {
-                contentField.value = question.content || '';
+                contentField.value = topic.content || '';
             }
-            if (questionCategorySelect) {
-                const categoryId = resolveQuestionCategoryId(question);
+            if (topicCategorySelect) {
+                const categoryId = resolveTopicCategoryId(topic);
                 if (
                     categoryId &&
-                    questionCategorySelect.querySelector(`option[value="${CSS.escape(categoryId)}"]`)
+                    topicCategorySelect.querySelector(`option[value="${CSS.escape(categoryId)}"]`)
                 ) {
-                    questionCategorySelect.value = categoryId;
+                    topicCategorySelect.value = categoryId;
                 } else {
-                    questionCategorySelect.value = '';
+                    topicCategorySelect.value = '';
                 }
             }
-            if (questionSubmitButton) {
-                questionSubmitButton.textContent = 'Update question';
+            if (topicSubmitButton) {
+                topicSubmitButton.textContent = 'Update topic';
             }
-            if (questionDeleteButton) {
-                questionDeleteButton.hidden = false;
+            if (topicDeleteButton) {
+                topicDeleteButton.hidden = false;
             }
-            if (questionStatus) {
-                const answersCount = Array.isArray(question.answers) ? question.answers.length : question.answers_count || 0;
-                questionStatus.textContent = `Rating ${Number.isFinite(question.rating) ? question.rating : 0} · ${answersCount} answers · ${Number.isFinite(question.views) ? question.views : 0} views`;
-                questionStatus.hidden = false;
+            if (topicStatus) {
+                const answersCount = Array.isArray(topic.answers) ? topic.answers.length : topic.answers_count || 0;
+                topicStatus.textContent = `Rating ${Number.isFinite(topic.rating) ? topic.rating : 0} · ${answersCount} answers · ${Number.isFinite(topic.views) ? topic.views : 0} views`;
+                topicStatus.hidden = false;
             }
         };
 
-        const loadQuestionDetail = async (questionId) => {
-            if (!questionId) {
+        const loadTopicDetail = async (topicId) => {
+            if (!topicId) {
                 return null;
             }
             try {
-                const payload = await apiClient(`${buildQuestionEndpoint(questionId)}?increment=false`);
-                return payload?.question || null;
+                const payload = await apiClient(`${buildTopicEndpoint(topicId)}?increment=false`);
+                return payload?.topic || payload?.question || null;
             } catch (error) {
-                showAlert(error.message || 'Failed to load question details.', 'error');
+                showAlert(error.message || 'Failed to load topic details.', 'error');
                 return null;
             }
         };
 
-        const selectQuestion = async (questionId) => {
-            if (!questionId) {
-                resetQuestionForm();
+        const selectTopic = async (topicId) => {
+            if (!topicId) {
+                resetTopicForm();
                 return;
             }
-            const question = await loadQuestionDetail(questionId);
-            if (!question) {
+            const topic = await loadTopicDetail(topicId);
+            if (!topic) {
                 return;
             }
-            state.selectedQuestionId = String(question.id);
-            highlightQuestionRow(state.selectedQuestionId);
-            populateQuestionForm(question);
-            renderAnswers(question.answers || []);
+            state.selectedTopicId = String(topic.id);
+            highlightTopicRow(state.selectedTopicId);
+            populateTopicForm(topic);
+            renderAnswers(topic.answers || []);
             setAnswerFormEnabled(true);
             if (answerForm) {
-                answerForm.dataset.questionId = String(question.id);
+                answerForm.dataset.topicId = String(topic.id);
             }
             if (answerEmpty) {
                 answerEmpty.textContent = 'No answers yet. Add the first response below.';
             }
         };
 
-        const loadQuestions = async () => {
+        const loadTopics = async () => {
             try {
-                const payload = await apiClient(`${questionsEndpoint}?limit=100`);
-                state.questions = Array.isArray(payload?.questions) ? payload.questions : [];
-                renderQuestions();
-                if (state.selectedQuestionId) {
-                    highlightQuestionRow(state.selectedQuestionId);
+                const payload = await apiClient(`${topicsEndpoint}?limit=100`);
+                const list = Array.isArray(payload?.topics) ? payload.topics : payload?.questions;
+                state.topics = Array.isArray(list) ? list : [];
+                renderTopics();
+                if (state.selectedTopicId) {
+                    highlightTopicRow(state.selectedTopicId);
                 }
             } catch (error) {
-                showAlert(error.message || 'Failed to load forum questions.', 'error');
+                showAlert(error.message || 'Failed to load forum topics.', 'error');
             }
         };
 
-        if (questionTable) {
-            questionTable.addEventListener('click', (event) => {
+        if (topicTable) {
+            topicTable.addEventListener('click', (event) => {
                 const target = event.target;
                 if (!(target instanceof Element)) {
                     return;
@@ -708,38 +709,38 @@
                     return;
                 }
                 event.preventDefault();
-                selectQuestion(row.dataset.id);
+                selectTopic(row.dataset.id);
             });
         }
 
-        if (searchInput) {
-            searchInput.addEventListener('input', () => {
-                renderQuestions();
+        if (topicSearchInput) {
+            topicSearchInput.addEventListener('input', () => {
+                renderTopics();
             });
         }
 
-        if (questionResetButton) {
-            questionResetButton.addEventListener('click', () => {
-                resetQuestionForm();
+        if (topicResetButton) {
+            topicResetButton.addEventListener('click', () => {
+                resetTopicForm();
             });
         }
 
-        if (questionForm) {
-            questionForm.addEventListener('submit', async (event) => {
+        if (topicForm) {
+            topicForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 const form = event.currentTarget;
                 const formData = new FormData(form);
                 const title = (formData.get('title') || '').toString().trim();
                 const content = (formData.get('content') || '').toString().trim();
                 if (!title || !content) {
-                    showAlert('Title and content are required to save a question.', 'error');
+                    showAlert('Title and content are required to save a topic.', 'error');
                     return;
                 }
-                const questionId = questionForm.dataset.id;
-                const method = questionId ? 'PUT' : 'POST';
-                const endpoint = questionId
-                    ? buildQuestionEndpoint(questionId, '', { useManagementEndpoint: true })
-                    : questionManageEndpoint;
+                const topicId = topicForm.dataset.id;
+                const method = topicId ? 'PUT' : 'POST';
+                const endpoint = topicId
+                    ? buildTopicEndpoint(topicId, '', { useManagementEndpoint: true })
+                    : topicManageEndpoint;
                 const rawCategory = formData.get('category_id');
                 const categoryValue = rawCategory === null ? '' : String(rawCategory).trim();
                 let categoryId = null;
@@ -750,58 +751,58 @@
                     }
                 }
                 const payload = { title, content };
-                if (questionId) {
+                if (topicId) {
                     payload.category_id = categoryValue ? categoryId : null;
                 } else if (categoryId !== null) {
                     payload.category_id = categoryId;
                 }
                 try {
-                    toggleFormDisabled(questionForm, true);
+                    toggleFormDisabled(topicForm, true);
                     const response = await apiClient(endpoint, {
                         method,
                         body: JSON.stringify(payload),
                     });
-                    showAlert(questionId ? 'Question updated successfully.' : 'Question created successfully.', 'success');
-                    await loadQuestions();
-                    const createdId = response?.question?.id;
+                    showAlert(topicId ? 'Topic updated successfully.' : 'Topic created successfully.', 'success');
+                    await loadTopics();
+                    const createdId = response?.topic?.id ?? response?.question?.id;
                     if (createdId) {
-                        await selectQuestion(createdId);
-                    } else if (questionId) {
-                        await selectQuestion(questionId);
-                    } else if (state.questions.length) {
-                        const latest = state.questions[0];
-                        await selectQuestion(latest.id);
+                        await selectTopic(createdId);
+                    } else if (topicId) {
+                        await selectTopic(topicId);
+                    } else if (state.topics.length) {
+                        const latest = state.topics[0];
+                        await selectTopic(latest.id);
                     }
                 } catch (error) {
-                    showAlert(error.message || 'Failed to save question.', 'error');
+                    showAlert(error.message || 'Failed to save topic.', 'error');
                 } finally {
-                    toggleFormDisabled(questionForm, false);
+                    toggleFormDisabled(topicForm, false);
                 }
             });
         }
 
-        if (questionDeleteButton) {
-            questionDeleteButton.addEventListener('click', async () => {
-                const questionId = questionForm?.dataset.id;
-                if (!questionId) {
+        if (topicDeleteButton) {
+            topicDeleteButton.addEventListener('click', async () => {
+                const topicId = topicForm?.dataset.id;
+                if (!topicId) {
                     return;
                 }
-                const confirmed = window.confirm('Delete this question and all associated answers?');
+                const confirmed = window.confirm('Delete this topic and all associated answers?');
                 if (!confirmed) {
                     return;
                 }
                 try {
-                    toggleFormDisabled(questionForm, true);
-                    await apiClient(buildQuestionEndpoint(questionId, '', { useManagementEndpoint: true }), {
+                    toggleFormDisabled(topicForm, true);
+                    await apiClient(buildTopicEndpoint(topicId, '', { useManagementEndpoint: true }), {
                         method: 'DELETE',
                     });
-                    showAlert('Question deleted successfully.', 'success');
-                    resetQuestionForm();
-                    await loadQuestions();
+                    showAlert('Topic deleted successfully.', 'success');
+                    resetTopicForm();
+                    await loadTopics();
                 } catch (error) {
-                    showAlert(error.message || 'Failed to delete question.', 'error');
+                    showAlert(error.message || 'Failed to delete topic.', 'error');
                 } finally {
-                    toggleFormDisabled(questionForm, false);
+                    toggleFormDisabled(topicForm, false);
                 }
             });
         }
@@ -892,7 +893,7 @@
                     return;
                 }
                 const confirmed = window.confirm(
-                    'Delete this category? Questions assigned to it will become uncategorised.'
+                    'Delete this category? Topics assigned to it will become uncategorised.'
                 );
                 if (!confirmed) {
                     return;
@@ -949,8 +950,8 @@
                     if (!confirmed) {
                         return;
                     }
-                    const questionId = state.selectedQuestionId;
-                    if (!questionId) {
+                    const topicId = state.selectedTopicId;
+                    if (!topicId) {
                         return;
                     }
                     const endpoint = buildAnswerEndpoint(answerId);
@@ -963,11 +964,11 @@
                         .then(async () => {
                             showAlert('Answer deleted.', 'success');
                             resetAnswerForm();
-                            const updated = await loadQuestionDetail(questionId);
+                            const updated = await loadTopicDetail(topicId);
                             if (updated) {
                                 renderAnswers(updated.answers || []);
                             }
-                            await loadQuestions();
+                            await loadTopics();
                         })
                         .catch((error) => {
                             showAlert(error.message || 'Failed to delete answer.', 'error');
@@ -982,9 +983,9 @@
         if (answerForm) {
             answerForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
-                const questionId = state.selectedQuestionId;
-                if (!questionId) {
-                    showAlert('Select a question before adding an answer.', 'error');
+                const topicId = state.selectedTopicId;
+                if (!topicId) {
+                    showAlert('Select a topic before adding an answer.', 'error');
                     return;
                 }
                 const content = (answerContentInput?.value || '').trim();
@@ -997,7 +998,7 @@
                 const method = isUpdate ? 'PUT' : 'POST';
                 const endpoint = isUpdate
                     ? buildAnswerEndpoint(answerId)
-                    : `${buildQuestionEndpoint(questionId, '', { useManagementEndpoint: true })}/answers`;
+                    : `${buildTopicEndpoint(topicId, '', { useManagementEndpoint: true })}/answers`;
                 const payload = isUpdate ? { content } : { content };
                 try {
                     toggleFormDisabled(answerForm, true);
@@ -1007,11 +1008,11 @@
                     });
                     showAlert(isUpdate ? 'Answer updated.' : 'Answer created.', 'success');
                     resetAnswerForm();
-                    const updated = await loadQuestionDetail(questionId);
+                    const updated = await loadTopicDetail(topicId);
                     if (updated) {
                         renderAnswers(updated.answers || []);
                     }
-                    await loadQuestions();
+                    await loadTopics();
                 } catch (error) {
                     showAlert(error.message || 'Failed to save answer.', 'error');
                 } finally {
@@ -1028,9 +1029,9 @@
 
         if (answerDeleteButton) {
             answerDeleteButton.addEventListener('click', async () => {
-                const questionId = state.selectedQuestionId;
+                const topicId = state.selectedTopicId;
                 const answerId = answerForm?.dataset.id;
-                if (!questionId || !answerId) {
+                if (!topicId || !answerId) {
                     return;
                 }
                 const confirmed = window.confirm('Delete this answer?');
@@ -1047,11 +1048,11 @@
                     await apiClient(endpoint, { method: 'DELETE' });
                     showAlert('Answer deleted.', 'success');
                     resetAnswerForm();
-                    const updated = await loadQuestionDetail(questionId);
+                    const updated = await loadTopicDetail(topicId);
                     if (updated) {
                         renderAnswers(updated.answers || []);
                     }
-                    await loadQuestions();
+                    await loadTopics();
                 } catch (error) {
                     showAlert(error.message || 'Failed to delete answer.', 'error');
                 } finally {
@@ -1060,8 +1061,8 @@
             });
         }
 
-        resetQuestionForm();
+        resetTopicForm();
         loadCategories();
-        loadQuestions();
+        loadTopics();
     });
 })();

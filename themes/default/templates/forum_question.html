@@ -5,10 +5,10 @@
 {{ $canManageAllAnswers := .ForumCanManageAllAnswers }}
 {{ $forumPath := default "/forum" .ForumPath }}
 <section
-    class="forum-question"
-    data-forum="question"
-    data-question-id="{{ $question.ID }}"
-    data-question-slug="{{ $question.Slug }}"
+    class="forum-topic"
+    data-forum="topic"
+    data-topic-id="{{ $question.ID }}"
+    data-topic-slug="{{ $question.Slug }}"
     data-forum-path="{{ $forumPath }}"
     data-can-delete="{{ if .ForumQuestionCanDelete }}true{{ else }}false{{ end }}"
     data-login-url="{{ .ForumLoginURL }}"
@@ -16,10 +16,10 @@
     data-current-user-id="{{ if .ForumCurrentUserID }}{{ .ForumCurrentUserID }}{{ end }}"
     data-can-manage-all="{{ if $canManageAllAnswers }}true{{ else }}false{{ end }}"
     {{- with index .ForumEndpoints "Question" }}
-    data-endpoint-question="{{ . }}"
+    data-endpoint-topic="{{ . }}"
     {{- end }}
     {{- with index .ForumEndpoints "QuestionVote" }}
-    data-endpoint-question-vote="{{ . }}"
+    data-endpoint-topic-vote="{{ . }}"
     {{- end }}
     {{- with index .ForumEndpoints "AnswerCreate" }}
     data-endpoint-answer-create="{{ . }}"
@@ -31,70 +31,70 @@
     data-endpoint-answer-vote="{{ . }}"
     {{- end }}
 >
-    <div class="forum-question__container">
-        <nav class="forum-question__nav" aria-label="Forum navigation">
-            <a class="forum-question__back" href="{{ $forumPath }}">← Back to all discussions</a>
+    <div class="forum-topic__container">
+        <nav class="forum-topic__nav" aria-label="Forum navigation">
+            <a class="forum-topic__back" href="{{ $forumPath }}">← Back to all discussions</a>
         </nav>
 
-        <header class="forum-question__header">
-            <div class="forum-question__heading">
-                <h1 class="forum-question__title">{{ $question.Title }}</h1>
-                <div class="forum-question__meta">
+        <header class="forum-topic__header">
+            <div class="forum-topic__heading">
+                <h1 class="forum-topic__title">{{ $question.Title }}</h1>
+                <div class="forum-topic__meta">
                     {{ with $question.Category }}
-                    <span class="forum-question__meta-item forum-question__meta-item--category">
+                    <span class="forum-topic__meta-item forum-topic__meta-item--category">
                         {{ .Name }}
                     </span>
                     {{ end }}
                     {{ $author := trim $question.Author.Username }}
-                    <span class="forum-question__meta-item">
+                    <span class="forum-topic__meta-item">
                         {{ if $author }}Asked by {{ $author }}{{ else }}Asked by Community member{{ end }}
                     </span>
                     <time
-                        class="forum-question__meta-item"
+                        class="forum-topic__meta-item"
                         datetime='{{ $question.CreatedAt.Format "2006-01-02T15:04:05Z07:00" }}'
                     >
                         Posted on {{ $question.CreatedAt.Format "02 Jan 2006" }}
                     </time>
-                    <span class="forum-question__meta-item" data-role="answer-count">
+                    <span class="forum-topic__meta-item" data-role="answer-count">
                         {{ $answerCount }} {{ if eq $answerCount 1 }}answer{{ else }}answers{{ end }}
                     </span>
-                    <span class="forum-question__meta-item">
+                    <span class="forum-topic__meta-item">
                         {{ $question.Views }} {{ if eq $question.Views 1 }}view{{ else }}views{{ end }}
                     </span>
                 </div>
             </div>
-            <div class="forum-question__votes" data-role="question-votes">
+            <div class="forum-topic__votes" data-role="topic-votes">
                 <button
                     type="button"
                     class="forum-vote forum-vote--up"
-                    data-role="question-vote"
+                    data-role="topic-vote"
                     data-value="1"
-                    aria-label="Upvote this question"
+                    aria-label="Upvote this topic"
                 ></button>
-                <output class="forum-vote__value" data-role="question-rating">{{ $question.Rating }}</output>
+                <output class="forum-vote__value" data-role="topic-rating">{{ $question.Rating }}</output>
                 <button
                     type="button"
                     class="forum-vote forum-vote--down"
-                    data-role="question-vote"
+                    data-role="topic-vote"
                     data-value="-1"
-                    aria-label="Downvote this question"
+                    aria-label="Downvote this topic"
                 ></button>
             </div>
         </header>
 
         {{ if .ForumQuestionCanDelete }}
-        <div class="forum-question__actions">
-            <button type="button" class="forum-question__delete" data-role="question-delete">
-                Delete question
+        <div class="forum-topic__actions">
+            <button type="button" class="forum-topic__delete" data-role="topic-delete">
+                Delete topic
             </button>
         </div>
         {{ end }}
 
-        <article class="forum-question__body">
-            <div class="forum-question__content">{{ $question.Content }}</div>
+        <article class="forum-topic__body">
+            <div class="forum-topic__content">{{ $question.Content }}</div>
         </article>
 
-        <div class="forum-question__alert forum__alert" data-role="forum-alert" role="status" hidden></div>
+        <div class="forum-topic__alert forum__alert" data-role="forum-alert" role="status" hidden></div>
 
         <section class="forum-answers" aria-labelledby="forum-answers-title">
             <div class="forum-answers__header">

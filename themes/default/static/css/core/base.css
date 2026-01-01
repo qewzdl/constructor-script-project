@@ -365,13 +365,6 @@ textarea {
     color: var(--color-text);
 }
 
-.password-toggle:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-    border-radius: var(--size-xs);
-    color: var(--color-primary);
-}
-
 .password-toggle__icon {
     width: 1.25rem;
     height: 1.25rem;
@@ -1947,7 +1940,7 @@ textarea.form-field__input {
 .post-card__link {
     color: var(--color-text);
     width: 100%;
-    display: block;
+    display: flex;
     overflow: hidden;
     text-overflow: ellipsis;
 }
