@@ -3,6 +3,7 @@
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
     padding: var(--size-lg);
+    border-radius: var(--radius-card);
 }
 
 .page-view__contact-grid {

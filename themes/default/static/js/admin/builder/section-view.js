@@ -608,10 +608,12 @@
                 if (displayLabel) {
                     parts.push(`Display: ${displayLabel}`);
                 }
-                const isSelectedMode =
-                    normaliseString(section.settings?.display_mode).toLowerCase() ===
-                    'selected';
-                if (isSelectedMode) {
+                const displayMode = normaliseString(
+                    section.settings?.display_mode
+                ).toLowerCase();
+                const supportsSelection =
+                    displayMode === 'selected' || displayMode === 'carousel';
+                if (supportsSelection) {
                     const selectedCount = countSelectedCourses(
                         section.settings?.selected_courses
                     );
@@ -1169,7 +1171,7 @@
                         field.append(input);
 
                         if (key === 'selected_courses' || key === 'selected_posts') {
-                            registerConditionalField(field, ['selected']);
+                            registerConditionalField(field, ['selected', 'carousel']);
                         }
 
                         // Add media browse button for image/url fields

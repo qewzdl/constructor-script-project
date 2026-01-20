@@ -8,6 +8,7 @@
     border: 1px solid var(--color-border);
     padding: var(--size-base);
     background-color: var(--color-bg-top);
+    border-radius: var(--radius-card);
     display: flex;
     flex-direction: column;
     gap: var(--size-base);

@@ -642,6 +642,7 @@ textarea.form-field__input {
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
     margin-block: var(--size-max);
+    border-radius: var(--radius-card);
 }
 
 .auth[data-page='setup'] .auth__container {
@@ -1895,6 +1896,7 @@ textarea.form-field__input {
     padding: var(--size-base);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
+    border-radius: var(--radius-card);
     user-select: none;
     cursor: pointer;
     overflow: hidden;
@@ -2222,6 +2224,7 @@ body.post-image-modal-open .post-progress {
     position: relative;
     overflow: hidden;
     background-color: var(--color-bg-top);
+    border-radius: var(--radius-card);
 }
 
 .post__header > * {
@@ -2269,6 +2272,7 @@ body.post-image-modal-open .post-progress {
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
     margin-top: var(--size-mid);
+    border-radius: var(--radius-card);
 }
 
 .post__meta-item {
@@ -2341,6 +2345,7 @@ body.post-image-modal-open .post-progress {
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
+    border-radius: var(--radius-card);
 }
 
 .post__share-title {
@@ -2457,6 +2462,7 @@ body.post-image-modal-open .post-progress {
     width: min(100%, 20rem);
     color: var(--color-text);
     text-decoration: none;
+    border-radius: var(--radius-card);
 }
 
 .post__related-card * {
@@ -2507,6 +2513,7 @@ body.post-image-modal-open .post-progress {
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
+    border-radius: var(--radius-card);
 }
 
 @media (min-width: 1024px) {
@@ -2549,6 +2556,7 @@ body.post-image-modal-open .post-progress {
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
     width: 100%;
+    border-radius: var(--radius-card);
 }
 
 .comments__header-row {
@@ -3176,6 +3184,7 @@ body.course-modal-open {
     padding: clamp(1.5rem, 4vw, 2.5rem);
     margin-inline: var(--size-base);
     outline: none;
+    border-radius: var(--radius-card);
 }
 
 .course-modal__content {

@@ -110,6 +110,8 @@
     --size-max-lg: 96px;
     --size-max-xl: 128px;
 
+    --radius-card: 8px;
+
     /* Layout */
     --header-height: var(--size-max);
     --common-gap: 8px;

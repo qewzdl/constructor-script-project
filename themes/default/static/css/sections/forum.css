@@ -788,6 +788,7 @@ body.forum-topic-modal-open {
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
     padding: var(--size-base);
+    border-radius: var(--radius-card);
 }
 
 .forum-topic__content {
@@ -802,6 +803,7 @@ body.forum-topic-modal-open {
     border: 1px solid var(--color-border);
     background-color: var(--color-bg-top);
     padding: var(--size-base);
+    border-radius: var(--radius-card);
 }
 
 .forum-answers__header {
