@@ -1,0 +1,72 @@
+{
+    "type": "catalog",
+    "label": "Catalog",
+    "order": 21,
+    "description": "Showcase a catalog of available courses.",
+    "supports_elements": false,
+    "variations": [
+        {
+            "id": "catalog-cards",
+            "value": "cards",
+            "label": "Cards",
+            "description": "Default catalog card layout"
+        },
+        {
+            "id": "catalog-compact",
+            "value": "compact",
+            "label": "Compact",
+            "description": "Compact list-style catalog view"
+        },
+        {
+            "id": "catalog-highlighted",
+            "value": "highlighted",
+            "label": "Highlighted",
+            "description": "Accent-focused catalog cards"
+        }
+    ],
+    "settings": {
+        "display_mode": {
+            "label": "Display mode",
+            "type": "select",
+            "options": [
+                {
+                    "value": "limited",
+                    "label": "Limited (latest courses)"
+                },
+                {
+                    "value": "carousel",
+                    "label": "Carousel"
+                },
+                {
+                    "value": "paginated",
+                    "label": "Paginated (all courses)"
+                },
+                {
+                    "value": "selected",
+                    "label": "Selected courses"
+                }
+            ],
+            "default_value": "limited"
+        },
+        "carousel_columns": {
+            "label": "Columns in carousel",
+            "type": "range",
+            "min": 1,
+            "max": 4,
+            "default": 3
+        },
+        "limit": {
+            "label": "Number of courses to display",
+            "perPageLabel": "Number of courses to display on a page",
+            "default": 3,
+            "min": 1,
+            "max": 12
+        },
+        "selected_courses": {
+            "label": "Selected courses",
+            "type": "text",
+            "placeholder": "Choose courses to feature",
+            "allowCoursePicker": true
+        }
+    }
+}

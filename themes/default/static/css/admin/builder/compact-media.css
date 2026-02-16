@@ -1,0 +1,28 @@
+@media (max-width: 720px) {
+    .admin {
+        gap: var(--size-mid);
+    }
+
+    .admin-card,
+    .admin-panel {
+        padding: var(--size-base);
+    }
+
+    .admin-panel__header {
+        gap: var(--size-base);
+    }
+
+    .admin-panel__body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin__metrics {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding-inline: var(--size-sm);
+    }
+}
+

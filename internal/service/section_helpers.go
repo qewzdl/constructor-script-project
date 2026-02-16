@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -36,6 +37,8 @@ func PrepareSections(sections []models.Section, manager *theme.Manager, opts Pre
 			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
 		}
 
+		section.Settings = normaliseSectionSettings(section.Settings, definition.Settings)
+
 		allowElements := true
 		if definition.SupportsElements != nil {
 			allowElements = *definition.SupportsElements
@@ -55,7 +58,18 @@ func PrepareSections(sections []models.Section, manager *theme.Manager, opts Pre
 		}
 
 		if limitSetting, ok := definition.Settings["limit"]; ok {
+			if section.Limit <= 0 && section.Settings != nil {
+				if rawLimit, exists := section.Settings["limit"]; exists {
+					if parsedLimit, parsed := parseSectionSettingInt(rawLimit); parsed {
+						section.Limit = parsedLimit
+					}
+				}
+			}
 			section.Limit = clampSectionLimit(section.Limit, limitSetting)
+			if section.Settings == nil {
+				section.Settings = make(map[string]interface{})
+			}
+			section.Settings["limit"] = section.Limit
 		} else if sectionType == "posts_list" {
 			section.Limit = clampSectionLimit(section.Limit, theme.SectionSettingDefinition{
 				Default: intPtr(constants.DefaultPostListSectionLimit),
@@ -71,10 +85,20 @@ func PrepareSections(sections []models.Section, manager *theme.Manager, opts Pre
 		}
 
 		if modeSetting, ok := definition.Settings["mode"]; ok {
+			if strings.TrimSpace(section.Mode) == "" && section.Settings != nil {
+				if rawMode, exists := section.Settings["mode"]; exists {
+					section.Mode = strings.TrimSpace(fmt.Sprint(rawMode))
+				}
+			}
 			section.Mode = normaliseSectionMode(section.Mode, modeSetting)
+			if section.Settings == nil {
+				section.Settings = make(map[string]interface{})
+			}
+			section.Settings["mode"] = section.Mode
 		} else {
 			section.Mode = strings.TrimSpace(strings.ToLower(section.Mode))
 		}
+		section.Variation = definition.NormaliseVariation(extractSectionVariation(section.Variation, section.Settings))
 
 		if section.ID == "" {
 			section.ID = uuid.New().String()
@@ -86,8 +110,10 @@ func PrepareSections(sections []models.Section, manager *theme.Manager, opts Pre
 
 		if opts.NormaliseSpacing {
 			defaultPadding := constants.DefaultSectionPadding
-			if activeTheme := manager.Active(); activeTheme != nil {
-				defaultPadding = activeTheme.DefaultSectionPadding()
+			if manager != nil {
+				if activeTheme := manager.Active(); activeTheme != nil {
+					defaultPadding = activeTheme.DefaultSectionPadding()
+				}
 			}
 			section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical, defaultPadding)
 			section.MarginVertical = normaliseSectionMargin(section.MarginVertical)
@@ -300,6 +326,379 @@ func absInt(value int) int {
 	return value
 }
 
+func extractSectionVariation(value string, settings map[string]interface{}) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed != "" {
+		return trimmed
+	}
+	if settings == nil {
+		return ""
+	}
+
+	if raw, ok := settings["variation"].(string); ok {
+		return strings.TrimSpace(raw)
+	}
+	if raw, ok := settings["Variation"].(string); ok {
+		return strings.TrimSpace(raw)
+	}
+
+	return ""
+}
+
+func normaliseSectionSettings(
+	source map[string]interface{},
+	definitions map[string]theme.SectionSettingDefinition,
+) map[string]interface{} {
+	if len(source) == 0 && len(definitions) == 0 {
+		return nil
+	}
+
+	cloned := cloneSettings(source)
+	if len(definitions) == 0 {
+		return cloned
+	}
+
+	index := make(map[string]interface{}, len(cloned))
+	for key, value := range cloned {
+		normalisedKey := normaliseSectionSettingKey(key)
+		if normalisedKey == "" {
+			continue
+		}
+		if _, exists := index[normalisedKey]; exists {
+			continue
+		}
+		index[normalisedKey] = value
+	}
+
+	keys := make([]string, 0, len(definitions))
+	for key := range definitions {
+		normalisedKey := normaliseSectionSettingKey(key)
+		if normalisedKey == "" {
+			continue
+		}
+		keys = append(keys, normalisedKey)
+	}
+	sort.Strings(keys)
+
+	result := make(map[string]interface{}, len(cloned)+len(keys))
+	known := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		known[key] = struct{}{}
+		definition, exists := definitions[key]
+		if !exists {
+			// Fall back to lookup by non-normalised key, when configuration keys differ in case.
+			for definitionKey, candidate := range definitions {
+				if normaliseSectionSettingKey(definitionKey) == key {
+					definition = candidate
+					exists = true
+					break
+				}
+			}
+		}
+		if !exists {
+			continue
+		}
+
+		rawValue, hasRaw := index[key]
+		value, hasValue := normaliseSectionSettingValue(rawValue, hasRaw, definition)
+		if hasValue {
+			result[key] = value
+		}
+	}
+
+	for key, value := range cloned {
+		trimmedKey := strings.TrimSpace(key)
+		if trimmedKey == "" {
+			continue
+		}
+		normalisedKey := normaliseSectionSettingKey(trimmedKey)
+		if _, isKnown := known[normalisedKey]; isKnown {
+			continue
+		}
+		if _, exists := result[trimmedKey]; exists {
+			continue
+		}
+		result[trimmedKey] = cloneAny(value)
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func normaliseSectionSettingValue(
+	raw interface{},
+	hasRaw bool,
+	definition theme.SectionSettingDefinition,
+) (interface{}, bool) {
+	fieldType := strings.TrimSpace(strings.ToLower(inferSettingType(definition)))
+	if fieldType == "" {
+		fieldType = "text"
+	}
+
+	switch fieldType {
+	case "select":
+		return normaliseSectionSelectValue(raw, hasRaw, definition)
+	case "boolean":
+		return normaliseSectionBooleanValue(raw, hasRaw, definition)
+	case "number", "integer", "range":
+		return normaliseSectionNumberValue(raw, hasRaw, definition)
+	case "text", "string", "url", "textarea":
+		return normaliseSectionTextValue(raw, hasRaw, definition)
+	default:
+		return normaliseSectionTextValue(raw, hasRaw, definition)
+	}
+}
+
+func normaliseSectionSelectValue(
+	raw interface{},
+	hasRaw bool,
+	definition theme.SectionSettingDefinition,
+) (interface{}, bool) {
+	if len(definition.Options) == 0 {
+		return normaliseSectionTextValue(raw, hasRaw, definition)
+	}
+
+	first := ""
+	options := make(map[string]string, len(definition.Options))
+	for _, option := range definition.Options {
+		value := strings.TrimSpace(option.Value)
+		if value == "" {
+			continue
+		}
+		normalised := strings.ToLower(value)
+		if first == "" {
+			first = value
+		}
+		if _, exists := options[normalised]; !exists {
+			options[normalised] = value
+		}
+	}
+	if len(options) == 0 {
+		return nil, false
+	}
+
+	if hasRaw {
+		candidate := strings.TrimSpace(fmt.Sprint(raw))
+		if candidate != "" {
+			if resolved, ok := options[strings.ToLower(candidate)]; ok {
+				return resolved, true
+			}
+		}
+	}
+
+	defaultCandidate := strings.TrimSpace(definition.DefaultValue)
+	if defaultCandidate != "" {
+		if resolved, ok := options[strings.ToLower(defaultCandidate)]; ok {
+			return resolved, true
+		}
+	}
+
+	if first != "" {
+		return first, true
+	}
+
+	return nil, false
+}
+
+func normaliseSectionBooleanValue(
+	raw interface{},
+	hasRaw bool,
+	definition theme.SectionSettingDefinition,
+) (interface{}, bool) {
+	if hasRaw {
+		if parsed, ok := parseSectionSettingBool(raw); ok {
+			return parsed, true
+		}
+	}
+
+	if parsed, ok := parseBoolDefault(definition.DefaultValue); ok {
+		return parsed, true
+	}
+
+	if definition.Default != nil {
+		return *definition.Default != 0, true
+	}
+
+	if definition.Required {
+		return false, true
+	}
+
+	return nil, false
+}
+
+func normaliseSectionNumberValue(
+	raw interface{},
+	hasRaw bool,
+	definition theme.SectionSettingDefinition,
+) (interface{}, bool) {
+	value := 0
+	hasValue := false
+
+	if hasRaw {
+		if parsed, ok := parseSectionSettingInt(raw); ok {
+			value = parsed
+			hasValue = true
+		}
+	}
+
+	if !hasValue && definition.Default != nil {
+		value = *definition.Default
+		hasValue = true
+	}
+
+	if !hasValue {
+		if parsed, err := strconv.Atoi(strings.TrimSpace(definition.DefaultValue)); err == nil {
+			value = parsed
+			hasValue = true
+		}
+	}
+
+	if !hasValue {
+		if definition.Required {
+			value = 0
+			hasValue = true
+		} else {
+			return nil, false
+		}
+	}
+
+	if definition.Min != nil && value < *definition.Min {
+		value = *definition.Min
+	}
+	if definition.Max != nil && value > *definition.Max {
+		value = *definition.Max
+	}
+
+	return value, true
+}
+
+func normaliseSectionTextValue(
+	raw interface{},
+	hasRaw bool,
+	definition theme.SectionSettingDefinition,
+) (interface{}, bool) {
+	value := ""
+	if hasRaw {
+		value = strings.TrimSpace(fmt.Sprint(raw))
+	}
+
+	if value == "" {
+		value = strings.TrimSpace(definition.DefaultValue)
+	}
+
+	if value == "" && definition.Required {
+		return "", true
+	}
+
+	if value == "" {
+		return nil, false
+	}
+
+	return value, true
+}
+
+func parseSectionSettingBool(raw interface{}) (bool, bool) {
+	switch value := raw.(type) {
+	case bool:
+		return value, true
+	case string:
+		return parseBoolDefault(value)
+	case int:
+		return value != 0, true
+	case int8:
+		return value != 0, true
+	case int16:
+		return value != 0, true
+	case int32:
+		return value != 0, true
+	case int64:
+		return value != 0, true
+	case uint:
+		return value != 0, true
+	case uint8:
+		return value != 0, true
+	case uint16:
+		return value != 0, true
+	case uint32:
+		return value != 0, true
+	case uint64:
+		return value != 0, true
+	case float32:
+		return value != 0, true
+	case float64:
+		return value != 0, true
+	default:
+		return false, false
+	}
+}
+
+func parseSectionSettingInt(raw interface{}) (int, bool) {
+	switch value := raw.(type) {
+	case int:
+		return value, true
+	case int8:
+		return int(value), true
+	case int16:
+		return int(value), true
+	case int32:
+		return int(value), true
+	case int64:
+		return int(value), true
+	case uint:
+		return int(value), true
+	case uint8:
+		return int(value), true
+	case uint16:
+		return int(value), true
+	case uint32:
+		return int(value), true
+	case uint64:
+		return int(value), true
+	case float32:
+		return int(value), true
+	case float64:
+		return int(value), true
+	case string:
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			return 0, false
+		}
+		parsed, err := strconv.Atoi(trimmed)
+		if err != nil {
+			return 0, false
+		}
+		return parsed, true
+	default:
+		return 0, false
+	}
+}
+
+func normaliseSectionSettingKey(value string) string {
+	trimmed := strings.TrimSpace(strings.ToLower(value))
+	if trimmed == "" {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.Grow(len(trimmed))
+	lastUnderscore := false
+	for _, r := range trimmed {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			builder.WriteRune(r)
+			lastUnderscore = false
+			continue
+		}
+		if !lastUnderscore {
+			builder.WriteByte('_')
+			lastUnderscore = true
+		}
+	}
+
+	return strings.Trim(builder.String(), "_")
+}
+
 // NormaliseSections ensures section fields are consistently populated and ordered without requiring theme definitions.
 func NormaliseSections(sections models.PostSections) models.PostSections {
 	if len(sections) == 0 {
@@ -313,6 +712,7 @@ func NormaliseSections(sections models.PostSections) models.PostSections {
 		if section.Type == "" {
 			section.Type = "standard"
 		}
+		section.Variation = strings.TrimSpace(strings.ToLower(extractSectionVariation(section.Variation, section.Settings)))
 		section.Title = strings.TrimSpace(section.Title)
 		section.Description = strings.TrimSpace(section.Description)
 

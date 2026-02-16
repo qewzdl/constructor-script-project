@@ -4,6 +4,14 @@
     "order": 20,
     "description": "Automatically displays the most recent blog posts.",
     "supports_elements": false,
+    "variations": [
+        {
+            "id": "posts-list-cards",
+            "value": "cards",
+            "label": "Cards",
+            "description": "Post cards in a responsive grid"
+        }
+    ],
     "settings": {
         "display_mode": {
             "label": "Display mode",

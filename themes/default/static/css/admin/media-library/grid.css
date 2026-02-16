@@ -1,0 +1,89 @@
+.admin-media-library__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--size-sm);
+}
+
+.admin-media-library__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    background: var(--color-bg-subtle);
+    cursor: pointer;
+}
+
+.admin-media-library__item:hover,
+.admin-media-library__item:focus-visible {
+    border-color: var(--color-primary);
+    outline: none;
+}
+
+.admin-media-library__item.is-selected {
+    border-color: var(--color-primary);
+    background: var(--color-primary-transparent);
+}
+
+.admin-media-library__thumb {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #f5f5f5;
+}
+
+.admin-media-library__thumb--file {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-top);
+    color: var(--color-secondary);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    position: relative;
+}
+
+.admin-media-library__thumb-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg-top));
+    color: var(--color-primary);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.admin-media-library__thumb--video {
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 20%, transparent) 0%,
+            color-mix(in srgb, var(--color-primary) 6%, transparent) 100%),
+        var(--color-bg-top);
+}
+
+.admin-media-library__thumb--video .admin-media-library__thumb-label::before {
+    content: 'РІвЂ“В¶';
+    font-size: 0.75rem;
+}
+
+.admin-media-library__meta {
+    padding: 0.5rem 0.75rem 0.65rem;
+}
+
+.admin-media-library__name {
+    display: flex;
+    justify-content: flex-start;
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    word-break: break-word;
+}
+
+.admin-media-library__details {
+    margin: 0.25rem 0 0;
+    font-size: var(--font-size-xs);
+    color: var(--color-secondary);
+}
+

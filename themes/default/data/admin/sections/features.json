@@ -1,0 +1,30 @@
+{
+    "type": "features",
+    "label": "Features",
+    "order": 16,
+    "description": "Showcase key features with image and text pairs laid out in a grid.",
+    "supports_elements": true,
+    "allowed_elements": [
+        "feature_item"
+    ],
+    "variations": [
+        {
+            "id": "features-cards",
+            "value": "cards",
+            "label": "Cards",
+            "description": "Responsive feature cards"
+        },
+        {
+            "id": "features-list",
+            "value": "list",
+            "label": "List",
+            "description": "Single-column list layout"
+        },
+        {
+            "id": "features-spotlight",
+            "value": "spotlight",
+            "label": "Spotlight",
+            "description": "Two-column feature spotlight layout"
+        }
+    ]
+}

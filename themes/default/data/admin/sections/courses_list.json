@@ -4,6 +4,14 @@
     "order": 22,
     "description": "Highlights available course packages with pricing and topics.",
     "supports_elements": false,
+    "variations": [
+        {
+            "id": "courses-list-cards",
+            "value": "cards",
+            "label": "Cards",
+            "description": "Course cards in a responsive grid"
+        }
+    ],
     "settings": {
         "display_mode": {
             "label": "Display mode",

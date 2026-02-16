@@ -1,0 +1,71 @@
+.admin-form__submit {
+    border: none;
+    padding: var(--size-sm) var(--size-lg);
+    background: var(--color-primary);
+    font-weight: 600;
+    color: var(--color-primary-opposite);
+}
+
+.admin-form__submit--secondary {
+    background: color-mix(
+        in srgb,
+        var(--color-border-subtle) 30%,
+        var(--color-bg-top)
+    );
+    color: var(--color-secondary);
+    border: 1px solid var(--color-border);
+}
+
+.admin-form__submit:hover,
+.admin-form__submit:focus-visible {
+    background: var(--color-primary-hover);
+    outline: none;
+}
+
+.admin-form__submit--secondary:hover,
+.admin-form__submit--secondary:focus-visible {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: var(--color-primary-transparent);
+    outline: none;
+}
+
+.admin-form__button {
+    border: 1px solid var(--color-border);
+    padding: var(--size-sm) var(--size-lg);
+    background: color-mix(
+        in srgb,
+        var(--color-border-subtle) 30%,
+        var(--color-bg-top)
+    );
+    color: var(--color-secondary);
+    font-weight: 600;
+}
+
+.admin-form__button:hover,
+.admin-form__button:focus-visible {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: var(--color-primary-transparent);
+    outline: none;
+}
+
+.admin-form__delete {
+    border: 1px solid var(--color-error);
+    padding: var(--size-sm) var(--size-lg);
+    background: color-mix(
+        in srgb,
+        var(--color-error-transparent) 50%,
+        var(--color-bg-top)
+    );
+    color: var(--color-error);
+    font-weight: 600;
+}
+
+.admin-form__delete:hover,
+.admin-form__delete:focus-visible {
+    background: var(--color-error);
+    color: var(--color-bg-top);
+    outline: none;
+}
+

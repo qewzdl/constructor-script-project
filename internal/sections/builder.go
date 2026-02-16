@@ -3,6 +3,7 @@ package sections
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // SectionBuilder provides a fluent interface for creating section descriptors.
@@ -50,6 +51,36 @@ func (b *SectionBuilder) WithIcon(icon string) *SectionBuilder {
 // WithPreview sets a preview image or template for the section.
 func (b *SectionBuilder) WithPreview(preview string) *SectionBuilder {
 	b.descriptor.Metadata.Preview = preview
+	return b
+}
+
+// WithOrder sets display order for section listings in builder UIs.
+func (b *SectionBuilder) WithOrder(order int) *SectionBuilder {
+	b.descriptor.Metadata.Order = order
+	return b
+}
+
+// WithAllowedIn sets context restrictions (for example: page, post, homepage).
+func (b *SectionBuilder) WithAllowedIn(allowedIn ...string) *SectionBuilder {
+	b.descriptor.Metadata.AllowedIn = cloneStringSlice(allowedIn)
+	return b
+}
+
+// WithAllowedElements sets a list of allowed element types for this section.
+func (b *SectionBuilder) WithAllowedElements(allowedElements ...string) *SectionBuilder {
+	b.descriptor.Metadata.AllowedElements = cloneStringSlice(allowedElements)
+	return b
+}
+
+// WithSupportsElements controls whether the section can contain nested elements.
+func (b *SectionBuilder) WithSupportsElements(supports bool) *SectionBuilder {
+	b.descriptor.Metadata.SupportsElements = boolPointer(supports)
+	return b
+}
+
+// WithSupportsHeaderImage controls whether the section supports header/side images.
+func (b *SectionBuilder) WithSupportsHeaderImage(supports bool) *SectionBuilder {
+	b.descriptor.Metadata.SupportsHeaderImage = boolPointer(supports)
 	return b
 }
 
@@ -165,6 +196,8 @@ func (b *SectionBuilder) Build() (*SectionDescriptor, error) {
 		return nil, fmt.Errorf("builder has %d error(s): %v", len(b.errors), b.errors[0])
 	}
 
+	b.descriptor.Metadata = normaliseSectionMetadata(b.descriptor.Metadata)
+
 	if b.descriptor.Renderer == nil {
 		return nil, fmt.Errorf("renderer is required")
 	}
@@ -173,7 +206,14 @@ func (b *SectionBuilder) Build() (*SectionDescriptor, error) {
 		return nil, fmt.Errorf("section type is required")
 	}
 
-	return b.descriptor, nil
+	if strings.TrimSpace(b.descriptor.Metadata.Name) == "" {
+		b.descriptor.Metadata.Name = b.descriptor.Metadata.Type
+	}
+	if strings.TrimSpace(b.descriptor.Metadata.Category) == "" {
+		b.descriptor.Metadata.Category = "custom"
+	}
+
+	return cloneSectionDescriptor(b.descriptor), nil
 }
 
 // MustBuild builds the descriptor and panics if there are errors.
@@ -184,4 +224,8 @@ func (b *SectionBuilder) MustBuild() *SectionDescriptor {
 		panic(fmt.Sprintf("failed to build section descriptor: %v", err))
 	}
 	return desc
+}
+
+func boolPointer(value bool) *bool {
+	return &value
 }

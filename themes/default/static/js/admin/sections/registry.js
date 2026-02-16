@@ -29,6 +29,43 @@
         return Array.from(set);
     };
 
+    const normaliseVariations = (value) => {
+        if (!Array.isArray(value)) {
+            return [];
+        }
+        const seen = new Set();
+        const result = [];
+        value.forEach((variation) => {
+            const source =
+                variation && typeof variation === 'object'
+                    ? variation
+                    : { value: variation };
+            const normalisedValue = normaliseType(
+                source.value ?? source.id ?? source.type
+            );
+            if (!normalisedValue || seen.has(normalisedValue)) {
+                return;
+            }
+            seen.add(normalisedValue);
+            result.push({
+                value: normalisedValue,
+                label:
+                    typeof source.label === 'string' && source.label.trim()
+                        ? source.label.trim()
+                        : normalisedValue,
+                description:
+                    typeof source.description === 'string'
+                        ? source.description.trim()
+                        : '',
+                isDefault:
+                    source.isDefault === true ||
+                    source.is_default === true ||
+                    source.default === true,
+            });
+        });
+        return result;
+    };
+
     const register = (type, definition = {}) => {
         const normalised = normaliseType(type);
         if (!normalised || !definition) {
@@ -49,6 +86,11 @@
                 ? definition.allowedElements
                 : definition.allowed_elements;
         const allowedElements = normaliseTypeList(allowedElementsSource);
+        const variationsSource =
+            definition.variations !== undefined
+                ? definition.variations
+                : definition.variation_options;
+        const variations = normaliseVariations(variationsSource);
 
         const entry = {
             type: normalised,
@@ -78,6 +120,7 @@
                               : supportsHeaderImageSource
                       ),
             allowedElements: allowedElements.length ? allowedElements : undefined,
+            variations: variations.length ? variations : undefined,
             settings:
                 definition.settings && typeof definition.settings === 'object'
                     ? definition.settings
@@ -171,6 +214,24 @@
         description:
             'Showcase key features with image and text pairs laid out in a grid.',
         allowedElements: ['feature_item'],
+        variations: [
+            {
+                value: 'cards',
+                label: 'Cards',
+                description: 'Responsive feature cards',
+                isDefault: true,
+            },
+            {
+                value: 'list',
+                label: 'List',
+                description: 'Single-column list layout',
+            },
+            {
+                value: 'spotlight',
+                label: 'Spotlight',
+                description: 'Two-column feature spotlight layout',
+            },
+        ],
     });
 
     ensureRegistered('file_list', {
@@ -197,7 +258,7 @@
                 },
             },
         });
-        register('posts_list', {
+        ensureRegistered('posts_list', {
             label: 'Posts list',
             order: 20,
             supportsElements: false,
@@ -239,7 +300,64 @@
     }
 
     if (coursesEnabled) {
-        register('courses_list', {
+        ensureRegistered('catalog', {
+            label: 'Catalog',
+            order: 21,
+            supportsElements: false,
+            description: 'Showcase a catalog of available courses.',
+            variations: [
+                {
+                    value: 'cards',
+                    label: 'Cards',
+                    description: 'Default catalog card layout',
+                    isDefault: true,
+                },
+                {
+                    value: 'compact',
+                    label: 'Compact',
+                    description: 'Compact list-style catalog view',
+                },
+                {
+                    value: 'highlighted',
+                    label: 'Highlighted',
+                    description: 'Accent-focused catalog cards',
+                },
+            ],
+            settings: {
+                display_mode: {
+                    label: 'Display mode',
+                    type: 'select',
+                    options: [
+                        { value: 'limited', label: 'Limited (latest courses)' },
+                        { value: 'carousel', label: 'Carousel' },
+                        { value: 'paginated', label: 'Paginated (all courses)' },
+                        { value: 'selected', label: 'Selected courses' },
+                    ],
+                    defaultValue: 'limited',
+                },
+                carousel_columns: {
+                    label: 'Columns in carousel',
+                    type: 'range',
+                    min: 1,
+                    max: 4,
+                    default: 3,
+                },
+                limit: {
+                    label: 'Number of courses to display',
+                    perPageLabel: 'Number of courses to display on a page',
+                    min: 1,
+                    max: 12,
+                    default: 3,
+                },
+                selected_courses: {
+                    label: 'Selected courses',
+                    type: 'text',
+                    placeholder: 'Choose courses to feature',
+                    allowCoursePicker: true,
+                },
+            },
+        });
+        ensureRegistered('courses_list', {
             label: 'Courses list',
             order: 22,
             supportsElements: false,

@@ -1,0 +1,262 @@
+.admin-panel {
+    display: grid;
+    gap: var(--size-mid);
+    border: 1px solid var(--color-border);
+    padding: var(--size-mid);
+    background: var(--color-bg-top);
+    scroll-margin-top: calc(var(--header-height) + var(--size-mid));
+}
+
+.admin-panel[hidden] {
+    display: none !important;
+}
+
+.admin__section {
+    scroll-margin-top: calc(var(--header-height) + var(--size-base));
+}
+
+.admin__section--highlighted {
+    box-shadow: 0 0 0 2px
+        color-mix(in srgb, var(--color-primary) 75%, transparent);
+    transition: box-shadow 0.2s ease;
+}
+
+.admin-panel__header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-sm);
+    justify-content: space-between;
+    align-items: flex-start;
+    margin: 0;
+}
+
+.admin-panel__actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-sm);
+    padding: var(--size-base);
+    border: 1px solid var(--color-border);
+    max-width: 600px;
+    width: 100%;
+}
+
+.admin-search {
+    position: relative;
+    width: 100%;
+}
+
+.admin-search__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.admin-search__input {
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+}
+
+.admin-search__input:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary-transparent);
+}
+
+.admin-panel__title {
+    font-size: clamp(1.25rem, 1vw + 1rem, 1.75rem);
+    font-weight: 600;
+}
+
+.admin-panel__description {
+    color: var(--color-secondary);
+    line-height: 1.6;
+}
+
+.admin-panel__reset {
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    padding: var(--size-xs) var(--size-base);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.admin-panel__reset:hover,
+.admin-panel__reset:focus-visible {
+    border-color: var(--color-primary);
+    background: var(--color-primary-transparent);
+    outline: none;
+}
+
+.admin-panel__body {
+    display: grid;
+    gap: var(--size-base);
+    gap: var(--size-mid);
+}
+
+.admin-panel__body--stacked {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+}
+
+.admin-panel__details {
+    display: grid;
+    gap: var(--size-mid);
+    align-content: start;
+}
+
+.admin-panel__body--single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-panel__aside {
+    border: 1px solid var(--color-border);
+    padding: var(--size-mid);
+    background: var(--color-bg-top);
+    display: grid;
+    gap: var(--size-sm);
+}
+
+.admin-panel__list {
+    border: 1px solid var(--color-border);
+    border-bottom: none;
+    overflow-y: hidden;
+    overflow-x: auto;
+    background: var(--color-bg-top);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+}
+
+.admin-table a:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
+
+.admin-table thead {
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 50%,
+        var(--color-bg-top)
+    );
+}
+
+.admin-table th,
+.admin-table td {
+    padding: var(--size-sm) var(--size-base);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+}
+
+.admin-table th {
+    font-weight: 600;
+    color: var(--color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: var(--font-size-xs);
+}
+
+.admin-table tbody tr:hover {
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 60%,
+        var(--color-bg-top)
+    );
+}
+
+.admin-table tbody tr.is-selected {
+    background: color-mix(
+        in srgb,
+        var(--color-primary-transparent) 80%,
+        var(--color-bg-top)
+    );
+}
+
+.admin-table__placeholder td {
+    text-align: center;
+    color: var(--color-secondary);
+    font-style: italic;
+}
+.admin-table__pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--size-base);
+    padding: var(--size-sm) var(--size-base);
+    border-bottom: 1px solid var(--color-border);
+    border-top: none;
+    background: var(--color-bg-top);
+    width: 100%;
+}
+.admin-table__pagination-info {
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+}
+.admin-table__pagination-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--size-sm);
+}
+.admin-table__pagination-size {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-sm);
+    color: var(--color-secondary);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+.admin-table__pagination-select {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+}
+.admin-table__pagination-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--size-sm);
+}
+.admin-table__pagination-button {
+    width: 100px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    padding: var(--size-xs) var(--size-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-secondary);
+    cursor: pointer;
+}
+.admin-table__pagination-button:hover,
+.admin-table__pagination-button:focus-visible {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary-transparent);
+    color: var(--color-primary);
+    outline: none;
+}
+.admin-table__pagination-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.admin-table__pagination-status {
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    color: var(--color-secondary);
+}
+

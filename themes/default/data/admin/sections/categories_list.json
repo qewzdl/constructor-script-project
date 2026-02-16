@@ -4,6 +4,14 @@
     "order": 18,
     "description": "Displays a list of blog categories for quick navigation.",
     "supports_elements": false,
+    "variations": [
+        {
+            "id": "categories-list-chips",
+            "value": "chips",
+            "label": "Chips",
+            "description": "Category links displayed as compact chips"
+        }
+    ],
     "settings": {
         "limit": {
             "label": "Number of categories to display",

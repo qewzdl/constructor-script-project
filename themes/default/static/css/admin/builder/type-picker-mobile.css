@@ -1,0 +1,22 @@
+@media (max-width: 640px) {
+    .admin-type-picker {
+        padding: var(--size-base);
+    }
+
+    .admin-type-picker__dialog {
+        width: 100%;
+    }
+}
+
+@media (max-width: 520px) {
+    .admin > *,
+    .admin__panels > * {
+        border-inline: none;
+    }
+
+    .admin__navigation {
+        border-inline: none;
+        padding-inline: var(--size-base);
+    }
+}
+

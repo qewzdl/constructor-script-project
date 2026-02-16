@@ -8,6 +8,7 @@
     --color-bg-bottom: #f2f2f2ff;
     --color-bg-top: #ffffff;
     --color-text: #1a1a1a;
+    --color-text-opposite: var(--color-text-dark);
     --color-primary: #3b82f6;
     --color-primary-opposite: #ffffff;
     --color-primary-transparent: color-mix(in srgb, var(--color-primary) 10%, transparent);
@@ -32,6 +33,7 @@
     --color-bg-top-light: #ffffff;
     --color-bg-top-darker-light: #121212;
     --color-text-light: #1a1a1a;
+    --color-text-opposite-light: var(--color-text-dark);
     --color-primary-light: #3b82f6;
     --color-primary-opposite-light: #ffffff;
     --color-primary-transparent-light: color-mix(in srgb, var(--color-primary) 10%, transparent);
@@ -53,6 +55,7 @@
     --color-bg-top-dark: #121212;
     --color-bg-top-darker-dark: #000000;
     --color-text-dark: #e5e7eb;
+    --color-text-opposite-dark: var(--color-text-light);
     --color-primary-dark: #3b82f6;
     --color-primary-opposite-dark: #ffffffff;
     --color-primary-transparent-dark: color-mix(in srgb, var(--color-primary) 10%, transparent);
@@ -125,6 +128,7 @@
     --color-bg-top: var(--color-bg-top-light);
     --color-bg-top-darker: var(--color-bg-top-darker-light);
     --color-text: var(--color-text-light);
+    --color-text-opposite: var(--color-text-opposite-light);
     --color-primary: var(--color-primary-light);
     --color-primary-opposite: var(--color-primary-opposite-light);
     --color-primary-transparent: var(--color-primary-transparent-light);
@@ -148,6 +152,7 @@
     --color-bg-top: var(--color-bg-top-dark);
     --color-bg-top-darker: var(--color-bg-top-darker-dark);
     --color-text: var(--color-text-dark);
+    --color-text-opposite: var(--color-text-opposite-dark);
     --color-primary: var(--color-primary-dark);
     --color-primary-opposite: var(--color-primary-opposite-dark);
     --color-primary-transparent: var(--color-primary-transparent-dark);

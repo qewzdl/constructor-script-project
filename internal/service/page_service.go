@@ -7,14 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/repository"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/cache"
 	"constructor-script-backend/pkg/utils"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -491,6 +489,13 @@ func (s *PageService) GetByID(id uint) (*models.Page, error) {
 	return page, nil
 }
 
+func (s *PageService) GetByIDAdmin(id uint) (*models.Page, error) {
+	if s == nil || s.pageRepo == nil {
+		return nil, errors.New("page repository not configured")
+	}
+	return s.pageRepo.GetByID(id)
+}
+
 func (s *PageService) GetBySlug(slug string) (*models.Page, error) {
 	if s.cache != nil {
 		var page models.Page
@@ -644,98 +649,7 @@ func (s *PageService) UnpublishPage(id uint) error {
 }
 
 func (s *PageService) prepareSections(sections []models.Section) (models.PostSections, error) {
-	if len(sections) == 0 {
-		return models.PostSections{}, nil
-	}
-
-	prepared := make(models.PostSections, 0, len(sections))
-	sectionDefinitions := sectionDefinitionsFromManager(s.themes)
-	elementDefinitions := elementDefinitionsFromManager(s.themes)
-
-	for i, section := range sections {
-		sectionType := strings.TrimSpace(section.Type)
-		sectionType = strings.ToLower(sectionType)
-		if sectionType == "" {
-			sectionType = "standard"
-		}
-
-		section.Title = strings.TrimSpace(section.Title)
-		section.Description = strings.TrimSpace(section.Description)
-
-		definition, ok := sectionDefinitions[sectionType]
-		if !ok {
-			return nil, fmt.Errorf("section %d: unknown type '%s'", i, sectionType)
-		}
-
-		allowElements := true
-		if definition.SupportsElements != nil {
-			allowElements = *definition.SupportsElements
-		}
-		allowedElements := definition.AllowedElementSet()
-
-		if allowElements {
-			if len(section.Elements) > 0 {
-				preparedElements, err := s.prepareSectionElements(section.Elements, elementDefinitions, allowedElements)
-				if err != nil {
-					return nil, fmt.Errorf("section %d: %w", i, err)
-				}
-				section.Elements = preparedElements
-			}
-		} else {
-			section.Elements = nil
-		}
-
-		if limitSetting, ok := definition.Settings["limit"]; ok {
-			section.Limit = clampSectionLimit(section.Limit, limitSetting)
-		} else if sectionType == "posts_list" {
-			section.Limit = clampSectionLimit(section.Limit, theme.SectionSettingDefinition{
-				Default: intPtr(constants.DefaultPostListSectionLimit),
-				Min:     intPtr(1),
-				Max:     intPtr(constants.MaxPostListSectionLimit),
-			})
-		} else if sectionType == "categories_list" {
-			section.Limit = clampSectionLimit(section.Limit, theme.SectionSettingDefinition{
-				Default: intPtr(constants.DefaultCategoryListSectionLimit),
-				Min:     intPtr(1),
-				Max:     intPtr(constants.MaxCategoryListSectionLimit),
-			})
-		}
-
-		if modeSetting, ok := definition.Settings["mode"]; ok {
-			section.Mode = normaliseSectionMode(section.Mode, modeSetting)
-		} else {
-			section.Mode = strings.TrimSpace(strings.ToLower(section.Mode))
-		}
-
-		if section.ID == "" {
-			section.ID = uuid.New().String()
-		}
-
-		if section.Order == 0 {
-			section.Order = i + 1
-		}
-
-		defaultPadding := constants.DefaultSectionPadding
-		if activeTheme := s.themes.Active(); activeTheme != nil {
-			defaultPadding = activeTheme.DefaultSectionPadding()
-		}
-		section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical, defaultPadding)
-		section.MarginVertical = normaliseSectionMargin(section.MarginVertical)
-
-		section.Type = sectionType
-
-		prepared = append(prepared, section)
-	}
-
-	return prepared, nil
-}
-
-func (s *PageService) prepareSectionElements(
-	elements []models.SectionElement,
-	definitions map[string]theme.ElementDefinition,
-	allowed map[string]struct{},
-) ([]models.SectionElement, error) {
-	return prepareSectionElements(elements, definitions, allowed)
+	return PrepareSections(sections, s.themes, PrepareSectionsOptions{NormaliseSpacing: true})
 }
 
 func (s *PageService) getTemplate(template string) string {

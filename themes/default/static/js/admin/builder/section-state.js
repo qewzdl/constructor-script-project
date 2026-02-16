@@ -284,6 +284,38 @@
         return options[0];
     };
 
+    const normaliseVariationValue = (definition, value) => {
+        const variations = Array.isArray(definition?.variations)
+            ? definition.variations
+                  .map((variation) => ({
+                      value: normaliseString(variation?.value).toLowerCase(),
+                      isDefault:
+                          variation?.isDefault === true ||
+                          variation?.is_default === true ||
+                          variation?.default === true,
+                  }))
+                  .filter((variation) => Boolean(variation.value))
+            : [];
+        if (!variations.length) {
+            return '';
+        }
+
+        const normalisedValue = normaliseString(value).toLowerCase();
+        if (normalisedValue) {
+            const matched = variations.find(
+                (variation) => variation.value === normalisedValue
+            );
+            if (matched) {
+                return matched.value;
+            }
+        }
+
+        const fallback =
+            variations.find((variation) => variation.isDefault)?.value ||
+            variations[0].value;
+        return fallback || '';
+    };
+
     const createSectionState = (
         elementDefinitions,
         sectionDefinitions,
@@ -364,6 +396,18 @@
         const settings = typeof settingsSource === 'object' && settingsSource !== null 
             ? { ...settingsSource } 
             : {};
+        const variationSource =
+            section.variation ??
+            section.Variation ??
+            settings.variation ??
+            settings.Variation ??
+            '';
+        delete settings.variation;
+        delete settings.Variation;
+        const variation = normaliseVariationValue(
+            sectionDefinitions[type],
+            variationSource
+        );
         
         const elements = supportsElements
             ? elementsSource
@@ -380,6 +424,7 @@
             clientId: randomId(),
             id: normaliseString(section.id ?? section.ID ?? ''),
             type,
+            variation,
             title: normaliseString(section.title ?? section.Title ?? ''),
             description: normaliseString(section.description ?? section.Description ?? ''),
             image: headerImageSupported
@@ -505,6 +550,10 @@
                     const payload = {
                         id: section.id || '',
                         type: section.type,
+                        variation: normaliseVariationValue(
+                            sectionDefs[section.type],
+                            section.variation
+                        ),
                         title,
                         description,
                         order: index + 1,
@@ -549,6 +598,11 @@
                         }
                     } else if (section.mode) {
                         payload.mode = normaliseString(section.mode).toLowerCase();
+                    }
+                    if (!payload.variation) {
+                        delete payload.variation;
+                    } else {
+                        section.variation = payload.variation;
                     }
 
                     payload.padding_vertical = clampPaddingValue(
@@ -600,12 +654,12 @@
             return sections;
         };
 
-        const addSection = (type) => {
+        const addSection = (type, variation) => {
             const section = createSectionState(
                 definitions,
                 sectionDefs,
                 defaultSectionType,
-                { type },
+                { type, variation },
                 resolveAllowedElements
             );
             section.elements = [];
@@ -815,6 +869,11 @@
                 }
             } else if (field === 'section-grid-style') {
                 section.styleGridItems = Boolean(value);
+            } else if (field === 'section-variation') {
+                section.variation = normaliseVariationValue(
+                    sectionDefs[section.type],
+                    value
+                );
             } else if (field === 'section-limit') {
                 const limitDefinition = sectionDefs[section.type]?.settings?.limit;
                 if (limitDefinition) {
@@ -869,6 +928,10 @@
                 } else {
                     section.limit = 0;
                 }
+                section.variation = normaliseVariationValue(
+                    sectionDefs[section.type],
+                    section.variation
+                );
             }
         };
 

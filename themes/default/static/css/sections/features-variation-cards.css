@@ -1,0 +1,54 @@
+/* Features variation: cards */
+.page-view__section--features:is(.page-view__section--variation-cards, :not([data-section-variation])) .page-view__features-list {
+    display: grid;
+    gap: var(--common-gap);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: stretch;
+}
+
+.page-view__section--features:is(.page-view__section--variation-cards, :not([data-section-variation])) .page-view__feature-item {
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    padding: var(--size-base);
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-mid);
+    height: 100%;
+    border-radius: var(--radius-card);
+}
+
+.page-view__section--features:is(.page-view__section--variation-cards, :not([data-section-variation])) .page-view__feature-media {
+    max-height: 120px;
+    background: var(--color-bg-top);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.page-view__section--features:is(.page-view__section--variation-cards, :not([data-section-variation])) .page-view__feature-image {
+    height: 100%;
+    object-fit: contain;
+    border-radius: var(--size-xs);
+}
+
+.page-view__section--features:is(.page-view__section--variation-cards, :not([data-section-variation])) .page-view__feature-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-xs);
+}
+
+.page-view__section--features:is(.page-view__section--variation-cards, :not([data-section-variation])) .page-view__feature-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    line-height: 1.4;
+}
+
+.page-view__section--features:is(.page-view__section--variation-cards, :not([data-section-variation])) .page-view__feature-text {
+    margin: 0;
+    color: var(--color-secondary);
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+

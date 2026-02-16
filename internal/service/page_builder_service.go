@@ -1,11 +1,11 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
 
 	"github.com/google/uuid"
@@ -13,7 +13,13 @@ import (
 
 // DuplicatePage creates a copy of an existing page.
 func (s *PageService) DuplicatePage(pageID uint) (*models.Page, error) {
-	original, err := s.GetByID(pageID)
+	original, err := s.pageRepo.GetByID(pageID)
+	if err != nil {
+		return nil, err
+	}
+
+	editor := NewSectionEditor(cloneSectionsWithFreshIDs(original.Sections), s.themes)
+	sections, err := editor.Build(PrepareSectionsOptions{NormaliseSpacing: true})
 	if err != nil {
 		return nil, err
 	}
@@ -25,14 +31,15 @@ func (s *PageService) DuplicatePage(pageID uint) (*models.Page, error) {
 	duplicate := &models.Page{
 		Title:       newTitle,
 		Slug:        newSlug,
-		Sections:    original.Sections, // Deep copy sections
-		Published:   false,             // New page starts as draft
+		Path:        defaultPathFromSlug(newSlug),
+		Sections:    sections,
+		Published:   false, // New page starts as draft
 		Description: original.Description,
-	}
-
-	// Generate new IDs for sections
-	for i := range duplicate.Sections {
-		duplicate.Sections[i].ID = uuid.New().String()
+		Content:     original.Content,
+		Template:    original.Template,
+		HideHeader:  original.HideHeader,
+		Order:       original.Order,
+		FeaturedImg: original.FeaturedImg,
 	}
 
 	if err := s.pageRepo.Create(duplicate); err != nil {
@@ -44,216 +51,139 @@ func (s *PageService) DuplicatePage(pageID uint) (*models.Page, error) {
 
 // ReorderSections updates the order of sections within a page.
 func (s *PageService) ReorderSections(pageID uint, sectionIDs []string) (*models.Page, error) {
-	page, err := s.GetByID(pageID)
+	page, err := s.pageRepo.GetByID(pageID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a map for quick lookup
-	sectionMap := make(map[string]models.Section)
-	for _, section := range page.Sections {
-		sectionMap[section.ID] = section
+	editor := NewSectionEditor(page.Sections, s.themes)
+	if err := editor.Reorder(sectionIDs); err != nil {
+		return nil, err
 	}
 
-	// Reorder sections based on the provided IDs
-	newSections := make([]models.Section, 0, len(sectionIDs))
-	for i, id := range sectionIDs {
-		if section, ok := sectionMap[id]; ok {
-			section.Order = i
-			newSections = append(newSections, section)
-		}
+	sections, err := editor.Build(PrepareSectionsOptions{NormaliseSpacing: true})
+	if err != nil {
+		return nil, err
 	}
-
-	page.Sections = newSections
+	page.Sections = sections
 
 	if err := s.pageRepo.Update(page); err != nil {
 		return nil, err
 	}
+	s.invalidatePageCaches(page)
 
 	return page, nil
 }
 
 // AddSection adds a new section to a page.
 func (s *PageService) AddSection(pageID uint, req models.AddSectionRequest) (*models.Page, error) {
-	page, err := s.GetByID(pageID)
+	page, err := s.pageRepo.GetByID(pageID)
 	if err != nil {
 		return nil, err
 	}
 
-	newSection := models.Section{
-		ID:          uuid.New().String(),
-		Type:        req.Type,
-		Title:       req.Title,
-		Description: req.Description,
-		Order:       len(page.Sections),
-		Elements:    make([]models.SectionElement, 0),
-		Animation:   constants.NormaliseSectionAnimation(req.Animation),
-	}
-	blurEnabled := constants.DefaultSectionAnimationBlur
-	if req.AnimationBlur != nil {
-		blurEnabled = *req.AnimationBlur
-	}
-	newSection.AnimationBlur = &blurEnabled
-
-	if req.Disabled != nil {
-		newSection.Disabled = *req.Disabled
+	editor := NewSectionEditor(page.Sections, s.themes)
+	if err := editor.Add(req); err != nil {
+		return nil, err
 	}
 
-	if req.PaddingVertical != nil {
-		newSection.PaddingVertical = req.PaddingVertical
+	sections, err := editor.Build(PrepareSectionsOptions{NormaliseSpacing: true})
+	if err != nil {
+		return nil, err
 	}
-	if req.MarginVertical != nil {
-		newSection.MarginVertical = req.MarginVertical
-	}
-
-	page.Sections = append(page.Sections, newSection)
+	page.Sections = sections
 
 	if err := s.pageRepo.Update(page); err != nil {
 		return nil, err
 	}
+	s.invalidatePageCaches(page)
 
 	return page, nil
 }
 
 // UpdateSection updates an existing section within a page.
 func (s *PageService) UpdateSection(pageID uint, sectionID string, req models.UpdateSectionRequest) (*models.Page, error) {
-	page, err := s.GetByID(pageID)
+	page, err := s.pageRepo.GetByID(pageID)
 	if err != nil {
 		return nil, err
 	}
 
-	found := false
-	for i := range page.Sections {
-		if page.Sections[i].ID == sectionID {
-			if req.Title != nil {
-				page.Sections[i].Title = *req.Title
-			}
-			if req.Description != nil {
-				page.Sections[i].Description = *req.Description
-			}
-			if req.Type != nil {
-				page.Sections[i].Type = *req.Type
-			}
-			if req.Elements != nil {
-				page.Sections[i].Elements = *req.Elements
-			}
-			if req.PaddingVertical != nil {
-				page.Sections[i].PaddingVertical = req.PaddingVertical
-			}
-			if req.MarginVertical != nil {
-				page.Sections[i].MarginVertical = req.MarginVertical
-			}
-			if req.Limit != nil {
-				page.Sections[i].Limit = *req.Limit
-			}
-			if req.Mode != nil {
-				page.Sections[i].Mode = *req.Mode
-			}
-			if req.StyleGridItems != nil {
-				page.Sections[i].StyleGridItems = req.StyleGridItems
-			}
-			if req.Disabled != nil {
-				page.Sections[i].Disabled = *req.Disabled
-			}
-			if req.Animation != nil {
-				page.Sections[i].Animation = constants.NormaliseSectionAnimation(*req.Animation)
-			}
-			if req.AnimationBlur != nil {
-				blur := constants.NormaliseSectionAnimationBlur(req.AnimationBlur)
-				page.Sections[i].AnimationBlur = &blur
-			}
-			found = true
-			break
+	editor := NewSectionEditor(page.Sections, s.themes)
+	if err := editor.Update(sectionID, req); err != nil {
+		if errors.Is(err, errSectionNotFound) {
+			return nil, fmt.Errorf("section not found")
 		}
+		return nil, err
 	}
 
-	if !found {
-		return nil, fmt.Errorf("section not found")
+	sections, err := editor.Build(PrepareSectionsOptions{NormaliseSpacing: true})
+	if err != nil {
+		return nil, err
 	}
+	page.Sections = sections
 
 	if err := s.pageRepo.Update(page); err != nil {
 		return nil, err
 	}
+	s.invalidatePageCaches(page)
 
 	return page, nil
 }
 
 // DeleteSection removes a section from a page.
 func (s *PageService) DeleteSection(pageID uint, sectionID string) (*models.Page, error) {
-	page, err := s.GetByID(pageID)
+	page, err := s.pageRepo.GetByID(pageID)
 	if err != nil {
 		return nil, err
 	}
 
-	newSections := make([]models.Section, 0, len(page.Sections)-1)
-	for _, section := range page.Sections {
-		if section.ID != sectionID {
-			newSections = append(newSections, section)
+	editor := NewSectionEditor(page.Sections, s.themes)
+	if err := editor.Delete(sectionID); err != nil {
+		if errors.Is(err, errSectionNotFound) {
+			return nil, fmt.Errorf("section not found")
 		}
+		return nil, err
 	}
 
-	// Reorder after deletion
-	for i := range newSections {
-		newSections[i].Order = i
+	sections, err := editor.Build(PrepareSectionsOptions{NormaliseSpacing: true})
+	if err != nil {
+		return nil, err
 	}
-
-	page.Sections = newSections
+	page.Sections = sections
 
 	if err := s.pageRepo.Update(page); err != nil {
 		return nil, err
 	}
+	s.invalidatePageCaches(page)
 
 	return page, nil
 }
 
 // DuplicateSection creates a copy of an existing section within a page.
 func (s *PageService) DuplicateSection(pageID uint, sectionID string) (*models.Page, error) {
-	page, err := s.GetByID(pageID)
+	page, err := s.pageRepo.GetByID(pageID)
 	if err != nil {
 		return nil, err
 	}
 
-	var originalSection *models.Section
-	var insertIndex int
-
-	for i := range page.Sections {
-		if page.Sections[i].ID == sectionID {
-			originalSection = &page.Sections[i]
-			insertIndex = i + 1
-			break
+	editor := NewSectionEditor(page.Sections, s.themes)
+	if err := editor.Duplicate(sectionID); err != nil {
+		if errors.Is(err, errSectionNotFound) {
+			return nil, fmt.Errorf("section not found")
 		}
+		return nil, err
 	}
 
-	if originalSection == nil {
-		return nil, fmt.Errorf("section not found")
+	sections, err := editor.Build(PrepareSectionsOptions{NormaliseSpacing: true})
+	if err != nil {
+		return nil, err
 	}
-
-	// Create duplicate with new ID
-	duplicate := *originalSection
-	duplicate.ID = uuid.New().String()
-	duplicate.Title = fmt.Sprintf("%s (Copy)", originalSection.Title)
-
-	// Generate new IDs for elements
-	for i := range duplicate.Elements {
-		duplicate.Elements[i].ID = uuid.New().String()
-	}
-
-	// Insert duplicate after original
-	newSections := make([]models.Section, 0, len(page.Sections)+1)
-	newSections = append(newSections, page.Sections[:insertIndex]...)
-	newSections = append(newSections, duplicate)
-	newSections = append(newSections, page.Sections[insertIndex:]...)
-
-	// Reorder
-	for i := range newSections {
-		newSections[i].Order = i
-	}
-
-	page.Sections = newSections
+	page.Sections = sections
 
 	if err := s.pageRepo.Update(page); err != nil {
 		return nil, err
 	}
+	s.invalidatePageCaches(page)
 
 	return page, nil
 }
@@ -348,16 +278,18 @@ func (s *PageService) CreateFromTemplate(templateID, title, slug string) (*model
 		return nil, fmt.Errorf("template not found")
 	}
 
+	editor := NewSectionEditor(cloneSectionsWithFreshIDs(selectedTemplate.Sections), s.themes)
+	sections, err := editor.Build(PrepareSectionsOptions{NormaliseSpacing: true})
+	if err != nil {
+		return nil, err
+	}
+
 	page := &models.Page{
 		Title:     title,
 		Slug:      slug,
-		Sections:  selectedTemplate.Sections,
+		Path:      defaultPathFromSlug(slug),
+		Sections:  sections,
 		Published: false,
-	}
-
-	// Generate new IDs for all sections
-	for i := range page.Sections {
-		page.Sections[i].ID = uuid.New().String()
 	}
 
 	if err := s.pageRepo.Create(page); err != nil {
@@ -367,6 +299,17 @@ func (s *PageService) CreateFromTemplate(templateID, title, slug string) (*model
 	return page, nil
 }
 
+func (s *PageService) invalidatePageCaches(page *models.Page) {
+	if s == nil || s.cache == nil || page == nil {
+		return
+	}
+	s.cache.InvalidatePage(page.ID)
+	s.cache.Delete("pages:all")
+	if page.Path != "" {
+		s.cache.Delete(fmt.Sprintf("page:path:%s", page.Path))
+	}
+}
+
 // IsSlugAvailable checks if a slug is available for use.
 func (s *PageService) IsSlugAvailable(slug string, excludeID *uint) (bool, error) {
 	slug = strings.TrimSpace(strings.ToLower(slug))
@@ -374,15 +317,23 @@ func (s *PageService) IsSlugAvailable(slug string, excludeID *uint) (bool, error
 		return false, fmt.Errorf("slug cannot be empty")
 	}
 
-	page, err := s.pageRepo.GetBySlug(slug)
+	exists, err := s.pageRepo.ExistsBySlug(slug)
 	if err != nil {
-		// Slug is available if page doesn't exist
+		return false, err
+	}
+	if !exists {
 		return true, nil
 	}
 
 	// If excludeID is provided, check if it's the same page
-	if excludeID != nil && page.ID == *excludeID {
-		return true, nil
+	if excludeID != nil {
+		page, err := s.pageRepo.GetBySlugAny(slug)
+		if err != nil {
+			return false, err
+		}
+		if page.ID == *excludeID {
+			return true, nil
+		}
 	}
 
 	return false, nil

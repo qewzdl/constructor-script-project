@@ -3,5 +3,13 @@
     "label": "Grid section",
     "order": 15,
     "description": "Displays content blocks in a responsive grid layout.",
-    "supports_elements": true
+    "supports_elements": true,
+    "variations": [
+        {
+            "id": "grid-cards",
+            "value": "cards",
+            "label": "Cards",
+            "description": "Card-style grid blocks"
+        }
+    ]
 }

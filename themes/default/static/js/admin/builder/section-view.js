@@ -45,6 +45,94 @@
         return label || normalised;
     };
 
+    const normaliseVariationValue = (definition, value) => {
+        const variations = Array.isArray(definition?.variations)
+            ? definition.variations
+                  .map((variation) => ({
+                      value: normaliseString(variation?.value).toLowerCase(),
+                      isDefault:
+                          variation?.isDefault === true ||
+                          variation?.is_default === true ||
+                          variation?.default === true,
+                  }))
+                  .filter((variation) => Boolean(variation.value))
+            : [];
+        if (!variations.length) {
+            return '';
+        }
+
+        const normalisedValue = normaliseString(value).toLowerCase();
+        if (normalisedValue) {
+            const matched = variations.find(
+                (variation) => variation.value === normalisedValue
+            );
+            if (matched) {
+                return matched.value;
+            }
+        }
+
+        const fallback =
+            variations.find((variation) => variation.isDefault)?.value ||
+            variations[0].value;
+        return fallback || '';
+    };
+
+    const describeVariationValue = (definition, value) => {
+        const normalised = normaliseVariationValue(definition, value);
+        if (!normalised) {
+            return '';
+        }
+        const option = Array.isArray(definition?.variations)
+            ? definition.variations.find(
+                  (variation) =>
+                      normaliseString(variation?.value).toLowerCase() ===
+                      normalised
+              )
+            : null;
+        const label = option && normaliseString(option.label);
+        return label || normalised;
+    };
+
+    const normaliseVariationToken = (value) =>
+        normaliseString(value)
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '-')
+            .replace(/-{2,}/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+    const collectVariationOptions = (definition) => {
+        if (!Array.isArray(definition?.variations)) {
+            return [];
+        }
+
+        const seen = new Set();
+        const options = [];
+        const sectionType = normaliseVariationToken(definition?.type) || 'section';
+        definition.variations.forEach((variation) => {
+            const value = normaliseString(
+                variation?.value ?? variation?.id ?? variation?.type
+            ).toLowerCase();
+            if (!value || seen.has(value)) {
+                return;
+            }
+            seen.add(value);
+            const rawId = normaliseVariationToken(variation?.id);
+            options.push({
+                value,
+                id: rawId || `${sectionType}-${value}`,
+                label:
+                    normaliseString(variation?.label).trim() || value,
+                description: normaliseString(variation?.description).trim(),
+                isDefault:
+                    variation?.isDefault === true ||
+                    variation?.is_default === true ||
+                    variation?.default === true,
+            });
+        });
+        return options;
+    };
+
     const createAllowedElementsResolver = (sectionDefinitions) => {
         const cache = new Map();
         return (sectionType) => {
@@ -300,8 +388,193 @@
         return closeModal;
     };
 
+    const openSectionVariationPicker = ({
+        sectionType,
+        sectionDefinitions,
+        activeVariation,
+        onSelect,
+        onCancel,
+        onClose,
+        title,
+    } = {}) => {
+        const type = normaliseString(sectionType).trim().toLowerCase();
+        const definition = sectionDefinitions?.[type] || {};
+        const options = collectVariationOptions(definition);
+        if (options.length <= 1) {
+            if (typeof onSelect === 'function') {
+                onSelect('');
+            }
+            if (typeof onClose === 'function') {
+                onClose();
+            }
+            return () => {};
+        }
+
+        const currentVariation = normaliseVariationValue(
+            definition,
+            activeVariation
+        );
+        const previousFocus = document.activeElement;
+        const overlay = createElement('div', {
+            className: 'admin-type-picker',
+        });
+        const dialog = createElement('div', {
+            className: 'admin-type-picker__dialog',
+            attributes: {
+                role: 'dialog',
+                'aria-modal': 'true',
+            },
+        });
+        const titleId = `admin-variation-picker-title-${randomId()}`;
+        dialog.setAttribute('aria-labelledby', titleId);
+
+        const header = createElement('header', {
+            className: 'admin-type-picker__header',
+        });
+        const heading =
+            normaliseString(definition.label).trim() || type || 'section';
+        const titleNode = createElement('h2', {
+            className: 'admin-type-picker__title',
+            textContent:
+                normaliseString(title).trim() ||
+                `Choose variation for ${heading}`,
+        });
+        titleNode.id = titleId;
+        header.append(titleNode);
+
+        const body = createElement('div', {
+            className: 'admin-type-picker__body',
+        });
+        const optionsList = createElement('div', {
+            className: 'admin-type-picker__options',
+        });
+        body.append(optionsList);
+
+        const footer = createElement('div', {
+            className: 'admin-type-picker__footer',
+        });
+        const cancelButton = createElement('button', {
+            className: 'admin-builder__button admin-builder__button--ghost',
+            type: 'button',
+            textContent: 'Cancel',
+        });
+        footer.append(cancelButton);
+
+        dialog.append(header, body, footer);
+        overlay.append(dialog);
+
+        let selectionCommitted = false;
+
+        const closeModal = (cancelled = false) => {
+            if (!overlay.isConnected) {
+                return;
+            }
+            document.removeEventListener('keydown', handleKeyDown);
+            overlay.remove();
+            if (cancelled && !selectionCommitted && typeof onCancel === 'function') {
+                onCancel();
+            }
+            if (typeof onClose === 'function') {
+                onClose();
+            }
+            if (previousFocus && typeof previousFocus.focus === 'function') {
+                previousFocus.focus();
+            }
+        };
+
+        const selectVariation = (value) => {
+            selectionCommitted = true;
+            if (typeof onSelect === 'function') {
+                onSelect(value);
+            }
+            closeModal(false);
+        };
+
+        options.forEach((option) => {
+            const optionButton = createElement('button', {
+                className: 'admin-type-picker__option',
+                type: 'button',
+                dataset: {
+                    variation: option.value,
+                },
+            });
+            if (
+                option.value === currentVariation ||
+                (!currentVariation && option.isDefault)
+            ) {
+                optionButton.classList.add('is-active');
+                optionButton.setAttribute('aria-current', 'true');
+            }
+
+            const optionHeader = createElement('div', {
+                className: 'admin-type-picker__option-header',
+            });
+            const optionLabel = createElement('span', {
+                className: 'admin-type-picker__option-label',
+                textContent: option.label,
+            });
+            const optionCode = createElement('code', {
+                className: 'admin-type-picker__option-code',
+                textContent: option.value,
+            });
+            optionHeader.append(optionLabel, optionCode);
+            optionButton.append(optionHeader);
+
+            if (option.description) {
+                optionButton.append(
+                    createElement('span', {
+                        className: 'admin-type-picker__option-description',
+                        textContent: option.description,
+                    })
+                );
+            }
+
+            optionButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                selectVariation(option.value);
+            });
+
+            optionsList.append(optionButton);
+        });
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeModal(true);
+            }
+        };
+
+        cancelButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeModal(true);
+        });
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                closeModal(true);
+            }
+        });
+        document.addEventListener('keydown', handleKeyDown);
+        document.body.append(overlay);
+
+        const activeNode = optionsList.querySelector('.admin-type-picker__option.is-active');
+        const firstNode = optionsList.querySelector('.admin-type-picker__option');
+        const focusTarget = activeNode || firstNode;
+        if (focusTarget && typeof focusTarget.focus === 'function') {
+            if (typeof window.requestAnimationFrame === 'function') {
+                window.requestAnimationFrame(() => {
+                    focusTarget.focus();
+                });
+            } else {
+                focusTarget.focus();
+            }
+        }
+
+        return () => closeModal(true);
+    };
+
     window.AdminSectionTypePicker = window.AdminSectionTypePicker || {};
     window.AdminSectionTypePicker.open = openSectionTypePicker;
+    window.AdminSectionTypePicker.openVariations = openSectionVariationPicker;
 
     // Read builder configuration from server
     const getBuilderConfig = () => {
@@ -598,6 +871,13 @@
                 if (modeLabel) {
                     parts.push(`Mode: ${modeLabel}`);
                 }
+            }
+            const variationLabel = describeVariationValue(
+                sectionDefinition,
+                section.variation
+            );
+            if (variationLabel) {
+                parts.push(`Variation: ${variationLabel}`);
             }
             const displayModeDefinition = sectionDefinition?.settings?.display_mode;
             if (displayModeDefinition?.options?.length) {
@@ -970,9 +1250,18 @@
 
             // Handle custom section settings (like hero section fields)
             if (sectionDefinition?.settings) {
+                const activeVariation = normaliseVariationValue(
+                    sectionDefinition,
+                    section.variation
+                );
                 Object.entries(sectionDefinition.settings).forEach(([key, settingDef]) => {
                     // Skip limit, mode, and display_mode as they are handled above
-                    if (key === 'limit' || key === 'mode' || key === 'display_mode') {
+                    if (
+                        key === 'limit' ||
+                        key === 'mode' ||
+                        key === 'display_mode' ||
+                        key === 'variation'
+                    ) {
                         return;
                     }
 
@@ -985,10 +1274,42 @@
                               Boolean(normaliseString(option?.value))
                           )
                         : [];
-                    const fieldType =
-                        settingDef.type || (options.length ? 'select' : 'text');
+                    let fieldType = normaliseString(settingDef.type).toLowerCase();
+                    if (!fieldType) {
+                        fieldType = options.length ? 'select' : 'text';
+                    }
+                    if (fieldType === 'string') {
+                        fieldType = 'text';
+                    } else if (fieldType === 'integer') {
+                        fieldType = 'number';
+                    }
                     const fieldLabel = settingDef.label || key;
                     const isRequired = settingDef.required === true;
+                    const hiddenForVariationsSource = Array.isArray(
+                        settingDef.hiddenForVariations
+                    )
+                        ? settingDef.hiddenForVariations
+                        : Array.isArray(settingDef.hidden_for_variations)
+                          ? settingDef.hidden_for_variations
+                          : [];
+                    const hiddenForVariations = hiddenForVariationsSource
+                        .map((value) => normaliseString(value).toLowerCase())
+                        .filter(Boolean);
+                    if (
+                        hiddenForVariations.length > 0 &&
+                        hiddenForVariations.includes(activeVariation)
+                    ) {
+                        if (
+                            section.settings &&
+                            Object.prototype.hasOwnProperty.call(
+                                section.settings,
+                                key
+                            )
+                        ) {
+                            delete section.settings[key];
+                        }
+                        return;
+                    }
 
                     if (fieldType === 'select' && options.length) {
                         const field = createElement('label', {
@@ -1074,6 +1395,77 @@
                             showAllCheckbox = input;
                         }
                         appendField(field);
+                    } else if (fieldType === 'number') {
+                        const min = Number.isFinite(settingDef.min)
+                            ? settingDef.min
+                            : undefined;
+                        const max = Number.isFinite(settingDef.max)
+                            ? settingDef.max
+                            : undefined;
+                        const step = Number.isFinite(settingDef.step)
+                            ? settingDef.step
+                            : 1;
+                        const defaultValue = Number.isFinite(settingDef.default)
+                            ? settingDef.default
+                            : Number.parseInt(settingDef.default, 10);
+                        const parsedCurrent = Number.parseInt(
+                            section.settings[key],
+                            10
+                        );
+                        const currentValue = Number.isFinite(parsedCurrent)
+                            ? parsedCurrent
+                            : Number.isFinite(defaultValue)
+                              ? defaultValue
+                              : Number.isFinite(min)
+                                ? min
+                                : 0;
+
+                        const field = createElement('label', {
+                            className: 'admin-builder__field',
+                        });
+                        const labelSpan = createElement('span', {
+                            className: 'admin-builder__label',
+                            textContent: fieldLabel,
+                        });
+                        if (isRequired) {
+                            labelSpan.append(
+                                createElement('em', {
+                                    className: 'admin-builder__required',
+                                    textContent: ' (required)',
+                                })
+                            );
+                        }
+                        field.append(labelSpan);
+
+                        const input = createElement('input', {
+                            className: 'admin-builder__input',
+                        });
+                        input.type = 'number';
+                        if (Number.isFinite(min)) {
+                            input.min = String(min);
+                        }
+                        if (Number.isFinite(max)) {
+                            input.max = String(max);
+                        }
+                        input.step = String(step);
+                        input.value = String(currentValue);
+                        input.dataset.field = `section-setting-${key}`;
+                        if (isRequired) {
+                            input.required = true;
+                        }
+                        input.addEventListener('input', () => {
+                            const parsedValue = Number.parseInt(input.value, 10);
+                            if (Number.isFinite(parsedValue)) {
+                                section.settings[key] = parsedValue;
+                            } else if (input.value.trim()) {
+                                section.settings[key] = input.value.trim();
+                            } else {
+                                delete section.settings[key];
+                            }
+                            scheduleChange();
+                        });
+                        field.append(input);
+                        appendField(field);
                     } else if (fieldType === 'range') {
                         const min = Number.isFinite(settingDef.min)
                             ? settingDef.min
@@ -1138,6 +1530,39 @@
                             scheduleChange();
                         });
                         field.append(rangeWrapper);
+                        appendField(field);
+                    } else if (fieldType === 'textarea') {
+                        const field = createElement('label', {
+                            className: 'admin-builder__field',
+                        });
+                        const labelSpan = createElement('span', {
+                            className: 'admin-builder__label',
+                            textContent: fieldLabel,
+                        });
+                        if (isRequired) {
+                            labelSpan.append(
+                                createElement('em', {
+                                    className: 'admin-builder__required',
+                                    textContent: ' (required)',
+                                })
+                            );
+                        }
+                        field.append(labelSpan);
+
+                        const textarea = createElement('textarea', {
+                            className: 'admin-builder__input',
+                            attributes: {
+                                rows: '3',
+                            },
+                        });
+                        textarea.placeholder = settingDef.placeholder || '';
+                        textarea.value = section.settings[key] || '';
+                        textarea.dataset.field = `section-setting-${key}`;
+                        if (isRequired) {
+                            textarea.required = true;
+                        }
+                        textarea.addEventListener('input', scheduleChange);
+                        field.append(textarea);
                         appendField(field);
                     } else {
                         const field = createElement('label', {
@@ -1771,20 +2196,34 @@
                     typeSelect.append(option);
                 });
                 typeField.append(typeSelect);
+                const variationInput = createElement('input', {
+                    type: 'hidden',
+                    attributes: {
+                        'aria-hidden': 'true',
+                    },
+                    dataset: {
+                        field: 'section-variation',
+                    },
+                    tabIndex: -1,
+                });
+                typeField.append(variationInput);
+                const metaStack = createElement('div', {
+                    className: 'admin-builder__meta-stack',
+                });
                 const typeMeta = createElement('div', {
-                    className: 'admin-builder__type',
+                    className: 'admin-builder__meta-group',
                 });
                 const typeControl = createElement('div', {
-                    className: 'admin-builder__type-control',
+                    className: 'admin-builder__meta-row',
                 });
                 const typeSummary = createElement('div', {
-                    className: 'admin-builder__type-summary',
+                    className: 'admin-builder__meta-summary',
                 });
                 const typeSummaryLabel = createElement('span', {
-                    className: 'admin-builder__type-summary-label',
+                    className: 'admin-builder__meta-summary-label',
                 });
                 const typeSummaryCode = createElement('code', {
-                    className: 'admin-builder__type-summary-code',
+                    className: 'admin-builder__meta-summary-code',
                 });
                 typeSummary.append(typeSummaryLabel, typeSummaryCode);
                 const changeTypeButton = createElement('button', {
@@ -1796,11 +2235,98 @@
                 typeControl.append(typeSummary, changeTypeButton);
                 typeMeta.append(typeControl);
                 const typeHint = createElement('span', {
-                    className: 'admin-builder__hint',
+                    className: 'admin-builder__hint admin-builder__meta-hint',
                 });
                 typeHint.hidden = true;
                 typeMeta.append(typeHint);
-                typeField.append(typeMeta);
+                metaStack.append(typeMeta);
+
+                const variationMeta = createElement('div', {
+                    className: 'admin-builder__meta-group',
+                });
+                const variationControl = createElement('div', {
+                    className: 'admin-builder__meta-row',
+                });
+                const variationSummary = createElement('div', {
+                    className: 'admin-builder__meta-summary',
+                });
+                const variationSummaryLabel = createElement('span', {
+                    className: 'admin-builder__meta-summary-label',
+                });
+                const variationSummaryCode = createElement('code', {
+                    className: 'admin-builder__meta-summary-code',
+                });
+                variationSummary.append(
+                    variationSummaryLabel,
+                    variationSummaryCode
+                );
+                const changeVariationButton = createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost admin-builder__type-button',
+                    type: 'button',
+                    textContent: 'Change variation',
+                });
+                variationControl.append(variationSummary, changeVariationButton);
+                variationMeta.append(variationControl);
+                const variationHint = createElement('span', {
+                    className: 'admin-builder__hint admin-builder__meta-hint',
+                });
+                variationHint.hidden = true;
+                variationMeta.append(variationHint);
+                variationMeta.hidden = true;
+                metaStack.append(variationMeta);
+                typeField.append(metaStack);
+
+                const resolveSectionVariation = (type, value) => {
+                    const definition = sectionDefinitions?.[type] || {};
+                    return normaliseVariationValue(definition, value);
+                };
+                const updateVariationMetadata = (typeValue = typeSelect.value) => {
+                    const definition = sectionDefinitions?.[typeValue] || {};
+                    const variationOptions = collectVariationOptions(definition);
+                    if (!variationOptions.length) {
+                        variationInput.value = '';
+                        changeVariationButton.hidden = true;
+                        variationMeta.hidden = true;
+                        variationSummaryLabel.textContent = '';
+                        variationSummaryCode.textContent = '';
+                        variationHint.textContent = '';
+                        variationHint.hidden = true;
+                        return;
+                    }
+
+                    const currentVariation = resolveSectionVariation(
+                        typeValue,
+                        section.variation || variationInput.value
+                    );
+                    section.variation = currentVariation;
+                    variationInput.value = currentVariation;
+
+                    const hasVariationChoices = variationOptions.length > 1;
+                    if (!hasVariationChoices) {
+                        changeVariationButton.hidden = true;
+                        variationMeta.hidden = true;
+                        return;
+                    }
+
+                    changeVariationButton.hidden = false;
+                    const selectedVariation =
+                        variationOptions.find(
+                            (variation) => variation.value === currentVariation
+                        ) ||
+                        variationOptions.find((variation) => variation.isDefault) ||
+                        variationOptions[0];
+                    variationSummaryLabel.textContent =
+                        selectedVariation?.label || currentVariation;
+                    variationSummaryCode.textContent =
+                        selectedVariation?.id || selectedVariation?.value || currentVariation;
+                    const description = normaliseString(
+                        selectedVariation?.description
+                    ).trim();
+                    variationHint.textContent = description;
+                    variationHint.hidden = !description;
+                    variationMeta.hidden = false;
+                };
 
                 const updateTypeMetadata = (nextType) => {
                     const definition = sectionDefinitions?.[nextType] || {};
@@ -1817,6 +2343,7 @@
                         typeHint.textContent = '';
                         typeHint.hidden = true;
                     }
+                    updateVariationMetadata(typeValue);
                 };
 
                 updateTypeMetadata(section.type);
@@ -1851,6 +2378,50 @@
                 changeTypeButton.addEventListener('click', (event) => {
                     event.preventDefault();
                     openTypePicker();
+                });
+
+                const openVariationPicker = () => {
+                    const typePickerModule = window.AdminSectionTypePicker;
+                    const activeType = normaliseString(typeSelect.value).trim().toLowerCase();
+                    if (!activeType) {
+                        return;
+                    }
+                    const definition = sectionDefinitions?.[activeType] || {};
+                    const variationOptions = collectVariationOptions(definition);
+                    if (variationOptions.length <= 1) {
+                        return;
+                    }
+                    if (typeof typePickerModule?.openVariations === 'function') {
+                        typePickerModule.openVariations({
+                            sectionType: activeType,
+                            sectionDefinitions,
+                            activeVariation: resolveSectionVariation(
+                                activeType,
+                                section.variation || variationInput.value
+                            ),
+                            onSelect: (nextVariation) => {
+                                const resolvedVariation = resolveSectionVariation(
+                                    activeType,
+                                    nextVariation
+                                );
+                                section.variation = resolvedVariation;
+                                variationInput.value = resolvedVariation;
+                                updateVariationMetadata(activeType);
+                                variationInput.dispatchEvent(
+                                    new Event('change', { bubbles: true })
+                                );
+                            },
+                        });
+                        return;
+                    }
+                    if (typeof variationInput.focus === 'function') {
+                        variationInput.focus();
+                    }
+                };
+
+                changeVariationButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    openVariationPicker();
                 });
 
                 sectionItem.append(typeField);

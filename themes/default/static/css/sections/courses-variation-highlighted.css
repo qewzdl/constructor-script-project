@@ -109,3 +109,9 @@
     height: 1.25rem;
     stroke: currentColor;
 }
+
+.page-view__section--catalog.page-view__section--variation-highlighted .courses-list__item {
+    box-shadow: 0 0 0 1px var(--color-primary);
+    border-radius: var(--radius-card);
+}
+

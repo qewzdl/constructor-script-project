@@ -2,30 +2,39 @@ package models
 
 // AddSectionRequest represents a request to add a new section to a page.
 type AddSectionRequest struct {
-	Type            string `json:"type" binding:"required"`
-	Title           string `json:"title"`
-	Description     string `json:"description"`
-	PaddingVertical *int   `json:"padding_vertical,omitempty"`
-	MarginVertical  *int   `json:"margin_vertical,omitempty"`
-	Disabled        *bool  `json:"disabled,omitempty"`
-	Animation       string `json:"animation,omitempty"`
-	AnimationBlur   *bool  `json:"animation_blur,omitempty"`
+	Type            string                 `json:"type" binding:"required"`
+	Variation       string                 `json:"variation,omitempty"`
+	Title           string                 `json:"title"`
+	Description     string                 `json:"description"`
+	Image           string                 `json:"image,omitempty"`
+	Limit           *int                   `json:"limit,omitempty"`
+	Mode            string                 `json:"mode,omitempty"`
+	StyleGridItems  *bool                  `json:"style_grid_items,omitempty"`
+	Settings        map[string]interface{} `json:"settings,omitempty"`
+	PaddingVertical *int                   `json:"padding_vertical,omitempty"`
+	MarginVertical  *int                   `json:"margin_vertical,omitempty"`
+	Disabled        *bool                  `json:"disabled,omitempty"`
+	Animation       string                 `json:"animation,omitempty"`
+	AnimationBlur   *bool                  `json:"animation_blur,omitempty"`
 }
 
 // UpdateSectionRequest represents a request to update an existing section.
 type UpdateSectionRequest struct {
-	Title           *string           `json:"title,omitempty"`
-	Description     *string           `json:"description,omitempty"`
-	Type            *string           `json:"type,omitempty"`
-	Elements        *[]SectionElement `json:"elements,omitempty"`
-	PaddingVertical *int              `json:"padding_vertical,omitempty"`
-	MarginVertical  *int              `json:"margin_vertical,omitempty"`
-	Limit           *int              `json:"limit,omitempty"`
-	Mode            *string           `json:"mode,omitempty"`
-	StyleGridItems  *bool             `json:"style_grid_items,omitempty"`
-	Disabled        *bool             `json:"disabled,omitempty"`
-	Animation       *string           `json:"animation,omitempty"`
-	AnimationBlur   *bool             `json:"animation_blur,omitempty"`
+	Title           *string                 `json:"title,omitempty"`
+	Description     *string                 `json:"description,omitempty"`
+	Type            *string                 `json:"type,omitempty"`
+	Variation       *string                 `json:"variation,omitempty"`
+	Image           *string                 `json:"image,omitempty"`
+	Elements        *[]SectionElement       `json:"elements,omitempty"`
+	PaddingVertical *int                    `json:"padding_vertical,omitempty"`
+	MarginVertical  *int                    `json:"margin_vertical,omitempty"`
+	Limit           *int                    `json:"limit,omitempty"`
+	Mode            *string                 `json:"mode,omitempty"`
+	StyleGridItems  *bool                   `json:"style_grid_items,omitempty"`
+	Disabled        *bool                   `json:"disabled,omitempty"`
+	Settings        *map[string]interface{} `json:"settings,omitempty"`
+	Animation       *string                 `json:"animation,omitempty"`
+	AnimationBlur   *bool                   `json:"animation_blur,omitempty"`
 }
 
 // PageTemplate represents a predefined page layout template.
@@ -40,14 +49,14 @@ type PageTemplate struct {
 
 // PageBuilderConfig contains configuration for the page builder UI.
 type PageBuilderConfig struct {
-	AvailableSections []SectionTypeConfig     `json:"available_sections"`
-	DefaultPadding    int                     `json:"default_padding"`
-	DefaultMargin     int                     `json:"default_margin"`
-	PaddingOptions    []int                   `json:"padding_options"`
-	MarginOptions     []int                   `json:"margin_options"`
-	SectionAnimations []SectionAnimationOption `json:"section_animations,omitempty"`
-	DefaultAnimation  string                  `json:"default_animation,omitempty"`
-	DefaultAnimationBlur bool                 `json:"default_animation_blur,omitempty"`
+	AvailableSections    []SectionTypeConfig      `json:"available_sections"`
+	DefaultPadding       int                      `json:"default_padding"`
+	DefaultMargin        int                      `json:"default_margin"`
+	PaddingOptions       []int                    `json:"padding_options"`
+	MarginOptions        []int                    `json:"margin_options"`
+	SectionAnimations    []SectionAnimationOption `json:"section_animations,omitempty"`
+	DefaultAnimation     string                   `json:"default_animation,omitempty"`
+	DefaultAnimationBlur bool                     `json:"default_animation_blur,omitempty"`
 }
 
 // SectionTypeConfig describes a section type available in the builder.

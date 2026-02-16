@@ -382,6 +382,7 @@ func (s *PostService) prepareSections(sections []models.Section) (models.PostSec
 				Max:     intPtr(constants.MaxCategoryListSectionLimit),
 			})
 		}
+		section.Variation = definition.NormaliseVariation(extractSectionVariation(section.Variation, section.Settings))
 
 		if section.ID == "" {
 			section.ID = uuid.New().String()

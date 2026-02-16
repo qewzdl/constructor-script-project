@@ -5,6 +5,14 @@
     "description": "Flexible content area for combining paragraphs, media, and lists.",
     "supports_elements": true,
     "supports_header_image": true,
+    "variations": [
+        {
+            "id": "standard-content",
+            "value": "content",
+            "label": "Content",
+            "description": "Standard content flow with optional side media"
+        }
+    ],
     "settings": {
         "image_alt": {
             "label": "Side image alt text",

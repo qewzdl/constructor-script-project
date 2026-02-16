@@ -352,6 +352,50 @@
         return DEFAULT_SECTION_ANIMATION_BLUR;
     };
 
+    const normaliseVariationValue = (value) => {
+        if (typeof value !== 'string') {
+            return '';
+        }
+        return value.trim().toLowerCase();
+    };
+
+    const normaliseVariations = (value) => {
+        if (!Array.isArray(value)) {
+            return [];
+        }
+        const seen = new Set();
+        const result = [];
+        value.forEach((variation) => {
+            const source =
+                variation && typeof variation === 'object'
+                    ? variation
+                    : { value: variation };
+            const normalised = normaliseVariationValue(
+                source.value ?? source.id ?? source.type
+            );
+            if (!normalised || seen.has(normalised)) {
+                return;
+            }
+            seen.add(normalised);
+            result.push({
+                value: normalised,
+                label:
+                    typeof source.label === 'string' && source.label.trim()
+                        ? source.label.trim()
+                        : capitalise(normalised),
+                description:
+                    typeof source.description === 'string'
+                        ? source.description.trim()
+                        : '',
+                isDefault:
+                    source.isDefault === true ||
+                    source.is_default === true ||
+                    source.default === true,
+            });
+        });
+        return result;
+    };
+
     const createSectionTypeRegistry = () => {
         const definitions = new Map();
         let defaultType = '';
@@ -365,6 +409,7 @@
                 return;
             }
 
+            const existing = definitions.get(normalised) || {};
             const supportsElementsSource =
                 definition.supportsElements !== undefined
                     ? definition.supportsElements
@@ -373,21 +418,50 @@
                 definition.supportsHeaderImage !== undefined
                     ? definition.supportsHeaderImage
                     : definition.supports_header_image;
+            const variationsSource =
+                definition.variations !== undefined
+                    ? definition.variations
+                    : definition.variation_options;
+            const hasVariationSource =
+                definition.variations !== undefined ||
+                definition.variation_options !== undefined;
+            const variations = normaliseVariations(variationsSource);
+
+            const settingsSource =
+                definition.settings && typeof definition.settings === 'object'
+                    ? definition.settings
+                    : null;
+            const existingSettings =
+                existing.settings && typeof existing.settings === 'object'
+                    ? existing.settings
+                    : null;
+            const mergedSettings =
+                settingsSource && Object.keys(settingsSource).length
+                    ? existingSettings
+                        ? { ...existingSettings, ...settingsSource }
+                        : settingsSource
+                    : existingSettings || undefined;
 
             const entry = {
                 type: normalised,
                 label:
                     typeof definition.label === 'string' && definition.label.trim()
                         ? definition.label.trim()
-                        : capitalise(normalised),
-                order: Number.isFinite(definition.order) ? definition.order : 0,
+                        : existing.label || capitalise(normalised),
+                order: Number.isFinite(definition.order)
+                    ? definition.order
+                    : Number.isFinite(existing.order)
+                      ? existing.order
+                      : 0,
                 description:
                     typeof definition.description === 'string'
                         ? definition.description.trim()
-                        : '',
+                        : existing.description || '',
                 supportsElements:
                     supportsElementsSource === undefined
-                        ? true
+                        ? existing.supportsElements !== undefined
+                            ? existing.supportsElements
+                            : true
                         : Boolean(
                               typeof supportsElementsSource === 'string'
                                   ? supportsElementsSource.toLowerCase() !== 'false'
@@ -395,7 +469,9 @@
                           ),
                 supportsHeaderImage:
                     supportsHeaderImageSource === undefined
-                        ? false
+                        ? existing.supportsHeaderImage !== undefined
+                            ? existing.supportsHeaderImage
+                            : false
                         : Boolean(
                               typeof supportsHeaderImageSource === 'string'
                                   ? supportsHeaderImageSource.toLowerCase() !== 'false'
@@ -404,11 +480,13 @@
                 validate:
                     typeof definition.validate === 'function'
                         ? definition.validate
-                        : null,
-                settings:
-                    definition.settings && typeof definition.settings === 'object'
-                        ? definition.settings
-                        : undefined,
+                        : existing.validate || null,
+                settings: mergedSettings,
+                variations: hasVariationSource
+                    ? variations.length
+                        ? variations
+                        : undefined
+                    : existing.variations,
             };
 
             definitions.set(normalised, entry);
@@ -427,6 +505,29 @@
         };
 
         const get = (type) => definitions.get(normaliseType(type));
+        const getVariations = (type) => {
+            const entry = get(type);
+            return Array.isArray(entry?.variations) ? entry.variations : [];
+        };
+        const normaliseVariation = (type, value) => {
+            const variations = getVariations(type);
+            if (!variations.length) {
+                return '';
+            }
+            const requested = normaliseVariationValue(value);
+            if (requested) {
+                const match = variations.find(
+                    (variation) => variation.value === requested
+                );
+                if (match) {
+                    return match.value;
+                }
+            }
+            const fallback =
+                variations.find((variation) => variation.isDefault)?.value ||
+                variations[0]?.value;
+            return fallback || '';
+        };
 
         const list = () =>
             Array.from(definitions.values()).sort((a, b) => a.order - b.order);
@@ -435,6 +536,8 @@
             register,
             ensure,
             get,
+            getVariations,
+            normaliseVariation,
             list,
             getDefault: () => defaultType || 'standard',
         };
@@ -709,13 +812,21 @@
         const defaultType = sectionTypeRegistry.getDefault();
         if (!section || typeof section !== 'object') {
             const ensuredType = sectionTypeRegistry.ensure(defaultType);
-            return {
+            const variation = sectionTypeRegistry.normaliseVariation(
+                ensuredType,
+                ''
+            );
+            const emptySection = {
                 id: generateId(),
                 type: ensuredType,
                 title: '',
                 image: '',
                 elements: [],
             };
+            if (variation) {
+                emptySection.variation = variation;
+            }
+            return emptySection;
         }
 
         const type = sectionTypeRegistry.ensure(section.type || section.Type || defaultType);
@@ -738,6 +849,18 @@
               ? limitSource
               : 0;
 
+        const settingsSource = section.settings || section.Settings || {};
+        const variationSource =
+            section.variation ??
+            section.Variation ??
+            settingsSource.variation ??
+            settingsSource.Variation ??
+            '';
+        const variation = sectionTypeRegistry.normaliseVariation(
+            type,
+            variationSource
+        );
+
         const imageSource = section.image || section.Image || '';
         const normalised = {
             id: section.id || section.ID || generateId(),
@@ -748,6 +871,9 @@
             elements,
             limit,
         };
+        if (variation) {
+            normalised.variation = variation;
+        }
 
         normalised.paddingVertical = clampSectionPadding(
             section.paddingVertical ??
@@ -823,6 +949,10 @@
             elements: [],
             limit,
         };
+        const variation = sectionTypeRegistry.normaliseVariation(ensuredType, '');
+        if (variation) {
+            section.variation = variation;
+        }
         if (definition?.supportsHeaderImage === true) {
             section.image = '';
         }
@@ -1093,6 +1223,13 @@
                 order: index + 1,
                 elements,
             };
+            const variation = sectionTypeRegistry.normaliseVariation(
+                type,
+                section.variation ?? section.Variation ?? ''
+            );
+            if (variation) {
+                payload.variation = variation;
+            }
             if (headerImageSupported) {
                 const image = (section.image || '').trim();
                 if (image) {
@@ -1677,6 +1814,15 @@
                 return;
             }
             section.type = nextType;
+            const nextVariation = sectionTypeRegistry.normaliseVariation(
+                nextType,
+                section.variation ?? ''
+            );
+            if (nextVariation) {
+                section.variation = nextVariation;
+            } else if (section.variation) {
+                delete section.variation;
+            }
             if (nextType === 'grid') {
                 if (section.styleGridItems === undefined) {
                     section.styleGridItems = true;
@@ -1705,6 +1851,165 @@
                     textContent: definition.description,
                 })
             );
+        }
+        const variations = sectionTypeRegistry.getVariations(section.type);
+        if (variations.length) {
+            const currentVariation = sectionTypeRegistry.normaliseVariation(
+                section.type,
+                section.variation ?? ''
+            );
+            if (currentVariation) {
+                section.variation = currentVariation;
+            }
+            const isHeroSection = section.type === 'hero';
+            if (isHeroSection) {
+                const normaliseVariationToken = (value) =>
+                    String(value || '')
+                        .trim()
+                        .toLowerCase()
+                        .replace(/[^a-z0-9_-]+/g, '-')
+                        .replace(/-{2,}/g, '-')
+                        .replace(/^-+|-+$/g, '');
+                const variationField = createElement('div', {
+                    className: 'section-field',
+                });
+                const variationLabel = createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Section variation',
+                });
+                const variationList = createElement('div', {
+                    className: 'admin-builder__variation-list',
+                    attrs: {
+                        role: 'radiogroup',
+                        'aria-label': 'Section variation',
+                    },
+                });
+                const sectionToken =
+                    normaliseVariationToken(section.id || section.clientId) ||
+                    'section';
+                const variationGroupName = `${sectionToken}-variation`;
+                const setActiveVariation = (value) => {
+                    variationList
+                        .querySelectorAll('.admin-builder__variation-item')
+                        .forEach((node) => {
+                            node.classList.toggle(
+                                'is-active',
+                                node.dataset.variationValue === value
+                            );
+                        });
+                };
+                variations.forEach((variation) => {
+                    const variationToken =
+                        normaliseVariationToken(variation.value) || 'variation';
+                    const variationInputId = `${sectionToken}-variation-${variationToken}`;
+                    const variationItem = createElement('label', {
+                        className: 'admin-builder__variation-item',
+                        attrs: { for: variationInputId },
+                    });
+                    variationItem.dataset.variationValue = variation.value;
+                    const variationInput = createElement('input', {
+                        className: 'admin-builder__variation-radio',
+                        type: 'radio',
+                        value: variation.value,
+                        attrs: {
+                            id: variationInputId,
+                            name: variationGroupName,
+                        },
+                    });
+                    if (variation.value === currentVariation) {
+                        variationInput.checked = true;
+                    }
+                    variationInput.addEventListener('change', (event) => {
+                        if (!event.target.checked) {
+                            return;
+                        }
+                        section.variation = sectionTypeRegistry.normaliseVariation(
+                            section.type,
+                            event.target.value
+                        );
+                        setActiveVariation(section.variation);
+                    });
+                    const variationBody = createElement('span', {
+                        className: 'admin-builder__variation-body',
+                    });
+                    const variationMeta = createElement('span', {
+                        className: 'admin-builder__variation-meta',
+                    });
+                    variationMeta.appendChild(
+                        createElement('span', {
+                            className: 'admin-builder__variation-label',
+                            textContent: variation.label || variation.value,
+                        })
+                    );
+                    variationMeta.appendChild(
+                        createElement('code', {
+                            className: 'admin-builder__variation-code',
+                            textContent: variationToken,
+                        })
+                    );
+                    variationBody.appendChild(variationMeta);
+                    if (variation.description) {
+                        variationBody.appendChild(
+                            createElement('span', {
+                                className: 'admin-builder__variation-description',
+                                textContent: variation.description,
+                            })
+                        );
+                    }
+                    variationItem.appendChild(variationInput);
+                    variationItem.appendChild(variationBody);
+                    variationList.appendChild(variationItem);
+                });
+                setActiveVariation(currentVariation);
+                variationField.appendChild(variationLabel);
+                variationField.appendChild(variationList);
+                body.appendChild(variationField);
+            } else {
+                const variationId = `${section.id}-variation`;
+                const variationField = createElement('div', {
+                    className: 'section-field',
+                });
+                const variationLabel = createElement('label', {
+                    textContent: 'Section variation',
+                    attrs: { for: variationId },
+                });
+                const variationSelect = createElement('select', {
+                    attrs: { id: variationId, name: variationId },
+                });
+                variations.forEach((variation) => {
+                    const option = createElement('option', {
+                        textContent: variation.label,
+                        value: variation.value,
+                    });
+                    if (variation.value === currentVariation) {
+                        option.selected = true;
+                    }
+                    variationSelect.appendChild(option);
+                });
+                const variationDescription = createElement('p', {
+                    className: 'section-field__description',
+                });
+                const updateVariationDescription = () => {
+                    const selected = variations.find(
+                        (variation) => variation.value === variationSelect.value
+                    );
+                    const description = selected?.description || '';
+                    variationDescription.textContent = description;
+                    variationDescription.hidden = !description;
+                };
+                variationSelect.addEventListener('change', (event) => {
+                    section.variation = sectionTypeRegistry.normaliseVariation(
+                        section.type,
+                        event.target.value
+                    );
+                    updateVariationDescription();
+                });
+                variationField.appendChild(variationLabel);
+                variationField.appendChild(variationSelect);
+                body.appendChild(variationField);
+                updateVariationDescription();
+                body.appendChild(variationDescription);
+            }
         }
             const titleId = `${section.id}-title`;
             const titleField = createElement('div', {

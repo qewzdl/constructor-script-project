@@ -1,0 +1,389 @@
+/* Hero variation: immersive */
+.page-view__section--hero.page-view__section--variation-immersive {
+    background: var(--color-bg-bottom-dark);
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__section-container {
+    max-width: none;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero {
+    width: 100%;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-stage {
+    position: relative;
+    overflow: hidden;
+    min-height: clamp(80vh, 64vw, 680px);
+    isolation: isolate;
+    --edge-fade: 12%;
+    -webkit-mask-image: linear-gradient(
+        90deg,
+        transparent 0,
+        #000 var(--edge-fade),
+        #000 calc(100% - var(--edge-fade)),
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        90deg,
+        transparent 0,
+        #000 var(--edge-fade),
+        #000 calc(100% - var(--edge-fade)),
+        transparent 100%
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-stage::before {
+    content: "";
+    position: absolute;
+    top: 10%;
+    left: 12%;
+    width: clamp(220px, 30vw, 420px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--color-primary) 60%, #ffffff 40%) 0%, transparent 72%);
+    opacity: 0.65;
+    z-index: 1;
+    pointer-events: none;
+    will-change: top, left, transform, opacity;
+    animation: page-view-hero-immersive-drift 34s ease-in-out infinite;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-stage::after {
+    content: "";
+    position: absolute;
+    top: 78%;
+    left: 22%;
+    width: clamp(140px, 18vw, 300px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--color-accent, #60a5fa) 62%, #ffffff 38%) 0%, transparent 74%);
+    opacity: 0.38;
+    z-index: 1;
+    pointer-events: none;
+    will-change: top, left, transform, opacity;
+    animation:
+        page-view-hero-immersive-drift-secondary 41s ease-in-out infinite,
+        page-view-hero-immersive-blink 9s ease-in-out infinite;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: clamp(200px, 24vw, 360px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 1;
+    filter: blur(44px) saturate(1.25);
+    will-change: transform, opacity;
+    mix-blend-mode: screen;
+    background:
+        radial-gradient(
+            circle,
+            color-mix(in srgb, var(--color-primary) 66%, #ffffff 34%) 0%,
+            color-mix(in srgb, var(--color-accent, #60a5fa) 38%, transparent) 38%,
+            transparent 74%
+        );
+    transition: opacity 560ms ease;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    overflow: hidden;
+    pointer-events: none;
+    background:
+        linear-gradient(
+            108deg,
+            rgba(2, 6, 23, 0.93) 0%,
+            rgba(2, 6, 23, 0.82) 46%,
+            rgba(2, 6, 23, 0.34) 100%
+        );
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-overlay::before {
+    content: "";
+    position: absolute;
+    inset: -8%;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    will-change: transform, opacity;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-overlay::before {
+    background:
+        radial-gradient(circle at 20% 24%, color-mix(in srgb, var(--color-primary) 52%, #ffffff 48%) 0%, transparent 36%),
+        radial-gradient(circle at 76% 68%, color-mix(in srgb, var(--color-accent, #60a5fa) 54%, #ffffff 46%) 0%, transparent 34%);
+    opacity: 0.2;
+    animation: page-view-hero-immersive-constellation-a 44s ease-in-out infinite;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-container--immersive {
+    position: relative;
+    z-index: 3;
+    min-height: inherit;
+    display: grid;
+    align-items: center;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-content--immersive {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-base);
+    align-items: center;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-subtitle {
+    margin: 0;
+    width: max-content;
+    padding: 0.34rem 0.78rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-title {
+    margin: 0;
+    color: #f2f2f2ff;
+    font-size: clamp(1.8rem, 4.8vw, 3.8rem);
+    line-height: 1.06;
+    letter-spacing: -0.01em;
+    text-align: center;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-text {
+    margin: 0;
+    max-width: 54ch;
+    color: rgb(199, 199, 199);
+    font-size: clamp(0.9rem, 4.8vw, 1.2rem);
+    line-height: 1.65;
+    text-align: center;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--size-sm);
+    flex-wrap: wrap;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: max-content;
+    padding: 0.75rem 1.35rem;
+    border-radius: var(--size-sm);
+    border: 1px solid transparent;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-button-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: 1.05em;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-button--primary {
+    background: var(--color-primary);
+    color: var(--color-primary-opposite);
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-button--primary::after {
+    font-size: 0.9em;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-button--secondary {
+    border-color: rgba(255, 255, 255, 0.56);
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-button--primary:hover {
+    background: var(--color-primary-hover);
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-button--secondary:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-button:active {
+    transform: translateY(0);
+}
+
+@keyframes page-view-hero-immersive-drift {
+    0% {
+        top: 10%;
+        left: 12%;
+        opacity: 0.62;
+        transform: translate(-50%, -50%) scale(0.94);
+    }
+    20% {
+        top: 16%;
+        left: 86%;
+        opacity: 0.42;
+        transform: translate(-50%, -50%) scale(1.06);
+    }
+    40% {
+        top: 80%;
+        left: 88%;
+        opacity: 0.56;
+        transform: translate(-50%, -50%) scale(1.12);
+    }
+    60% {
+        top: 84%;
+        left: 14%;
+        opacity: 0.58;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    80% {
+        top: 48%;
+        left: 52%;
+        opacity: 0.46;
+        transform: translate(-50%, -50%) scale(1.02);
+    }
+    100% {
+        top: 10%;
+        left: 12%;
+        opacity: 0.62;
+        transform: translate(-50%, -50%) scale(0.94);
+    }
+}
+
+@keyframes page-view-hero-immersive-drift-secondary {
+    0% {
+        top: 78%;
+        left: 22%;
+        opacity: 0.34;
+        transform: translate(-50%, -50%) scale(0.86);
+    }
+    22% {
+        top: 24%;
+        left: 18%;
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1.02);
+    }
+    45% {
+        top: 14%;
+        left: 76%;
+        opacity: 0.36;
+        transform: translate(-50%, -50%) scale(0.94);
+    }
+    68% {
+        top: 64%;
+        left: 88%;
+        opacity: 0.48;
+        transform: translate(-50%, -50%) scale(1.08);
+    }
+    86% {
+        top: 86%;
+        left: 54%;
+        opacity: 0.32;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    100% {
+        top: 78%;
+        left: 22%;
+        opacity: 0.34;
+        transform: translate(-50%, -50%) scale(0.86);
+    }
+}
+
+@keyframes page-view-hero-immersive-blink {
+    0%,
+    32%,
+    62%,
+    100% {
+        opacity: 0.16;
+    }
+    16%,
+    48% {
+        opacity: 1;
+    }
+}
+
+@keyframes page-view-hero-immersive-constellation-a {
+    0% {
+        transform: translate3d(0, 0, 0) scale(0.95) rotate(0deg);
+        opacity: 0.24;
+    }
+    24% {
+        transform: translate3d(3%, -4%, 0) scale(1.02) rotate(4deg);
+        opacity: 0.34;
+    }
+    48% {
+        transform: translate3d(-4%, 4%, 0) scale(1.08) rotate(-3deg);
+        opacity: 0.3;
+    }
+    72% {
+        transform: translate3d(2%, 6%, 0) scale(1.03) rotate(2deg);
+        opacity: 0.36;
+    }
+    100% {
+        transform: translate3d(0, 0, 0) scale(0.95) rotate(0deg);
+        opacity: 0.24;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-stage {
+        border-radius: 20px;
+    }
+
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow {
+        width: clamp(180px, 34vw, 280px);
+        filter: blur(38px) saturate(1.18);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-stage {
+        border-radius: 16px;
+    }
+
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-content--immersive {
+        gap: var(--size-sm);
+    }
+
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-text {
+        font-size: 1rem;
+    }
+
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-actions {
+        margin-top: var(--size-mid);
+        flex-direction: column;
+        width: 80%;
+    }
+
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-button {
+        width: 100%;
+    }
+
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow {
+        display: none;
+    }
+}

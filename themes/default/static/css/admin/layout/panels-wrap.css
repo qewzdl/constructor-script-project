@@ -1,0 +1,5 @@
+.admin__panels {
+    display: grid;
+    gap: var(--size-max);
+}
+

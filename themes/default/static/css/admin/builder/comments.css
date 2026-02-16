@@ -1,0 +1,85 @@
+.admin-comment-list {
+    display: grid;
+    gap: var(--size-sm);
+    list-style: none;
+}
+
+.admin-comment-list__item {
+    border: 1px solid var(--color-border);
+    padding: var(--size-base);
+    display: grid;
+    gap: var(--size-xs);
+    background: var(--color-bg-top);
+}
+
+.admin-comment-list__item--empty {
+    text-align: center;
+    color: var(--color-secondary);
+    font-style: italic;
+}
+
+.admin-comment-list__meta {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-secondary);
+}
+
+.admin-comment-list__content {
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+}
+
+.admin-comment-list__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-xs);
+    justify-content: flex-end;
+}
+
+.admin-comment-button {
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    padding: var(--size-xs) var(--size-base);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.admin-comment-button[data-action='approve'] {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.admin-comment-button[data-action='approve']:hover,
+.admin-comment-button[data-action='approve']:focus-visible {
+    background: var(--color-accent);
+    color: var(--color-bg-top);
+    outline: none;
+}
+
+.admin-comment-button[data-action='reject'] {
+    border-color: var(--color-secondary);
+    color: var(--color-secondary);
+}
+
+.admin-comment-button[data-action='reject']:hover,
+.admin-comment-button[data-action='reject']:focus-visible {
+    border-color: var(--color-error);
+    color: var(--color-error);
+    outline: none;
+}
+
+.admin-comment-button[data-action='delete'] {
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+.admin-comment-button[data-action='delete']:hover,
+.admin-comment-button[data-action='delete']:focus-visible {
+    background: var(--color-error);
+    color: var(--color-bg-top);
+    outline: none;
+}
+

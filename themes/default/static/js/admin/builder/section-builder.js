@@ -66,29 +66,175 @@
         const sectionTypeOrder = Array.isArray(orderedSectionTypes)
             ? orderedSectionTypes
             : Object.keys(sectionDefinitions || {});
+        const normaliseTypeValue = (value) =>
+            utils.normaliseString(value).trim().toLowerCase();
+        const getTypeVariations = (sectionType) => {
+            const definition = sectionDefinitions?.[sectionType];
+            if (!definition || !Array.isArray(definition.variations)) {
+                return [];
+            }
+
+            const seen = new Set();
+            return definition.variations
+                .map((variation) => {
+                    const value = normaliseTypeValue(
+                        variation?.value ?? variation?.id ?? variation?.type
+                    );
+                    if (!value || seen.has(value)) {
+                        return null;
+                    }
+                    seen.add(value);
+                    return {
+                        value,
+                        label: utils.normaliseString(variation?.label).trim() || value,
+                        description: utils.normaliseString(
+                            variation?.description
+                        ).trim(),
+                        isDefault:
+                            variation?.isDefault === true ||
+                            variation?.is_default === true ||
+                            variation?.default === true,
+                    };
+                })
+                .filter(Boolean);
+        };
+        const resolveTypeVariation = (sectionType, value) => {
+            const variations = getTypeVariations(sectionType);
+            if (!variations.length) {
+                return '';
+            }
+
+            const requested = normaliseTypeValue(value);
+            if (requested) {
+                const match = variations.find(
+                    (variation) => variation.value === requested
+                );
+                if (match) {
+                    return match.value;
+                }
+            }
+
+            const fallback =
+                variations.find((variation) => variation.isDefault)?.value ||
+                variations[0]?.value;
+            return fallback || '';
+        };
         let selectedSectionType = sectionRegistry.getDefaultType?.()
             || sectionTypeOrder?.[0]
             || 'standard';
+        let selectedSectionVariation = resolveTypeVariation(
+            selectedSectionType,
+            ''
+        );
+        let openTypeSelectionFlowForAdd = null;
         if (addSectionButton.parentElement) {
+            let variationField = null;
+            let variationSelect = null;
+            let variationHint = null;
+            let variationMetaField = null;
+            let variationSummaryLabel = null;
+            let variationSummaryCode = null;
+            let variationMetaHint = null;
+            let changeVariationButton = null;
+            const updateVariationSelector = () => {
+                const variations = getTypeVariations(selectedSectionType);
+                selectedSectionVariation = resolveTypeVariation(
+                    selectedSectionType,
+                    selectedSectionVariation
+                );
+                const selectedVariation = variations.find(
+                    (variation) => variation.value === selectedSectionVariation
+                );
+                const variationLabel = utils
+                    .normaliseString(selectedVariation?.label)
+                    .trim();
+                const variationDescription = utils
+                    .normaliseString(selectedVariation?.description)
+                    .trim();
+
+                if (variationField && variationSelect) {
+                    variationSelect.innerHTML = '';
+                    const hasVariationChoices = variations.length > 1;
+                    if (!hasVariationChoices) {
+                        variationField.hidden = true;
+                        if (variationHint) {
+                            variationHint.hidden = true;
+                            variationHint.textContent = '';
+                        }
+                    } else {
+                        variations.forEach((variation) => {
+                            const option = utils.createElement('option', {
+                                value: variation.value,
+                                textContent: variation.label,
+                            });
+                            if (variation.value === selectedSectionVariation) {
+                                option.selected = true;
+                            }
+                            variationSelect.append(option);
+                        });
+                        variationField.hidden = false;
+                        if (variationHint) {
+                            variationHint.textContent = variationDescription;
+                            variationHint.hidden = !variationDescription;
+                        }
+                    }
+                }
+
+                if (variationMetaField) {
+                    const hasVariations = variations.length > 1;
+                    variationMetaField.hidden = !hasVariations;
+                    if (changeVariationButton) {
+                        changeVariationButton.hidden = !hasVariations;
+                    }
+                    if (!hasVariations) {
+                        if (variationSummaryLabel) {
+                            variationSummaryLabel.textContent = '';
+                        }
+                        if (variationSummaryCode) {
+                            variationSummaryCode.textContent = '';
+                        }
+                        if (variationMetaHint) {
+                            variationMetaHint.hidden = true;
+                            variationMetaHint.textContent = '';
+                        }
+                        return;
+                    }
+                    if (variationSummaryLabel) {
+                        variationSummaryLabel.textContent =
+                            variationLabel || selectedSectionVariation;
+                    }
+                    if (variationSummaryCode) {
+                        variationSummaryCode.textContent = selectedSectionVariation;
+                    }
+                    if (variationMetaHint) {
+                        variationMetaHint.textContent = variationDescription;
+                        variationMetaHint.hidden = !variationDescription;
+                    }
+                }
+            };
+
             const typePickerModule = window.AdminSectionTypePicker;
             if (typePickerModule?.open && sectionTypeOrder.length) {
                 const typeSelector = utils.createElement('div', {
                     className: 'section-builder__type-selector',
                 });
-                const typeMeta = utils.createElement('div', {
-                    className: 'admin-builder__type',
+                const typeMetaStack = utils.createElement('div', {
+                    className: 'admin-builder__meta-stack',
+                });
+                const typeMetaGroup = utils.createElement('div', {
+                    className: 'admin-builder__meta-group',
                 });
                 const typeControl = utils.createElement('div', {
-                    className: 'admin-builder__type-control',
+                    className: 'admin-builder__meta-row',
                 });
                 const typeSummary = utils.createElement('div', {
-                    className: 'admin-builder__type-summary',
+                    className: 'admin-builder__meta-summary',
                 });
                 const typeSummaryLabel = utils.createElement('span', {
-                    className: 'admin-builder__type-summary-label',
+                    className: 'admin-builder__meta-summary-label',
                 });
                 const typeSummaryCode = utils.createElement('code', {
-                    className: 'admin-builder__type-summary-code',
+                    className: 'admin-builder__meta-summary-code',
                 });
                 typeSummary.append(typeSummaryLabel, typeSummaryCode);
                 const changeTypeButton = utils.createElement('button', {
@@ -98,13 +244,53 @@
                     textContent: 'Change type',
                 });
                 typeControl.append(typeSummary, changeTypeButton);
-                typeMeta.append(typeControl);
+                typeMetaGroup.append(typeControl);
                 const typeHint = utils.createElement('span', {
-                    className: 'admin-builder__hint section-builder__type-hint',
+                    className:
+                        'admin-builder__hint admin-builder__meta-hint section-builder__type-hint',
                 });
                 typeHint.hidden = true;
-                typeMeta.append(typeHint);
-                typeSelector.append(typeMeta);
+                typeMetaGroup.append(typeHint);
+
+                variationMetaField = utils.createElement('div', {
+                    className: 'admin-builder__meta-group',
+                });
+                const variationControl = utils.createElement('div', {
+                    className: 'admin-builder__meta-row',
+                });
+                const variationSummary = utils.createElement('div', {
+                    className: 'admin-builder__meta-summary',
+                });
+                variationSummaryLabel = utils.createElement('span', {
+                    className: 'admin-builder__meta-summary-label',
+                });
+                variationSummaryCode = utils.createElement('code', {
+                    className: 'admin-builder__meta-summary-code',
+                });
+                variationSummary.append(
+                    variationSummaryLabel,
+                    variationSummaryCode
+                );
+                changeVariationButton = utils.createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost admin-builder__type-button',
+                    type: 'button',
+                    textContent: 'Change variation',
+                });
+                variationControl.append(
+                    variationSummary,
+                    changeVariationButton
+                );
+                variationMetaField.append(variationControl);
+                variationMetaHint = utils.createElement('span', {
+                    className:
+                        'admin-builder__hint admin-builder__meta-hint section-builder__type-hint',
+                });
+                variationMetaHint.hidden = true;
+                variationMetaField.append(variationMetaHint);
+                variationMetaField.hidden = true;
+                typeMetaStack.append(typeMetaGroup, variationMetaField);
+                typeSelector.append(typeMetaStack);
 
                 const updateSelector = () => {
                     const definition = sectionDefinitions?.[selectedSectionType] || {};
@@ -122,6 +308,57 @@
                         typeHint.textContent = '';
                         typeHint.hidden = true;
                     }
+                    updateVariationSelector();
+                };
+
+                const applyTypeSelection = (nextType, nextVariation) => {
+                    const normalisedType = normaliseTypeValue(nextType);
+                    if (!normalisedType) {
+                        return;
+                    }
+                    selectedSectionType = normalisedType;
+                    selectedSectionVariation = resolveTypeVariation(
+                        normalisedType,
+                        nextVariation
+                    );
+                    updateSelector();
+                };
+
+                const openVariationPickerForType = (
+                    nextType,
+                    { onSelect, onCancel } = {}
+                ) => {
+                    if (typeof typePickerModule?.openVariations !== 'function') {
+                        return false;
+                    }
+                    const variations = getTypeVariations(nextType);
+                    if (variations.length <= 1) {
+                        return false;
+                    }
+
+                    const activeVariation =
+                        nextType === selectedSectionType
+                            ? selectedSectionVariation
+                            : '';
+                    typePickerModule.openVariations({
+                        sectionType: nextType,
+                        sectionDefinitions,
+                        activeVariation: resolveTypeVariation(
+                            nextType,
+                            activeVariation
+                        ),
+                        onSelect: (nextVariation) => {
+                            const resolvedVariation = resolveTypeVariation(
+                                nextType,
+                                nextVariation
+                            );
+                            if (typeof onSelect === 'function') {
+                                onSelect(resolvedVariation);
+                            }
+                        },
+                        onCancel,
+                    });
+                    return true;
                 };
 
                 updateSelector();
@@ -133,14 +370,84 @@
                         sectionDefinitions,
                         activeType: selectedSectionType,
                         onSelect: (nextType) => {
-                            if (!nextType || nextType === selectedSectionType) {
+                            const normalisedType = normaliseTypeValue(nextType);
+                            if (!normalisedType) {
                                 return;
                             }
-                            selectedSectionType = nextType;
-                            updateSelector();
+                            if (
+                                openVariationPickerForType(normalisedType, {
+                                    onSelect: (nextVariation) => {
+                                        applyTypeSelection(
+                                            normalisedType,
+                                            nextVariation
+                                        );
+                                    },
+                                })
+                            ) {
+                                return;
+                            }
+                            if (normalisedType === selectedSectionType) {
+                                return;
+                            }
+                            applyTypeSelection(normalisedType, '');
                         },
                     });
                 });
+                changeVariationButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    openVariationPickerForType(selectedSectionType, {
+                        onSelect: (nextVariation) => {
+                            applyTypeSelection(
+                                selectedSectionType,
+                                nextVariation
+                            );
+                        },
+                    });
+                });
+
+                openTypeSelectionFlowForAdd = (onSelect) => {
+                    typePickerModule.open({
+                        orderedSectionTypes: sectionTypeOrder,
+                        sectionDefinitions,
+                        activeType: selectedSectionType,
+                        title: 'Choose section to add',
+                        onSelect: (nextType) => {
+                            const normalisedType = normaliseTypeValue(nextType);
+                            if (!normalisedType) {
+                                return;
+                            }
+
+                            const commitSelection = (nextVariation) => {
+                                const resolvedVariation = resolveTypeVariation(
+                                    normalisedType,
+                                    nextVariation
+                                );
+                                applyTypeSelection(
+                                    normalisedType,
+                                    resolvedVariation
+                                );
+                                if (typeof onSelect === 'function') {
+                                    onSelect(
+                                        normalisedType,
+                                        resolvedVariation
+                                    );
+                                }
+                            };
+
+                            if (
+                                openVariationPickerForType(normalisedType, {
+                                    onSelect: (nextVariation) => {
+                                        commitSelection(nextVariation);
+                                    },
+                                })
+                            ) {
+                                return;
+                            }
+
+                            commitSelection('');
+                        },
+                    });
+                };
 
                 addSectionButton.parentElement.insertBefore(
                     typeSelector,
@@ -165,9 +472,47 @@
                 typePicker.addEventListener('change', (event) => {
                     if (event.target && event.target.value) {
                         selectedSectionType = event.target.value;
+                        updateVariationSelector();
                     }
                 });
-                addSectionButton.parentElement.insertBefore(typePicker, addSectionButton);
+
+                variationField = utils.createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                variationField.append(
+                    utils.createElement('span', {
+                        className: 'admin-builder__hint',
+                        textContent: 'Variation',
+                    })
+                );
+                variationSelect = utils.createElement('select', {
+                    className: 'admin-builder__type-picker',
+                });
+                variationSelect.setAttribute('aria-label', 'Section variation');
+                variationField.append(variationSelect);
+                variationHint = utils.createElement('span', {
+                    className: 'admin-builder__hint section-builder__type-hint',
+                });
+                variationHint.hidden = true;
+                variationField.append(variationHint);
+                variationField.hidden = true;
+                variationSelect.addEventListener('change', (event) => {
+                    selectedSectionVariation = resolveTypeVariation(
+                        selectedSectionType,
+                        event?.target?.value
+                    );
+                    updateVariationSelector();
+                });
+
+                const pickerWrapper = utils.createElement('div', {
+                    className: 'section-builder__type-selector',
+                });
+                pickerWrapper.append(typePicker, variationField);
+                addSectionButton.parentElement.insertBefore(
+                    pickerWrapper,
+                    addSectionButton
+                );
+                updateVariationSelector();
             }
         }
         const state = stateModule.createManager(definitions, sectionDefinitions);
@@ -209,8 +554,11 @@
             emitChange();
         };
 
-        const addSection = () => {
-            const section = state.addSection(selectedSectionType);
+        const addSection = (
+            sectionType = selectedSectionType,
+            variation = selectedSectionVariation
+        ) => {
+            const section = state.addSection(sectionType, variation);
             render();
             emitChange();
             view.focusField(
@@ -332,7 +680,11 @@
 
         const updateSectionField = (sectionClientId, field, value) => {
             state.updateSectionField(sectionClientId, field, value);
-            return field === 'section-type' || field === 'section-disabled';
+            return (
+                field === 'section-type' ||
+                field === 'section-disabled' ||
+                field === 'section-variation'
+            );
         };
 
         const updateElementField = (
@@ -351,7 +703,14 @@
             );
         };
 
-        addSectionButton.addEventListener('click', () => {
+        addSectionButton.addEventListener('click', (event) => {
+            if (typeof openTypeSelectionFlowForAdd === 'function') {
+                event.preventDefault();
+                openTypeSelectionFlowForAdd((sectionType, variation) => {
+                    addSection(sectionType, variation);
+                });
+                return;
+            }
             addSection();
         });
 

@@ -2,6 +2,7 @@ package sections
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -57,16 +58,39 @@ func (f *SectionFactory) RegisterBlueprint(blueprint *SectionBlueprint) error {
 		return fmt.Errorf("blueprint builder is required")
 	}
 
+	sectionType := strings.TrimSpace(strings.ToLower(blueprint.Type))
+	if sectionType == "" {
+		return fmt.Errorf("blueprint type is required")
+	}
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	f.blueprints[blueprint.Type] = blueprint
+	normalisedBlueprint := *blueprint
+	normalisedBlueprint.Type = sectionType
+	f.blueprints[sectionType] = &normalisedBlueprint
 
 	// Build and register the section
-	builder := blueprint.Builder()
+	builder := normalisedBlueprint.Builder()
 	desc, err := builder.Build()
 	if err != nil {
 		return fmt.Errorf("failed to build section from blueprint: %w", err)
+	}
+
+	if desc.Metadata.Type == "" {
+		desc.Metadata.Type = sectionType
+	}
+	if desc.Metadata.Name == "" && strings.TrimSpace(normalisedBlueprint.Name) != "" {
+		desc.Metadata.Name = strings.TrimSpace(normalisedBlueprint.Name)
+	}
+	if desc.Metadata.Description == "" && strings.TrimSpace(normalisedBlueprint.Description) != "" {
+		desc.Metadata.Description = strings.TrimSpace(normalisedBlueprint.Description)
+	}
+	if desc.Metadata.Category == "" && strings.TrimSpace(normalisedBlueprint.Category) != "" {
+		desc.Metadata.Category = strings.TrimSpace(normalisedBlueprint.Category)
+	}
+	if desc.Metadata.Icon == "" && strings.TrimSpace(normalisedBlueprint.Icon) != "" {
+		desc.Metadata.Icon = strings.TrimSpace(normalisedBlueprint.Icon)
 	}
 
 	return f.registry.RegisterWithMetadata(desc)
@@ -76,6 +100,11 @@ func (f *SectionFactory) RegisterBlueprint(blueprint *SectionBlueprint) error {
 func (f *SectionFactory) CreateSection(sectionType string) (*SectionDescriptor, error) {
 	if f == nil {
 		return nil, fmt.Errorf("factory is nil")
+	}
+
+	sectionType = strings.TrimSpace(strings.ToLower(sectionType))
+	if sectionType == "" {
+		return nil, fmt.Errorf("section type is required")
 	}
 
 	f.mu.RLock()
@@ -117,6 +146,11 @@ func (f *SectionFactory) ListBlueprints() []*SectionBlueprint {
 // HasBlueprint checks if a blueprint exists for the given type.
 func (f *SectionFactory) HasBlueprint(sectionType string) bool {
 	if f == nil {
+		return false
+	}
+
+	sectionType = strings.TrimSpace(strings.ToLower(sectionType))
+	if sectionType == "" {
 		return false
 	}
 

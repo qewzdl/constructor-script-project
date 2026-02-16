@@ -1,0 +1,15 @@
+@media (max-width: 720px) {
+    .admin-builder__settings-overlay {
+        padding: var(--size-base);
+    }
+
+    .admin-builder__section-settings {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-builder__settings-button {
+        width: 100%;
+    }
+}
+

@@ -18,7 +18,12 @@ type SectionDefinition struct {
 	Type                string                              `json:"type"`
 	Label               string                              `json:"label,omitempty"`
 	Order               int                                 `json:"order,omitempty"`
+	Category            string                              `json:"category,omitempty"`
+	Icon                string                              `json:"icon,omitempty"`
+	Preview             string                              `json:"preview,omitempty"`
 	Description         string                              `json:"description,omitempty"`
+	AllowedIn           []string                            `json:"allowed_in,omitempty"`
+	Variations          []SectionVariationDefinition        `json:"variations,omitempty"`
 	AllowedElements     []string                            `json:"allowed_elements,omitempty"`
 	SupportsElements    *bool                               `json:"supports_elements,omitempty"`
 	SupportsHeaderImage *bool                               `json:"supports_header_image,omitempty"`
@@ -48,22 +53,62 @@ func (d SectionDefinition) AllowedElementSet() map[string]struct{} {
 	return set
 }
 
+// DefaultVariation returns the variation value marked as default or the first variation.
+func (d SectionDefinition) DefaultVariation() string {
+	first := ""
+
+	for _, variation := range d.Variations {
+		value := strings.ToLower(strings.TrimSpace(variation.Value))
+		if value == "" {
+			continue
+		}
+		if first == "" {
+			first = value
+		}
+		if variation.IsDefault {
+			return value
+		}
+	}
+
+	return first
+}
+
+// NormaliseVariation validates a variation against the definition and falls back to the default.
+func (d SectionDefinition) NormaliseVariation(value string) string {
+	if len(d.Variations) == 0 {
+		return ""
+	}
+
+	trimmed := strings.ToLower(strings.TrimSpace(value))
+	if trimmed != "" {
+		for _, variation := range d.Variations {
+			candidate := strings.ToLower(strings.TrimSpace(variation.Value))
+			if candidate == trimmed {
+				return candidate
+			}
+		}
+	}
+
+	return d.DefaultVariation()
+}
+
 // SectionSettingDefinition describes additional configuration for a section type.
 type SectionSettingDefinition struct {
-	Label             string                 `json:"label,omitempty"`
-	Type              string                 `json:"type,omitempty"`
-	Placeholder       string                 `json:"placeholder,omitempty"`
-	Min               *int                   `json:"min,omitempty"`
-	Max               *int                   `json:"max,omitempty"`
-	Default           *int                   `json:"default,omitempty"`
-	Options           []SectionSettingOption `json:"options,omitempty"`
-	DefaultValue      string                 `json:"default_value,omitempty"`
-	PerPageLabel      string                 `json:"perPageLabel,omitempty"`
-	Required          bool                   `json:"required,omitempty"`
-	AllowMediaBrowse  bool                   `json:"allowMediaBrowse,omitempty"`
-	AllowAnchorPicker bool                   `json:"allowAnchorPicker,omitempty"`
-	AllowCoursePicker bool                   `json:"allowCoursePicker,omitempty"`
-	AllowPostPicker   bool                   `json:"allowPostPicker,omitempty"`
+	Label               string                 `json:"label,omitempty"`
+	Type                string                 `json:"type,omitempty"`
+	Placeholder         string                 `json:"placeholder,omitempty"`
+	Min                 *int                   `json:"min,omitempty"`
+	Max                 *int                   `json:"max,omitempty"`
+	Default             *int                   `json:"default,omitempty"`
+	Options             []SectionSettingOption `json:"options,omitempty"`
+	DefaultValue        string                 `json:"default_value,omitempty"`
+	PerPageLabel        string                 `json:"perPageLabel,omitempty"`
+	Required            bool                   `json:"required,omitempty"`
+	AllowMediaBrowse    bool                   `json:"allowMediaBrowse,omitempty"`
+	AllowAnchorPicker   bool                   `json:"allowAnchorPicker,omitempty"`
+	AllowCoursePicker   bool                   `json:"allowCoursePicker,omitempty"`
+	AllowPostPicker     bool                   `json:"allowPostPicker,omitempty"`
+	HiddenForVariations []string               `json:"hidden_for_variations,omitempty"`
 }
 
 // SectionSettingOption represents a selectable option for a section setting.
@@ -72,13 +117,26 @@ type SectionSettingOption struct {
 	Label string `json:"label,omitempty"`
 }
 
+// SectionVariationDefinition describes an available visual/data variation for a section type.
+type SectionVariationDefinition struct {
+	ID          string `json:"id,omitempty"`
+	Value       string `json:"value"`
+	Label       string `json:"label,omitempty"`
+	Description string `json:"description,omitempty"`
+	IsDefault   bool   `json:"is_default,omitempty"`
+}
+
 // ElementDefinition represents a single element type definition that can be
 // referenced in sections.
 type ElementDefinition struct {
-	Type        string `json:"type"`
-	Label       string `json:"label,omitempty"`
-	Order       int    `json:"order,omitempty"`
-	Description string `json:"description,omitempty"`
+	Type        string   `json:"type"`
+	Label       string   `json:"label,omitempty"`
+	Order       int      `json:"order,omitempty"`
+	Category    string   `json:"category,omitempty"`
+	Icon        string   `json:"icon,omitempty"`
+	Preview     string   `json:"preview,omitempty"`
+	Description string   `json:"description,omitempty"`
+	AllowedIn   []string `json:"allowed_in,omitempty"`
 }
 
 type sectionDefinitionFile struct {
@@ -152,8 +210,23 @@ func mergeSectionDefinition(base, override SectionDefinition) SectionDefinition 
 	if override.Order != 0 {
 		result.Order = override.Order
 	}
+	if override.Category != "" {
+		result.Category = override.Category
+	}
+	if override.Icon != "" {
+		result.Icon = override.Icon
+	}
+	if override.Preview != "" {
+		result.Preview = override.Preview
+	}
 	if override.Description != "" {
 		result.Description = override.Description
+	}
+	if override.AllowedIn != nil {
+		result.AllowedIn = normaliseAllowedIn(override.AllowedIn)
+	}
+	if override.Variations != nil {
+		result.Variations = normaliseSectionVariations(override.Variations)
 	}
 	if override.SupportsElements != nil {
 		result.SupportsElements = override.SupportsElements
@@ -214,6 +287,17 @@ func mergeSectionSetting(base, override SectionSettingDefinition) SectionSetting
 	}
 	if override.AllowAnchorPicker {
 		result.AllowAnchorPicker = true
+	}
+	if override.AllowCoursePicker {
+		result.AllowCoursePicker = true
+	}
+	if override.AllowPostPicker {
+		result.AllowPostPicker = true
+	}
+	if override.HiddenForVariations != nil {
+		result.HiddenForVariations = normaliseVariationValues(
+			override.HiddenForVariations,
+		)
 	}
 
 	return result
@@ -323,6 +407,7 @@ func applySectionDefinitions(target map[string]SectionDefinition, definitions []
 		}
 
 		definition.Type = normalised
+		definition.AllowedIn = normaliseAllowedIn(definition.AllowedIn)
 		base, ok := target[normalised]
 		if !ok {
 			base = SectionDefinition{Type: normalised}
@@ -431,6 +516,7 @@ func applyElementDefinitions(target map[string]ElementDefinition, definitions []
 		}
 
 		definition.Type = normalised
+		definition.AllowedIn = normaliseAllowedIn(definition.AllowedIn)
 
 		base, ok := target[normalised]
 		if !ok {
@@ -450,8 +536,20 @@ func mergeElementDefinition(base, override ElementDefinition) ElementDefinition 
 	if override.Order != 0 {
 		result.Order = override.Order
 	}
+	if override.Category != "" {
+		result.Category = override.Category
+	}
+	if override.Icon != "" {
+		result.Icon = override.Icon
+	}
+	if override.Preview != "" {
+		result.Preview = override.Preview
+	}
 	if override.Description != "" {
 		result.Description = override.Description
+	}
+	if override.AllowedIn != nil {
+		result.AllowedIn = normaliseAllowedIn(override.AllowedIn)
 	}
 
 	return result
@@ -459,9 +557,11 @@ func mergeElementDefinition(base, override ElementDefinition) ElementDefinition 
 
 func defaultSectionDefinitions() map[string]SectionDefinition {
 	standardSupports := true
+	heroSupports := false
 	postsSupports := false
 	categoriesSupports := false
 	coursesSupports := false
+	catalogSupports := false
 	contactSupports := false
 
 	limitDefault := 6
@@ -484,6 +584,126 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Description:      "Flexible content area for combining paragraphs, media, and lists.",
 			AllowedElements:  normaliseElementTypes([]string{"paragraph", "image", "image_group", "list", "file_group", "search"}),
 			SupportsElements: &standardSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "standard-content",
+					Value:       "content",
+					Label:       "Content",
+					Description: "Standard content flow with optional side media",
+				},
+			}),
+		},
+		"hero": {
+			Type:             "hero",
+			Label:            "Hero section",
+			Order:            5,
+			Description:      "Prominent banner with title, subtitle, image, and call-to-action button.",
+			SupportsElements: &heroSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "hero-split",
+					Value:       "split",
+					Label:       "Split",
+					Description: "Content and image side by side",
+				},
+				{
+					ID:          "hero-centered",
+					Value:       "centered",
+					Label:       "Centered",
+					Description: "Centered hero with optional image below",
+				},
+				{
+					ID:          "hero-minimal",
+					Value:       "minimal",
+					Label:       "Minimal",
+					Description: "Compact hero focused on text and action",
+				},
+				{
+					ID:          "hero-immersive",
+					Value:       "immersive",
+					Label:       "Immersive",
+					Description: "Atmospheric hero with layered overlay and glowing accent",
+				},
+			}),
+			Settings: map[string]SectionSettingDefinition{
+				"title": {
+					Label:       "Hero title",
+					Type:        "text",
+					Placeholder: "Welcome to Our Platform",
+					Required:    true,
+				},
+				"subtitle": {
+					Label:       "Subtitle / badge text",
+					Type:        "text",
+					Placeholder: "Discover amazing features and possibilities",
+				},
+				"text": {
+					Label:       "Description text",
+					Type:        "text",
+					Placeholder: "Additional descriptive text for your hero section",
+				},
+				"image_url": {
+					Label:            "Hero image URL",
+					Type:             "url",
+					Placeholder:      "https://example.com/hero-image.jpg",
+					Required:         true,
+					AllowMediaBrowse: true,
+					HiddenForVariations: []string{
+						"immersive",
+					},
+				},
+				"image_alt": {
+					Label:       "Image alt text",
+					Type:        "text",
+					Placeholder: "Hero image",
+					HiddenForVariations: []string{
+						"immersive",
+					},
+				},
+				"button_text": {
+					Label:       "Button text",
+					Type:        "text",
+					Placeholder: "Get started",
+				},
+				"button_url": {
+					Label:             "Button URL",
+					Type:              "url",
+					Placeholder:       "/",
+					Required:          true,
+					AllowAnchorPicker: true,
+				},
+				"button_icon": {
+					Label:       "Primary button icon",
+					Type:        "text",
+					Placeholder: "✨",
+					HiddenForVariations: []string{
+						"split",
+						"centered",
+						"minimal",
+					},
+				},
+				"secondary_button_text": {
+					Label:       "Secondary button text",
+					Type:        "text",
+					Placeholder: "Learn more",
+				},
+				"secondary_button_url": {
+					Label:             "Secondary button URL",
+					Type:              "url",
+					Placeholder:       "/",
+					AllowAnchorPicker: true,
+				},
+				"secondary_button_icon": {
+					Label:       "Secondary button icon",
+					Type:        "text",
+					Placeholder: "→",
+					HiddenForVariations: []string{
+						"split",
+						"centered",
+						"minimal",
+					},
+				},
+			},
 		},
 		"features": {
 			Type:             "features",
@@ -492,6 +712,26 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Description:      "Highlight key features with images and supporting text.",
 			AllowedElements:  normaliseElementTypes([]string{"feature_item"}),
 			SupportsElements: &standardSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "features-cards",
+					Value:       "cards",
+					Label:       "Cards",
+					Description: "Responsive feature cards",
+				},
+				{
+					ID:          "features-list",
+					Value:       "list",
+					Label:       "List",
+					Description: "Single-column list layout",
+				},
+				{
+					ID:          "features-spotlight",
+					Value:       "spotlight",
+					Label:       "Spotlight",
+					Description: "Two-column feature spotlight layout",
+				},
+			}),
 		},
 		"contact": {
 			Type:             "contact",
@@ -499,6 +739,14 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Order:            14,
 			Description:      "Displays contact details with a concise inquiry form.",
 			SupportsElements: &contactSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "contact-split",
+					Value:       "split",
+					Label:       "Split",
+					Description: "Contact details and form in a split layout",
+				},
+			}),
 			Settings: map[string]SectionSettingDefinition{
 				"email": {
 					Label:       "Contact email",
@@ -554,6 +802,14 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Description:      "Displays content blocks in a responsive grid layout.",
 			AllowedElements:  normaliseElementTypes([]string{"paragraph", "image", "image_group", "list", "file_group"}),
 			SupportsElements: &standardSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "grid-cards",
+					Value:       "cards",
+					Label:       "Cards",
+					Description: "Card-style grid blocks",
+				},
+			}),
 		},
 		"file_list": {
 			Type:             "file_list",
@@ -562,6 +818,14 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Description:      "Showcase downloadable files with optional grouping.",
 			AllowedElements:  normaliseElementTypes([]string{"file_group"}),
 			SupportsElements: &standardSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "file-list-files",
+					Value:       "files",
+					Label:       "Files",
+					Description: "Grouped file listing layout",
+				},
+			}),
 		},
 		"posts_list": {
 			Type:             "posts_list",
@@ -569,6 +833,14 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Order:            20,
 			Description:      "Automatically displays the most recent posts.",
 			SupportsElements: &postsSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "posts-list-cards",
+					Value:       "cards",
+					Label:       "Cards",
+					Description: "Post cards in a responsive grid",
+				},
+			}),
 			Settings: map[string]SectionSettingDefinition{
 				"limit": {
 					Label:        "Number of posts to display",
@@ -604,6 +876,14 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			Order:            18,
 			Description:      "Displays a list of categories for quick topic navigation.",
 			SupportsElements: &categoriesSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "categories-list-chips",
+					Value:       "chips",
+					Label:       "Chips",
+					Description: "Category links displayed as compact chips",
+				},
+			}),
 			Settings: map[string]SectionSettingDefinition{
 				"limit": {
 					Label:   "Number of categories to display",
@@ -613,12 +893,91 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 				},
 			},
 		},
+		"catalog": {
+			Type:             "catalog",
+			Label:            "Catalog",
+			Order:            21,
+			Description:      "Showcase a catalog of available courses.",
+			SupportsElements: &catalogSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "catalog-cards",
+					Value:       "cards",
+					Label:       "Cards",
+					Description: "Default catalog card layout",
+				},
+				{
+					ID:          "catalog-compact",
+					Value:       "compact",
+					Label:       "Compact",
+					Description: "Compact list-style catalog view",
+				},
+				{
+					ID:          "catalog-highlighted",
+					Value:       "highlighted",
+					Label:       "Highlighted",
+					Description: "Accent-focused catalog cards",
+				},
+			}),
+			Settings: map[string]SectionSettingDefinition{
+				"limit": {
+					Label:        "Number of courses to display",
+					PerPageLabel: "Number of courses to display on a page",
+					Default:      &courseLimitDefault,
+					Min:          &courseLimitMin,
+					Max:          &courseLimitMax,
+				},
+				"display_mode": {
+					Label:        "Display mode",
+					Type:         "select",
+					Options:      []SectionSettingOption{{Value: constants.CourseListDisplayLimited, Label: "Limited (latest courses)"}, {Value: constants.CourseListDisplayCarousel, Label: "Carousel"}, {Value: constants.CourseListDisplayPaginated, Label: "Paginated (all courses)"}, {Value: constants.CourseListDisplaySelected, Label: "Selected courses"}},
+					DefaultValue: constants.CourseListDisplayLimited,
+				},
+				"carousel_columns": {
+					Label:   "Columns in carousel",
+					Type:    "range",
+					Min:     intPtr(constants.MinCarouselColumns),
+					Max:     intPtr(constants.MaxCarouselColumns),
+					Default: intPtr(constants.DefaultCarouselColumns),
+				},
+				"selected_courses": {
+					Label:             "Selected courses",
+					Type:              "text",
+					Placeholder:       "Choose courses to feature",
+					AllowCoursePicker: true,
+				},
+				"show_all_button": {
+					Label:        "Show link to all courses",
+					Type:         "boolean",
+					DefaultValue: "false",
+				},
+				"all_courses_url": {
+					Label:             "All courses link",
+					Type:              "url",
+					Placeholder:       "/courses",
+					AllowAnchorPicker: true,
+				},
+				"all_courses_label": {
+					Label:       "All courses link label",
+					Type:        "text",
+					Placeholder: "View all courses",
+				},
+			},
+		},
 		"courses_list": {
 			Type:             "courses_list",
 			Label:            "Courses list",
 			Order:            22,
 			Description:      "Highlights available course packages with pricing and topics.",
 			SupportsElements: &coursesSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "courses-list-cards",
+					Value:       "cards",
+					Label:       "Cards",
+					Description: "Course cards in a responsive grid",
+				},
+			}),
 			Settings: map[string]SectionSettingDefinition{
 				"limit": {
 					Label:        "Number of courses to display",
@@ -753,6 +1112,127 @@ func normaliseElementTypes(values []string) []string {
 
 	seen := make(map[string]struct{}, len(values))
 	result := make([]string, 0, len(values))
+	for _, value := range values {
+		normalised := strings.ToLower(strings.TrimSpace(value))
+		if normalised == "" {
+			continue
+		}
+		if _, exists := seen[normalised]; exists {
+			continue
+		}
+		seen[normalised] = struct{}{}
+		result = append(result, normalised)
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
+}
+
+func normaliseSectionVariations(values []SectionVariationDefinition) []SectionVariationDefinition {
+	if len(values) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(values))
+	result := make([]SectionVariationDefinition, 0, len(values))
+
+	for _, value := range values {
+		normalised := strings.ToLower(strings.TrimSpace(value.Value))
+		if normalised == "" {
+			continue
+		}
+		if _, exists := seen[normalised]; exists {
+			continue
+		}
+		seen[normalised] = struct{}{}
+
+		label := strings.TrimSpace(value.Label)
+		if label == "" {
+			label = normalised
+		}
+		id := normaliseVariationID(value.ID)
+		if id == "" {
+			id = normaliseVariationID(normalised)
+		}
+
+		result = append(result, SectionVariationDefinition{
+			ID:          id,
+			Value:       normalised,
+			Label:       label,
+			Description: strings.TrimSpace(value.Description),
+			IsDefault:   value.IsDefault,
+		})
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
+}
+
+func normaliseVariationID(value string) string {
+	trimmed := strings.TrimSpace(strings.ToLower(value))
+	if trimmed == "" {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.Grow(len(trimmed))
+	lastDash := false
+	for _, r := range trimmed {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' {
+			builder.WriteRune(r)
+			lastDash = false
+			continue
+		}
+		if !lastDash {
+			builder.WriteByte('-')
+			lastDash = true
+		}
+	}
+
+	return strings.Trim(builder.String(), "-")
+}
+
+func normaliseVariationValues(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+
+	for _, value := range values {
+		normalised := strings.TrimSpace(strings.ToLower(value))
+		if normalised == "" {
+			continue
+		}
+		if _, exists := seen[normalised]; exists {
+			continue
+		}
+		seen[normalised] = struct{}{}
+		result = append(result, normalised)
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
+}
+
+func normaliseAllowedIn(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+
 	for _, value := range values {
 		normalised := strings.ToLower(strings.TrimSpace(value))
 		if normalised == "" {

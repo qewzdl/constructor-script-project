@@ -1,0 +1,27 @@
+/* Posts list variation: cards */
+.post__post-list,
+.page-view__section--posts-list:is(.page-view__section--variation-cards, :not([data-section-variation])) .page-view__post-list {
+    display: grid;
+    gap: var(--common-gap);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.post__post-list-empty,
+.page-view__section--posts-list:is(.page-view__section--variation-cards, :not([data-section-variation])) .page-view__post-list-empty {
+    color: var(--color-secondary);
+    font-size: var(--font-size-base);
+}
+
+.posts-list__actions,
+.page-view__section--posts-list:is(.page-view__section--variation-cards, :not([data-section-variation])) .posts-list__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--size-sm);
+    margin-top: var(--size-lg);
+}
+
+.posts-list--carousel,
+.page-view__section--posts-list:is(.page-view__section--variation-cards, :not([data-section-variation])) .posts-list--carousel {
+    grid-template-columns: 1fr;
+}

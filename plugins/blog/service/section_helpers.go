@@ -3,6 +3,7 @@ package blogservice
 import (
 	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/theme"
+	"strings"
 )
 
 func sectionDefinitionsFromManager(manager *theme.Manager) map[string]theme.SectionDefinition {
@@ -56,4 +57,23 @@ func clampSectionLimit(value int, setting theme.SectionSettingDefinition) int {
 
 func intPtr(value int) *int {
 	return &value
+}
+
+func extractSectionVariation(value string, settings map[string]interface{}) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed != "" {
+		return trimmed
+	}
+	if settings == nil {
+		return ""
+	}
+
+	if raw, ok := settings["variation"].(string); ok {
+		return strings.TrimSpace(raw)
+	}
+	if raw, ok := settings["Variation"].(string); ok {
+		return strings.TrimSpace(raw)
+	}
+
+	return ""
 }

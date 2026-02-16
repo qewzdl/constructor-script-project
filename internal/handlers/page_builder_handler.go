@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"constructor-script-backend/internal/models"
 	"constructor-script-backend/internal/service"
@@ -30,7 +31,7 @@ func (h *PageBuilderHandler) GetPageBuilder(c *gin.Context) {
 		return
 	}
 
-	page, err := h.pageService.GetByID(uint(id))
+	page, err := h.pageService.GetByIDAdmin(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "page not found"})
 		return
@@ -84,6 +85,11 @@ func (h *PageBuilderHandler) ReorderSections(c *gin.Context) {
 
 	page, err := h.pageService.ReorderSections(uint(id), req.SectionIDs)
 	if err != nil {
+		lower := strings.ToLower(err.Error())
+		if strings.Contains(lower, "section id") || strings.Contains(lower, "expected") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		logger.Error(err, "Failed to reorder sections", map[string]interface{}{"page_id": id})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reorder sections"})
 		return
@@ -109,6 +115,11 @@ func (h *PageBuilderHandler) AddSection(c *gin.Context) {
 
 	page, err := h.pageService.AddSection(uint(id), req)
 	if err != nil {
+		lower := strings.ToLower(err.Error())
+		if strings.Contains(lower, "unknown type") || strings.Contains(lower, "unknown section type") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		logger.Error(err, "Failed to add section", map[string]interface{}{"page_id": id})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add section"})
 		return
@@ -140,6 +151,17 @@ func (h *PageBuilderHandler) UpdateSection(c *gin.Context) {
 
 	page, err := h.pageService.UpdateSection(uint(id), sectionID, req)
 	if err != nil {
+		lower := strings.ToLower(err.Error())
+		switch {
+		case strings.Contains(lower, "section not found"):
+			c.JSON(http.StatusNotFound, gin.H{"error": "section not found"})
+			return
+		case strings.Contains(lower, "unknown type"),
+			strings.Contains(lower, "unknown section type"),
+			strings.Contains(lower, "not allowed"):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		logger.Error(err, "Failed to update section", map[string]interface{}{
 			"page_id":    id,
 			"section_id": sectionID,
@@ -168,6 +190,10 @@ func (h *PageBuilderHandler) DeleteSection(c *gin.Context) {
 
 	page, err := h.pageService.DeleteSection(uint(id), sectionID)
 	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "section not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "section not found"})
+			return
+		}
 		logger.Error(err, "Failed to delete section", map[string]interface{}{
 			"page_id":    id,
 			"section_id": sectionID,
@@ -196,6 +222,10 @@ func (h *PageBuilderHandler) DuplicateSection(c *gin.Context) {
 
 	page, err := h.pageService.DuplicateSection(uint(id), sectionID)
 	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "section not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "section not found"})
+			return
+		}
 		logger.Error(err, "Failed to duplicate section", map[string]interface{}{
 			"page_id":    id,
 			"section_id": sectionID,
@@ -254,7 +284,7 @@ func (h *PageBuilderHandler) PreviewPage(c *gin.Context) {
 		return
 	}
 
-	page, err := h.pageService.GetByID(uint(id))
+	page, err := h.pageService.GetByIDAdmin(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "page not found"})
 		return

@@ -1,0 +1,10 @@
+@media (max-width: 680px) {
+    .admin-media-library {
+        padding: var(--size-base);
+    }
+
+    .admin-media-library__body {
+        padding: var(--size-md);
+    }
+}
+

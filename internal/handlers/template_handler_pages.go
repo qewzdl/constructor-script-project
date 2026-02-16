@@ -18,6 +18,8 @@ import (
 	"constructor-script-backend/internal/authorization"
 	"constructor-script-backend/internal/constants"
 	"constructor-script-backend/internal/models"
+	internalsections "constructor-script-backend/internal/sections"
+	internalservice "constructor-script-backend/internal/service"
 	"constructor-script-backend/internal/theme"
 	"constructor-script-backend/pkg/logger"
 	archiveservice "constructor-script-backend/plugins/archive/service"
@@ -2061,7 +2063,7 @@ func (h *TemplateHandler) renderCheckoutStatusPage(c *gin.Context, page checkout
 
 	data := gin.H{
 		"CheckoutStatus": page,
-		"Styles":         []string{"/static/css/sections/checkout-status.css"},
+		"Styles":         []string{"/static/css/sections/checkout-status-variation-standard.css"},
 		"NoIndex":        true,
 	}
 
@@ -2243,7 +2245,7 @@ func (h *TemplateHandler) RenderArchive(c *gin.Context) {
 	data := gin.H{
 		"Directories":    directories,
 		"ArchiveEnabled": true,
-		"Styles":         []string{"/static/css/sections/archive.css"},
+		"Styles":         []string{"/static/css/sections/archive-variation-standard.css"},
 	}
 
 	h.renderTemplate(c, "archive", title, description, data)
@@ -2329,7 +2331,7 @@ func (h *TemplateHandler) renderArchiveDirectory(c *gin.Context, pathValue strin
 		"Breadcrumbs":    breadcrumbs,
 		"ArchiveEnabled": true,
 		"Canonical":      canonical,
-		"Styles":         []string{"/static/css/sections/archive.css"},
+		"Styles":         []string{"/static/css/sections/archive-variation-standard.css"},
 	}
 
 	h.renderTemplate(c, "archive-directory", title, description, data)
@@ -2405,7 +2407,7 @@ func (h *TemplateHandler) renderArchiveFile(c *gin.Context, pathValue string) {
 		"Breadcrumbs":    breadcrumbs,
 		"ArchiveEnabled": true,
 		"Canonical":      canonical,
-		"Styles":         []string{"/static/css/sections/archive.css"},
+		"Styles":         []string{"/static/css/sections/archive-variation-standard.css"},
 	}
 
 	h.renderTemplate(c, "archive-file", title, description, data)
@@ -2585,89 +2587,21 @@ func (h *TemplateHandler) builderScripts() []string {
 }
 
 func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
-	sectionDefs := theme.DefaultSectionDefinitions()
-	baseSectionDefs := sectionDefs
-	elementDefs := theme.DefaultElementDefinitions()
-
-	// Try to use dynamic metadata from section registry first
-	if metadata := h.SectionMetadata(); len(metadata) > 0 {
-		if h.themeManager != nil {
-			if active := h.themeManager.Active(); active != nil {
-				if defs := active.SectionDefinitions(); len(defs) > 0 {
-					baseSectionDefs = defs
-				}
-			}
-		}
-
-		sectionDefs = make(map[string]theme.SectionDefinition, len(metadata))
-		for _, meta := range metadata {
-			supportsElements := true
-			supportsHeaderImage := false
-
-			// Determine if section supports elements based on schema
-			if meta.Schema != nil {
-				if _, hasLimit := meta.Schema["limit"]; hasLimit {
-					supportsElements = false
-				}
-			}
-
-			base := baseSectionDefs[strings.TrimSpace(strings.ToLower(meta.Type))]
-			def := base
-			def.Type = meta.Type
-			def.Label = meta.Name
-			def.Description = meta.Description
-			def.Order = 0
-			def.SupportsElements = &supportsElements
-			def.SupportsHeaderImage = &supportsHeaderImage
-
-			// Convert schema to settings
-			if len(meta.Schema) > 0 {
-				if def.Settings == nil {
-					def.Settings = make(map[string]theme.SectionSettingDefinition)
-				}
-				for key, schemaValue := range meta.Schema {
-					setting := theme.SectionSettingDefinition{}
-
-					if schemaMap, ok := schemaValue.(map[string]interface{}); ok {
-						if label, ok := schemaMap["label"].(string); ok {
-							setting.Label = label
-						}
-						if min, ok := schemaMap["min"].(int); ok {
-							setting.Min = &min
-						}
-						if max, ok := schemaMap["max"].(int); ok {
-							setting.Max = &max
-						}
-						if defaultVal, ok := schemaMap["default"].(int); ok {
-							setting.Default = &defaultVal
-						}
-					}
-
-					def.Settings[key] = setting
-				}
-			}
-
-			sectionDefs[meta.Type] = def
-		}
-	} else if h.themeManager != nil {
-		if active := h.themeManager.Active(); active != nil {
-			if defs := active.SectionDefinitions(); len(defs) > 0 {
-				sectionDefs = defs
-			}
-			if defs := active.ElementDefinitions(); len(defs) > 0 {
-				elementDefs = defs
-			}
-		}
+	options := internalservice.SectionCatalogOptions{
+		BlogEnabled:    h.blogEnabled(),
+		CoursesEnabled: h.coursesEnabled(),
 	}
 
-	if !h.blogEnabled() {
-		delete(sectionDefs, "posts_list")
-		delete(sectionDefs, "categories_list")
+	var catalog *internalservice.SectionCatalog
+	if h.pageService != nil {
+		catalog = h.pageService.SectionCatalog(options)
+	} else {
+		catalog = internalservice.NewSectionCatalog(h.themeManager, options)
 	}
 
-	if !h.coursesEnabled() {
-		delete(sectionDefs, "courses_list")
-	}
+	sectionDefs := catalog.SectionDefinitions()
+	elementDefs := catalog.ElementDefinitions()
+	sectionDefs = mergeSectionMetadataDefinitions(sectionDefs, h.SectionMetadata())
 
 	sectionJSON, err := json.Marshal(sectionDefs)
 	if err != nil {
@@ -2683,22 +2617,463 @@ func (h *TemplateHandler) builderDefinitionsJSON() (template.JS, template.JS) {
 	return template.JS(sectionJSON), template.JS(elementJSON)
 }
 
+func mergeSectionMetadataDefinitions(
+	definitions map[string]theme.SectionDefinition,
+	metadata []internalsections.SectionMetadata,
+) map[string]theme.SectionDefinition {
+	if len(metadata) == 0 {
+		return definitions
+	}
+
+	if definitions == nil {
+		definitions = make(map[string]theme.SectionDefinition)
+	}
+
+	for _, entry := range metadata {
+		sectionType := strings.TrimSpace(strings.ToLower(entry.Type))
+		if sectionType == "" {
+			continue
+		}
+
+		definition, exists := definitions[sectionType]
+		if !exists {
+			supportsElements := false
+			definition = theme.SectionDefinition{
+				Type:             sectionType,
+				SupportsElements: &supportsElements,
+			}
+		}
+
+		definition.Type = sectionType
+		if entry.Order > 0 {
+			definition.Order = entry.Order
+		}
+		if label := strings.TrimSpace(entry.Name); label != "" {
+			definition.Label = label
+		}
+		if description := strings.TrimSpace(entry.Description); description != "" {
+			definition.Description = description
+		}
+		if category := strings.TrimSpace(entry.Category); category != "" {
+			definition.Category = category
+		}
+		if icon := strings.TrimSpace(entry.Icon); icon != "" {
+			definition.Icon = icon
+		}
+		if preview := strings.TrimSpace(entry.Preview); preview != "" {
+			definition.Preview = preview
+		}
+		if allowedIn := normaliseMetadataStringSlice(entry.AllowedIn); len(allowedIn) > 0 {
+			definition.AllowedIn = allowedIn
+		}
+		if allowedElements := normaliseMetadataStringSlice(entry.AllowedElements); len(allowedElements) > 0 {
+			definition.AllowedElements = allowedElements
+			if definition.SupportsElements == nil {
+				supportsElements := true
+				definition.SupportsElements = &supportsElements
+			}
+		}
+		if entry.SupportsElements != nil {
+			definition.SupportsElements = cloneMetadataBoolPointer(entry.SupportsElements)
+		}
+		if entry.SupportsHeaderImage != nil {
+			definition.SupportsHeaderImage = cloneMetadataBoolPointer(entry.SupportsHeaderImage)
+		}
+
+		settings := metadataSchemaToSectionSettings(entry.Schema)
+		if len(settings) > 0 {
+			if definition.Settings == nil {
+				definition.Settings = make(map[string]theme.SectionSettingDefinition, len(settings))
+			}
+			for key, setting := range settings {
+				definition.Settings[key] = setting
+			}
+		}
+
+		definitions[sectionType] = definition
+	}
+
+	return definitions
+}
+
+func normaliseMetadataStringSlice(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		normalised := strings.TrimSpace(strings.ToLower(value))
+		if normalised == "" {
+			continue
+		}
+		if _, exists := seen[normalised]; exists {
+			continue
+		}
+		seen[normalised] = struct{}{}
+		result = append(result, normalised)
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
+}
+
+func cloneMetadataBoolPointer(value *bool) *bool {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
+}
+
+func metadataSchemaToSectionSettings(schema map[string]interface{}) map[string]theme.SectionSettingDefinition {
+	if len(schema) == 0 {
+		return nil
+	}
+
+	settings := make(map[string]theme.SectionSettingDefinition)
+	for key, field := range schema {
+		trimmedKey := strings.TrimSpace(key)
+		if trimmedKey == "" {
+			continue
+		}
+
+		setting, ok := metadataSchemaFieldToSetting(field)
+		if !ok {
+			continue
+		}
+
+		settings[trimmedKey] = setting
+	}
+
+	if len(settings) == 0 {
+		return nil
+	}
+
+	return settings
+}
+
+func metadataSchemaFieldToSetting(field interface{}) (theme.SectionSettingDefinition, bool) {
+	fieldSchema, ok := field.(map[string]interface{})
+	if !ok {
+		return theme.SectionSettingDefinition{}, false
+	}
+
+	setting := theme.SectionSettingDefinition{}
+
+	setting.Label = metadataSchemaString(fieldSchema, "label")
+	setting.Type = strings.TrimSpace(strings.ToLower(metadataSchemaString(fieldSchema, "type")))
+	setting.Placeholder = metadataSchemaString(fieldSchema, "placeholder")
+	setting.PerPageLabel = metadataSchemaString(fieldSchema, "perPageLabel", "per_page_label")
+	setting.DefaultValue = metadataSchemaString(fieldSchema, "defaultValue", "default_value")
+
+	if required, ok := metadataSchemaBool(metadataSchemaValue(fieldSchema, "required")); ok {
+		setting.Required = required
+	}
+	if allowed, ok := metadataSchemaBool(metadataSchemaValue(fieldSchema, "allowMediaBrowse", "allow_media_browse")); ok {
+		setting.AllowMediaBrowse = allowed
+	}
+	if allowed, ok := metadataSchemaBool(metadataSchemaValue(fieldSchema, "allowAnchorPicker", "allow_anchor_picker")); ok {
+		setting.AllowAnchorPicker = allowed
+	}
+	if allowed, ok := metadataSchemaBool(metadataSchemaValue(fieldSchema, "allowCoursePicker", "allow_course_picker")); ok {
+		setting.AllowCoursePicker = allowed
+	}
+	if allowed, ok := metadataSchemaBool(metadataSchemaValue(fieldSchema, "allowPostPicker", "allow_post_picker")); ok {
+		setting.AllowPostPicker = allowed
+	}
+
+	if min, ok := metadataSchemaIntPointer(metadataSchemaValue(fieldSchema, "min")); ok {
+		setting.Min = min
+	}
+	if max, ok := metadataSchemaIntPointer(metadataSchemaValue(fieldSchema, "max")); ok {
+		setting.Max = max
+	}
+
+	if defaultValue, hasDefault := metadataSchemaValueWithPresence(fieldSchema, "default"); hasDefault {
+		if number, ok := metadataSchemaIntPointer(defaultValue); ok {
+			setting.Default = number
+		} else if setting.DefaultValue == "" {
+			setting.DefaultValue = strings.TrimSpace(fmt.Sprint(defaultValue))
+		}
+	}
+
+	if options := metadataSchemaOptions(metadataSchemaValue(fieldSchema, "options", "enum")); len(options) > 0 {
+		setting.Options = options
+	}
+
+	return setting, true
+}
+
+func metadataSchemaString(field map[string]interface{}, keys ...string) string {
+	for _, key := range keys {
+		if value, ok := field[key].(string); ok {
+			trimmed := strings.TrimSpace(value)
+			if trimmed != "" {
+				return trimmed
+			}
+		}
+	}
+	return ""
+}
+
+func metadataSchemaValue(field map[string]interface{}, keys ...string) interface{} {
+	for _, key := range keys {
+		if value, ok := field[key]; ok {
+			return value
+		}
+	}
+	return nil
+}
+
+func metadataSchemaValueWithPresence(field map[string]interface{}, keys ...string) (interface{}, bool) {
+	for _, key := range keys {
+		if value, ok := field[key]; ok {
+			return value, true
+		}
+	}
+	return nil, false
+}
+
+func metadataSchemaOptions(raw interface{}) []theme.SectionSettingOption {
+	switch entries := raw.(type) {
+	case []string:
+		options := make([]theme.SectionSettingOption, 0, len(entries))
+		for _, entry := range entries {
+			value := strings.TrimSpace(entry)
+			if value == "" {
+				continue
+			}
+			options = append(options, theme.SectionSettingOption{
+				Value: value,
+				Label: value,
+			})
+		}
+		if len(options) == 0 {
+			return nil
+		}
+		return dedupeMetadataSchemaOptions(options)
+	case []map[string]string:
+		options := make([]theme.SectionSettingOption, 0, len(entries))
+		for _, entry := range entries {
+			value := strings.TrimSpace(entry["value"])
+			if value == "" {
+				continue
+			}
+			label := strings.TrimSpace(entry["label"])
+			if label == "" {
+				label = value
+			}
+			options = append(options, theme.SectionSettingOption{
+				Value: value,
+				Label: label,
+			})
+		}
+		if len(options) == 0 {
+			return nil
+		}
+		return dedupeMetadataSchemaOptions(options)
+	case []map[string]interface{}:
+		rawEntries := make([]interface{}, 0, len(entries))
+		for _, entry := range entries {
+			rawEntries = append(rawEntries, entry)
+		}
+		return metadataSchemaOptions(rawEntries)
+	case []interface{}:
+		options := make([]theme.SectionSettingOption, 0, len(entries))
+		for _, entry := range entries {
+			switch typed := entry.(type) {
+			case map[string]interface{}:
+				value := strings.TrimSpace(fmt.Sprint(typed["value"]))
+				if value == "" {
+					continue
+				}
+				label := strings.TrimSpace(fmt.Sprint(typed["label"]))
+				if label == "" {
+					label = value
+				}
+
+				options = append(options, theme.SectionSettingOption{
+					Value: value,
+					Label: label,
+				})
+			case string:
+				value := strings.TrimSpace(typed)
+				if value == "" {
+					continue
+				}
+				options = append(options, theme.SectionSettingOption{
+					Value: value,
+					Label: value,
+				})
+			default:
+				continue
+			}
+		}
+
+		if len(options) == 0 {
+			return nil
+		}
+		return dedupeMetadataSchemaOptions(options)
+	default:
+		return nil
+	}
+}
+
+func dedupeMetadataSchemaOptions(options []theme.SectionSettingOption) []theme.SectionSettingOption {
+	if len(options) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(options))
+	result := make([]theme.SectionSettingOption, 0, len(options))
+	for _, option := range options {
+		value := strings.TrimSpace(option.Value)
+		if value == "" {
+			continue
+		}
+		key := strings.ToLower(value)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		label := strings.TrimSpace(option.Label)
+		if label == "" {
+			label = value
+		}
+		result = append(result, theme.SectionSettingOption{
+			Value: value,
+			Label: label,
+		})
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func metadataSchemaIntPointer(raw interface{}) (*int, bool) {
+	switch value := raw.(type) {
+	case int:
+		cloned := value
+		return &cloned, true
+	case int8:
+		converted := int(value)
+		return &converted, true
+	case int16:
+		converted := int(value)
+		return &converted, true
+	case int32:
+		converted := int(value)
+		return &converted, true
+	case int64:
+		converted := int(value)
+		return &converted, true
+	case uint:
+		converted := int(value)
+		return &converted, true
+	case uint8:
+		converted := int(value)
+		return &converted, true
+	case uint16:
+		converted := int(value)
+		return &converted, true
+	case uint32:
+		converted := int(value)
+		return &converted, true
+	case uint64:
+		converted := int(value)
+		return &converted, true
+	case float32:
+		converted := int(value)
+		return &converted, true
+	case float64:
+		converted := int(value)
+		return &converted, true
+	case string:
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil {
+			return nil, false
+		}
+		return &parsed, true
+	default:
+		return nil, false
+	}
+}
+
+func metadataSchemaBool(raw interface{}) (bool, bool) {
+	switch value := raw.(type) {
+	case bool:
+		return value, true
+	case string:
+		switch strings.TrimSpace(strings.ToLower(value)) {
+		case "1", "true", "yes", "on":
+			return true, true
+		case "0", "false", "no", "off":
+			return false, true
+		default:
+			return false, false
+		}
+	default:
+		return false, false
+	}
+}
+
 func (h *TemplateHandler) builderConfigJSON() template.JS {
-	defaultPadding := constants.DefaultSectionPadding
-	if h.themeManager != nil {
-		if active := h.themeManager.Active(); active != nil {
-			defaultPadding = active.DefaultSectionPadding()
+	options := internalservice.SectionCatalogOptions{
+		BlogEnabled:    h.blogEnabled(),
+		CoursesEnabled: h.coursesEnabled(),
+	}
+
+	builderConfig := models.PageBuilderConfig{}
+	if h.pageService != nil {
+		builderConfig = h.pageService.GetPageBuilderConfigWithOptions(options)
+	} else {
+		catalog := internalservice.NewSectionCatalog(h.themeManager, options)
+		animations := constants.SectionAnimationOptions()
+		animationOptions := make([]models.SectionAnimationOption, 0, len(animations))
+		for _, option := range animations {
+			animationOptions = append(animationOptions, models.SectionAnimationOption{
+				Value:       option.Value,
+				Label:       option.Label,
+				Description: option.Description,
+			})
+		}
+
+		defaultPadding := constants.DefaultSectionPadding
+		if h.themeManager != nil {
+			if active := h.themeManager.Active(); active != nil {
+				defaultPadding = active.DefaultSectionPadding()
+			}
+		}
+
+		builderConfig = models.PageBuilderConfig{
+			AvailableSections:    catalog.SectionTypeConfigs(),
+			DefaultPadding:       defaultPadding,
+			DefaultMargin:        constants.DefaultSectionMargin,
+			PaddingOptions:       constants.SectionPaddingOptions(),
+			MarginOptions:        constants.SectionMarginOptions(),
+			SectionAnimations:    animationOptions,
+			DefaultAnimation:     constants.DefaultSectionAnimation,
+			DefaultAnimationBlur: constants.DefaultSectionAnimationBlur,
 		}
 	}
 
 	config := gin.H{
-		"paddingOptions":          constants.SectionPaddingOptions(),
-		"marginOptions":           constants.SectionMarginOptions(),
-		"defaultSectionPadding":   defaultPadding,
-		"defaultSectionMargin":    constants.DefaultSectionMargin,
-		"sectionAnimations":       constants.SectionAnimationOptions(),
-		"defaultSectionAnimation": constants.DefaultSectionAnimation,
-		"defaultAnimationBlur":    constants.DefaultSectionAnimationBlur,
+		"availableSections":       builderConfig.AvailableSections,
+		"paddingOptions":          builderConfig.PaddingOptions,
+		"marginOptions":           builderConfig.MarginOptions,
+		"defaultSectionPadding":   builderConfig.DefaultPadding,
+		"defaultSectionMargin":    builderConfig.DefaultMargin,
+		"sectionAnimations":       builderConfig.SectionAnimations,
+		"defaultSectionAnimation": builderConfig.DefaultAnimation,
+		"defaultAnimationBlur":    builderConfig.DefaultAnimationBlur,
 	}
 
 	configJSON, err := json.Marshal(config)

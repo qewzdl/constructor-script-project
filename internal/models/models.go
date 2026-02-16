@@ -634,6 +634,7 @@ type PostSections []Section
 type Section struct {
 	ID              string                 `json:"id"`
 	Type            string                 `json:"type"`
+	Variation       string                 `json:"variation,omitempty"`
 	Title           string                 `json:"title"`
 	Description     string                 `json:"description"`
 	Image           string                 `json:"image"`

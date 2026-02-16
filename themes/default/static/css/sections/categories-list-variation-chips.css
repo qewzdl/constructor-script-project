@@ -1,0 +1,27 @@
+/* Categories list variation: chips */
+.page-view__section--categories-list:is(.page-view__section--variation-chips, :not([data-section-variation])) .category-list {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    gap: var(--size-xs);
+    margin: 0;
+    padding: 0;
+}
+
+.page-view__section--categories-list:is(.page-view__section--variation-chips, :not([data-section-variation])) .category-list__link {
+    margin: var(--size-sm) 0;
+    padding: var(--size-sm) var(--size-base);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    color: var(--color-secondary);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.page-view__section--categories-list:is(.page-view__section--variation-chips, :not([data-section-variation])) .category-list__link:hover,
+.page-view__section--categories-list:is(.page-view__section--variation-chips, :not([data-section-variation])) .category-list__link:focus-visible {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}

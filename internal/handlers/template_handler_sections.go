@@ -58,12 +58,16 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		if sectionType == "" {
 			sectionType = "standard"
 		}
+		sectionTypeClass := normaliseSectionClassToken(sectionType)
+		if sectionTypeClass == "" {
+			sectionTypeClass = "standard"
+		}
 
 		if (sectionType == "posts_list" || sectionType == "categories_list") && !h.blogEnabled() {
 			continue
 		}
 
-		if sectionType == "courses_list" && !h.coursesEnabled() {
+		if (sectionType == "courses_list" || sectionType == "catalog") && !h.coursesEnabled() {
 			continue
 		}
 
@@ -71,9 +75,18 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		escapedTitle := template.HTMLEscapeString(title)
 
 		baseClass := fmt.Sprintf("%s__section", pageViewClassPrefix)
-		sectionClasses := []string{baseClass, fmt.Sprintf("%s__section--%s", pageViewClassPrefix, sectionType)}
+		sectionClasses := []string{baseClass, fmt.Sprintf("%s__section--%s", pageViewClassPrefix, sectionTypeClass)}
+		sectionVariation := normaliseSectionClassToken(section.Variation)
+		if sectionVariation == "" && section.Settings != nil {
+			if rawVariation, ok := section.Settings["variation"].(string); ok {
+				sectionVariation = normaliseSectionClassToken(rawVariation)
+			}
+		}
 		if prefix != pageViewClassPrefix {
 			sectionClasses = append(sectionClasses, fmt.Sprintf("%s__section--context-%s", pageViewClassPrefix, prefix))
+		}
+		if sectionVariation != "" {
+			sectionClasses = append(sectionClasses, fmt.Sprintf("%s__section--variation-%s", pageViewClassPrefix, sectionVariation))
 		}
 		if paddingClass := h.buildSectionPaddingClass(pageViewClassPrefix, section.PaddingVertical); paddingClass != "" {
 			sectionClasses = append(sectionClasses, paddingClass)
@@ -96,6 +109,12 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 			sectionAttributes += fmt.Sprintf(
 				` data-section-animation-blur="%t"`,
 				animationBlur,
+			)
+		}
+		if sectionVariation != "" {
+			sectionAttributes += fmt.Sprintf(
+				` data-section-variation="%s"`,
+				template.HTMLEscapeString(sectionVariation),
 			)
 		}
 
@@ -318,6 +337,31 @@ func clampSectionMarginValue(value int) int {
 		}
 	}
 	return closest
+}
+
+func normaliseSectionClassToken(value string) string {
+	trimmed := strings.TrimSpace(strings.ToLower(value))
+	if trimmed == "" {
+		return ""
+	}
+
+	var builder strings.Builder
+	builder.Grow(len(trimmed))
+
+	lastDash := false
+	for _, r := range trimmed {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			builder.WriteRune(r)
+			lastDash = false
+			continue
+		}
+		if !lastDash {
+			builder.WriteByte('-')
+			lastDash = true
+		}
+	}
+
+	return strings.Trim(builder.String(), "-")
 }
 
 func (h *TemplateHandler) renderCategoriesListSection(prefix string, section models.Section) string {
@@ -2019,10 +2063,10 @@ func coursePackageStats(pkg models.CoursePackage) (topics int, lessons int, dura
 	return
 }
 
-// renderSpecialSection handles section types that need special rendering (posts_list, categories_list, courses_list).
+// renderSpecialSection handles section types that need special rendering (posts_list, categories_list, courses_list, catalog).
 // Returns HTML and scripts if the section type is handled, empty strings otherwise.
 func (h *TemplateHandler) renderSpecialSection(prefix string, section models.Section, sectionType string, c *gin.Context) (string, []string) {
-	if sectionType == "courses_list" {
+	if sectionType == "courses_list" || sectionType == "catalog" {
 		html := h.renderCoursesListSection(prefix, section, c)
 
 		mode := strings.TrimSpace(strings.ToLower(section.Mode))
