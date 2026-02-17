@@ -53,13 +53,19 @@ func renderFeaturesSection(ctx RenderContext, prefix string, elem models.Section
 
 	containerClass := fmt.Sprintf("%s__features", prefix)
 	listClass := fmt.Sprintf("%s__features-list", prefix)
+	variation := strings.TrimSpace(strings.ToLower(section.Variation))
+	if variation == "" && section.Settings != nil {
+		if rawVariation, ok := section.Settings["variation"].(string); ok {
+			variation = strings.TrimSpace(strings.ToLower(rawVariation))
+		}
+	}
 
 	var items []string
 	for _, item := range section.Elements {
 		if strings.TrimSpace(strings.ToLower(item.Type)) != "feature_item" {
 			continue
 		}
-		itemHTML, _ := renderFeatureItem(ctx, prefix, item)
+		itemHTML, _ := renderFeatureItemWithVariation(ctx, prefix, item, variation)
 		if itemHTML != "" {
 			items = append(items, itemHTML)
 		}
@@ -82,43 +88,92 @@ func renderFeaturesSection(ctx RenderContext, prefix string, elem models.Section
 }
 
 func renderFeatureItem(ctx RenderContext, prefix string, elem models.SectionElement) (string, []string) {
+	return renderFeatureItemWithVariation(ctx, prefix, elem, "")
+}
+
+func renderFeatureItemWithVariation(ctx RenderContext, prefix string, elem models.SectionElement, variation string) (string, []string) {
 	content := sectionContent(elem)
 
 	title := strings.TrimSpace(getString(content, "title"))
+	subtitle := strings.TrimSpace(getString(content, "subtitle"))
 	text := strings.TrimSpace(getString(content, "text"))
 	imageURL := strings.TrimSpace(getString(content, "image_url"))
 	imageAlt := strings.TrimSpace(getString(content, "image_alt"))
+	normalisedVariation := strings.TrimSpace(strings.ToLower(variation))
+	iconTextOnly := normalisedVariation == "glyph" || normalisedVariation == "icon-text"
+	constellation := normalisedVariation == "constellation"
 
-	if text == "" {
+	if iconTextOnly {
+		if title == "" {
+			return "", nil
+		}
+	} else if constellation {
+		if title == "" || subtitle == "" || text == "" || imageURL == "" {
+			return "", nil
+		}
+	} else if text == "" {
 		return "", nil
 	}
 
 	itemClass := fmt.Sprintf("%s__feature-item", prefix)
+	headClass := fmt.Sprintf("%s__feature-head", prefix)
+	metaClass := fmt.Sprintf("%s__feature-meta", prefix)
 	bodyClass := fmt.Sprintf("%s__feature-body", prefix)
 	mediaClass := fmt.Sprintf("%s__feature-media", prefix)
 	imageClass := fmt.Sprintf("%s__feature-image", prefix)
 	titleClass := fmt.Sprintf("%s__feature-title", prefix)
+	subtitleClass := fmt.Sprintf("%s__feature-subtitle", prefix)
 	textClass := fmt.Sprintf("%s__feature-text", prefix)
 
 	var sb strings.Builder
 	sb.WriteString(`<article class="` + itemClass + `">`)
 
-	if imageURL != "" {
-		alt := imageAlt
-		if alt == "" {
+	alt := imageAlt
+	if alt == "" {
+		if title != "" {
+			alt = title
+		} else if subtitle != "" {
+			alt = subtitle
+		} else {
 			alt = text
 		}
+	}
+
+	if constellation {
+		sb.WriteString(`<div class="` + headClass + `">`)
+		if imageURL != "" {
+			sb.WriteString(`<div class="` + mediaClass + `">`)
+			sb.WriteString(`<img class="` + imageClass + `" src="` + template.HTMLEscapeString(imageURL) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
+			sb.WriteString(`</div>`)
+		}
+		sb.WriteString(`<div class="` + metaClass + `">`)
+		sb.WriteString(`<h3 class="` + titleClass + `">` + template.HTMLEscapeString(title) + `</h3>`)
+		sb.WriteString(`<p class="` + subtitleClass + `">` + template.HTMLEscapeString(subtitle) + `</p>`)
+		sb.WriteString(`</div>`)
+		sb.WriteString(`</div>`)
+		sb.WriteString(`<p class="` + textClass + `">` + ctx.SanitizeHTML(text) + `</p>`)
+		sb.WriteString(`</article>`)
+		return sb.String(), nil
+	}
+
+	if imageURL != "" {
 		sb.WriteString(`<div class="` + mediaClass + `">`)
 		sb.WriteString(`<img class="` + imageClass + `" src="` + template.HTMLEscapeString(imageURL) + `" alt="` + template.HTMLEscapeString(alt) + `" />`)
 		sb.WriteString(`</div>`)
 	}
 
-	if text != "" {
+	hasBody := title != "" || (constellation && subtitle != "") || (!iconTextOnly && text != "")
+	if hasBody {
 		sb.WriteString(`<div class="` + bodyClass + `">`)
 		if title != "" {
 			sb.WriteString(`<h3 class="` + titleClass + `">` + template.HTMLEscapeString(title) + `</h3>`)
 		}
-		sb.WriteString(`<p class="` + textClass + `">` + ctx.SanitizeHTML(text) + `</p>`)
+		if constellation && subtitle != "" {
+			sb.WriteString(`<p class="` + subtitleClass + `">` + template.HTMLEscapeString(subtitle) + `</p>`)
+		}
+		if !iconTextOnly && text != "" {
+			sb.WriteString(`<p class="` + textClass + `">` + ctx.SanitizeHTML(text) + `</p>`)
+		}
 		sb.WriteString(`</div>`)
 	}
 

@@ -514,7 +514,10 @@
             if (!variations.length) {
                 return '';
             }
-            const requested = normaliseVariationValue(value);
+            let requested = normaliseVariationValue(value);
+            if (type === 'features' && requested === 'icon-text') {
+                requested = 'glyph';
+            }
             if (requested) {
                 const match = variations.find(
                     (variation) => variation.value === requested
@@ -596,6 +599,35 @@
         supportsElements: true,
         description:
             'Grid of feature highlights mixing images and supporting text.',
+        variations: [
+            {
+                value: 'cards',
+                label: 'Cards',
+                description: 'Responsive feature cards',
+                isDefault: true,
+            },
+            {
+                value: 'list',
+                label: 'List',
+                description: 'Single-column list layout',
+            },
+            {
+                value: 'spotlight',
+                label: 'Spotlight',
+                description: 'Two-column feature spotlight layout',
+            },
+            {
+                value: 'glyph',
+                label: 'Glyph',
+                description: 'Compact feature rows with icon and title only',
+            },
+            {
+                value: 'constellation',
+                label: 'Constellation',
+                description:
+                    'Icon-led feature cards with title, subtitle, and supporting text',
+            },
+        ],
         validate: (section) => {
             const items = Array.isArray(section?.elements)
                 ? section.elements.filter(
@@ -607,6 +639,37 @@
                 : [];
             if (!items.length) {
                 return 'must include at least one feature item.';
+            }
+            return null;
+        },
+    });
+
+    sectionTypeRegistry.register('steps', {
+        label: 'Steps',
+        order: 13,
+        supportsElements: true,
+        description:
+            'Ordered process blocks with a number, title, and supporting text.',
+        variations: [
+            {
+                value: 'numbered',
+                label: 'Numbered',
+                description:
+                    'Sequential step list with order number, title, and text',
+                isDefault: true,
+            },
+        ],
+        validate: (section) => {
+            const items = Array.isArray(section?.elements)
+                ? section.elements.filter(
+                      (element) =>
+                          element &&
+                          typeof element.type === 'string' &&
+                          element.type.toLowerCase() === 'step_item'
+                  )
+                : [];
+            if (!items.length) {
+                return 'must include at least one step item.';
             }
             return null;
         },
@@ -780,6 +843,7 @@
         } else if (type === 'feature_item') {
             content = {
                 title: content.title || content.Title || '',
+                subtitle: content.subtitle || content.Subtitle || '',
                 text: content.text || content.Text || '',
                 image_url:
                     content.image_url ||
@@ -793,6 +857,12 @@
                     content.Image_alt ||
                     content.ImageAlt ||
                     '',
+            };
+        } else if (type === 'step_item') {
+            content = {
+                number: content.number || content.Number || '',
+                title: content.title || content.Title || '',
+                text: content.text || content.Text || '',
             };
         } else if (type === 'image_group') {
             content = normaliseImageGroupContent(content);
@@ -985,7 +1055,24 @@
             return {
                 id: generateId(),
                 type: 'feature_item',
-                content: { title: '', text: '', image_url: '', image_alt: '' },
+                content: {
+                    title: '',
+                    subtitle: '',
+                    text: '',
+                    image_url: '',
+                    image_alt: '',
+                },
+            };
+        }
+        if (type === 'step_item') {
+            return {
+                id: generateId(),
+                type: 'step_item',
+                content: {
+                    number: '',
+                    title: '',
+                    text: '',
+                },
             };
         }
         if (type === 'list') {
@@ -1016,7 +1103,7 @@
         return { id: generateId(), type: 'paragraph', content: { text: '' } };
     };
 
-    const serialiseElementContent = (element) => {
+    const serialiseElementContent = (element, section = null) => {
         if (!element || typeof element !== 'object') {
             return null;
         }
@@ -1042,6 +1129,8 @@
         }
         if (element.type === 'feature_item') {
             const title = element.content?.title || element.content?.Title || '';
+            const subtitle =
+                element.content?.subtitle || element.content?.Subtitle || '';
             const text = element.content?.text || '';
             const imageURL =
                 element.content?.image_url ||
@@ -1049,12 +1138,55 @@
                 '';
             const imageAlt =
                 element.content?.image_alt || element.content?.imageAlt || '';
+            const sectionType = sectionTypeRegistry.ensure(section?.type);
+            const sectionVariation = sectionTypeRegistry.normaliseVariation(
+                sectionType,
+                section?.variation ?? section?.Variation ?? ''
+            );
+            const glyphVariation =
+                sectionType === 'features' &&
+                (sectionVariation === 'glyph' || sectionVariation === 'icon-text');
+            const constellationVariation =
+                sectionType === 'features' && sectionVariation === 'constellation';
             const hasTitle = title.trim().length > 0;
+            const hasSubtitle = subtitle.trim().length > 0;
             const hasText = text.trim().length > 0;
             const hasImage = imageURL.trim().length > 0;
+
+            if (glyphVariation) {
+                if (!hasTitle || !hasImage) {
+                    return null;
+                }
+                const payload = {
+                    title: title.trim(),
+                    image_url: imageURL.trim(),
+                };
+                if (imageAlt && imageAlt.trim()) {
+                    payload.image_alt = imageAlt.trim();
+                }
+                return payload;
+            }
+
+            if (constellationVariation) {
+                if (!hasTitle || !hasSubtitle || !hasText || !hasImage) {
+                    return null;
+                }
+                const payload = {
+                    title: title.trim(),
+                    subtitle: subtitle.trim(),
+                    text: text.trim(),
+                    image_url: imageURL.trim(),
+                };
+                if (imageAlt && imageAlt.trim()) {
+                    payload.image_alt = imageAlt.trim();
+                }
+                return payload;
+            }
+
             if (!hasText) {
                 return null;
             }
+
             const payload = { text: text.trim() };
             if (hasTitle) {
                 payload.title = title.trim();
@@ -1064,6 +1196,24 @@
             }
             if (imageAlt && imageAlt.trim()) {
                 payload.image_alt = imageAlt.trim();
+            }
+            return payload;
+        }
+        if (element.type === 'step_item') {
+            const number = element.content?.number || element.content?.Number || '';
+            const title = element.content?.title || element.content?.Title || '';
+            const text = element.content?.text || '';
+            const hasTitle = title.trim().length > 0;
+            const hasText = text.trim().length > 0;
+            if (!hasTitle || !hasText) {
+                return null;
+            }
+            const payload = {
+                title: title.trim(),
+                text: text.trim(),
+            };
+            if (number && number.trim()) {
+                payload.number = number.trim();
             }
             return payload;
         }
@@ -1202,7 +1352,7 @@
             const elements = allowElements && Array.isArray(section.elements)
                 ? section.elements
                       .map((element, elementIndex) => {
-                          const content = serialiseElementContent(element);
+                          const content = serialiseElementContent(element, section);
                           if (!content) {
                               return null;
                           }
@@ -1339,9 +1489,56 @@
                         return `Section ${i + 1}, list ${j + 1} must include at least one item.`;
                     }
                 } else if (element.type === 'feature_item') {
+                    const sectionVariation = sectionTypeRegistry.normaliseVariation(
+                        type,
+                        section.variation ?? section.Variation ?? ''
+                    );
+                    const glyphVariation =
+                        type === 'features' &&
+                        (sectionVariation === 'glyph' ||
+                            sectionVariation === 'icon-text');
+                    const constellationVariation =
+                        type === 'features' &&
+                        sectionVariation === 'constellation';
+                    const title = element.content?.title || '';
+                    const subtitle = element.content?.subtitle || '';
                     const text = element.content?.text || '';
-                    if (!text.trim()) {
+                    const imageURL =
+                        element.content?.image_url ||
+                        element.content?.imageUrl ||
+                        '';
+
+                    if (glyphVariation) {
+                        if (!title.trim()) {
+                            return `Section ${i + 1}, feature ${j + 1} must include title.`;
+                        }
+                        if (!imageURL.trim()) {
+                            return `Section ${i + 1}, feature ${j + 1} must include an icon URL.`;
+                        }
+                    } else if (constellationVariation) {
+                        if (!title.trim()) {
+                            return `Section ${i + 1}, feature ${j + 1} must include title.`;
+                        }
+                        if (!subtitle.trim()) {
+                            return `Section ${i + 1}, feature ${j + 1} must include subtitle.`;
+                        }
+                        if (!text.trim()) {
+                            return `Section ${i + 1}, feature ${j + 1} must include text.`;
+                        }
+                        if (!imageURL.trim()) {
+                            return `Section ${i + 1}, feature ${j + 1} must include an icon URL.`;
+                        }
+                    } else if (!text.trim()) {
                         return `Section ${i + 1}, feature ${j + 1} must include text.`;
+                    }
+                } else if (element.type === 'step_item') {
+                    const title = element.content?.title || '';
+                    const text = element.content?.text || '';
+                    if (!title.trim()) {
+                        return `Section ${i + 1}, step ${j + 1} must include title.`;
+                    }
+                    if (!text.trim()) {
+                        return `Section ${i + 1}, step ${j + 1} must include text.`;
                     }
                 }
             }
@@ -2227,6 +2424,17 @@
                 });
                 elementActions.appendChild(addFeatureItem);
 
+                const addStepItem = createElement('button', {
+                    className: 'section-elements__button',
+                    textContent: 'Add step item',
+                    type: 'button',
+                });
+                addStepItem.addEventListener('click', () => {
+                    section.elements.push(createElementByType('step_item'));
+                    render();
+                });
+                elementActions.appendChild(addStepItem);
+
                 const addList = createElement('button', {
                     className: 'section-elements__button',
                     textContent: 'Add list',
@@ -2503,6 +2711,20 @@
                 if (!element.content || typeof element.content !== 'object') {
                     element.content = {};
                 }
+                const sectionType = sectionTypeRegistry.ensure(section?.type);
+                const sectionVariation = sectionTypeRegistry.normaliseVariation(
+                    sectionType,
+                    section?.variation ?? section?.Variation ?? ''
+                );
+                const glyphVariation =
+                    sectionType === 'features' &&
+                    (sectionVariation === 'glyph' ||
+                        sectionVariation === 'icon-text');
+                const constellationVariation =
+                    sectionType === 'features' &&
+                    sectionVariation === 'constellation';
+                const iconLedVariation =
+                    glyphVariation || constellationVariation;
 
                 const titleId = `${section.id}-${element.id}-feature-title`;
                 const titleField = createElement('div', {
@@ -2523,36 +2745,61 @@
                 titleField.appendChild(titleInput);
                 body.appendChild(titleField);
 
-                const textId = `${section.id}-${element.id}-feature-text`;
-                const textField = createElement('div', {
-                    className: 'section-field',
-                });
-                const textLabel = createElement('label', {
-                    textContent: 'Feature text',
-                    attrs: { for: textId },
-                });
-                const textInput = document.createElement('textarea');
-                textInput.id = textId;
-                textInput.placeholder = 'Describe the feature highlight';
-                textInput.value = element.content?.text || '';
-                textInput.addEventListener('input', (event) => {
-                    element.content.text = event.target.value;
-                });
-                textField.appendChild(textLabel);
-                textField.appendChild(textInput);
-                body.appendChild(textField);
+                if (constellationVariation) {
+                    const subtitleId = `${section.id}-${element.id}-feature-subtitle`;
+                    const subtitleField = createElement('div', {
+                        className: 'section-field',
+                    });
+                    const subtitleLabel = createElement('label', {
+                        textContent: 'Feature subtitle',
+                        attrs: { for: subtitleId },
+                    });
+                    const subtitleInput = createElement('input', { type: 'text' });
+                    subtitleInput.id = subtitleId;
+                    subtitleInput.placeholder = 'Add a concise supporting line';
+                    subtitleInput.value = element.content?.subtitle || '';
+                    subtitleInput.addEventListener('input', (event) => {
+                        element.content.subtitle = event.target.value;
+                    });
+                    subtitleField.appendChild(subtitleLabel);
+                    subtitleField.appendChild(subtitleInput);
+                    body.appendChild(subtitleField);
+                }
+
+                if (!glyphVariation) {
+                    const textId = `${section.id}-${element.id}-feature-text`;
+                    const textField = createElement('div', {
+                        className: 'section-field',
+                    });
+                    const textLabel = createElement('label', {
+                        textContent: 'Feature text',
+                        attrs: { for: textId },
+                    });
+                    const textInput = document.createElement('textarea');
+                    textInput.id = textId;
+                    textInput.placeholder = 'Describe the feature highlight';
+                    textInput.value = element.content?.text || '';
+                    textInput.addEventListener('input', (event) => {
+                        element.content.text = event.target.value;
+                    });
+                    textField.appendChild(textLabel);
+                    textField.appendChild(textInput);
+                    body.appendChild(textField);
+                }
 
                 const urlId = `${section.id}-${element.id}-feature-url`;
                 const urlField = createElement('div', {
                     className: 'section-field',
                 });
                 const urlLabel = createElement('label', {
-                    textContent: 'Image URL',
+                    textContent: iconLedVariation ? 'Icon URL' : 'Image URL',
                     attrs: { for: urlId },
                 });
                 const urlInput = createElement('input', { type: 'url' });
                 urlInput.id = urlId;
-                urlInput.placeholder = 'https://example.com/feature.jpg';
+                urlInput.placeholder = iconLedVariation
+                    ? 'https://example.com/icon.svg'
+                    : 'https://example.com/feature.jpg';
                 urlInput.value = element.content?.image_url || '';
                 urlInput.addEventListener('input', (event) => {
                     element.content.image_url = event.target.value;
@@ -2572,12 +2819,14 @@
                     className: 'section-field',
                 });
                 const altLabel = createElement('label', {
-                    textContent: 'Image alt text',
+                    textContent: iconLedVariation ? 'Icon alt text' : 'Image alt text',
                     attrs: { for: altId },
                 });
                 const altInput = createElement('input', { type: 'text' });
                 altInput.id = altId;
-                altInput.placeholder = 'Describe the image content';
+                altInput.placeholder = iconLedVariation
+                    ? 'Describe the icon'
+                    : 'Describe the image content';
                 altInput.value = element.content?.image_alt || '';
                 altInput.addEventListener('input', (event) => {
                     element.content.image_alt = event.target.value;
@@ -2585,6 +2834,67 @@
                 altField.appendChild(altLabel);
                 altField.appendChild(altInput);
                 body.appendChild(altField);
+            } else if (element.type === 'step_item') {
+                if (!element.content || typeof element.content !== 'object') {
+                    element.content = {};
+                }
+
+                const numberId = `${section.id}-${element.id}-step-number`;
+                const numberField = createElement('div', {
+                    className: 'section-field',
+                });
+                const numberLabel = createElement('label', {
+                    textContent: 'Step number',
+                    attrs: { for: numberId },
+                });
+                const numberInput = createElement('input', { type: 'text' });
+                numberInput.id = numberId;
+                numberInput.placeholder = '01';
+                numberInput.value = element.content?.number || '';
+                numberInput.addEventListener('input', (event) => {
+                    element.content.number = event.target.value;
+                });
+                numberField.appendChild(numberLabel);
+                numberField.appendChild(numberInput);
+                body.appendChild(numberField);
+
+                const titleId = `${section.id}-${element.id}-step-title`;
+                const titleField = createElement('div', {
+                    className: 'section-field',
+                });
+                const titleLabel = createElement('label', {
+                    textContent: 'Step title',
+                    attrs: { for: titleId },
+                });
+                const titleInput = createElement('input', { type: 'text' });
+                titleInput.id = titleId;
+                titleInput.placeholder = 'Name this step';
+                titleInput.value = element.content?.title || '';
+                titleInput.addEventListener('input', (event) => {
+                    element.content.title = event.target.value;
+                });
+                titleField.appendChild(titleLabel);
+                titleField.appendChild(titleInput);
+                body.appendChild(titleField);
+
+                const textId = `${section.id}-${element.id}-step-text`;
+                const textField = createElement('div', {
+                    className: 'section-field',
+                });
+                const textLabel = createElement('label', {
+                    textContent: 'Step text',
+                    attrs: { for: textId },
+                });
+                const textInput = document.createElement('textarea');
+                textInput.id = textId;
+                textInput.placeholder = 'Describe what happens in this step';
+                textInput.value = element.content?.text || '';
+                textInput.addEventListener('input', (event) => {
+                    element.content.text = event.target.value;
+                });
+                textField.appendChild(textLabel);
+                textField.appendChild(textInput);
+                body.appendChild(textField);
             } else if (element.type === 'list') {
                 if (!Array.isArray(element.content?.items)) {
                     element.content.items = [''];

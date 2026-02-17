@@ -104,7 +104,10 @@
                 return '';
             }
 
-            const requested = normaliseTypeValue(value);
+            let requested = normaliseTypeValue(value);
+            if (sectionType === 'features' && requested === 'icon-text') {
+                requested = 'glyph';
+            }
             if (requested) {
                 const match = variations.find(
                     (variation) => variation.value === requested

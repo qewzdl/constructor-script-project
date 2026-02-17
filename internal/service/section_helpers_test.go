@@ -75,6 +75,35 @@ func TestPrepareSections_NormalisesSectionVariation(t *testing.T) {
 	}
 }
 
+func TestPrepareSections_NormalisesStepsVariation(t *testing.T) {
+	sections := []models.Section{
+		{
+			Type:      "steps",
+			Variation: "custom-variation",
+			Elements: []models.SectionElement{
+				{
+					Type: "step_item",
+					Content: map[string]interface{}{
+						"title": "Step title",
+						"text":  "Step text",
+					},
+				},
+			},
+		},
+	}
+
+	prepared, err := PrepareSections(sections, nil, PrepareSectionsOptions{})
+	if err != nil {
+		t.Fatalf("expected sections to be prepared, got error: %v", err)
+	}
+	if len(prepared) != 1 {
+		t.Fatalf("expected 1 section, got %d", len(prepared))
+	}
+	if prepared[0].Variation != "numbered" {
+		t.Fatalf("expected default steps variation 'numbered', got %q", prepared[0].Variation)
+	}
+}
+
 func TestPrepareSections_UsesVariationFromSettingsFallback(t *testing.T) {
 	sections := []models.Section{
 		{
@@ -156,5 +185,63 @@ func TestPrepareSections_NormalisesSectionSettingsUsingDefinitions(t *testing.T)
 
 	if customHint, _ := section.Settings["custom_hint"].(string); customHint != "keep-me" {
 		t.Fatalf("expected unknown setting to be preserved, got %q", customHint)
+	}
+}
+
+func TestPrepareSections_NormalisesTitlePositionSetting(t *testing.T) {
+	sections := []models.Section{
+		{
+			Type: "standard",
+			Settings: map[string]interface{}{
+				"title_position":       "CENTER",
+				"description_position": "RIGHT",
+			},
+		},
+	}
+
+	prepared, err := PrepareSections(sections, nil, PrepareSectionsOptions{})
+	if err != nil {
+		t.Fatalf("expected sections to be prepared, got error: %v", err)
+	}
+	if len(prepared) != 1 {
+		t.Fatalf("expected 1 section, got %d", len(prepared))
+	}
+	if prepared[0].Settings == nil {
+		t.Fatalf("expected normalised settings to be present")
+	}
+	position, _ := prepared[0].Settings["title_position"].(string)
+	if position != "center" {
+		t.Fatalf("expected title_position to normalise to %q, got %q", "center", position)
+	}
+	descriptionPosition, _ := prepared[0].Settings["description_position"].(string)
+	if descriptionPosition != "right" {
+		t.Fatalf("expected description_position to normalise to %q, got %q", "right", descriptionPosition)
+	}
+}
+
+func TestPrepareSections_DefaultsTitlePositionSetting(t *testing.T) {
+	sections := []models.Section{
+		{
+			Type: "standard",
+		},
+	}
+
+	prepared, err := PrepareSections(sections, nil, PrepareSectionsOptions{})
+	if err != nil {
+		t.Fatalf("expected sections to be prepared, got error: %v", err)
+	}
+	if len(prepared) != 1 {
+		t.Fatalf("expected 1 section, got %d", len(prepared))
+	}
+	if prepared[0].Settings == nil {
+		t.Fatalf("expected settings to include defaults")
+	}
+	position, _ := prepared[0].Settings["title_position"].(string)
+	if position != "left" {
+		t.Fatalf("expected default title_position to be %q, got %q", "left", position)
+	}
+	descriptionPosition, _ := prepared[0].Settings["description_position"].(string)
+	if descriptionPosition != "left" {
+		t.Fatalf("expected default description_position to be %q, got %q", "left", descriptionPosition)
 	}
 }

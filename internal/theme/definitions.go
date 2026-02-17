@@ -80,6 +80,9 @@ func (d SectionDefinition) NormaliseVariation(value string) string {
 	}
 
 	trimmed := strings.ToLower(strings.TrimSpace(value))
+	if d.Type == "features" && trimmed == "icon-text" {
+		trimmed = "glyph"
+	}
 	if trimmed != "" {
 		for _, variation := range d.Variations {
 			candidate := strings.ToLower(strings.TrimSpace(variation.Value))
@@ -576,7 +579,7 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 	courseLimitMin := 1
 	courseLimitMax := constants.MaxCourseListSectionLimit
 
-	return map[string]SectionDefinition{
+	definitions := map[string]SectionDefinition{
 		"standard": {
 			Type:             "standard",
 			Label:            "Standard section",
@@ -730,6 +733,34 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 					Value:       "spotlight",
 					Label:       "Spotlight",
 					Description: "Two-column feature spotlight layout",
+				},
+				{
+					ID:          "features-glyph",
+					Value:       "glyph",
+					Label:       "Glyph",
+					Description: "Compact feature rows with icon and title only",
+				},
+				{
+					ID:          "features-constellation",
+					Value:       "constellation",
+					Label:       "Constellation",
+					Description: "Icon-led feature cards with title, subtitle, and supporting text",
+				},
+			}),
+		},
+		"steps": {
+			Type:             "steps",
+			Label:            "Steps",
+			Order:            13,
+			Description:      "Present a clear sequence of steps with concise explanations.",
+			AllowedElements:  normaliseElementTypes([]string{"step_item"}),
+			SupportsElements: &standardSupports,
+			Variations: normaliseSectionVariations([]SectionVariationDefinition{
+				{
+					ID:          "steps-numbered",
+					Value:       "numbered",
+					Label:       "Numbered",
+					Description: "Sequential step list with order number, title, and text",
 				},
 			}),
 		},
@@ -1024,6 +1055,73 @@ func defaultSectionDefinitions() map[string]SectionDefinition {
 			},
 		},
 	}
+
+	applySharedSectionSettings(definitions)
+
+	return definitions
+}
+
+func applySharedSectionSettings(definitions map[string]SectionDefinition) {
+	if len(definitions) == 0 {
+		return
+	}
+
+	for key, definition := range definitions {
+		if definition.Settings == nil {
+			definition.Settings = map[string]SectionSettingDefinition{}
+		}
+		if _, exists := definition.Settings["title_position"]; !exists {
+			definition.Settings["title_position"] = defaultSectionTitlePositionSetting()
+		}
+		if _, exists := definition.Settings["description_position"]; !exists {
+			definition.Settings["description_position"] = defaultSectionDescriptionPositionSetting()
+		}
+		definitions[key] = definition
+	}
+}
+
+func defaultSectionTitlePositionSetting() SectionSettingDefinition {
+	return SectionSettingDefinition{
+		Label: "Section title position",
+		Type:  "select",
+		Options: []SectionSettingOption{
+			{
+				Value: "left",
+				Label: "Left",
+			},
+			{
+				Value: "center",
+				Label: "Center",
+			},
+			{
+				Value: "right",
+				Label: "Right",
+			},
+		},
+		DefaultValue: "left",
+	}
+}
+
+func defaultSectionDescriptionPositionSetting() SectionSettingDefinition {
+	return SectionSettingDefinition{
+		Label: "Section description position",
+		Type:  "select",
+		Options: []SectionSettingOption{
+			{
+				Value: "left",
+				Label: "Left",
+			},
+			{
+				Value: "center",
+				Label: "Center",
+			},
+			{
+				Value: "right",
+				Label: "Right",
+			},
+		},
+		DefaultValue: "left",
+	}
 }
 
 func defaultElementDefinitions() map[string]ElementDefinition {
@@ -1045,6 +1143,12 @@ func defaultElementDefinitions() map[string]ElementDefinition {
 			Label:       "Feature item",
 			Order:       25,
 			Description: "Feature highlight with title, supporting text, and an optional image.",
+		},
+		"step_item": {
+			Type:        "step_item",
+			Label:       "Step item",
+			Order:       26,
+			Description: "Single step with order number, title, and supporting text.",
 		},
 		"image_group": {
 			Type:        "image_group",

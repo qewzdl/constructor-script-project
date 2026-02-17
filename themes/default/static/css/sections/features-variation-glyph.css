@@ -1,0 +1,96 @@
+/* Features variation: glyph */
+.page-view__section--features:is(
+    .page-view__section--variation-glyph,
+) .page-view__features-list {
+    display: grid;
+    gap: var(--common-gap);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: stretch;
+    padding-inline: 8%;
+}
+
+.page-view__section--features:is(
+    .page-view__section--variation-glyph,
+) .page-view__feature-item {
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-top);
+    padding: var(--size-base);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--size-base);
+    height: 100%;
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 8px rgba(0, 0, 0, 0.05);
+    transition: 0.2s box-shadow, 0.1s border-color, var(--theme-transition-duration) background-color;
+}
+
+.page-view__section--features:is(
+    .page-view__section--variation-glyph
+) .page-view__feature-item:hover {
+    box-shadow: 0 8px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-primary);
+}
+
+.page-view__section--features:is(
+    .page-view__section--variation-glyph,
+) .page-view__feature-media {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.page-view__section--features:is(
+    .page-view__section--variation-glyph,
+) .page-view__feature-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.page-view__section--features:is(
+    .page-view__section--variation-glyph,
+) .page-view__feature-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-xs);
+}
+
+.page-view__section--features:is(
+    .page-view__section--variation-glyph,
+) .page-view__feature-title {
+    display: block;
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--color-text);
+}
+
+.page-view__section--features:is(
+    .page-view__section--variation-glyph,
+) .page-view__feature-text {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .page-view__section--features:is(
+        .page-view__section--variation-glyph,
+    ) .page-view__feature-media {
+        width: 2.5rem;
+        height: 2.5rem;
+        flex-basis: 2.5rem;
+    }
+}
+
+@media (max-width: 525px) {
+    .page-view__section--features:is(
+        .page-view__section--variation-glyph,
+    ) .page-view__features-list {
+        padding: 0;
+    }
+}

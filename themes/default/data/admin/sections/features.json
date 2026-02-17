@@ -25,6 +25,18 @@
             "value": "spotlight",
             "label": "Spotlight",
             "description": "Two-column feature spotlight layout"
+        },
+        {
+            "id": "features-glyph",
+            "value": "glyph",
+            "label": "Glyph",
+            "description": "Compact feature rows with icon and title only"
+        },
+        {
+            "id": "features-constellation",
+            "value": "constellation",
+            "label": "Constellation",
+            "description": "Icon-led feature cards with title, subtitle, and supporting text"
         }
     ]
 }

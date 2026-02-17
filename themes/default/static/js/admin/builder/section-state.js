@@ -300,7 +300,11 @@
             return '';
         }
 
-        const normalisedValue = normaliseString(value).toLowerCase();
+        let normalisedValue = normaliseString(value).toLowerCase();
+        const definitionType = normaliseString(definition?.type).toLowerCase();
+        if (definitionType === 'features' && normalisedValue === 'icon-text') {
+            normalisedValue = 'glyph';
+        }
         if (normalisedValue) {
             const matched = variations.find(
                 (variation) => variation.value === normalisedValue
@@ -443,24 +447,24 @@
         };
     };
 
-    const elementHasContent = (definitions, element) => {
+    const elementHasContent = (definitions, section, element) => {
         if (!element) {
             return false;
         }
         const definition = definitions[element.type];
         if (definition && typeof definition.hasContent === 'function') {
-            return definition.hasContent(element);
+            return definition.hasContent(element, { section });
         }
         return true;
     };
 
-    const sanitiseElement = (definitions, element, index) => {
-        if (!elementHasContent(definitions, element)) {
+    const sanitiseElement = (definitions, section, element, index) => {
+        if (!elementHasContent(definitions, section, element)) {
             return null;
         }
         const definition = definitions[element.type];
         if (definition && typeof definition.sanitise === 'function') {
-            return definition.sanitise(element, index);
+            return definition.sanitise(element, index, { section });
         }
         return {
             id: element.id || '',
@@ -511,7 +515,24 @@
                         : '';
                     const title = section.title.trim();
                     const description = section.description?.trim() || '';
-                    const hasSettings = section.settings && Object.keys(section.settings).length > 0;
+                    const settings = section.settings && typeof section.settings === 'object'
+                        ? { ...section.settings }
+                        : {};
+                    const normaliseTextPositionSetting = (snakeKey, camelKey) => {
+                        const value = normaliseString(
+                            settings[snakeKey] ?? settings[camelKey]
+                        ).toLowerCase();
+                        if (value) {
+                            settings[snakeKey] = value;
+                        }
+                        delete settings[camelKey];
+                        if (!value || value === 'left') {
+                            delete settings[snakeKey];
+                        }
+                    };
+                    normaliseTextPositionSetting('title_position', 'titlePosition');
+                    normaliseTextPositionSetting('description_position', 'descriptionPosition');
+                    const hasSettings = Object.keys(settings).length > 0;
 
                     let elements = nilSlice;
                     if (supportsElements(section.type)) {
@@ -527,6 +548,7 @@
                             .forEach((element) => {
                                 const sanitised = sanitiseElement(
                                     definitions,
+                                    section,
                                     element,
                                     sanitisedElements.length
                                 );
@@ -617,8 +639,8 @@
                     );
 
                     // Include custom section settings (like hero fields)
-                    if (section.settings && Object.keys(section.settings).length > 0) {
-                        payload.settings = section.settings;
+                    if (hasSettings) {
+                        payload.settings = settings;
                     }
 
                     return payload;

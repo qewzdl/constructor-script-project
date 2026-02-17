@@ -231,6 +231,34 @@
                 label: 'Spotlight',
                 description: 'Two-column feature spotlight layout',
             },
+            {
+                value: 'glyph',
+                label: 'Glyph',
+                description: 'Compact feature rows with icon and title only',
+            },
+            {
+                value: 'constellation',
+                label: 'Constellation',
+                description:
+                    'Icon-led feature cards with title, subtitle, and supporting text',
+            },
+        ],
+    });
+    ensureRegistered('steps', {
+        label: 'Steps',
+        order: 17,
+        supportsElements: true,
+        description:
+            'Show an ordered process with a number, title, and supporting text for each step.',
+        allowedElements: ['step_item'],
+        variations: [
+            {
+                value: 'numbered',
+                label: 'Numbered',
+                description:
+                    'Sequential step list with order number, title, and text',
+                isDefault: true,
+            },
         ],
     });
 

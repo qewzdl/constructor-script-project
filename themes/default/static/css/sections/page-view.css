@@ -11,6 +11,21 @@
     margin-bottom: var(--size-mid);
 }
 
+.page-view__section-title--align-left,
+.page-view__section-description--align-left {
+    text-align: left;
+}
+
+.page-view__section-title--align-center,
+.page-view__section-description--align-center {
+    text-align: center;
+}
+
+.page-view__section-title--align-right,
+.page-view__section-description--align-right {
+    text-align: right;
+}
+
 .page-view__section:nth-child(2n) {
     background-color: var(--color-bg-top);
 }

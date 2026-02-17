@@ -1,0 +1,85 @@
+/* Features variation: constellation */
+.page-view__section--features.page-view__section--variation-constellation .page-view__features-list {
+    display: grid;
+    gap: var(--common-gap);
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-items: stretch;
+}
+
+.page-view__section--features.page-view__section--variation-constellation .page-view__feature-item {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-top);
+    padding: var(--size-base);
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-base);
+    height: 100%;
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 8px rgba(0, 0, 0, 0.05);
+    transition: 0.2s box-shadow, 0.1s border-color, var(--theme-transition-duration) background-color;
+}
+
+.page-view__section--features:is(
+    .page-view__section--variation-constellation
+) .page-view__feature-item:hover {
+    box-shadow: 0 8px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-primary);
+}
+
+.page-view__section--features.page-view__section--variation-constellation .page-view__feature-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--size-sm);
+}
+
+.page-view__section--features.page-view__section--variation-constellation .page-view__feature-media {
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.page-view__section--features.page-view__section--variation-constellation .page-view__feature-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.page-view__section--features.page-view__section--variation-constellation .page-view__feature-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-xs);
+    min-width: 0;
+}
+
+.page-view__section--features.page-view__section--variation-constellation .page-view__feature-title {
+    margin: 0;
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: var(--color-text);
+    line-height: 1.35;
+}
+
+.page-view__section--features.page-view__section--variation-constellation .page-view__feature-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-secondary);
+    font-weight: 500;
+}
+
+.page-view__section--features.page-view__section--variation-constellation .page-view__feature-text {
+    margin: 0;
+    color: var(--color-secondary);
+    line-height: 1.6;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+@media (max-width: 640px) {
+    .page-view__section--features.page-view__section--variation-constellation .page-view__feature-item {
+        padding: var(--size-mid);
+    }
+}

@@ -1,0 +1,18 @@
+{
+    "type": "steps",
+    "label": "Steps",
+    "order": 17,
+    "description": "Show an ordered process with a number, title, and supporting text for each step.",
+    "supports_elements": true,
+    "allowed_elements": [
+        "step_item"
+    ],
+    "variations": [
+        {
+            "id": "steps-numbered",
+            "value": "numbered",
+            "label": "Numbered",
+            "description": "Sequential step list with order number, title, and text"
+        }
+    ]
+}

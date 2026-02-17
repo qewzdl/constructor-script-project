@@ -138,6 +138,18 @@ func TestSectionCatalogDerivesElementAllowedIn(t *testing.T) {
 	if containsString(featureItem.AllowedIn, "standard") {
 		t.Fatalf("feature_item should not be allowed in standard section by default")
 	}
+
+	stepItem, ok := findSectionTypeConfig(configs, "step_item")
+	if !ok {
+		t.Fatalf("step_item config is missing")
+	}
+
+	if !containsString(stepItem.AllowedIn, "steps") {
+		t.Fatalf("step_item should be allowed in steps section, got: %v", stepItem.AllowedIn)
+	}
+	if containsString(stepItem.AllowedIn, "standard") {
+		t.Fatalf("step_item should not be allowed in standard section by default")
+	}
 }
 
 func TestGetPageBuilderConfigWithOptionsRespectsFeatureFlags(t *testing.T) {
@@ -159,6 +171,57 @@ func TestGetPageBuilderConfigWithOptionsRespectsFeatureFlags(t *testing.T) {
 	}
 	if hasSectionType(config.AvailableSections, "catalog") {
 		t.Fatalf("catalog should be excluded from builder config when courses are disabled")
+	}
+}
+
+func TestSectionCatalogIncludesTitlePositionSetting(t *testing.T) {
+	catalog := NewSectionCatalog(nil, SectionCatalogOptions{
+		BlogEnabled:    true,
+		CoursesEnabled: true,
+	})
+
+	configs := catalog.SectionTypeConfigs()
+	standard, ok := findSectionTypeConfig(configs, "standard")
+	if !ok {
+		t.Fatalf("standard section config is missing")
+	}
+
+	rawSetting, exists := standard.Schema["title_position"]
+	if !exists {
+		t.Fatalf("expected title_position setting to be present in schema")
+	}
+
+	setting, ok := rawSetting.(map[string]interface{})
+	if !ok {
+		t.Fatalf("title_position schema has invalid type: %T", rawSetting)
+	}
+
+	if fieldType, _ := setting["type"].(string); fieldType != "select" {
+		t.Fatalf("expected title_position type to be select, got %q", fieldType)
+	}
+
+	options := parseSchemaOptionValues(setting["options"])
+	if !containsString(options, "left") || !containsString(options, "center") || !containsString(options, "right") {
+		t.Fatalf("title_position options are incomplete: %v", options)
+	}
+
+	rawDescriptionSetting, exists := standard.Schema["description_position"]
+	if !exists {
+		t.Fatalf("expected description_position setting to be present in schema")
+	}
+
+	descriptionSetting, ok := rawDescriptionSetting.(map[string]interface{})
+	if !ok {
+		t.Fatalf("description_position schema has invalid type: %T", rawDescriptionSetting)
+	}
+
+	if fieldType, _ := descriptionSetting["type"].(string); fieldType != "select" {
+		t.Fatalf("expected description_position type to be select, got %q", fieldType)
+	}
+
+	descriptionOptions := parseSchemaOptionValues(descriptionSetting["options"])
+	if !containsString(descriptionOptions, "left") || !containsString(descriptionOptions, "center") || !containsString(descriptionOptions, "right") {
+		t.Fatalf("description_position options are incomplete: %v", descriptionOptions)
 	}
 }
 

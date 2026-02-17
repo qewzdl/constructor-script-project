@@ -442,7 +442,7 @@ func normaliseContextList(values []string) []string {
 
 func defaultSectionAllowedIn(sectionType string) []string {
 	switch normaliseType(sectionType) {
-	case "standard", "grid", "features", "file_list":
+	case "standard", "grid", "features", "steps", "file_list":
 		return []string{"page", "post", "homepage"}
 	default:
 		return []string{"page", "homepage"}
@@ -453,7 +453,7 @@ func defaultSectionCategory(sectionType string) string {
 	switch normaliseType(sectionType) {
 	case "standard", "grid", "file_list":
 		return "layout"
-	case "hero", "features":
+	case "hero", "features", "steps":
 		return "marketing"
 	case "posts_list", "courses_list", "catalog":
 		return "content"
@@ -474,6 +474,8 @@ func defaultSectionIcon(sectionType string) string {
 		return "star"
 	case "features":
 		return "sparkles"
+	case "steps":
+		return "list"
 	case "grid", "catalog":
 		return "grid"
 	case "contact":
@@ -518,6 +520,8 @@ func defaultElementIcon(elementType string) string {
 		return "search"
 	case "feature_item":
 		return "sparkles"
+	case "step_item":
+		return "list"
 	case "profile_account_details":
 		return "user"
 	case "profile_security":

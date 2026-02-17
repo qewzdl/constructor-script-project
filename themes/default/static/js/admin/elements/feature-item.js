@@ -6,6 +6,27 @@
     }
 
     const { createElement, normaliseString, randomId } = utils;
+    const isGlyphVariation = (context = {}) => {
+        const section = context?.section;
+        if (!section) {
+            return false;
+        }
+        const sectionType = normaliseString(section.type).toLowerCase();
+        const sectionVariation = normaliseString(section.variation).toLowerCase();
+        return (
+            sectionType === 'features' &&
+            (sectionVariation === 'glyph' || sectionVariation === 'icon-text')
+        );
+    };
+    const isConstellationVariation = (context = {}) => {
+        const section = context?.section;
+        if (!section) {
+            return false;
+        }
+        const sectionType = normaliseString(section.type).toLowerCase();
+        const sectionVariation = normaliseString(section.variation).toLowerCase();
+        return sectionType === 'features' && sectionVariation === 'constellation';
+    };
 
     registry.register('feature_item', {
         label: 'Feature item',
@@ -18,6 +39,7 @@
             type: 'feature_item',
             content: {
                 title: '',
+                subtitle: '',
                 text: '',
                 image_url: '',
                 image_alt: '',
@@ -29,6 +51,9 @@
             type: 'feature_item',
             content: {
                 title: normaliseString(rawContent.title ?? rawContent.Title ?? ''),
+                subtitle: normaliseString(
+                    rawContent.subtitle ?? rawContent.Subtitle ?? ''
+                ),
                 text: normaliseString(rawContent.text ?? rawContent.Text ?? ''),
                 image_url: normaliseString(
                     rawContent.image_url ??
@@ -46,7 +71,10 @@
                 ),
             },
         }),
-        renderEditor: (elementNode, element) => {
+        renderEditor: (elementNode, element, context = {}) => {
+            const glyphVariation = isGlyphVariation(context);
+            const constellationVariation = isConstellationVariation(context);
+            const iconLedVariation = glyphVariation || constellationVariation;
             const titleField = createElement('label', {
                 className: 'admin-builder__field',
             });
@@ -66,23 +94,46 @@
             titleField.append(titleInput);
             elementNode.append(titleField);
 
-            const textField = createElement('label', {
-                className: 'admin-builder__field',
-            });
-            textField.append(
-                createElement('span', {
-                    className: 'admin-builder__label',
-                    textContent: 'Feature text',
-                })
-            );
-            const textInput = createElement('textarea', {
-                className: 'admin-builder__textarea',
-            });
-            textInput.placeholder = 'Describe the feature benefit';
-            textInput.value = element.content?.text || '';
-            textInput.dataset.field = 'feature-text';
-            textField.append(textInput);
-            elementNode.append(textField);
+            if (constellationVariation) {
+                const subtitleField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                subtitleField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Feature subtitle',
+                    })
+                );
+                const subtitleInput = createElement('input', {
+                    className: 'admin-builder__input',
+                });
+                subtitleInput.type = 'text';
+                subtitleInput.placeholder = 'Add a concise supporting line';
+                subtitleInput.value = element.content?.subtitle || '';
+                subtitleInput.dataset.field = 'feature-subtitle';
+                subtitleField.append(subtitleInput);
+                elementNode.append(subtitleField);
+            }
+
+            if (!glyphVariation) {
+                const textField = createElement('label', {
+                    className: 'admin-builder__field',
+                });
+                textField.append(
+                    createElement('span', {
+                        className: 'admin-builder__label',
+                        textContent: 'Feature text',
+                    })
+                );
+                const textInput = createElement('textarea', {
+                    className: 'admin-builder__textarea',
+                });
+                textInput.placeholder = 'Describe the feature benefit';
+                textInput.value = element.content?.text || '';
+                textInput.dataset.field = 'feature-text';
+                textField.append(textInput);
+                elementNode.append(textField);
+            }
 
             const imageField = createElement('label', {
                 className: 'admin-builder__field',
@@ -90,14 +141,16 @@
             imageField.append(
                 createElement('span', {
                     className: 'admin-builder__label',
-                    textContent: 'Image URL',
+                    textContent: iconLedVariation ? 'Icon URL' : 'Image URL',
                 })
             );
             const imageInput = createElement('input', {
                 className: 'admin-builder__input',
             });
             imageInput.type = 'url';
-            imageInput.placeholder = 'https://example.com/feature.jpg';
+            imageInput.placeholder = iconLedVariation
+                ? 'https://example.com/icon.svg'
+                : 'https://example.com/feature.jpg';
             imageInput.value = element.content?.image_url || '';
             imageInput.dataset.field = 'feature-image-url';
             const imageInputId = `admin-builder-feature-${element.clientId}`;
@@ -125,14 +178,18 @@
             altField.append(
                 createElement('span', {
                     className: 'admin-builder__label',
-                    textContent: 'Image alt text',
+                    textContent: iconLedVariation
+                        ? 'Icon alt text'
+                        : 'Image alt text',
                 })
             );
             const altInput = createElement('input', {
                 className: 'admin-builder__input',
             });
             altInput.type = 'text';
-            altInput.placeholder = 'Describe the image content';
+            altInput.placeholder = iconLedVariation
+                ? 'Describe the icon'
+                : 'Describe the image content';
             altInput.value = element.content?.image_alt || '';
             altInput.dataset.field = 'feature-image-alt';
             altField.append(altInput);
@@ -141,6 +198,10 @@
         updateField: (element, field, value) => {
             if (field === 'feature-title') {
                 element.content.title = value;
+                return true;
+            }
+            if (field === 'feature-subtitle') {
+                element.content.subtitle = value;
                 return true;
             }
             if (field === 'feature-text') {
@@ -157,18 +218,34 @@
             }
             return false;
         },
-        hasContent: (element) =>
-            Boolean(
-                element.content?.title?.trim() ||
-                    element.content?.text?.trim() ||
-                    element.content?.image_url?.trim()
-            ),
-        sanitise: (element, index) => {
+        hasContent: (element, context = {}) => {
+            const hasTitle = Boolean(element.content?.title?.trim());
+            const hasSubtitle = Boolean(element.content?.subtitle?.trim());
+            const hasText = Boolean(element.content?.text?.trim());
+            const hasImage = Boolean(element.content?.image_url?.trim());
+            if (isGlyphVariation(context)) {
+                return hasTitle || hasImage;
+            }
+            if (isConstellationVariation(context)) {
+                return hasTitle || hasSubtitle || hasText || hasImage;
+            }
+            return hasTitle || hasText || hasImage;
+        },
+        sanitise: (element, index, context = {}) => {
             const payload = {};
+            const glyphVariation = isGlyphVariation(context);
+            const constellationVariation = isConstellationVariation(context);
             if (element.content.title && element.content.title.trim()) {
                 payload.title = element.content.title.trim();
             }
-            if (element.content.text && element.content.text.trim()) {
+            if (element.content.subtitle && element.content.subtitle.trim()) {
+                payload.subtitle = element.content.subtitle.trim();
+            }
+            if (
+                !glyphVariation &&
+                element.content.text &&
+                element.content.text.trim()
+            ) {
                 payload.text = element.content.text.trim();
             }
             if (element.content.image_url && element.content.image_url.trim()) {
@@ -177,6 +254,21 @@
             if (element.content.image_alt && element.content.image_alt.trim()) {
                 payload.image_alt = element.content.image_alt.trim();
             }
+            if (
+                glyphVariation &&
+                (!payload.title || !payload.image_url)
+            ) {
+                return null;
+            }
+            if (
+                constellationVariation &&
+                (!payload.title ||
+                    !payload.subtitle ||
+                    !payload.text ||
+                    !payload.image_url)
+            ) {
+                return null;
+            }
             return {
                 id: element.id || '',
                 type: 'feature_item',
@@ -184,11 +276,16 @@
                 content: payload,
             };
         },
-        preview: (element, parts) => {
+        preview: (element, parts, context = {}) => {
+            const glyphVariation = isGlyphVariation(context);
+            const constellationVariation = isConstellationVariation(context);
             if (element.content?.title) {
                 parts.push(element.content.title);
             }
-            if (element.content?.text) {
+            if (constellationVariation && element.content?.subtitle) {
+                parts.push(element.content.subtitle);
+            }
+            if (!glyphVariation && element.content?.text) {
                 parts.push(element.content.text);
             }
             if (element.content?.image_url) {

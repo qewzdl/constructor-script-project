@@ -126,8 +126,14 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 				}
 			}
 		}
-		sectionTitleClass := fmt.Sprintf("%s__section-title", pageViewClassPrefix)
-		sectionDescriptionClass := fmt.Sprintf("%s__section-description", pageViewClassPrefix)
+		sectionTitleClass := buildSectionTextClass(
+			fmt.Sprintf("%s__section-title", pageViewClassPrefix),
+			resolveSectionTextPosition(section.Settings, "title_position"),
+		)
+		sectionDescriptionClass := buildSectionTextClass(
+			fmt.Sprintf("%s__section-description", pageViewClassPrefix),
+			resolveSectionTextPosition(section.Settings, "description_position"),
+		)
 
 		sb.WriteString(`<section class="` + strings.Join(sectionClasses, " ") + `" id="section-` + template.HTMLEscapeString(section.ID) + `"`)
 		if sectionAttributes != "" {
@@ -337,6 +343,40 @@ func clampSectionMarginValue(value int) int {
 		}
 	}
 	return closest
+}
+
+func buildSectionTextClass(baseClass string, position string) string {
+	trimmedBase := strings.TrimSpace(baseClass)
+	if trimmedBase == "" {
+		return ""
+	}
+	return trimmedBase + " " + trimmedBase + "--align-" + position
+}
+
+func resolveSectionTextPosition(settings map[string]interface{}, settingKey string) string {
+	if settings == nil {
+		return "left"
+	}
+
+	key := strings.TrimSpace(settingKey)
+	if key == "" {
+		return "left"
+	}
+
+	rawPosition, exists := settings[key]
+	if !exists {
+		return "left"
+	}
+
+	position := strings.TrimSpace(strings.ToLower(fmt.Sprint(rawPosition)))
+	switch position {
+	case "center", "centre":
+		return "center"
+	case "right", "end":
+		return "right"
+	default:
+		return "left"
+	}
 }
 
 func normaliseSectionClassToken(value string) string {

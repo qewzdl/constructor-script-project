@@ -61,7 +61,11 @@
             return '';
         }
 
-        const normalisedValue = normaliseString(value).toLowerCase();
+        let normalisedValue = normaliseString(value).toLowerCase();
+        const definitionType = normaliseString(definition?.type).toLowerCase();
+        if (definitionType === 'features' && normalisedValue === 'icon-text') {
+            normalisedValue = 'glyph';
+        }
         if (normalisedValue) {
             const matched = variations.find(
                 (variation) => variation.value === normalisedValue
@@ -769,10 +773,15 @@
         return type || 'Block';
     };
 
-    const renderElementEditor = (definitions, elementNode, element) => {
+    const renderElementEditor = (
+        definitions,
+        elementNode,
+        element,
+        context = {}
+    ) => {
         const definition = definitions[element.type];
         if (definition && typeof definition.renderEditor === 'function') {
-            definition.renderEditor(elementNode, element);
+            definition.renderEditor(elementNode, element, context);
             return;
         }
         if (element.unsupported) {
@@ -1254,7 +1263,26 @@
                     sectionDefinition,
                     section.variation
                 );
-                Object.entries(sectionDefinition.settings).forEach(([key, settingDef]) => {
+                const allSettingEntries = Object.entries(sectionDefinition.settings);
+                const prioritizedSettingKeys = [
+                    'title_position',
+                    'description_position',
+                ];
+                const prioritizedSettings = [];
+                prioritizedSettingKeys.forEach((priorityKey) => {
+                    const matchedEntry = allSettingEntries.find(
+                        ([candidateKey]) => candidateKey === priorityKey
+                    );
+                    if (matchedEntry) {
+                        prioritizedSettings.push(matchedEntry);
+                    }
+                });
+                const regularSettings = allSettingEntries.filter(
+                    ([candidateKey]) => !prioritizedSettingKeys.includes(candidateKey)
+                );
+                const orderedSettings = [...prioritizedSettings, ...regularSettings];
+
+                orderedSettings.forEach(([key, settingDef]) => {
                     // Skip limit, mode, and display_mode as they are handled above
                     if (
                         key === 'limit' ||
@@ -2573,7 +2601,10 @@
                         elementHeader.append(elementTitle, elementActions);
                         elementNode.append(elementHeader);
 
-                        renderElementEditor(definitions, elementNode, element);
+                        renderElementEditor(definitions, elementNode, element, {
+                            section,
+                            sectionDefinition,
+                        });
 
                         elementsContainer.append(elementNode);
                     });

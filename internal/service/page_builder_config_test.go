@@ -11,7 +11,8 @@ func TestGetPageBuilderConfig_IncludesSectionVariationSchemas(t *testing.T) {
 	config := service.GetPageBuilderConfig()
 
 	assertSectionVariation(t, config, "hero", "split", []string{"split", "centered", "minimal", "immersive"})
-	assertSectionVariation(t, config, "features", "cards", []string{"cards", "list", "spotlight"})
+	assertSectionVariation(t, config, "features", "cards", []string{"cards", "list", "spotlight", "glyph", "constellation"})
+	assertSectionVariation(t, config, "steps", "numbered", []string{"numbered"})
 	assertSectionVariation(t, config, "catalog", "cards", []string{"cards", "compact", "highlighted"})
 }
 
