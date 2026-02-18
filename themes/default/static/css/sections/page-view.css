@@ -117,6 +117,37 @@
         var(--color-bg-bottom-dark);
 }
 
+:root[data-theme="light"]
+    .page-view__section-group--background.page-view__section-group--style-immersive
+{
+    --color-bg-top: color-mix(in srgb, #0f172a 76%, #111827 24%);
+    --color-text: #f8fafc;
+    --color-secondary: #cbd5e1;
+    --color-border: color-mix(in srgb, #cbd5e1 34%, transparent);
+    --color-border-hover: color-mix(in srgb, #e2e8f0 52%, transparent);
+    --color-primary-transparent: color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+:root[data-theme="light"]
+    .page-view__section-group--background.page-view__section-group--style-immersive
+    > .page-view__section {
+    color: var(--color-text);
+}
+
+:root[data-theme="light"]
+    .page-view__section-group--background.page-view__section-group--style-immersive
+    .page-view__section-title {
+    color: var(--color-text-darker);
+    text-shadow: 0 1px 2px rgba(2, 6, 23, 0.5);
+}
+
+:root[data-theme="light"]
+    .page-view__section-group--background.page-view__section-group--style-immersive
+    .page-view__section-description {
+    color: color-mix(in srgb, var(--color-text-darker) 88%, #93c5fd 12%);
+    opacity: 0.92;
+}
+
 .page-view__section-group--background.page-view__section-group--style-immersive {
     position: relative;
     overflow: hidden;
