@@ -16,7 +16,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const pageViewClassPrefix = "page-view"
+const (
+	pageViewClassPrefix                = "page-view"
+	immersiveSectionGroupEffectsMarkup = `<span class="page-view__section-group-glow page-view__section-group-glow--1" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-glow page-view__section-group-glow--2" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-glow page-view__section-group-glow--3" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-glow page-view__section-group-glow--4" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-glow page-view__section-group-glow--5" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-glow page-view__section-group-glow--6" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-effect page-view__section-group-effect--beam" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-effect page-view__section-group-effect--dust" aria-hidden="true"></span>`
+)
 
 func filterActiveSections(sections models.PostSections) models.PostSections {
 	if len(sections) == 0 {
@@ -111,6 +121,9 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 				sb.WriteString(
 					`<div class="` + strings.Join(groupClasses, " ") + `" ` + strings.Join(groupAttributes, " ") + `>`,
 				)
+				if backgroundStyle == "immersive" {
+					sb.WriteString(immersiveSectionGroupEffectsMarkup)
+				}
 				activeBackgroundGroup = backgroundGroup
 			}
 		}
