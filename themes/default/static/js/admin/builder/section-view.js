@@ -744,6 +744,51 @@
         return marginOptions[numeric] ?? marginOptions[0];
     };
 
+    const SPACING_MODE_LINKED = 'linked';
+    const SPACING_MODE_SEPARATE = 'separate';
+
+    const normaliseSpacingModeValue = (value) => {
+        const normalised = normaliseString(value).toLowerCase();
+        return normalised === SPACING_MODE_SEPARATE
+            ? SPACING_MODE_SEPARATE
+            : SPACING_MODE_LINKED;
+    };
+
+    const resolveSpacingModeValue = (section) => {
+        const explicitValue = normaliseString(
+            section?.settings?.spacing_mode ?? section?.settings?.spacingMode ?? ''
+        ).toLowerCase();
+        if (
+            explicitValue === SPACING_MODE_LINKED ||
+            explicitValue === SPACING_MODE_SEPARATE
+        ) {
+            return explicitValue;
+        }
+
+        const paddingVertical = clampPaddingValue(section?.paddingVertical);
+        const paddingTop = clampPaddingValue(
+            section?.paddingTop ?? paddingVertical
+        );
+        const paddingBottom = clampPaddingValue(
+            section?.paddingBottom ?? paddingVertical
+        );
+        const marginVertical = clampMarginValue(section?.marginVertical);
+        const marginTop = clampMarginValue(section?.marginTop ?? marginVertical);
+        const marginBottom = clampMarginValue(
+            section?.marginBottom ?? marginVertical
+        );
+
+        if (
+            paddingTop !== paddingVertical ||
+            paddingBottom !== paddingVertical ||
+            marginTop !== marginVertical ||
+            marginBottom !== marginVertical
+        ) {
+            return SPACING_MODE_SEPARATE;
+        }
+        return SPACING_MODE_LINKED;
+    };
+
     const animationOptions =
         (Array.isArray(builderConfig.sectionAnimations) && builderConfig.sectionAnimations.length
             ? builderConfig.sectionAnimations
@@ -2215,6 +2260,39 @@
             animationBlurField.append(animationBlurInput, animationBlurLabel, animationBlurHint);
             appendAnimationField(animationBlurField);
 
+            const spacingModeField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            spacingModeField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Spacing controls',
+                })
+            );
+            const spacingModeSelect = createElement('select', {
+                className: 'admin-builder__input',
+            });
+            spacingModeSelect.dataset.field = 'section-setting-spacing_mode';
+            [
+                {
+                    value: SPACING_MODE_LINKED,
+                    label: 'Linked (top + bottom together)',
+                },
+                {
+                    value: SPACING_MODE_SEPARATE,
+                    label: 'Separate (top and bottom independently)',
+                },
+            ].forEach((option) => {
+                const optionNode = createElement('option', {
+                    value: option.value,
+                    textContent: option.label,
+                });
+                spacingModeSelect.append(optionNode);
+            });
+            spacingModeSelect.value = resolveSpacingModeValue(section);
+            spacingModeField.append(spacingModeSelect);
+            appendSpacingField(spacingModeField);
+
             const paddingValue = clampPaddingValue(section.paddingVertical);
             const paddingField = createElement('label', {
                 className: 'admin-builder__field',
@@ -2266,6 +2344,35 @@
                     'aria-valuetext',
                     `${currentValue} pixels`
                 );
+                if (
+                    normaliseSpacingModeValue(spacingModeSelect.value) ===
+                    SPACING_MODE_LINKED
+                ) {
+                    const syncedIndex = paddingIndexForValue(currentValue);
+                    paddingTopRangeInput.value = String(syncedIndex);
+                    paddingBottomRangeInput.value = String(syncedIndex);
+                    paddingTopRangeValue.textContent = `${currentValue}px`;
+                    paddingBottomRangeValue.textContent = `${currentValue}px`;
+                    paddingTopRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(currentValue)
+                    );
+                    paddingTopRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${currentValue} pixels`
+                    );
+                    paddingBottomRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(currentValue)
+                    );
+                    paddingBottomRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${currentValue} pixels`
+                    );
+                    section.paddingVertical = currentValue;
+                    section.paddingTop = currentValue;
+                    section.paddingBottom = currentValue;
+                }
                 scheduleChange();
             });
             paddingField.append(paddingRangeWrapper);
@@ -2507,6 +2614,35 @@
                     'aria-valuetext',
                     `${currentValue} pixels`
                 );
+                if (
+                    normaliseSpacingModeValue(spacingModeSelect.value) ===
+                    SPACING_MODE_LINKED
+                ) {
+                    const syncedIndex = marginIndexForValue(currentValue);
+                    marginTopRangeInput.value = String(syncedIndex);
+                    marginBottomRangeInput.value = String(syncedIndex);
+                    marginTopRangeValue.textContent = `${currentValue}px`;
+                    marginBottomRangeValue.textContent = `${currentValue}px`;
+                    marginTopRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(currentValue)
+                    );
+                    marginTopRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${currentValue} pixels`
+                    );
+                    marginBottomRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(currentValue)
+                    );
+                    marginBottomRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${currentValue} pixels`
+                    );
+                    section.marginVertical = currentValue;
+                    section.marginTop = currentValue;
+                    section.marginBottom = currentValue;
+                }
                 scheduleChange();
             });
             marginField.append(marginRangeWrapper);
@@ -2641,6 +2777,124 @@
             });
             marginBottomField.append(marginBottomRangeWrapper);
             appendSpacingField(marginBottomField);
+
+            const setSpacingFieldVisibility = (fieldNode, visible) => {
+                if (!fieldNode) {
+                    return;
+                }
+                fieldNode.hidden = !visible;
+                fieldNode.style.display = visible ? '' : 'none';
+            };
+            const updateSpacingModeVisibility = () => {
+                const mode = normaliseSpacingModeValue(spacingModeSelect.value);
+                const showLinked = mode === SPACING_MODE_LINKED;
+                setSpacingFieldVisibility(paddingField, showLinked);
+                setSpacingFieldVisibility(marginField, showLinked);
+                setSpacingFieldVisibility(paddingTopField, !showLinked);
+                setSpacingFieldVisibility(paddingBottomField, !showLinked);
+                setSpacingFieldVisibility(marginTopField, !showLinked);
+                setSpacingFieldVisibility(marginBottomField, !showLinked);
+            };
+            spacingModeSelect.addEventListener('change', () => {
+                const mode = normaliseSpacingModeValue(spacingModeSelect.value);
+                spacingModeSelect.value = mode;
+                section.settings =
+                    section.settings && typeof section.settings === 'object'
+                        ? section.settings
+                        : {};
+                section.settings.spacing_mode = mode;
+                if (section.settings.spacingMode !== undefined) {
+                    delete section.settings.spacingMode;
+                }
+
+                if (mode === SPACING_MODE_LINKED) {
+                    const linkedPaddingValue = clampPaddingValue(
+                        (
+                            paddingValueForIndex(paddingTopRangeInput.value) +
+                            paddingValueForIndex(paddingBottomRangeInput.value)
+                        ) / 2
+                    );
+                    const linkedPaddingIndex = paddingIndexForValue(linkedPaddingValue);
+                    paddingRangeInput.value = String(linkedPaddingIndex);
+                    paddingTopRangeInput.value = String(linkedPaddingIndex);
+                    paddingBottomRangeInput.value = String(linkedPaddingIndex);
+                    paddingRangeValue.textContent = `${linkedPaddingValue}px`;
+                    paddingTopRangeValue.textContent = `${linkedPaddingValue}px`;
+                    paddingBottomRangeValue.textContent = `${linkedPaddingValue}px`;
+                    paddingRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(linkedPaddingValue)
+                    );
+                    paddingRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${linkedPaddingValue} pixels`
+                    );
+                    paddingTopRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(linkedPaddingValue)
+                    );
+                    paddingTopRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${linkedPaddingValue} pixels`
+                    );
+                    paddingBottomRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(linkedPaddingValue)
+                    );
+                    paddingBottomRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${linkedPaddingValue} pixels`
+                    );
+                    section.paddingVertical = linkedPaddingValue;
+                    section.paddingTop = linkedPaddingValue;
+                    section.paddingBottom = linkedPaddingValue;
+
+                    const linkedMarginValue = clampMarginValue(
+                        (
+                            marginValueForIndex(marginTopRangeInput.value) +
+                            marginValueForIndex(marginBottomRangeInput.value)
+                        ) / 2
+                    );
+                    const linkedMarginIndex = marginIndexForValue(linkedMarginValue);
+                    marginRangeInput.value = String(linkedMarginIndex);
+                    marginTopRangeInput.value = String(linkedMarginIndex);
+                    marginBottomRangeInput.value = String(linkedMarginIndex);
+                    marginRangeValue.textContent = `${linkedMarginValue}px`;
+                    marginTopRangeValue.textContent = `${linkedMarginValue}px`;
+                    marginBottomRangeValue.textContent = `${linkedMarginValue}px`;
+                    marginRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(linkedMarginValue)
+                    );
+                    marginRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${linkedMarginValue} pixels`
+                    );
+                    marginTopRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(linkedMarginValue)
+                    );
+                    marginTopRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${linkedMarginValue} pixels`
+                    );
+                    marginBottomRangeInput.setAttribute(
+                        'aria-valuenow',
+                        String(linkedMarginValue)
+                    );
+                    marginBottomRangeInput.setAttribute(
+                        'aria-valuetext',
+                        `${linkedMarginValue} pixels`
+                    );
+                    section.marginVertical = linkedMarginValue;
+                    section.marginTop = linkedMarginValue;
+                    section.marginBottom = linkedMarginValue;
+                }
+
+                updateSpacingModeVisibility();
+                scheduleChange();
+            });
+            updateSpacingModeVisibility();
 
             const updateDisplayModeVisibility = () => {
                 const showAllValue = (() => {
