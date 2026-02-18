@@ -85,7 +85,7 @@
     pointer-events: none;
     opacity: 0;
     z-index: 1;
-    filter: blur(36px) saturate(1.42) brightness(1.38);
+    filter: blur(64px) saturate(1.24) brightness(1.16);
     will-change: transform, opacity;
     mix-blend-mode: screen;
     background:
@@ -373,7 +373,7 @@
     .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow,
     .page-view__section-group--background.page-view__section-group--style-immersive .page-view__hero-cursor-glow {
         width: clamp(180px, 34vw, 280px);
-        filter: blur(34px) saturate(1.3) brightness(1.28);
+        filter: blur(34px) saturate(1.16) brightness(1.1);
     }
 }
 

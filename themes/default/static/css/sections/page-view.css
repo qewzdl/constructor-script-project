@@ -126,6 +126,23 @@
     animation: page-view-section-group-immersive-background-drift 44s ease-in-out infinite;
 }
 
+.page-view__section-group--background.page-view__section-group--style-immersive::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.92) 0%,
+        rgba(1, 4, 16, 0.8) 14%,
+        rgba(2, 6, 23, 0.22) 34%,
+        rgba(2, 6, 23, 0.22) 66%,
+        rgba(1, 4, 16, 0.8) 86%,
+        rgba(0, 0, 0, 0.92) 100%
+    );
+}
+
 .page-view__section-group--background.page-view__section-group--style-immersive .page-view__section-group-glow {
     position: absolute;
     aspect-ratio: 1;
@@ -223,6 +240,68 @@
         page-view-section-group-immersive-orbit 61s ease-in-out infinite,
         page-view-section-group-immersive-blink 17s ease-in-out infinite;
     animation-delay: -27s, -8s;
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive .page-view__section-group-glow--7 {
+    top: 14%;
+    left: 56%;
+    width: clamp(120px, 17vw, 240px);
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--color-primary) 34%, transparent) 0%,
+        transparent 76%
+    );
+    opacity: 0.14;
+    animation:
+        page-view-section-group-immersive-drift-secondary 45s ease-in-out infinite,
+        page-view-section-group-immersive-blink 15s ease-in-out infinite;
+    animation-delay: -19s, -6s;
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive .page-view__section-group-glow--8 {
+    top: 82%;
+    left: 84%;
+    width: clamp(100px, 13vw, 190px);
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--color-accent, #60a5fa) 38%, #ffffff 14%) 0%,
+        transparent 77%
+    );
+    opacity: 0.12;
+    animation:
+        page-view-section-group-immersive-orbit 57s ease-in-out infinite,
+        page-view-section-group-immersive-blink 19s ease-in-out infinite;
+    animation-delay: -33s, -11s;
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive .page-view__section-group-glow--9 {
+    top: 46%;
+    left: 6%;
+    width: clamp(160px, 20vw, 300px);
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--color-primary) 36%, transparent) 0%,
+        transparent 75%
+    );
+    opacity: 0.16;
+    animation: page-view-section-group-immersive-drift 43s ease-in-out infinite;
+    animation-delay: -21s;
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive .page-view__section-group-glow--10 {
+    top: 52%;
+    left: 48%;
+    width: clamp(80px, 10vw, 160px);
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--color-accent, #60a5fa) 34%, #ffffff 20%) 0%,
+        transparent 78%
+    );
+    opacity: 0.13;
+    animation:
+        page-view-section-group-immersive-orbit 49s ease-in-out infinite,
+        page-view-section-group-immersive-blink 12s ease-in-out infinite;
+    animation-delay: -7s, -2s;
 }
 
 .page-view__section-group--background.page-view__section-group--style-immersive .page-view__section-group-effect {

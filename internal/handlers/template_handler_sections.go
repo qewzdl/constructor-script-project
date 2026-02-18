@@ -24,6 +24,10 @@ const (
 		`<span class="page-view__section-group-glow page-view__section-group-glow--4" aria-hidden="true"></span>` +
 		`<span class="page-view__section-group-glow page-view__section-group-glow--5" aria-hidden="true"></span>` +
 		`<span class="page-view__section-group-glow page-view__section-group-glow--6" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-glow page-view__section-group-glow--7" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-glow page-view__section-group-glow--8" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-glow page-view__section-group-glow--9" aria-hidden="true"></span>` +
+		`<span class="page-view__section-group-glow page-view__section-group-glow--10" aria-hidden="true"></span>` +
 		`<span class="page-view__section-group-effect page-view__section-group-effect--beam" aria-hidden="true"></span>` +
 		`<span class="page-view__section-group-effect page-view__section-group-effect--dust" aria-hidden="true"></span>`
 )
