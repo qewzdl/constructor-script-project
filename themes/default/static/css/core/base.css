@@ -1914,6 +1914,7 @@ textarea.form-field__input {
     display: flex;
     flex-direction: column;
     gap: var(--common-gap);
+    min-width: 0;
 }
 
 .post-card__figure {
@@ -1936,14 +1937,17 @@ textarea.form-field__input {
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+    min-width: 0;
 }
 
 .post-card__link {
     color: var(--color-text);
     width: 100%;
-    display: flex;
+    display: block;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .post-card__link--static,
