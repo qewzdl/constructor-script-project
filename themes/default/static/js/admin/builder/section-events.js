@@ -568,6 +568,8 @@
         listElement,
         onSectionRemove,
         onSectionMove,
+        onSectionDuplicate,
+        onSectionCollapse,
         onElementRemove,
         onElementMove,
         onElementAdd,
@@ -608,6 +610,18 @@
                 const currentDisabled =
                     sectionNode.dataset.sectionDisabled === 'true';
                 onSectionFieldChange?.(sectionClientId, 'section-disabled', !currentDisabled);
+                return;
+            }
+
+            if (target.matches('[data-action="section-duplicate"]')) {
+                event.preventDefault();
+                onSectionDuplicate?.(sectionClientId);
+                return;
+            }
+
+            if (target.matches('[data-action="section-collapse"]')) {
+                event.preventDefault();
+                onSectionCollapse?.(sectionClientId);
                 return;
             }
 

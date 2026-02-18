@@ -534,6 +534,77 @@
         }
         const state = stateModule.createManager(definitions, sectionDefinitions);
         const { onApplyPaddingToAllSections } = options || {};
+        const collapsedSectionIds = new Set();
+
+        const syncCollapsedSections = () => {
+            const activeIds = new Set(
+                state
+                    .getState()
+                    .map((section) => utils.normaliseString(section?.clientId))
+                    .filter(Boolean)
+            );
+            Array.from(collapsedSectionIds).forEach((sectionClientId) => {
+                if (!activeIds.has(sectionClientId)) {
+                    collapsedSectionIds.delete(sectionClientId);
+                }
+            });
+            return activeIds;
+        };
+
+        const areAllSectionsCollapsed = () => {
+            const sections = state.getState();
+            if (!sections.length) {
+                return false;
+            }
+            return sections.every((section) => collapsedSectionIds.has(section.clientId));
+        };
+
+        const setSectionCollapsed = (sectionClientId, collapsed) => {
+            const normalisedId = utils.normaliseString(sectionClientId);
+            if (!normalisedId) {
+                return false;
+            }
+            const section = state
+                .getState()
+                .find((item) => item && item.clientId === normalisedId);
+            if (!section) {
+                return false;
+            }
+            if (collapsed) {
+                collapsedSectionIds.add(normalisedId);
+            } else {
+                collapsedSectionIds.delete(normalisedId);
+            }
+            return true;
+        };
+
+        const toggleSectionCollapsed = (sectionClientId) => {
+            const normalisedId = utils.normaliseString(sectionClientId);
+            if (!normalisedId) {
+                return false;
+            }
+            const shouldCollapse = !collapsedSectionIds.has(normalisedId);
+            return setSectionCollapsed(normalisedId, shouldCollapse);
+        };
+
+        const setAllSectionsCollapsed = (collapsed) => {
+            const sections = state.getState();
+            if (!sections.length) {
+                collapsedSectionIds.clear();
+                return;
+            }
+            if (!collapsed) {
+                collapsedSectionIds.clear();
+                return;
+            }
+            sections.forEach((section) => {
+                if (section?.clientId) {
+                    collapsedSectionIds.add(section.clientId);
+                }
+            });
+        };
+
+        let collapseAllButton = null;
 
         const view = viewModule.createView({
             listElement: sectionList,
@@ -542,6 +613,8 @@
             orderedTypes,
             sectionDefinitions,
             orderedSectionTypes,
+            isSectionCollapsed: (sectionClientId) =>
+                collapsedSectionIds.has(sectionClientId),
             applyPaddingToAllSections: onApplyPaddingToAllSections,
             applyBackgroundGroupToSections: ({
                 sectionClientIds,
@@ -670,8 +743,21 @@
             },
         });
 
+        const updateCollapseAllButton = () => {
+            if (!collapseAllButton) {
+                return;
+            }
+            const totalSections = state.getState().length;
+            collapseAllButton.disabled = totalSections === 0;
+            collapseAllButton.textContent = areAllSectionsCollapsed()
+                ? 'Expand all sections'
+                : 'Collapse all sections';
+        };
+
         const render = () => {
+            syncCollapsedSections();
             view.render(state.getState());
+            updateCollapseAllButton();
         };
 
         const emitChange = () => {
@@ -686,12 +772,14 @@
 
         const setSections = (nextSections) => {
             state.setSections(nextSections);
+            collapsedSectionIds.clear();
             render();
             emitChange();
         };
 
         const reset = () => {
             state.reset();
+            collapsedSectionIds.clear();
             render();
             emitChange();
         };
@@ -701,6 +789,7 @@
             variation = selectedSectionVariation
         ) => {
             const section = state.addSection(sectionType, variation);
+            collapsedSectionIds.delete(section.clientId);
             render();
             emitChange();
             view.focusField(
@@ -709,9 +798,41 @@
         };
 
         const removeSection = (sectionClientId) => {
+            collapsedSectionIds.delete(utils.normaliseString(sectionClientId));
             state.removeSection(sectionClientId);
             render();
             emitChange();
+        };
+
+        const duplicateSection = (sectionClientId) => {
+            const duplicatedSection = state.duplicateSection(sectionClientId);
+            if (!duplicatedSection) {
+                return;
+            }
+            collapsedSectionIds.delete(duplicatedSection.clientId);
+            render();
+            emitChange();
+            view.focusField(
+                `[data-section-client="${duplicatedSection.clientId}"] [data-field="section-title"]`
+            );
+        };
+
+        const toggleSectionCollapse = (sectionClientId) => {
+            if (!toggleSectionCollapsed(sectionClientId)) {
+                return;
+            }
+            render();
+            const normalisedId = utils.normaliseString(sectionClientId);
+            const isCollapsed = collapsedSectionIds.has(normalisedId);
+            if (!isCollapsed) {
+                view.focusField(
+                    `[data-section-client="${normalisedId}"] [data-field="section-title"]`
+                );
+                return;
+            }
+            view.focusField(
+                `[data-section-client="${normalisedId}"] [data-action="section-collapse"]`
+            );
         };
 
         const moveSection = (sectionClientId, direction) => {
@@ -845,6 +966,24 @@
             );
         };
 
+        if (addSectionButton.parentElement) {
+            collapseAllButton = utils.createElement('button', {
+                className: 'section-builder__add section-builder__add--secondary',
+                type: 'button',
+                textContent: 'Collapse all sections',
+            });
+            collapseAllButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                const shouldCollapse = !areAllSectionsCollapsed();
+                setAllSectionsCollapsed(shouldCollapse);
+                render();
+            });
+            addSectionButton.parentElement.insertBefore(
+                collapseAllButton,
+                addSectionButton
+            );
+        }
+
         addSectionButton.addEventListener('click', (event) => {
             if (typeof openTypeSelectionFlowForAdd === 'function') {
                 event.preventDefault();
@@ -860,6 +999,8 @@
             listElement: sectionList,
             onSectionRemove: removeSection,
             onSectionMove: moveSection,
+            onSectionDuplicate: duplicateSection,
+            onSectionCollapse: toggleSectionCollapse,
             onElementRemove: removeElementFromSection,
             onElementMove: moveElementInSection,
             onElementAdd: addElementToSection,

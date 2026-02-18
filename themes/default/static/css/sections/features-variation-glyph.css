@@ -18,7 +18,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: var(--size-base);
+    gap: var(--size-sm);
     height: 100%;
     border-radius: var(--radius-card);
     box-shadow: 0 8px 8px rgba(0, 0, 0, 0.05);
@@ -35,8 +35,8 @@
 .page-view__section--features:is(
     .page-view__section--variation-glyph,
 ) .page-view__feature-media {
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 2.25rem;
+    height: 2.25rem;
     flex: 0 0 2.75rem;
     display: flex;
     align-items: center;
@@ -65,8 +65,8 @@
 ) .page-view__feature-title {
     display: block;
     margin: 0;
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 400;
     line-height: 1.4;
     color: var(--color-text);
 }

@@ -843,6 +843,7 @@
         applyPaddingToAllSections,
         applyBackgroundGroupToSections,
         applyBackgroundStyleToGroup,
+        isSectionCollapsed,
     }) => {
         const resolveAllowedElements = createAllowedElementsResolver(sectionDefinitions);
         const isElementAllowed = (sectionType, elementType) => {
@@ -1003,20 +1004,23 @@
             applyPaddingToAllSections: applyPaddingCallback,
             applyBackgroundGroupToSections: applyBackgroundGroupCallback,
             applyBackgroundStyleToGroup: applyBackgroundStyleCallback,
+            renderInline = false,
         }) => {
             if (!sectionItem || !section) {
-                return () => {};
+                return renderInline ? null : () => {};
             }
 
-            const existingModal = sectionItem.querySelector(
-                '[data-role="section-settings"]'
-            );
-            if (existingModal) {
-                const focusTarget = existingModal.querySelector('[data-field]');
-                if (focusTarget && typeof focusTarget.focus === 'function') {
-                    focusTarget.focus();
+            if (!renderInline) {
+                const existingModal = sectionItem.querySelector(
+                    '[data-role="section-settings"]'
+                );
+                if (existingModal) {
+                    const focusTarget = existingModal.querySelector('[data-field]');
+                    if (focusTarget && typeof focusTarget.focus === 'function') {
+                        focusTarget.focus();
+                    }
+                    return () => {};
                 }
-                return () => {};
             }
 
             const scheduleChange = (() => {
@@ -1039,38 +1043,54 @@
                     }
                 };
             })();
+            let closeModal = () => {};
+            let overlay = null;
+            let dialog = null;
+            const inlineSettingsRoot = renderInline
+                ? createElement('div', {
+                      className: 'admin-builder__settings-inline',
+                      dataset: {
+                          role: 'section-settings-inline',
+                      },
+                  })
+                : null;
 
-            const overlay = createElement('div', {
-                className: 'admin-builder__settings-overlay',
-                dataset: {
-                    role: 'section-settings',
-                },
-            });
-            const dialog = createElement('div', {
-                className: 'admin-builder__settings-dialog',
-                attributes: {
-                    role: 'dialog',
-                    'aria-modal': 'true',
-                },
-            });
-            dialog.setAttribute('tabindex', '-1');
-            const titleId = `admin-builder-section-settings-${
-                section.id || section.clientId
-            }`;
-            dialog.setAttribute('aria-labelledby', titleId);
+            if (!renderInline) {
+                overlay = createElement('div', {
+                    className: 'admin-builder__settings-overlay',
+                    dataset: {
+                        role: 'section-settings',
+                    },
+                });
+                dialog = createElement('div', {
+                    className: 'admin-builder__settings-dialog',
+                    attributes: {
+                        role: 'dialog',
+                        'aria-modal': 'true',
+                    },
+                });
+                dialog.setAttribute('tabindex', '-1');
+                const titleId = `admin-builder-section-settings-${
+                    section.id || section.clientId
+                }`;
+                dialog.setAttribute('aria-labelledby', titleId);
 
-            const header = createElement('header', {
-                className: 'admin-builder__settings-header',
-            });
-            const titleNode = createElement('h2', {
-                className: 'admin-builder__settings-title',
-                textContent: 'Additional settings',
-            });
-            titleNode.id = titleId;
-            header.append(titleNode);
+                const header = createElement('header', {
+                    className: 'admin-builder__settings-header',
+                });
+                const titleNode = createElement('h2', {
+                    className: 'admin-builder__settings-title',
+                    textContent: 'Additional settings',
+                });
+                titleNode.id = titleId;
+                header.append(titleNode);
+                dialog.append(header);
+            }
 
             const body = createElement('div', {
-                className: 'admin-builder__settings-body',
+                className: renderInline
+                    ? 'admin-builder__settings-body admin-builder__settings-body--inline'
+                    : 'admin-builder__settings-body',
             });
 
             const createSettingsGroup = (title) => {
@@ -2622,20 +2642,6 @@
             marginBottomField.append(marginBottomRangeWrapper);
             appendSpacingField(marginBottomField);
 
-            const footer = createElement('div', {
-                className: 'admin-builder__settings-footer',
-            });
-            const doneButton = createElement('button', {
-                className: 'admin-builder__button',
-                type: 'button',
-                textContent: 'Done',
-            });
-            footer.append(doneButton);
-
-            dialog.append(header, body, footer);
-            overlay.append(dialog);
-            sectionItem.append(overlay);
-
             const updateDisplayModeVisibility = () => {
                 const showAllValue = (() => {
                     const raw =
@@ -2711,9 +2717,35 @@
 
             updateDisplayModeVisibility();
 
+            if (renderInline) {
+                inlineSettingsRoot?.append(body);
+                return inlineSettingsRoot;
+            }
+
+            const footer = createElement('div', {
+                className: 'admin-builder__settings-footer',
+            });
+            const doneButton = createElement('button', {
+                className: 'admin-builder__button',
+                type: 'button',
+                textContent: 'Done',
+            });
+            footer.append(doneButton);
+
+            dialog.append(body, footer);
+            overlay.append(dialog);
+            sectionItem.append(overlay);
+
             const previousFocus = document.activeElement;
 
-            const closeModal = () => {
+            const handleKeyDown = (event) => {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closeModal();
+                }
+            };
+
+            closeModal = () => {
                 document.removeEventListener('keydown', handleKeyDown);
                 overlay.remove();
                 if (typeof onClose === 'function') {
@@ -2721,13 +2753,6 @@
                 }
                 if (previousFocus && typeof previousFocus.focus === 'function') {
                     previousFocus.focus();
-                }
-            };
-
-            const handleKeyDown = (event) => {
-                if (event.key === 'Escape') {
-                    event.preventDefault();
-                    closeModal();
                 }
             };
 
@@ -2814,10 +2839,16 @@
 
             const sectionDefinition = sectionDefinitions?.[section.type] || {};
                 const allowElements = sectionDefinition.supportsElements !== false;
-                const supportsHeaderImage =
-                    sectionDefinition.supportsHeaderImage === true;
                 const isFirstSection = index === 0;
                 const isLastSection = index === totalSections - 1;
+                const isCollapsed =
+                    typeof isSectionCollapsed === 'function'
+                        ? Boolean(isSectionCollapsed(section.clientId))
+                        : false;
+                sectionItem.dataset.sectionCollapsed = String(isCollapsed);
+                if (isCollapsed) {
+                    sectionItem.classList.add('admin-builder__section--collapsed');
+                }
 
                 const sectionHeader = createElement('div', {
                     className: 'admin-builder__section-header',
@@ -2840,7 +2871,21 @@
                 }
 
                 const sectionActions = createElement('div', {
-                    className: 'admin-builder__section-actions',
+                    className: 'admin-builder__section-header-actions',
+                });
+                const sectionActionsMenu = createElement('details', {
+                    className: 'admin-builder__section-actions-menu',
+                });
+                const sectionActionsToggle = createElement('summary', {
+                    className:
+                        'admin-builder__button admin-builder__button--ghost admin-builder__section-actions-toggle',
+                    attributes: {
+                        'aria-label': 'Section actions',
+                        title: 'Section actions',
+                    },
+                });
+                const sectionActionsList = createElement('div', {
+                    className: 'admin-builder__section-actions-list',
                 });
                 const moveUpButton = createElement('button', {
                     className: 'admin-builder__button',
@@ -2860,6 +2905,19 @@
                 moveDownButton.dataset.direction = 'down';
                 moveDownButton.dataset.role = 'section-move-down';
                 moveDownButton.disabled = isLastSection;
+                const duplicateButton = createElement('button', {
+                    className: 'admin-builder__button admin-builder__button--ghost',
+                    textContent: 'Duplicate section',
+                });
+                duplicateButton.type = 'button';
+                duplicateButton.dataset.action = 'section-duplicate';
+                const collapseButton = createElement('button', {
+                    className: 'admin-builder__button admin-builder__button--ghost',
+                    textContent: isCollapsed ? 'Expand' : 'Collapse',
+                });
+                collapseButton.type = 'button';
+                collapseButton.dataset.action = 'section-collapse';
+                collapseButton.dataset.state = isCollapsed ? 'expand' : 'collapse';
                 const toggleButton = createElement('button', {
                     className: 'admin-builder__button admin-builder__button--ghost',
                     textContent: isDisabled ? 'Enable section' : 'Disable section',
@@ -2873,14 +2931,122 @@
                 });
                 removeButton.type = 'button';
                 removeButton.dataset.action = 'section-remove';
-                sectionActions.append(
+                sectionActionsList.append(
                     moveUpButton,
                     moveDownButton,
+                    duplicateButton,
+                    collapseButton,
                     toggleButton,
                     removeButton
                 );
+                sectionActionsMenu.append(
+                    sectionActionsToggle,
+                    sectionActionsList
+                );
+                sectionActions.append(sectionActionsMenu);
                 sectionHeader.append(sectionHeading, sectionActions);
                 sectionItem.append(sectionHeader);
+
+                const visibleElementCount = Array.isArray(section.elements)
+                    ? section.elements.filter((element) =>
+                          isElementAllowed(section.type, element?.type)
+                      ).length
+                    : 0;
+                const collapsedSummaryParts = [];
+                const sectionTypeLabel = normaliseString(sectionDefinition.label).trim();
+                collapsedSummaryParts.push(sectionTypeLabel || section.type || 'Section');
+                const sectionTitleText = normaliseString(section.title).trim();
+                if (sectionTitleText) {
+                    collapsedSummaryParts.push(sectionTitleText);
+                }
+                collapsedSummaryParts.push(
+                    visibleElementCount === 1 ? '1 block' : `${visibleElementCount} blocks`
+                );
+                const collapsedSummary = createElement('p', {
+                    className: 'admin-builder__section-collapsed-summary',
+                    textContent: collapsedSummaryParts.join(' | '),
+                });
+                collapsedSummary.hidden = !isCollapsed;
+                sectionItem.append(collapsedSummary);
+
+                const sectionBody = createElement('div', {
+                    className: 'admin-builder__section-body',
+                });
+                sectionBody.hidden = isCollapsed;
+                const tabsIdSuffix = section.id || section.clientId || randomId();
+                const contentTabId = `admin-builder-section-tab-content-${tabsIdSuffix}`;
+                const settingsTabId = `admin-builder-section-tab-settings-${tabsIdSuffix}`;
+                const contentPanelId = `admin-builder-section-panel-content-${tabsIdSuffix}`;
+                const settingsPanelId = `admin-builder-section-panel-settings-${tabsIdSuffix}`;
+                const tabList = createElement('div', {
+                    className: 'admin-builder__section-tabs',
+                    attributes: {
+                        role: 'tablist',
+                        'aria-label': `Section ${index + 1} editor tabs`,
+                    },
+                });
+                const contentTabButton = createElement('button', {
+                    className: 'admin-builder__section-tab',
+                    type: 'button',
+                    textContent: 'Content',
+                    attributes: {
+                        id: contentTabId,
+                        role: 'tab',
+                        'aria-selected': 'true',
+                        'aria-controls': contentPanelId,
+                    },
+                });
+                const settingsTabButton = createElement('button', {
+                    className: 'admin-builder__section-tab',
+                    type: 'button',
+                    textContent: 'Settings',
+                    attributes: {
+                        id: settingsTabId,
+                        role: 'tab',
+                        'aria-selected': 'false',
+                        'aria-controls': settingsPanelId,
+                    },
+                });
+                tabList.append(contentTabButton, settingsTabButton);
+
+                const contentPanel = createElement('div', {
+                    className: 'admin-builder__section-tab-panel',
+                    attributes: {
+                        id: contentPanelId,
+                        role: 'tabpanel',
+                        'aria-labelledby': contentTabId,
+                    },
+                });
+                const settingsPanel = createElement('div', {
+                    className: 'admin-builder__section-tab-panel',
+                    attributes: {
+                        id: settingsPanelId,
+                        role: 'tabpanel',
+                        'aria-labelledby': settingsTabId,
+                    },
+                });
+                settingsPanel.hidden = true;
+
+                const setActiveTab = (tabName) => {
+                    const isSettings = tabName === 'settings';
+                    contentTabButton.setAttribute(
+                        'aria-selected',
+                        isSettings ? 'false' : 'true'
+                    );
+                    settingsTabButton.setAttribute(
+                        'aria-selected',
+                        isSettings ? 'true' : 'false'
+                    );
+                    contentPanel.hidden = isSettings;
+                    settingsPanel.hidden = !isSettings;
+                };
+                contentTabButton.addEventListener('click', () =>
+                    setActiveTab('content')
+                );
+                settingsTabButton.addEventListener('click', () =>
+                    setActiveTab('settings')
+                );
+                sectionBody.append(tabList, contentPanel, settingsPanel);
 
                 const typeField = createElement('div', {
                     className: 'admin-builder__field admin-builder__field--type',
@@ -3143,7 +3309,7 @@
                     openVariationPicker();
                 });
 
-                sectionItem.append(typeField);
+                contentPanel.append(typeField);
 
                 const titleField = createElement('label', {
                     className: 'admin-builder__field',
@@ -3162,7 +3328,7 @@
                 titleInput.value = section.title;
                 titleInput.dataset.field = 'section-title';
                 titleField.append(titleInput);
-                sectionItem.append(titleField);
+                contentPanel.append(titleField);
 
                 const descriptionField = createElement('label', {
                     className: 'admin-builder__field',
@@ -3183,13 +3349,11 @@
                 descriptionInput.value = section.description || '';
                 descriptionInput.dataset.field = 'section-description';
                 descriptionField.append(descriptionInput);
-                sectionItem.append(descriptionField);
+                contentPanel.append(descriptionField);
 
-                const settingsContainer = createElement('div', {
-                    className: 'admin-builder__section-settings',
-                });
                 const settingsSummary = createElement('p', {
-                    className: 'admin-builder__settings-summary',
+                    className:
+                        'admin-builder__settings-summary admin-builder__settings-summary--inline',
                 });
                 const updateSettingsSummary = () => {
                     settingsSummary.textContent = formatSettingsSummary(
@@ -3198,29 +3362,20 @@
                     );
                 };
                 updateSettingsSummary();
-
-                const settingsButton = createElement('button', {
-                    className:
-                        'admin-builder__button admin-builder__button--ghost admin-builder__settings-button',
-                    type: 'button',
-                    textContent: 'Additional settings',
+                settingsPanel.append(settingsSummary);
+                const inlineSettings = createSectionSettingsModal({
+                    sectionItem,
+                    section,
+                    sectionDefinition,
+                    onChange: updateSettingsSummary,
+                    applyPaddingToAllSections,
+                    applyBackgroundGroupToSections,
+                    applyBackgroundStyleToGroup,
+                    renderInline: true,
                 });
-                settingsButton.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    createSectionSettingsModal({
-                        sectionItem,
-                        section,
-                        sectionDefinition,
-                        onChange: updateSettingsSummary,
-                        onClose: updateSettingsSummary,
-                        applyPaddingToAllSections,
-                        applyBackgroundGroupToSections,
-                        applyBackgroundStyleToGroup,
-                    });
-                });
-
-                settingsContainer.append(settingsSummary, settingsButton);
-                sectionItem.append(settingsContainer);
+                if (inlineSettings) {
+                    settingsPanel.append(inlineSettings);
+                }
 
                 const elementsContainer = createElement('div', {
                     className: 'admin-builder__section-elements',
@@ -3312,7 +3467,7 @@
                     }
                 }
 
-                sectionItem.append(elementsContainer);
+                contentPanel.append(elementsContainer);
 
                 if (allowElements) {
                     const sectionActions = createElement('div', {
@@ -3338,9 +3493,10 @@
                         sectionActions.append(button);
                     });
 
-                    sectionItem.append(sectionActions);
+                    contentPanel.append(sectionActions);
                 }
 
+                sectionItem.append(sectionBody);
                 listElement.append(sectionItem);
             });
         };

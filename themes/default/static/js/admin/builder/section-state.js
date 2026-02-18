@@ -67,6 +67,27 @@
         return fallback;
     };
 
+    const cloneDeep = (value) => {
+        if (typeof window.structuredClone === 'function') {
+            try {
+                return window.structuredClone(value);
+            } catch (error) {
+                // Fall back to JSON cloning below.
+            }
+        }
+        try {
+            return JSON.parse(JSON.stringify(value));
+        } catch (error) {
+            if (Array.isArray(value)) {
+                return value.slice();
+            }
+            if (value && typeof value === 'object') {
+                return { ...value };
+            }
+            return value;
+        }
+    };
+
     const clampLimit = (value, definition) => {
         if (!definition || typeof definition !== 'object') {
             return value > 0 && Number.isFinite(value)
@@ -838,6 +859,76 @@
             return section;
         };
 
+        const duplicateSection = (sectionClientId) => {
+            const currentIndex = sections.findIndex(
+                (section) => section.clientId === sectionClientId
+            );
+            if (currentIndex < 0) {
+                return null;
+            }
+
+            const sourceSection = sections[currentIndex];
+            const duplicateSource = cloneDeep(sourceSection);
+            if (!duplicateSource || typeof duplicateSource !== 'object') {
+                return null;
+            }
+
+            delete duplicateSource.clientId;
+            duplicateSource.id = '';
+            duplicateSource.ID = '';
+            if (Array.isArray(duplicateSource.elements)) {
+                duplicateSource.elements = duplicateSource.elements.map((element) => {
+                    const duplicateElement = cloneDeep(element);
+                    if (!duplicateElement || typeof duplicateElement !== 'object') {
+                        return duplicateElement;
+                    }
+                    delete duplicateElement.clientId;
+                    duplicateElement.id = '';
+                    duplicateElement.ID = '';
+                    if (duplicateElement.content && typeof duplicateElement.content === 'object') {
+                        if (Array.isArray(duplicateElement.content.images)) {
+                            duplicateElement.content.images =
+                                duplicateElement.content.images.map((image) => {
+                                    const duplicateImage = cloneDeep(image);
+                                    if (
+                                        duplicateImage &&
+                                        typeof duplicateImage === 'object'
+                                    ) {
+                                        delete duplicateImage.clientId;
+                                    }
+                                    return duplicateImage;
+                                });
+                        }
+                        if (Array.isArray(duplicateElement.content.files)) {
+                            duplicateElement.content.files =
+                                duplicateElement.content.files.map((file) => {
+                                    const duplicateFile = cloneDeep(file);
+                                    if (
+                                        duplicateFile &&
+                                        typeof duplicateFile === 'object'
+                                    ) {
+                                        delete duplicateFile.clientId;
+                                    }
+                                    return duplicateFile;
+                                });
+                        }
+                    }
+                    return duplicateElement;
+                });
+            }
+
+            const duplicate = createSectionState(
+                definitions,
+                sectionDefs,
+                defaultSectionType,
+                duplicateSource,
+                resolveAllowedElements
+            );
+            duplicate.id = '';
+            sections.splice(currentIndex + 1, 0, duplicate);
+            return duplicate;
+        };
+
         const removeSection = (sectionClientId) => {
             sections = sections.filter(
                 (section) => section.clientId !== sectionClientId
@@ -1184,6 +1275,7 @@
             setSections,
             reset,
             addSection,
+            duplicateSection,
             removeSection,
             moveSection,
             addElementToSection,
