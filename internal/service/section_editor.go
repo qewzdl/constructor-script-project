@@ -67,7 +67,11 @@ func (e *SectionEditor) Add(req models.AddSectionRequest) error {
 		Elements:        []models.SectionElement{},
 		Settings:        cloneSettings(req.Settings),
 		PaddingVertical: copyIntPointer(req.PaddingVertical),
+		PaddingTop:      copyIntPointer(req.PaddingTop),
+		PaddingBottom:   copyIntPointer(req.PaddingBottom),
 		MarginVertical:  copyIntPointer(req.MarginVertical),
+		MarginTop:       copyIntPointer(req.MarginTop),
+		MarginBottom:    copyIntPointer(req.MarginBottom),
 		StyleGridItems:  cloneBoolPointer(req.StyleGridItems),
 		Animation:       animation,
 		AnimationBlur:   boolPtr(animationBlur),
@@ -118,8 +122,20 @@ func (e *SectionEditor) Update(sectionID string, req models.UpdateSectionRequest
 	if req.PaddingVertical != nil {
 		section.PaddingVertical = intPtr(*req.PaddingVertical)
 	}
+	if req.PaddingTop != nil {
+		section.PaddingTop = intPtr(*req.PaddingTop)
+	}
+	if req.PaddingBottom != nil {
+		section.PaddingBottom = intPtr(*req.PaddingBottom)
+	}
 	if req.MarginVertical != nil {
 		section.MarginVertical = intPtr(*req.MarginVertical)
+	}
+	if req.MarginTop != nil {
+		section.MarginTop = intPtr(*req.MarginTop)
+	}
+	if req.MarginBottom != nil {
+		section.MarginBottom = intPtr(*req.MarginBottom)
 	}
 	if req.Limit != nil {
 		section.Limit = *req.Limit
@@ -287,7 +303,11 @@ func cloneSection(source models.Section) models.Section {
 	result.Settings = cloneSettings(source.Settings)
 	result.Elements = cloneSectionElements(source.Elements)
 	result.PaddingVertical = copyIntPointer(source.PaddingVertical)
+	result.PaddingTop = copyIntPointer(source.PaddingTop)
+	result.PaddingBottom = copyIntPointer(source.PaddingBottom)
 	result.MarginVertical = copyIntPointer(source.MarginVertical)
+	result.MarginTop = copyIntPointer(source.MarginTop)
+	result.MarginBottom = copyIntPointer(source.MarginBottom)
 	result.StyleGridItems = cloneBoolPointer(source.StyleGridItems)
 	result.AnimationBlur = cloneBoolPointer(source.AnimationBlur)
 	return result

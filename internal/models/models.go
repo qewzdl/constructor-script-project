@@ -644,7 +644,11 @@ type Section struct {
 	Order           int                    `json:"order"`
 	StyleGridItems  *bool                  `json:"style_grid_items,omitempty"`
 	PaddingVertical *int                   `json:"padding_vertical,omitempty"`
+	PaddingTop      *int                   `json:"padding_top,omitempty"`
+	PaddingBottom   *int                   `json:"padding_bottom,omitempty"`
 	MarginVertical  *int                   `json:"margin_vertical,omitempty"`
+	MarginTop       *int                   `json:"margin_top,omitempty"`
+	MarginBottom    *int                   `json:"margin_bottom,omitempty"`
 	Animation       string                 `json:"animation,omitempty"`
 	AnimationBlur   *bool                  `json:"animation_blur,omitempty"`
 	Settings        map[string]interface{} `json:"settings,omitempty"`

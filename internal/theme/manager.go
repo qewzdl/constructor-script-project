@@ -357,6 +357,11 @@ func (t *Theme) BuilderAssets() BuilderAssets {
 		copy(clone, assets.SectionScripts)
 		assets.SectionScripts = clone
 	}
+	if len(assets.SectionStyles) > 0 {
+		clone := make([]string, len(assets.SectionStyles))
+		copy(clone, assets.SectionStyles)
+		assets.SectionStyles = clone
+	}
 	return assets
 }
 

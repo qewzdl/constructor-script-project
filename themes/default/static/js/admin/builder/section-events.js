@@ -759,7 +759,11 @@
             let value = target.type === 'checkbox' ? target.checked : target.value;
             if (
                 field === 'section-padding-vertical' ||
-                field === 'section-margin-vertical'
+                field === 'section-padding-top' ||
+                field === 'section-padding-bottom' ||
+                field === 'section-margin-vertical' ||
+                field === 'section-margin-top' ||
+                field === 'section-margin-bottom'
             ) {
                 const options = target.dataset.options
                     ? target.dataset.options
@@ -781,10 +785,15 @@
                     target.setAttribute('aria-valuenow', String(actualValue));
                     target.setAttribute('aria-valuetext', `${actualValue} pixels`);
                 }
-                const displayRole =
-                    field === 'section-padding-vertical'
-                        ? 'section-padding-value'
-                        : 'section-margin-value';
+                const displayRoleByField = {
+                    'section-padding-vertical': 'section-padding-value',
+                    'section-padding-top': 'section-padding-top-value',
+                    'section-padding-bottom': 'section-padding-bottom-value',
+                    'section-margin-vertical': 'section-margin-value',
+                    'section-margin-top': 'section-margin-top-value',
+                    'section-margin-bottom': 'section-margin-bottom-value',
+                };
+                const displayRole = displayRoleByField[field];
                 const displayNode = target.parentElement?.querySelector(
                     `[data-role="${displayRole}"]`
                 );

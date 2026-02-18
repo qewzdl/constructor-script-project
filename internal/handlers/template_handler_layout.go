@@ -68,6 +68,7 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 		"Title":       fmt.Sprintf("%s - %s", title, site.Name),
 		"Description": description,
 		"Language":    site.DefaultLanguage,
+		"Styles":      h.defaultSectionStyles(),
 		"Site": gin.H{
 			"Name":               site.Name,
 			"Description":        site.Description,
@@ -93,10 +94,43 @@ func (h *TemplateHandler) basePageData(title, description string, extra gin.H) g
 	}
 
 	for k, v := range extra {
-		data[k] = v
+		switch strings.ToLower(strings.TrimSpace(k)) {
+		case "styles":
+			data["Styles"] = appendStyles(
+				asStyleSlice(data["Styles"]),
+				asStyleSlice(v),
+			)
+		case "scripts":
+			data["Scripts"] = appendScripts(
+				asScriptSlice(data["Scripts"]),
+				asScriptSlice(v),
+			)
+		default:
+			data[k] = v
+		}
 	}
 
 	return data
+}
+
+func (h *TemplateHandler) defaultSectionStyles() []string {
+	const fallbackStyle = "/static/css/sections/index.css"
+
+	if h == nil || h.themeManager == nil {
+		return []string{fallbackStyle}
+	}
+
+	active := h.themeManager.Active()
+	if active == nil {
+		return []string{fallbackStyle}
+	}
+
+	assets := active.BuilderAssets()
+	if len(assets.SectionStyles) == 0 {
+		return []string{fallbackStyle}
+	}
+
+	return assets.SectionStyles
 }
 
 func (h *TemplateHandler) siteSettings() models.SiteSettings {
@@ -833,6 +867,14 @@ func (h *TemplateHandler) ensureAbsoluteURL(baseURL, value string) string {
 	}
 
 	return baseURL + value
+}
+
+func asStyleSlice(value interface{}) []string {
+	return asScriptSlice(value)
+}
+
+func appendStyles(existing []string, additions []string) []string {
+	return appendScripts(existing, additions)
 }
 
 func getString(data gin.H, key string) string {

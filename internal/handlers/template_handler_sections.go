@@ -50,6 +50,8 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 
 	var sb strings.Builder
 	var scripts []string
+	activeBackgroundGroup := ""
+	requiresImmersiveCursorScript := false
 
 	wrapWithContainer := prefix == pageViewClassPrefix
 
@@ -69,6 +71,48 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 
 		if (sectionType == "courses_list" || sectionType == "catalog") && !h.coursesEnabled() {
 			continue
+		}
+
+		backgroundGroup := resolveSectionBackgroundGroup(section.Settings)
+		backgroundStyle := resolveSectionBackgroundStyle(section.Settings)
+		if wrapWithContainer && backgroundGroup != "" && backgroundStyle == "immersive" {
+			requiresImmersiveCursorScript = true
+		}
+		if wrapWithContainer {
+			if backgroundGroup == "" {
+				if activeBackgroundGroup != "" {
+					sb.WriteString(`</div>`)
+					activeBackgroundGroup = ""
+				}
+			} else if backgroundGroup != activeBackgroundGroup {
+				if activeBackgroundGroup != "" {
+					sb.WriteString(`</div>`)
+				}
+				groupClasses := []string{
+					"page-view__section-group",
+					"page-view__section-group--background",
+					"page-view__section-group--bg-" + template.HTMLEscapeString(backgroundGroup),
+				}
+				if backgroundStyle != "" {
+					groupClasses = append(
+						groupClasses,
+						"page-view__section-group--style-"+template.HTMLEscapeString(backgroundStyle),
+					)
+				}
+				groupAttributes := []string{
+					`data-section-background-group="` + template.HTMLEscapeString(backgroundGroup) + `"`,
+				}
+				if backgroundStyle != "" {
+					groupAttributes = append(
+						groupAttributes,
+						`data-section-background-style="`+template.HTMLEscapeString(backgroundStyle)+`"`,
+					)
+				}
+				sb.WriteString(
+					`<div class="` + strings.Join(groupClasses, " ") + `" ` + strings.Join(groupAttributes, " ") + `>`,
+				)
+				activeBackgroundGroup = backgroundGroup
+			}
 		}
 
 		title := strings.TrimSpace(section.Title)
@@ -91,10 +135,43 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		if paddingClass := h.buildSectionPaddingClass(pageViewClassPrefix, section.PaddingVertical); paddingClass != "" {
 			sectionClasses = append(sectionClasses, paddingClass)
 		}
+		if paddingTopClass := buildSectionPaddingTopClass(pageViewClassPrefix, section.PaddingTop); paddingTopClass != "" {
+			sectionClasses = append(sectionClasses, paddingTopClass)
+		}
+		if paddingBottomClass := buildSectionPaddingBottomClass(pageViewClassPrefix, section.PaddingBottom); paddingBottomClass != "" {
+			sectionClasses = append(sectionClasses, paddingBottomClass)
+		}
 		if marginClass := buildSectionMarginClass(pageViewClassPrefix, section.MarginVertical); marginClass != "" {
 			sectionClasses = append(sectionClasses, marginClass)
 		}
+		if marginTopClass := buildSectionMarginTopClass(pageViewClassPrefix, section.MarginTop); marginTopClass != "" {
+			sectionClasses = append(sectionClasses, marginTopClass)
+		}
+		if marginBottomClass := buildSectionMarginBottomClass(pageViewClassPrefix, section.MarginBottom); marginBottomClass != "" {
+			sectionClasses = append(sectionClasses, marginBottomClass)
+		}
 		sectionAttributes := ""
+		if backgroundGroup != "" {
+			sectionClasses = append(
+				sectionClasses,
+				fmt.Sprintf("%s__section--background-group", pageViewClassPrefix),
+				fmt.Sprintf("%s__section--background-group-%s", pageViewClassPrefix, backgroundGroup),
+			)
+			sectionAttributes += fmt.Sprintf(
+				` data-section-background-group="%s"`,
+				template.HTMLEscapeString(backgroundGroup),
+			)
+			if backgroundStyle != "" {
+				sectionClasses = append(
+					sectionClasses,
+					fmt.Sprintf("%s__section--background-style-%s", pageViewClassPrefix, backgroundStyle),
+				)
+				sectionAttributes += fmt.Sprintf(
+					` data-section-background-style="%s"`,
+					template.HTMLEscapeString(backgroundStyle),
+				)
+			}
+		}
 		animation := constants.NormaliseSectionAnimation(section.Animation)
 		animationBlur := constants.NormaliseSectionAnimationBlur(section.AnimationBlur)
 		if animation != "" {
@@ -265,6 +342,12 @@ func (h *TemplateHandler) renderSectionsWithPrefix(sections models.PostSections,
 		}
 		sb.WriteString(`</section>`)
 	}
+	if wrapWithContainer && activeBackgroundGroup != "" {
+		sb.WriteString(`</div>`)
+	}
+	if requiresImmersiveCursorScript {
+		scripts = appendScripts(scripts, []string{"/static/js/hero-immersive-cursor.js"})
+	}
 
 	return template.HTML(sb.String()), scripts
 }
@@ -321,6 +404,29 @@ func buildSectionMarginClass(prefix string, value *int) string {
 	return fmt.Sprintf("%s__section--mv-%d", prefix, margin)
 }
 
+func buildSectionPaddingTopClass(prefix string, value *int) string {
+	return buildSectionSpacingClass(prefix, "pt", value, clampSectionPaddingValue)
+}
+
+func buildSectionPaddingBottomClass(prefix string, value *int) string {
+	return buildSectionSpacingClass(prefix, "pb", value, clampSectionPaddingValue)
+}
+
+func buildSectionMarginTopClass(prefix string, value *int) string {
+	return buildSectionSpacingClass(prefix, "mt", value, clampSectionMarginValue)
+}
+
+func buildSectionMarginBottomClass(prefix string, value *int) string {
+	return buildSectionSpacingClass(prefix, "mb", value, clampSectionMarginValue)
+}
+
+func buildSectionSpacingClass(prefix string, token string, value *int, clamp func(int) int) string {
+	if value == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s__section--%s-%d", prefix, token, clamp(*value))
+}
+
 func clampSectionMarginValue(value int) int {
 	options := constants.SectionMarginOptions()
 	if len(options) == 0 {
@@ -351,6 +457,38 @@ func buildSectionTextClass(baseClass string, position string) string {
 		return ""
 	}
 	return trimmedBase + " " + trimmedBase + "--align-" + position
+}
+
+func resolveSectionBackgroundGroup(settings map[string]interface{}) string {
+	if settings == nil {
+		return ""
+	}
+
+	raw, exists := settings["background_group"]
+	if !exists {
+		raw, exists = settings["backgroundGroup"]
+	}
+	if !exists {
+		return ""
+	}
+
+	return normaliseSectionClassToken(fmt.Sprint(raw))
+}
+
+func resolveSectionBackgroundStyle(settings map[string]interface{}) string {
+	if settings == nil {
+		return ""
+	}
+
+	raw, exists := settings["background_style"]
+	if !exists {
+		raw, exists = settings["backgroundStyle"]
+	}
+	if !exists {
+		return ""
+	}
+
+	return normaliseSectionClassToken(fmt.Sprint(raw))
 }
 
 func resolveSectionTextPosition(settings map[string]interface{}, settingKey string) string {

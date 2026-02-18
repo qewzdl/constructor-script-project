@@ -1,4 +1,6 @@
 (() => {
+    const IMMERSIVE_GROUP_SELECTOR =
+        ".page-view__section-group--background.page-view__section-group--style-immersive";
     const HERO_STAGE_SELECTOR =
         ".page-view__section--hero.page-view__section--variation-immersive .page-view__hero-stage";
     const GLOW_CLASS = "page-view__hero-cursor-glow";
@@ -12,28 +14,28 @@
         return;
     }
 
-    const createCursorGlow = (stage) => {
-        if (!(stage instanceof HTMLElement)) {
+    const createCursorGlow = (target) => {
+        if (!(target instanceof HTMLElement)) {
             return null;
         }
-        if (stage.querySelector(`.${GLOW_CLASS}`)) {
-            return stage.querySelector(`.${GLOW_CLASS}`);
+        if (target.querySelector(`.${GLOW_CLASS}`)) {
+            return target.querySelector(`.${GLOW_CLASS}`);
         }
 
         const glow = document.createElement("span");
         glow.className = GLOW_CLASS;
         glow.setAttribute("aria-hidden", "true");
-        stage.appendChild(glow);
+        target.appendChild(glow);
         return glow;
     };
 
-    const attachTracking = (stage) => {
-        const glow = createCursorGlow(stage);
+    const attachTracking = (target) => {
+        const glow = createCursorGlow(target);
         if (!glow) {
             return;
         }
 
-        const rect = () => stage.getBoundingClientRect();
+        const rect = () => target.getBoundingClientRect();
         const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
         const clampVelocity = (value, maxAbs) => clamp(value, -maxAbs, maxAbs);
 
@@ -109,10 +111,10 @@
             targetScale = 1.22;
         };
 
-        stage.addEventListener("pointerenter", handleEnter);
-        stage.addEventListener("pointermove", handleMove);
-        stage.addEventListener("pointerleave", handleLeave);
-        stage.addEventListener("pointercancel", handleLeave);
+        target.addEventListener("pointerenter", handleEnter);
+        target.addEventListener("pointermove", handleMove);
+        target.addEventListener("pointerleave", handleLeave);
+        target.addEventListener("pointercancel", handleLeave);
         window.addEventListener("resize", syncBounds);
         window.addEventListener("scroll", syncBounds, { passive: true });
 
@@ -132,7 +134,7 @@
 
             renderGlow();
 
-            if (stage.isConnected) {
+            if (target.isConnected) {
                 window.requestAnimationFrame(animate);
             }
         };
@@ -141,7 +143,14 @@
     };
 
     const init = () => {
-        document.querySelectorAll(HERO_STAGE_SELECTOR).forEach(attachTracking);
+        const groupTargets = Array.from(
+            document.querySelectorAll(IMMERSIVE_GROUP_SELECTOR)
+        );
+        const fallbackStageTargets = Array.from(
+            document.querySelectorAll(HERO_STAGE_SELECTOR)
+        ).filter((stage) => !stage.closest(IMMERSIVE_GROUP_SELECTOR));
+
+        [...groupTargets, ...fallbackStageTargets].forEach(attachTracking);
     };
 
     if (document.readyState === "loading") {

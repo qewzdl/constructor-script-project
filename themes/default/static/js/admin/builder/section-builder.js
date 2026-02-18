@@ -68,6 +68,20 @@
             : Object.keys(sectionDefinitions || {});
         const normaliseTypeValue = (value) =>
             utils.normaliseString(value).trim().toLowerCase();
+        const normaliseBackgroundGroupToken = (value) =>
+            utils.normaliseString(value)
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9_-]+/g, '-')
+                .replace(/-{2,}/g, '-')
+                .replace(/^-+|-+$/g, '');
+        const normaliseBackgroundStyleToken = (value) =>
+            utils.normaliseString(value)
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9_-]+/g, '-')
+                .replace(/-{2,}/g, '-')
+                .replace(/^-+|-+$/g, '');
         const getTypeVariations = (sectionType) => {
             const definition = sectionDefinitions?.[sectionType];
             if (!definition || !Array.isArray(definition.variations)) {
@@ -529,6 +543,131 @@
             sectionDefinitions,
             orderedSectionTypes,
             applyPaddingToAllSections: onApplyPaddingToAllSections,
+            applyBackgroundGroupToSections: ({
+                sectionClientIds,
+                groupValue,
+                previousGroup,
+                styleValue,
+            } = {}) => {
+                const selectedIds = new Set(
+                    Array.isArray(sectionClientIds)
+                        ? sectionClientIds
+                              .map((id) => utils.normaliseString(id))
+                              .filter(Boolean)
+                        : []
+                );
+                if (!selectedIds.size) {
+                    return '';
+                }
+
+                const normalisedGroup =
+                    normaliseBackgroundGroupToken(groupValue);
+                const normalisedPreviousGroup =
+                    normaliseBackgroundGroupToken(previousGroup);
+                const normalisedStyle =
+                    normaliseBackgroundStyleToken(styleValue);
+
+                state.getState().forEach((section) => {
+                    if (!section || !section.clientId) {
+                        return;
+                    }
+
+                    const hasSettings =
+                        section.settings &&
+                        typeof section.settings === 'object';
+                    if (!hasSettings) {
+                        section.settings = {};
+                    }
+
+                    const existingGroup = normaliseBackgroundGroupToken(
+                        section.settings?.background_group ??
+                            section.settings?.backgroundGroup
+                    );
+                    const isSelected = selectedIds.has(section.clientId);
+
+                    if (isSelected) {
+                        if (normalisedGroup) {
+                            section.settings.background_group = normalisedGroup;
+                        } else {
+                            delete section.settings.background_group;
+                        }
+                        if (section.settings.backgroundGroup !== undefined) {
+                            delete section.settings.backgroundGroup;
+                        }
+                        if (normalisedStyle) {
+                            section.settings.background_style = normalisedStyle;
+                        } else if (
+                            section.settings.background_style !== undefined
+                        ) {
+                            delete section.settings.background_style;
+                        }
+                        if (section.settings.backgroundStyle !== undefined) {
+                            delete section.settings.backgroundStyle;
+                        }
+                        return;
+                    }
+
+                    if (
+                        normalisedPreviousGroup &&
+                        existingGroup === normalisedPreviousGroup
+                    ) {
+                        delete section.settings.background_group;
+                        if (section.settings.backgroundGroup !== undefined) {
+                            delete section.settings.backgroundGroup;
+                        }
+                        delete section.settings.background_style;
+                        if (section.settings.backgroundStyle !== undefined) {
+                            delete section.settings.backgroundStyle;
+                        }
+                    }
+                });
+
+                render();
+                emitChange();
+                return normalisedGroup;
+            },
+            applyBackgroundStyleToGroup: ({ groupValue, styleValue } = {}) => {
+                const normalisedGroup =
+                    normaliseBackgroundGroupToken(groupValue);
+                if (!normalisedGroup) {
+                    return '';
+                }
+
+                const normalisedStyle =
+                    normaliseBackgroundStyleToken(styleValue);
+
+                state.getState().forEach((section) => {
+                    if (!section) {
+                        return;
+                    }
+                    const hasSettings =
+                        section.settings &&
+                        typeof section.settings === 'object';
+                    if (!hasSettings) {
+                        section.settings = {};
+                    }
+
+                    const existingGroup = normaliseBackgroundGroupToken(
+                        section.settings?.background_group ??
+                            section.settings?.backgroundGroup
+                    );
+                    if (existingGroup !== normalisedGroup) {
+                        return;
+                    }
+
+                    if (normalisedStyle) {
+                        section.settings.background_style = normalisedStyle;
+                    } else {
+                        delete section.settings.background_style;
+                    }
+                    if (section.settings.backgroundStyle !== undefined) {
+                        delete section.settings.backgroundStyle;
+                    }
+                });
+
+                emitChange();
+                return normalisedStyle;
+            },
         });
 
         const render = () => {

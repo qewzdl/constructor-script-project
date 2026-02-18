@@ -105,6 +105,44 @@
             .replace(/-{2,}/g, '-')
             .replace(/^-+|-+$/g, '');
 
+    const normaliseBackgroundGroupToken = (value) =>
+        normaliseString(value)
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '-')
+            .replace(/-{2,}/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+    const backgroundStyleOptions = [
+        { value: '', label: 'Theme default' },
+        { value: 'surface', label: 'Surface' },
+        { value: 'muted', label: 'Muted' },
+        { value: 'primary-soft', label: 'Primary soft' },
+        { value: 'accent-soft', label: 'Accent soft' },
+        { value: 'primary-gradient', label: 'Primary gradient' },
+        { value: 'accent-gradient', label: 'Accent gradient' },
+        { value: 'immersive', label: 'Immersive' },
+    ];
+
+    const normaliseBackgroundStyleToken = (value) =>
+        normaliseString(value)
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '-')
+            .replace(/-{2,}/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+    const describeBackgroundStyleValue = (value) => {
+        const normalised = normaliseBackgroundStyleToken(value);
+        const matched = backgroundStyleOptions.find(
+            (option) => option.value === normalised
+        );
+        if (matched?.label) {
+            return matched.label;
+        }
+        return normalised || 'Theme default';
+    };
+
     const collectVariationOptions = (definition) => {
         if (!Array.isArray(definition?.variations)) {
             return [];
@@ -803,6 +841,8 @@
         sectionDefinitions,
         orderedSectionTypes,
         applyPaddingToAllSections,
+        applyBackgroundGroupToSections,
+        applyBackgroundStyleToGroup,
     }) => {
         const resolveAllowedElements = createAllowedElementsResolver(sectionDefinitions);
         const isElementAllowed = (sectionType, elementType) => {
@@ -853,7 +893,27 @@
                 `Vertical padding: ${clampPaddingValue(section.paddingVertical)}px`
             );
             parts.push(
+                `Padding top: ${clampPaddingValue(
+                    section.paddingTop ?? section.paddingVertical
+                )}px`
+            );
+            parts.push(
+                `Padding bottom: ${clampPaddingValue(
+                    section.paddingBottom ?? section.paddingVertical
+                )}px`
+            );
+            parts.push(
                 `Vertical margin: ${clampMarginValue(section.marginVertical)}px`
+            );
+            parts.push(
+                `Margin top: ${clampMarginValue(
+                    section.marginTop ?? section.marginVertical
+                )}px`
+            );
+            parts.push(
+                `Margin bottom: ${clampMarginValue(
+                    section.marginBottom ?? section.marginVertical
+                )}px`
             );
             parts.push(`Animation: ${describeAnimationValue(section.animation)}`);
             parts.push(`Blur: ${isBlurEnabled(section.animationBlur) ? 'on' : 'off'}`);
@@ -887,6 +947,20 @@
             );
             if (variationLabel) {
                 parts.push(`Variation: ${variationLabel}`);
+            }
+            const backgroundGroup = normaliseBackgroundGroupToken(
+                section.settings?.background_group ??
+                    section.settings?.backgroundGroup
+            );
+            if (backgroundGroup) {
+                parts.push(`Background group: ${backgroundGroup}`);
+                const backgroundStyle = normaliseBackgroundStyleToken(
+                    section.settings?.background_style ??
+                        section.settings?.backgroundStyle
+                );
+                parts.push(
+                    `Background: ${describeBackgroundStyleValue(backgroundStyle)}`
+                );
             }
             const displayModeDefinition = sectionDefinition?.settings?.display_mode;
             if (displayModeDefinition?.options?.length) {
@@ -927,6 +1001,8 @@
             onChange,
             onClose,
             applyPaddingToAllSections: applyPaddingCallback,
+            applyBackgroundGroupToSections: applyBackgroundGroupCallback,
+            applyBackgroundStyleToGroup: applyBackgroundStyleCallback,
         }) => {
             if (!sectionItem || !section) {
                 return () => {};
@@ -1696,6 +1772,349 @@
                 });
             }
 
+            const initialBackgroundGroup = normaliseBackgroundGroupToken(
+                section.settings?.background_group ??
+                    section.settings?.backgroundGroup
+            );
+            const initialBackgroundStyle = normaliseBackgroundStyleToken(
+                section.settings?.background_style ??
+                    section.settings?.backgroundStyle
+            );
+            if (section.settings?.backgroundGroup !== undefined) {
+                delete section.settings.backgroundGroup;
+            }
+            if (section.settings?.backgroundStyle !== undefined) {
+                delete section.settings.backgroundStyle;
+            }
+            const applyCurrentBackgroundGroup = (value) => {
+                const nextGroup = normaliseBackgroundGroupToken(value);
+                section.settings = section.settings || {};
+                if (nextGroup) {
+                    section.settings.background_group = nextGroup;
+                } else {
+                    delete section.settings.background_group;
+                }
+                if (section.settings.backgroundGroup !== undefined) {
+                    delete section.settings.backgroundGroup;
+                }
+                sectionItem.dataset.sectionBackgroundGroup = nextGroup;
+                return nextGroup;
+            };
+            const applyCurrentBackgroundStyle = (value) => {
+                const nextStyle = normaliseBackgroundStyleToken(value);
+                section.settings = section.settings || {};
+                if (nextStyle) {
+                    section.settings.background_style = nextStyle;
+                } else {
+                    delete section.settings.background_style;
+                }
+                if (section.settings.backgroundStyle !== undefined) {
+                    delete section.settings.backgroundStyle;
+                }
+                sectionItem.dataset.sectionBackgroundStyle = nextStyle;
+                return nextStyle;
+            };
+            applyCurrentBackgroundGroup(initialBackgroundGroup);
+            applyCurrentBackgroundStyle(initialBackgroundStyle);
+
+            const backgroundGroupField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            backgroundGroupField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Background group',
+                })
+            );
+            const backgroundGroupInput = createElement('input', {
+                className: 'admin-builder__input',
+            });
+            backgroundGroupInput.type = 'text';
+            backgroundGroupInput.placeholder = 'e.g. hero-surface';
+            backgroundGroupInput.value = initialBackgroundGroup;
+            backgroundGroupInput.dataset.field = 'section-setting-background_group';
+            backgroundGroupInput.addEventListener('input', () => {
+                const nextGroup = applyCurrentBackgroundGroup(
+                    backgroundGroupInput.value
+                );
+                if (backgroundGroupInput.value !== nextGroup) {
+                    backgroundGroupInput.value = nextGroup;
+                }
+                scheduleChange();
+            });
+            backgroundGroupField.append(backgroundGroupInput);
+            const backgroundStyleSelect = createElement('select', {
+                className: 'admin-builder__select',
+            });
+            backgroundStyleSelect.dataset.field = 'section-setting-background_style';
+            const knownStyleValues = new Set();
+            backgroundStyleOptions.forEach((option) => {
+                const optionValue = normaliseBackgroundStyleToken(option.value);
+                knownStyleValues.add(optionValue);
+                const optionNode = createElement('option', {
+                    value: optionValue,
+                    textContent: option.label,
+                });
+                backgroundStyleSelect.append(optionNode);
+            });
+            if (
+                initialBackgroundStyle &&
+                !knownStyleValues.has(initialBackgroundStyle)
+            ) {
+                backgroundStyleSelect.append(
+                    createElement('option', {
+                        value: initialBackgroundStyle,
+                        textContent: `Custom (${initialBackgroundStyle})`,
+                    })
+                );
+            }
+            backgroundStyleSelect.value = initialBackgroundStyle;
+            backgroundStyleSelect.addEventListener('change', () => {
+                let nextStyle = applyCurrentBackgroundStyle(
+                    backgroundStyleSelect.value
+                );
+                const activeGroup = normaliseBackgroundGroupToken(
+                    backgroundGroupInput.value
+                );
+                if (
+                    activeGroup &&
+                    typeof applyBackgroundStyleCallback === 'function'
+                ) {
+                    const appliedStyle = applyBackgroundStyleCallback({
+                        groupValue: activeGroup,
+                        styleValue: nextStyle,
+                    });
+                    nextStyle = applyCurrentBackgroundStyle(
+                        appliedStyle || nextStyle
+                    );
+                }
+                if (backgroundStyleSelect.value !== nextStyle) {
+                    backgroundStyleSelect.value = nextStyle;
+                }
+                scheduleChange();
+            });
+            backgroundGroupField.append(backgroundStyleSelect);
+            const backgroundGroupActions = createElement('div', {
+                className: 'admin-builder__field-actions',
+            });
+            const backgroundGroupPickerButton = createElement('button', {
+                className: 'admin-builder__anchor-button',
+                textContent: 'Select sections',
+            });
+            backgroundGroupPickerButton.type = 'button';
+            backgroundGroupPickerButton.disabled =
+                typeof applyBackgroundGroupCallback !== 'function';
+            backgroundGroupActions.append(backgroundGroupPickerButton);
+            backgroundGroupField.append(backgroundGroupActions);
+            backgroundGroupField.append(
+                createElement('p', {
+                    className: 'admin-builder__hint',
+                    textContent:
+                        'Sections in one group share one continuous background and style.',
+                })
+            );
+            appendField(backgroundGroupField);
+
+            const openBackgroundGroupPicker = () => {
+                const sectionNodes = Array.from(
+                    document.querySelectorAll('[data-section-client]')
+                );
+                if (!sectionNodes.length) {
+                    window.alert('No sections found on this page.');
+                    return;
+                }
+
+                const previousFocus = document.activeElement;
+                const currentGroup = normaliseBackgroundGroupToken(
+                    backgroundGroupInput.value
+                );
+                const overlay = createElement('div', {
+                    className: 'anchor-picker-overlay',
+                });
+                const modal = createElement('div', {
+                    className: 'anchor-picker-modal',
+                });
+                const header = createElement('div', {
+                    className: 'anchor-picker-header',
+                });
+                const titleNode = createElement('h3', {
+                    className: 'anchor-picker-title',
+                    textContent: 'Select sections for this background',
+                });
+                header.append(titleNode);
+                const list = createElement('div', {
+                    className: 'anchor-picker-list',
+                });
+
+                sectionNodes.forEach((node, index) => {
+                    const sectionClientId = normaliseString(
+                        node.dataset.sectionClient
+                    );
+                    if (!sectionClientId) {
+                        return;
+                    }
+
+                    const sectionType = normaliseString(
+                        node.dataset.sectionType
+                    ).trim();
+                    const sectionId = normaliseString(
+                        node.dataset.sectionId
+                    ).trim();
+                    const sectionTitleInput = node.querySelector(
+                        '[data-field="section-title"]'
+                    );
+                    const rawTitle = normaliseString(
+                        sectionTitleInput?.value
+                    ).trim();
+                    const displayTitle =
+                        rawTitle || `Section ${index + 1}`;
+                    const sectionGroup = normaliseBackgroundGroupToken(
+                        node.dataset.sectionBackgroundGroup
+                    );
+                    const shouldSelect = currentGroup
+                        ? sectionGroup === currentGroup
+                        : sectionClientId === section.clientId;
+
+                    const item = createElement('label', {
+                        className:
+                            'anchor-picker-item anchor-picker-item--selectable',
+                    });
+                    const checkbox = createElement('input', {
+                        className: 'anchor-picker-checkbox',
+                        attributes: {
+                            type: 'checkbox',
+                        },
+                    });
+                    checkbox.dataset.sectionClient = sectionClientId;
+                    checkbox.checked = shouldSelect;
+
+                    const body = createElement('div');
+                    const itemTitle = createElement('div', {
+                        className: 'anchor-picker-item-title',
+                        textContent: displayTitle,
+                    });
+                    body.append(itemTitle);
+
+                    const meta = createElement('div', {
+                        className: 'anchor-picker-item-meta',
+                    });
+                    if (sectionType) {
+                        meta.append(
+                            createElement('span', {
+                                textContent: `Type: ${sectionType}`,
+                            })
+                        );
+                    }
+                    if (sectionId) {
+                        meta.append(
+                            createElement('code', {
+                                className: 'anchor-picker-item-code',
+                                textContent: sectionId,
+                            })
+                        );
+                    }
+                    if (sectionGroup) {
+                        meta.append(
+                            createElement('span', {
+                                textContent: `Group: ${sectionGroup}`,
+                            })
+                        );
+                    }
+                    if (meta.childElementCount > 0) {
+                        body.append(meta);
+                    }
+
+                    item.append(checkbox, body);
+                    list.append(item);
+                });
+
+                if (!list.childElementCount) {
+                    window.alert('No sections found on this page.');
+                    return;
+                }
+
+                const footer = createElement('div', {
+                    className: 'anchor-picker-footer',
+                });
+                const cancelButton = createElement('button', {
+                    className: 'admin-builder__button',
+                    textContent: 'Cancel',
+                });
+                cancelButton.type = 'button';
+                const applyButton = createElement('button', {
+                    className:
+                        'admin-builder__button admin-builder__button--primary',
+                    textContent: 'Apply',
+                });
+                applyButton.type = 'button';
+                footer.append(cancelButton, applyButton);
+
+                const closePicker = () => {
+                    if (!document.body.contains(overlay)) {
+                        return;
+                    }
+                    document.body.removeChild(overlay);
+                    if (previousFocus && typeof previousFocus.focus === 'function') {
+                        previousFocus.focus();
+                    }
+                };
+
+                cancelButton.addEventListener('click', closePicker);
+                overlay.addEventListener('click', (event) => {
+                    if (event.target === overlay) {
+                        closePicker();
+                    }
+                });
+                applyButton.addEventListener('click', () => {
+                    const selectedSectionClientIds = Array.from(
+                        list.querySelectorAll('.anchor-picker-checkbox:checked')
+                    )
+                        .map((input) => normaliseString(input.dataset.sectionClient))
+                        .filter(Boolean);
+
+                    if (!selectedSectionClientIds.length) {
+                        window.alert('Select at least one section.');
+                        return;
+                    }
+
+                    let nextGroup = normaliseBackgroundGroupToken(
+                        backgroundGroupInput.value
+                    );
+                    if (!nextGroup) {
+                        nextGroup = normaliseBackgroundGroupToken(
+                            section.id || section.title || section.clientId
+                        );
+                    }
+                    if (!nextGroup) {
+                        nextGroup = `bg-group-${Date.now().toString(36)}`;
+                    }
+
+                    const appliedGroup = applyBackgroundGroupCallback({
+                        sectionClientIds: selectedSectionClientIds,
+                        groupValue: nextGroup,
+                        previousGroup: currentGroup,
+                        styleValue: backgroundStyleSelect.value,
+                    });
+                    const resolvedGroup = applyCurrentBackgroundGroup(
+                        appliedGroup || nextGroup
+                    );
+                    backgroundGroupInput.value = resolvedGroup;
+                    scheduleChange();
+                    closePicker();
+                });
+
+                modal.append(header, list, footer);
+                overlay.append(modal);
+                document.body.append(overlay);
+            };
+            backgroundGroupPickerButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                if (typeof applyBackgroundGroupCallback !== 'function') {
+                    return;
+                }
+                openBackgroundGroupPicker();
+            });
+
             const animationValue = normaliseAnimationValue(section.animation);
             const animationField = createElement('label', {
                 className: 'admin-builder__field',
@@ -1833,7 +2252,7 @@
 
             if (typeof applyPaddingCallback === 'function') {
                 const defaultLabel = 'Apply to all page sections';
-                const loadingLabel = 'Applying…';
+                const loadingLabel = 'Applying...';
 
                 const bulkActions = createElement('div', {
                     className: 'admin-builder__field-actions',
@@ -1886,6 +2305,136 @@
             }
 
             appendSpacingField(paddingField);
+
+            const paddingTopValue = clampPaddingValue(
+                section.paddingTop ?? section.paddingVertical
+            );
+            const paddingTopField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            paddingTopField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Padding top',
+                })
+            );
+            const paddingTopRangeWrapper = createElement('div', {
+                className: 'admin-builder__range',
+            });
+            const paddingTopRangeInput = createElement('input', {
+                className: 'admin-builder__range-input',
+            });
+            paddingTopRangeInput.type = 'range';
+            paddingTopRangeInput.min = '0';
+            paddingTopRangeInput.max = String(paddingOptions.length - 1);
+            paddingTopRangeInput.step = '1';
+            paddingTopRangeInput.dataset.field = 'section-padding-top';
+            paddingTopRangeInput.dataset.options = paddingOptions.join(',');
+            const paddingTopRangeIndex = paddingIndexForValue(paddingTopValue);
+            paddingTopRangeInput.value = String(paddingTopRangeIndex);
+            paddingTopRangeInput.setAttribute(
+                'aria-valuemin',
+                String(paddingOptions[0])
+            );
+            paddingTopRangeInput.setAttribute(
+                'aria-valuemax',
+                String(paddingOptions[paddingOptions.length - 1])
+            );
+            paddingTopRangeInput.setAttribute(
+                'aria-valuenow',
+                String(paddingTopValue)
+            );
+            paddingTopRangeInput.setAttribute(
+                'aria-valuetext',
+                `${paddingTopValue} pixels`
+            );
+            const paddingTopRangeValue = createElement('span', {
+                className: 'admin-builder__range-value',
+                textContent: `${paddingTopValue}px`,
+            });
+            paddingTopRangeValue.dataset.role = 'section-padding-top-value';
+            paddingTopRangeWrapper.append(paddingTopRangeInput, paddingTopRangeValue);
+            paddingTopRangeInput.addEventListener('input', () => {
+                const currentValue = paddingValueForIndex(paddingTopRangeInput.value);
+                paddingTopRangeValue.textContent = `${currentValue}px`;
+                paddingTopRangeInput.setAttribute('aria-valuenow', String(currentValue));
+                paddingTopRangeInput.setAttribute(
+                    'aria-valuetext',
+                    `${currentValue} pixels`
+                );
+                scheduleChange();
+            });
+            paddingTopField.append(paddingTopRangeWrapper);
+            appendSpacingField(paddingTopField);
+
+            const paddingBottomValue = clampPaddingValue(
+                section.paddingBottom ?? section.paddingVertical
+            );
+            const paddingBottomField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            paddingBottomField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Padding bottom',
+                })
+            );
+            const paddingBottomRangeWrapper = createElement('div', {
+                className: 'admin-builder__range',
+            });
+            const paddingBottomRangeInput = createElement('input', {
+                className: 'admin-builder__range-input',
+            });
+            paddingBottomRangeInput.type = 'range';
+            paddingBottomRangeInput.min = '0';
+            paddingBottomRangeInput.max = String(paddingOptions.length - 1);
+            paddingBottomRangeInput.step = '1';
+            paddingBottomRangeInput.dataset.field = 'section-padding-bottom';
+            paddingBottomRangeInput.dataset.options = paddingOptions.join(',');
+            const paddingBottomRangeIndex = paddingIndexForValue(paddingBottomValue);
+            paddingBottomRangeInput.value = String(paddingBottomRangeIndex);
+            paddingBottomRangeInput.setAttribute(
+                'aria-valuemin',
+                String(paddingOptions[0])
+            );
+            paddingBottomRangeInput.setAttribute(
+                'aria-valuemax',
+                String(paddingOptions[paddingOptions.length - 1])
+            );
+            paddingBottomRangeInput.setAttribute(
+                'aria-valuenow',
+                String(paddingBottomValue)
+            );
+            paddingBottomRangeInput.setAttribute(
+                'aria-valuetext',
+                `${paddingBottomValue} pixels`
+            );
+            const paddingBottomRangeValue = createElement('span', {
+                className: 'admin-builder__range-value',
+                textContent: `${paddingBottomValue}px`,
+            });
+            paddingBottomRangeValue.dataset.role = 'section-padding-bottom-value';
+            paddingBottomRangeWrapper.append(
+                paddingBottomRangeInput,
+                paddingBottomRangeValue
+            );
+            paddingBottomRangeInput.addEventListener('input', () => {
+                const currentValue = paddingValueForIndex(
+                    paddingBottomRangeInput.value
+                );
+                paddingBottomRangeValue.textContent = `${currentValue}px`;
+                paddingBottomRangeInput.setAttribute(
+                    'aria-valuenow',
+                    String(currentValue)
+                );
+                paddingBottomRangeInput.setAttribute(
+                    'aria-valuetext',
+                    `${currentValue} pixels`
+                );
+                scheduleChange();
+            });
+            paddingBottomField.append(paddingBottomRangeWrapper);
+            appendSpacingField(paddingBottomField);
 
             const marginValue = clampMarginValue(section.marginVertical);
             const marginField = createElement('label', {
@@ -1942,6 +2491,136 @@
             });
             marginField.append(marginRangeWrapper);
             appendSpacingField(marginField);
+
+            const marginTopValue = clampMarginValue(
+                section.marginTop ?? section.marginVertical
+            );
+            const marginTopField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            marginTopField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Margin top',
+                })
+            );
+            const marginTopRangeWrapper = createElement('div', {
+                className: 'admin-builder__range',
+            });
+            const marginTopRangeInput = createElement('input', {
+                className: 'admin-builder__range-input',
+            });
+            marginTopRangeInput.type = 'range';
+            marginTopRangeInput.min = '0';
+            marginTopRangeInput.max = String(marginOptions.length - 1);
+            marginTopRangeInput.step = '1';
+            marginTopRangeInput.dataset.field = 'section-margin-top';
+            marginTopRangeInput.dataset.options = marginOptions.join(',');
+            const marginTopRangeIndex = marginIndexForValue(marginTopValue);
+            marginTopRangeInput.value = String(marginTopRangeIndex);
+            marginTopRangeInput.setAttribute(
+                'aria-valuemin',
+                String(marginOptions[0])
+            );
+            marginTopRangeInput.setAttribute(
+                'aria-valuemax',
+                String(marginOptions[marginOptions.length - 1])
+            );
+            marginTopRangeInput.setAttribute(
+                'aria-valuenow',
+                String(marginTopValue)
+            );
+            marginTopRangeInput.setAttribute(
+                'aria-valuetext',
+                `${marginTopValue} pixels`
+            );
+            const marginTopRangeValue = createElement('span', {
+                className: 'admin-builder__range-value',
+                textContent: `${marginTopValue}px`,
+            });
+            marginTopRangeValue.dataset.role = 'section-margin-top-value';
+            marginTopRangeWrapper.append(marginTopRangeInput, marginTopRangeValue);
+            marginTopRangeInput.addEventListener('input', () => {
+                const currentValue = marginValueForIndex(marginTopRangeInput.value);
+                marginTopRangeValue.textContent = `${currentValue}px`;
+                marginTopRangeInput.setAttribute('aria-valuenow', String(currentValue));
+                marginTopRangeInput.setAttribute(
+                    'aria-valuetext',
+                    `${currentValue} pixels`
+                );
+                scheduleChange();
+            });
+            marginTopField.append(marginTopRangeWrapper);
+            appendSpacingField(marginTopField);
+
+            const marginBottomValue = clampMarginValue(
+                section.marginBottom ?? section.marginVertical
+            );
+            const marginBottomField = createElement('label', {
+                className: 'admin-builder__field',
+            });
+            marginBottomField.append(
+                createElement('span', {
+                    className: 'admin-builder__label',
+                    textContent: 'Margin bottom',
+                })
+            );
+            const marginBottomRangeWrapper = createElement('div', {
+                className: 'admin-builder__range',
+            });
+            const marginBottomRangeInput = createElement('input', {
+                className: 'admin-builder__range-input',
+            });
+            marginBottomRangeInput.type = 'range';
+            marginBottomRangeInput.min = '0';
+            marginBottomRangeInput.max = String(marginOptions.length - 1);
+            marginBottomRangeInput.step = '1';
+            marginBottomRangeInput.dataset.field = 'section-margin-bottom';
+            marginBottomRangeInput.dataset.options = marginOptions.join(',');
+            const marginBottomRangeIndex = marginIndexForValue(marginBottomValue);
+            marginBottomRangeInput.value = String(marginBottomRangeIndex);
+            marginBottomRangeInput.setAttribute(
+                'aria-valuemin',
+                String(marginOptions[0])
+            );
+            marginBottomRangeInput.setAttribute(
+                'aria-valuemax',
+                String(marginOptions[marginOptions.length - 1])
+            );
+            marginBottomRangeInput.setAttribute(
+                'aria-valuenow',
+                String(marginBottomValue)
+            );
+            marginBottomRangeInput.setAttribute(
+                'aria-valuetext',
+                `${marginBottomValue} pixels`
+            );
+            const marginBottomRangeValue = createElement('span', {
+                className: 'admin-builder__range-value',
+                textContent: `${marginBottomValue}px`,
+            });
+            marginBottomRangeValue.dataset.role = 'section-margin-bottom-value';
+            marginBottomRangeWrapper.append(
+                marginBottomRangeInput,
+                marginBottomRangeValue
+            );
+            marginBottomRangeInput.addEventListener('input', () => {
+                const currentValue = marginValueForIndex(
+                    marginBottomRangeInput.value
+                );
+                marginBottomRangeValue.textContent = `${currentValue}px`;
+                marginBottomRangeInput.setAttribute(
+                    'aria-valuenow',
+                    String(currentValue)
+                );
+                marginBottomRangeInput.setAttribute(
+                    'aria-valuetext',
+                    `${currentValue} pixels`
+                );
+                scheduleChange();
+            });
+            marginBottomField.append(marginBottomRangeWrapper);
+            appendSpacingField(marginBottomField);
 
             const footer = createElement('div', {
                 className: 'admin-builder__settings-footer',
@@ -2112,6 +2791,18 @@
             sectionItem.dataset.sectionClient = section.clientId;
             sectionItem.dataset.sectionIndex = String(index);
             sectionItem.dataset.sectionType = section.type;
+            const sectionBackgroundGroupToken = normaliseBackgroundGroupToken(
+                section.settings?.background_group ??
+                    section.settings?.backgroundGroup
+            );
+            sectionItem.dataset.sectionBackgroundGroup =
+                sectionBackgroundGroupToken;
+            const sectionBackgroundStyleToken = normaliseBackgroundStyleToken(
+                section.settings?.background_style ??
+                    section.settings?.backgroundStyle
+            );
+            sectionItem.dataset.sectionBackgroundStyle =
+                sectionBackgroundStyleToken;
             const isDisabled = Boolean(section.disabled);
             sectionItem.dataset.sectionDisabled = String(isDisabled);
             if (isDisabled) {
@@ -2523,6 +3214,8 @@
                         onChange: updateSettingsSummary,
                         onClose: updateSettingsSummary,
                         applyPaddingToAllSections,
+                        applyBackgroundGroupToSections,
+                        applyBackgroundStyleToGroup,
                     });
                 });
 

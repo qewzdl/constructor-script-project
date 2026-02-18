@@ -126,6 +126,46 @@ func TestPrepareSections_UsesVariationFromSettingsFallback(t *testing.T) {
 	}
 }
 
+func TestPrepareSections_NormalisesSideSpacingValues(t *testing.T) {
+	paddingTop := 33
+	paddingBottom := 7
+	marginTop := -5
+	marginBottom := 129
+	sections := []models.Section{
+		{
+			Type:          "standard",
+			PaddingTop:    &paddingTop,
+			PaddingBottom: &paddingBottom,
+			MarginTop:     &marginTop,
+			MarginBottom:  &marginBottom,
+		},
+	}
+
+	prepared, err := PrepareSections(sections, nil, PrepareSectionsOptions{
+		NormaliseSpacing: true,
+	})
+	if err != nil {
+		t.Fatalf("expected sections to be prepared, got error: %v", err)
+	}
+	if len(prepared) != 1 {
+		t.Fatalf("expected 1 section, got %d", len(prepared))
+	}
+
+	section := prepared[0]
+	if section.PaddingTop == nil || *section.PaddingTop != 32 {
+		t.Fatalf("expected padding top to normalise to 32, got %#v", section.PaddingTop)
+	}
+	if section.PaddingBottom == nil || *section.PaddingBottom != 8 {
+		t.Fatalf("expected padding bottom to normalise to 8, got %#v", section.PaddingBottom)
+	}
+	if section.MarginTop == nil || *section.MarginTop != 0 {
+		t.Fatalf("expected margin top to normalise to 0, got %#v", section.MarginTop)
+	}
+	if section.MarginBottom == nil || *section.MarginBottom != 128 {
+		t.Fatalf("expected margin bottom to normalise to 128, got %#v", section.MarginBottom)
+	}
+}
+
 func TestPrepareSections_NormalisesSectionSettingsUsingDefinitions(t *testing.T) {
 	sections := []models.Section{
 		{

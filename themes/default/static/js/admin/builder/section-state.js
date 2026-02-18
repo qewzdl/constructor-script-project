@@ -201,6 +201,13 @@
         return newSectionDefaultPadding;
     };
 
+    const normalisePaddingSideValue = (value, fallback) => {
+        if (value === undefined || value === null || value === '') {
+            return clampPaddingValue(Number(fallback));
+        }
+        return normalisePaddingValue(value);
+    };
+
     const clampMarginValue = (value) => {
         if (!marginOptions.length) {
             return 0;
@@ -239,6 +246,13 @@
             }
         }
         return newSectionDefaultMargin;
+    };
+
+    const normaliseMarginSideValue = (value, fallback) => {
+        if (value === undefined || value === null || value === '') {
+            return clampMarginValue(Number(fallback));
+        }
+        return normaliseMarginValue(value);
     };
 
     const createElementState = (definitions, element = {}) => {
@@ -320,6 +334,22 @@
         return fallback || '';
     };
 
+    const normaliseBackgroundGroupToken = (value) =>
+        normaliseString(value)
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '-')
+            .replace(/-{2,}/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+    const normaliseBackgroundStyleToken = (value) =>
+        normaliseString(value)
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '-')
+            .replace(/-{2,}/g, '-')
+            .replace(/^-+|-+$/g, '');
+
     const createSectionState = (
         elementDefinitions,
         sectionDefinitions,
@@ -373,12 +403,48 @@
             section.padding_vertical ??
             section.Padding_vertical;
         const paddingVertical = normalisePaddingValue(paddingSource);
+        const paddingTopSource =
+            section.paddingTop ??
+            section.PaddingTop ??
+            section.padding_top ??
+            section.Padding_top;
+        const paddingBottomSource =
+            section.paddingBottom ??
+            section.PaddingBottom ??
+            section.padding_bottom ??
+            section.Padding_bottom;
+        const paddingTop = normalisePaddingSideValue(
+            paddingTopSource,
+            paddingVertical
+        );
+        const paddingBottom = normalisePaddingSideValue(
+            paddingBottomSource,
+            paddingVertical
+        );
         const marginSource =
             section.marginVertical ??
             section.MarginVertical ??
             section.margin_vertical ??
             section.Margin_vertical;
         const marginVertical = normaliseMarginValue(marginSource);
+        const marginTopSource =
+            section.marginTop ??
+            section.MarginTop ??
+            section.margin_top ??
+            section.Margin_top;
+        const marginBottomSource =
+            section.marginBottom ??
+            section.MarginBottom ??
+            section.margin_bottom ??
+            section.Margin_bottom;
+        const marginTop = normaliseMarginSideValue(
+            marginTopSource,
+            marginVertical
+        );
+        const marginBottom = normaliseMarginSideValue(
+            marginBottomSource,
+            marginVertical
+        );
         const animation = normaliseAnimationValue(
             section.animation ??
                 section.Animation ??
@@ -408,6 +474,28 @@
             '';
         delete settings.variation;
         delete settings.Variation;
+        const backgroundGroupSource =
+            settings.background_group ?? settings.backgroundGroup ?? '';
+        const backgroundGroup = normaliseBackgroundGroupToken(
+            backgroundGroupSource
+        );
+        if (backgroundGroup) {
+            settings.background_group = backgroundGroup;
+        } else {
+            delete settings.background_group;
+        }
+        delete settings.backgroundGroup;
+        const backgroundStyleSource =
+            settings.background_style ?? settings.backgroundStyle ?? '';
+        const backgroundStyle = normaliseBackgroundStyleToken(
+            backgroundStyleSource
+        );
+        if (backgroundStyle) {
+            settings.background_style = backgroundStyle;
+        } else {
+            delete settings.background_style;
+        }
+        delete settings.backgroundStyle;
         const variation = normaliseVariationValue(
             sectionDefinitions[type],
             variationSource
@@ -440,7 +528,11 @@
             disabled,
             styleGridItems,
             paddingVertical,
+            paddingTop,
+            paddingBottom,
             marginVertical,
+            marginTop,
+            marginBottom,
             animation,
             animationBlur,
             settings,
@@ -532,6 +624,31 @@
                     };
                     normaliseTextPositionSetting('title_position', 'titlePosition');
                     normaliseTextPositionSetting('description_position', 'descriptionPosition');
+                    const normaliseTokenSetting = (
+                        snakeKey,
+                        camelKey,
+                        normaliseToken
+                    ) => {
+                        const value = normaliseToken(
+                            settings[snakeKey] ?? settings[camelKey]
+                        );
+                        if (value) {
+                            settings[snakeKey] = value;
+                        } else {
+                            delete settings[snakeKey];
+                        }
+                        delete settings[camelKey];
+                    };
+                    normaliseTokenSetting(
+                        'background_group',
+                        'backgroundGroup',
+                        normaliseBackgroundGroupToken
+                    );
+                    normaliseTokenSetting(
+                        'background_style',
+                        'backgroundStyle',
+                        normaliseBackgroundStyleToken
+                    );
                     const hasSettings = Object.keys(settings).length > 0;
 
                     let elements = nilSlice;
@@ -627,12 +744,36 @@
                         section.variation = payload.variation;
                     }
 
-                    payload.padding_vertical = clampPaddingValue(
+                    const paddingVertical = clampPaddingValue(
                         Number(section.paddingVertical)
                     );
-                    payload.margin_vertical = clampMarginValue(
+                    const paddingTop = clampPaddingValue(
+                        Number(section.paddingTop ?? paddingVertical)
+                    );
+                    const paddingBottom = clampPaddingValue(
+                        Number(section.paddingBottom ?? paddingVertical)
+                    );
+                    const marginVertical = clampMarginValue(
                         Number(section.marginVertical)
                     );
+                    const marginTop = clampMarginValue(
+                        Number(section.marginTop ?? marginVertical)
+                    );
+                    const marginBottom = clampMarginValue(
+                        Number(section.marginBottom ?? marginVertical)
+                    );
+                    section.paddingVertical = paddingVertical;
+                    section.paddingTop = paddingTop;
+                    section.paddingBottom = paddingBottom;
+                    section.marginVertical = marginVertical;
+                    section.marginTop = marginTop;
+                    section.marginBottom = marginBottom;
+                    payload.padding_vertical = paddingVertical;
+                    payload.padding_top = paddingTop;
+                    payload.padding_bottom = paddingBottom;
+                    payload.margin_vertical = marginVertical;
+                    payload.margin_top = marginTop;
+                    payload.margin_bottom = marginBottom;
                     payload.animation = normaliseAnimationValue(section.animation);
                     payload.animation_blur = normaliseAnimationBlurValue(
                         section.animationBlur
@@ -686,7 +827,11 @@
             );
             section.elements = [];
             section.paddingVertical = clampPaddingValue(newSectionDefaultPadding);
+            section.paddingTop = section.paddingVertical;
+            section.paddingBottom = section.paddingVertical;
             section.marginVertical = clampMarginValue(newSectionDefaultMargin);
+            section.marginTop = section.marginVertical;
+            section.marginBottom = section.marginVertical;
             section.animation = normaliseAnimationValue(defaultAnimation);
             section.animationBlur = normaliseAnimationBlurValue(defaultAnimationBlur);
             sections.push(section);
@@ -910,11 +1055,47 @@
                 if (!section.settings) {
                     section.settings = {};
                 }
-                section.settings[settingKey] = value;
+                if (settingKey === 'background_group') {
+                    const normalisedGroup = normaliseBackgroundGroupToken(value);
+                    if (normalisedGroup) {
+                        section.settings[settingKey] = normalisedGroup;
+                    } else {
+                        delete section.settings[settingKey];
+                    }
+                    if (section.settings.backgroundGroup !== undefined) {
+                        delete section.settings.backgroundGroup;
+                    }
+                } else if (settingKey === 'background_style') {
+                    const normalisedStyle = normaliseBackgroundStyleToken(value);
+                    if (normalisedStyle) {
+                        section.settings[settingKey] = normalisedStyle;
+                    } else {
+                        delete section.settings[settingKey];
+                    }
+                    if (section.settings.backgroundStyle !== undefined) {
+                        delete section.settings.backgroundStyle;
+                    }
+                } else {
+                    section.settings[settingKey] = value;
+                }
             } else if (field === 'section-padding-vertical') {
-                section.paddingVertical = clampPaddingValue(Number(value));
+                const normalisedPadding = clampPaddingValue(Number(value));
+                section.paddingVertical = normalisedPadding;
+                section.paddingTop = normalisedPadding;
+                section.paddingBottom = normalisedPadding;
+            } else if (field === 'section-padding-top') {
+                section.paddingTop = clampPaddingValue(Number(value));
+            } else if (field === 'section-padding-bottom') {
+                section.paddingBottom = clampPaddingValue(Number(value));
             } else if (field === 'section-margin-vertical') {
-                section.marginVertical = clampMarginValue(Number(value));
+                const normalisedMargin = clampMarginValue(Number(value));
+                section.marginVertical = normalisedMargin;
+                section.marginTop = normalisedMargin;
+                section.marginBottom = normalisedMargin;
+            } else if (field === 'section-margin-top') {
+                section.marginTop = clampMarginValue(Number(value));
+            } else if (field === 'section-margin-bottom') {
+                section.marginBottom = clampMarginValue(Number(value));
             } else if (field === 'section-animation') {
                 section.animation = normaliseAnimationValue(value);
             } else if (field === 'section-animation-blur') {

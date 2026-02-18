@@ -116,7 +116,11 @@ func PrepareSections(sections []models.Section, manager *theme.Manager, opts Pre
 				}
 			}
 			section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical, defaultPadding)
+			section.PaddingTop = normaliseSectionPaddingSide(section.PaddingTop)
+			section.PaddingBottom = normaliseSectionPaddingSide(section.PaddingBottom)
 			section.MarginVertical = normaliseSectionMargin(section.MarginVertical)
+			section.MarginTop = normaliseSectionMarginSide(section.MarginTop)
+			section.MarginBottom = normaliseSectionMarginSide(section.MarginBottom)
 		}
 
 		section.Type = sectionType
@@ -287,6 +291,14 @@ func normaliseSectionPadding(value *int, defaultPadding int) *int {
 	return intPtr(normalised)
 }
 
+func normaliseSectionPaddingSide(value *int) *int {
+	if value == nil {
+		return nil
+	}
+	normalised := clampSectionPaddingValue(*value)
+	return intPtr(normalised)
+}
+
 func clampSectionMarginValue(value int) int {
 	options := constants.SectionMarginOptions()
 	if len(options) == 0 {
@@ -312,6 +324,14 @@ func clampSectionMarginValue(value int) int {
 }
 
 func normaliseSectionMargin(value *int) *int {
+	if value == nil {
+		return nil
+	}
+	normalised := clampSectionMarginValue(*value)
+	return intPtr(normalised)
+}
+
+func normaliseSectionMarginSide(value *int) *int {
 	if value == nil {
 		return nil
 	}
@@ -724,7 +744,11 @@ func NormaliseSections(sections models.PostSections) models.PostSections {
 		}
 
 		section.PaddingVertical = normaliseSectionPadding(section.PaddingVertical, constants.DefaultSectionPadding)
+		section.PaddingTop = normaliseSectionPaddingSide(section.PaddingTop)
+		section.PaddingBottom = normaliseSectionPaddingSide(section.PaddingBottom)
 		section.MarginVertical = normaliseSectionMargin(section.MarginVertical)
+		section.MarginTop = normaliseSectionMarginSide(section.MarginTop)
+		section.MarginBottom = normaliseSectionMarginSide(section.MarginBottom)
 
 		if len(section.Elements) > 0 {
 			elements := make([]models.SectionElement, 0, len(section.Elements))

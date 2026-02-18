@@ -26,8 +26,279 @@
     text-align: right;
 }
 
-.page-view__section:nth-child(2n) {
+.page-view__sections > .page-view__section:nth-child(2n) {
     background-color: var(--color-bg-top);
+}
+
+.page-view__section-group {
+    display: flow-root;
+}
+
+.page-view__section-group--background {
+    background: var(--page-view-section-group-background, var(--color-bg-top));
+}
+
+.page-view__section-group--style-surface {
+    --page-view-section-group-background: var(--color-bg-top);
+}
+
+.page-view__section-group--style-muted {
+    --page-view-section-group-background: color-mix(
+        in srgb,
+        var(--color-bg-bottom) 78%,
+        var(--color-bg-top) 22%
+    );
+}
+
+.page-view__section-group--style-primary-soft {
+    --page-view-section-group-background: color-mix(
+        in srgb,
+        var(--color-primary) 10%,
+        var(--color-bg-top) 90%
+    );
+}
+
+.page-view__section-group--style-accent-soft {
+    --page-view-section-group-background: color-mix(
+        in srgb,
+        var(--color-accent) 10%,
+        var(--color-bg-top) 90%
+    );
+}
+
+.page-view__section-group--style-primary-gradient {
+    --page-view-section-group-background:
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--color-primary) 16%, transparent) 0%,
+            color-mix(in srgb, var(--color-primary) 4%, transparent) 100%
+        ),
+        var(--color-bg-top);
+}
+
+.page-view__section-group--style-accent-gradient {
+    --page-view-section-group-background:
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--color-accent) 16%, transparent) 0%,
+            color-mix(in srgb, var(--color-accent) 4%, transparent) 100%
+        ),
+        var(--color-bg-top);
+}
+
+.page-view__section-group--style-immersive {
+    --page-view-section-group-background:
+        linear-gradient(
+            108deg,
+            rgba(2, 6, 23, 0.93) 0%,
+            rgba(2, 6, 23, 0.82) 46%,
+            rgba(2, 6, 23, 0.34) 100%
+        ),
+        radial-gradient(
+            circle at 20% 24%,
+            color-mix(in srgb, var(--color-primary) 36%, transparent) 0%,
+            transparent 40%
+        ),
+        radial-gradient(
+            circle at 76% 68%,
+            color-mix(in srgb, var(--color-accent, #60a5fa) 34%, transparent) 0%,
+            transparent 38%
+        ),
+        radial-gradient(
+            circle at 38% 82%,
+            color-mix(in srgb, var(--color-primary) 26%, transparent) 0%,
+            transparent 34%
+        ),
+        radial-gradient(
+            circle at 84% 22%,
+            color-mix(in srgb, var(--color-accent, #60a5fa) 24%, transparent) 0%,
+            transparent 32%
+        ),
+        var(--color-bg-bottom-dark);
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background-size: auto, 140% 140%, 140% 140%, 130% 130%, 126% 126%, auto;
+    background-position: 0 0, 0% 0%, 100% 100%, 20% 82%, 84% 18%, 0 0;
+    animation: page-view-section-group-immersive-background-drift 44s ease-in-out infinite;
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive::before {
+    content: "";
+    position: absolute;
+    top: 10%;
+    left: 12%;
+    width: clamp(220px, 30vw, 420px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--color-primary) 50%, transparent) 0%,
+        transparent 72%
+    );
+    opacity: 0.44;
+    z-index: 0;
+    pointer-events: none;
+    will-change: top, left, transform, opacity;
+    animation: page-view-section-group-immersive-drift 34s ease-in-out infinite;
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive::after {
+    content: "";
+    position: absolute;
+    top: 78%;
+    left: 22%;
+    width: clamp(140px, 18vw, 300px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--color-accent, #60a5fa) 50%, transparent) 0%,
+        transparent 74%
+    );
+    opacity: 0.24;
+    z-index: 0;
+    pointer-events: none;
+    will-change: top, left, transform, opacity;
+    animation:
+        page-view-section-group-immersive-drift-secondary 41s ease-in-out infinite,
+        page-view-section-group-immersive-blink 9s ease-in-out infinite;
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive > .page-view__section {
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes page-view-section-group-immersive-background-drift {
+    0% {
+        background-position: 0 0, 0% 0%, 100% 100%, 20% 82%, 84% 18%, 0 0;
+    }
+    24% {
+        background-position: 0 0, 6% 4%, 92% 88%, 26% 76%, 78% 24%, 0 0;
+    }
+    48% {
+        background-position: 0 0, 10% 8%, 88% 84%, 30% 70%, 72% 30%, 0 0;
+    }
+    72% {
+        background-position: 0 0, 4% 12%, 94% 78%, 24% 66%, 80% 36%, 0 0;
+    }
+    100% {
+        background-position: 0 0, 0% 0%, 100% 100%, 20% 82%, 84% 18%, 0 0;
+    }
+}
+
+@keyframes page-view-section-group-immersive-drift {
+    0% {
+        top: 10%;
+        left: 12%;
+        opacity: 0.38;
+        transform: translate(-50%, -50%) scale(0.94);
+    }
+    20% {
+        top: 16%;
+        left: 86%;
+        opacity: 0.26;
+        transform: translate(-50%, -50%) scale(1.06);
+    }
+    40% {
+        top: 80%;
+        left: 88%;
+        opacity: 0.34;
+        transform: translate(-50%, -50%) scale(1.12);
+    }
+    60% {
+        top: 84%;
+        left: 14%;
+        opacity: 0.35;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    80% {
+        top: 48%;
+        left: 52%;
+        opacity: 0.29;
+        transform: translate(-50%, -50%) scale(1.02);
+    }
+    100% {
+        top: 10%;
+        left: 12%;
+        opacity: 0.38;
+        transform: translate(-50%, -50%) scale(0.94);
+    }
+}
+
+@keyframes page-view-section-group-immersive-drift-secondary {
+    0% {
+        top: 78%;
+        left: 22%;
+        opacity: 0.2;
+        transform: translate(-50%, -50%) scale(0.86);
+    }
+    22% {
+        top: 24%;
+        left: 18%;
+        opacity: 0.28;
+        transform: translate(-50%, -50%) scale(1.02);
+    }
+    45% {
+        top: 14%;
+        left: 76%;
+        opacity: 0.22;
+        transform: translate(-50%, -50%) scale(0.94);
+    }
+    68% {
+        top: 64%;
+        left: 88%;
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(1.08);
+    }
+    86% {
+        top: 86%;
+        left: 54%;
+        opacity: 0.18;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    100% {
+        top: 78%;
+        left: 22%;
+        opacity: 0.2;
+        transform: translate(-50%, -50%) scale(0.86);
+    }
+}
+
+@keyframes page-view-section-group-immersive-blink {
+    0%,
+    32%,
+    62%,
+    100% {
+        opacity: 0.1;
+    }
+    16%,
+    48% {
+        opacity: 0.58;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-view__section-group--background.page-view__section-group--style-immersive {
+        animation: none;
+    }
+
+    .page-view__section-group--background.page-view__section-group--style-immersive::before,
+    .page-view__section-group--background.page-view__section-group--style-immersive::after {
+        animation: none;
+    }
+}
+
+.page-view__section-group > .page-view__section {
+    background-color: transparent;
+}
+
+.page-view__section-group > .page-view__section:nth-child(2n) {
+    background-color: transparent;
 }
 
 .page-view__header-container {

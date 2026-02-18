@@ -20,6 +20,10 @@ This will use environment variables for database credentials and JWT secret. For
 - `make run` – run the API locally.
 - `docker-compose up` – start the PostgreSQL + API stack defined for development. Credentials can be customized via `.env` file.
 
+## Section variations
+
+For the streamlined section variation workflow (auto-discovered CSS + scaffolding command), see [docs/section-variations-workflow.md](docs/section-variations-workflow.md).
+
 ## Logging
 
 The backend uses structured logging (zerolog). By default logs are written to stdout, but you can write logs to a file by setting the `LOG_FILE` environment variable. The file will be created (if it doesn't exist) and opened in append mode.

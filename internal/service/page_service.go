@@ -409,8 +409,20 @@ func (s *PageService) UpdateAllSectionPadding(padding int) (int, int, int, error
 		changed := false
 		for j := range page.Sections {
 			section := &page.Sections[j]
+			sectionChanged := false
 			if section.PaddingVertical == nil || *section.PaddingVertical != normalized {
 				section.PaddingVertical = intPtr(normalized)
+				sectionChanged = true
+			}
+			if section.PaddingTop == nil || *section.PaddingTop != normalized {
+				section.PaddingTop = intPtr(normalized)
+				sectionChanged = true
+			}
+			if section.PaddingBottom == nil || *section.PaddingBottom != normalized {
+				section.PaddingBottom = intPtr(normalized)
+				sectionChanged = true
+			}
+			if sectionChanged {
 				changed = true
 				sectionsUpdated++
 			}

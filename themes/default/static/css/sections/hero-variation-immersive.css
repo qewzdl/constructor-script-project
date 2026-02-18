@@ -3,6 +3,11 @@
     background: var(--color-bg-bottom-dark);
 }
 
+.page-view__section-group--background.page-view__section-group--style-immersive
+    .page-view__section--hero.page-view__section--variation-immersive {
+    background: transparent;
+}
+
 .page-view__section--hero.page-view__section--variation-immersive .page-view__section-container {
     max-width: none;
 }
@@ -69,7 +74,8 @@
         page-view-hero-immersive-blink 9s ease-in-out infinite;
 }
 
-.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow {
+.page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow,
+.page-view__section-group--background.page-view__section-group--style-immersive .page-view__hero-cursor-glow {
     position: absolute;
     top: 0;
     left: 0;
@@ -122,6 +128,21 @@
         radial-gradient(circle at 76% 68%, color-mix(in srgb, var(--color-accent, #60a5fa) 54%, #ffffff 46%) 0%, transparent 34%);
     opacity: 0.2;
     animation: page-view-hero-immersive-constellation-a 44s ease-in-out infinite;
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive
+    .page-view__section--hero.page-view__section--variation-immersive
+    .page-view__hero-stage::before,
+.page-view__section-group--background.page-view__section-group--style-immersive
+    .page-view__section--hero.page-view__section--variation-immersive
+    .page-view__hero-stage::after {
+    display: none;
+}
+
+.page-view__section-group--background.page-view__section-group--style-immersive
+    .page-view__section--hero.page-view__section--variation-immersive
+    .page-view__hero-overlay {
+    display: none;
 }
 
 .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-container--immersive {
@@ -348,14 +369,16 @@
         border-radius: 20px;
     }
 
-    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow {
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow,
+    .page-view__section-group--background.page-view__section-group--style-immersive .page-view__hero-cursor-glow {
         width: clamp(180px, 34vw, 280px);
         filter: blur(38px) saturate(1.18);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow {
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow,
+    .page-view__section-group--background.page-view__section-group--style-immersive .page-view__hero-cursor-glow {
         display: none;
     }
 }
@@ -383,7 +406,8 @@
         width: 100%;
     }
 
-    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow {
+    .page-view__section--hero.page-view__section--variation-immersive .page-view__hero-cursor-glow,
+    .page-view__section-group--background.page-view__section-group--style-immersive .page-view__hero-cursor-glow {
         display: none;
     }
 }
