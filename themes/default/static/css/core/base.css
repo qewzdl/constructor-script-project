@@ -3312,13 +3312,6 @@ body.course-modal-open {
     height: 100%;
 }
 
-@media (min-width: 768px) {
-    .course-modal__content {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-        align-items: start;
-    }
-}
-
 @media (max-width: 768px) {
     .course-modal__media {
         height: 200px;
@@ -3347,6 +3340,7 @@ body.course-modal-open {
     height: 100%;
     border-radius: var(--size-sm);
     object-fit: cover;
+    aspect-ratio: 16 / 9;
 }
 
 .course-modal__title {

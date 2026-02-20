@@ -3605,23 +3605,10 @@
                 descriptionField.append(descriptionInput);
                 contentPanel.append(descriptionField);
 
-                const settingsSummary = createElement('p', {
-                    className:
-                        'admin-builder__settings-summary admin-builder__settings-summary--inline',
-                });
-                const updateSettingsSummary = () => {
-                    settingsSummary.textContent = formatSettingsSummary(
-                        section,
-                        sectionDefinition
-                    );
-                };
-                updateSettingsSummary();
-                settingsPanel.append(settingsSummary);
                 const inlineSettings = createSectionSettingsModal({
                     sectionItem,
                     section,
                     sectionDefinition,
-                    onChange: updateSettingsSummary,
                     applyPaddingToAllSections,
                     applyBackgroundGroupToSections,
                     applyBackgroundStyleToGroup,
@@ -3675,8 +3662,22 @@
                         const elementActions = createElement('div', {
                             className: 'admin-builder__element-actions',
                         });
+                        const elementActionsMenu = createElement('details', {
+                            className: 'admin-builder__section-actions-menu',
+                        });
+                        const elementActionsToggle = createElement('summary', {
+                            className:
+                                'admin-builder__button admin-builder__button--ghost admin-builder__section-actions-toggle',
+                            attributes: {
+                                'aria-label': 'Element actions',
+                                title: 'Element actions',
+                            },
+                        });
+                        const elementActionsList = createElement('div', {
+                            className: 'admin-builder__section-actions-list',
+                        });
                         const moveUpButton = createElement('button', {
-                            className: 'admin-builder__element-move',
+                            className: 'admin-builder__button',
                             textContent: 'Move up',
                         });
                         moveUpButton.type = 'button';
@@ -3685,7 +3686,7 @@
                         moveUpButton.dataset.role = 'element-move-up';
                         moveUpButton.disabled = renderedIndex <= 1;
                         const moveDownButton = createElement('button', {
-                            className: 'admin-builder__element-move',
+                            className: 'admin-builder__button',
                             textContent: 'Move down',
                         });
                         moveDownButton.type = 'button';
@@ -3694,12 +3695,21 @@
                         moveDownButton.dataset.role = 'element-move-down';
                         moveDownButton.disabled = renderedIndex >= filteredElements.length;
                         const removeElementButton = createElement('button', {
-                            className: 'admin-builder__element-remove',
+                            className: 'admin-builder__remove',
                             textContent: 'Remove',
                         });
                         removeElementButton.type = 'button';
                         removeElementButton.dataset.action = 'element-remove';
-                        elementActions.append(moveUpButton, moveDownButton, removeElementButton);
+                        elementActionsList.append(
+                            moveUpButton,
+                            moveDownButton,
+                            removeElementButton
+                        );
+                        elementActionsMenu.append(
+                            elementActionsToggle,
+                            elementActionsList
+                        );
+                        elementActions.append(elementActionsMenu);
                         elementHeader.append(elementTitle, elementActions);
                         elementNode.append(elementHeader);
 

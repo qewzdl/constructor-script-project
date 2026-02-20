@@ -11,5 +11,16 @@
     .admin-builder__settings-button {
         width: 100%;
     }
+
+    .admin-builder__section-tabs {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-builder__section-tab {
+        width: 100%;
+        text-align: center;
+    }
 }
 

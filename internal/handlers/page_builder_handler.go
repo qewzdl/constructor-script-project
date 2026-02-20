@@ -13,13 +13,21 @@ import (
 )
 
 type PageBuilderHandler struct {
-	pageService *service.PageService
+	pageService     *service.PageService
+	templateHandler *TemplateHandler
 }
 
 func NewPageBuilderHandler(pageService *service.PageService) *PageBuilderHandler {
 	return &PageBuilderHandler{
 		pageService: pageService,
 	}
+}
+
+func (h *PageBuilderHandler) SetTemplateHandler(templateHandler *TemplateHandler) {
+	if h == nil {
+		return
+	}
+	h.templateHandler = templateHandler
 }
 
 // GetPageBuilder returns page data optimized for the page builder UI.
@@ -275,7 +283,8 @@ func (h *PageBuilderHandler) CreateFromTemplate(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"page": page})
 }
 
-// PreviewPage returns page data formatted for preview mode.
+// PreviewPage renders a page preview in HTML by default.
+// If `format=json` is requested, it returns the preview payload in JSON.
 // GET /api/admin/pages/:id/preview
 func (h *PageBuilderHandler) PreviewPage(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -287,6 +296,20 @@ func (h *PageBuilderHandler) PreviewPage(c *gin.Context) {
 	page, err := h.pageService.GetByIDAdmin(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "page not found"})
+		return
+	}
+
+	wantsJSON := strings.EqualFold(strings.TrimSpace(c.Query("format")), "json")
+	if !wantsJSON {
+		accept := strings.ToLower(strings.TrimSpace(c.GetHeader("Accept")))
+		if strings.Contains(accept, "application/json") &&
+			!strings.Contains(accept, "text/html") {
+			wantsJSON = true
+		}
+	}
+
+	if !wantsJSON && h.templateHandler != nil {
+		h.templateHandler.renderPageByTemplate(c, page)
 		return
 	}
 

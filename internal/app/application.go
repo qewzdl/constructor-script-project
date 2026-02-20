@@ -1130,6 +1130,9 @@ func (a *Application) initHandlers() error {
 	}
 
 	a.templateHandler = templateHandler
+	if a.handlers.PageBuilder != nil {
+		a.handlers.PageBuilder.SetTemplateHandler(a.templateHandler)
+	}
 
 	a.handlers.Font = handlers.NewFontHandler(a.services.Font)
 
