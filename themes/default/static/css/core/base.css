@@ -1919,12 +1919,12 @@ textarea.form-field__input {
 
 .post-card__figure {
     margin: 0;
-    height: 200px;
 }
 
 .post-card__image {
     width: 100%;
     height: 100%;
+    aspect-ratio: 16 / 9;
     object-fit: cover;
     border-radius: var(--size-xs);
     pointer-events: none;
@@ -3613,10 +3613,6 @@ body.course-modal-open {
 @media (max-width: 640px) {
     body > header {
         position: static;
-    }
-
-    .post-card__image {
-        height: 180px;
     }
 
     .post-card__meta {
