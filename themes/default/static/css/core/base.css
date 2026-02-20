@@ -1980,6 +1980,10 @@ textarea.form-field__input {
     margin-bottom: 1.4rem;
 }
 
+.page-view__course-description.post-card__description {
+    display: none;
+}
+
 .post-card__meta {
     display: flex;
     flex-wrap: wrap;
