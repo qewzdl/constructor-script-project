@@ -14,6 +14,10 @@
     border: 0;
 }
 
+#admin-page-form .admin-form__section--sections {
+    padding: 0;
+}
+
 .admin-form__section--sections {
     gap: var(--size-base);
 }
