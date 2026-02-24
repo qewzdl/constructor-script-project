@@ -1,9 +1,14 @@
 {{- $endpoints := .AdminEndpoints -}}
 <section
-    class="admin"
+    class="admin{{ if .PageEditorStandalone }} admin--page-editor-mode{{ end }}"
     role="region"
     aria-labelledby="admin-title"
     data-page="admin"
+    data-page-editor-standalone="{{ if .PageEditorStandalone }}true{{ else }}false{{ end }}"
+    data-page-editor-base-path="/admin/pages"
+    {{- with .PageEditorID }}
+    data-page-editor-id="{{ . }}"
+    {{- end }}
     data-blog-enabled="{{ if .BlogEnabled }}true{{ else }}false{{ end }}"
     data-courses-enabled="{{ if .CoursesEnabled }}true{{ else }}false{{ end }}"
     data-forum-enabled="{{ if .ForumEnabled }}true{{ else }}false{{ end }}"
@@ -73,10 +78,14 @@
     <script type="application/json" id="builder-config-data">
         {{ .BuilderConfigJSON }}
     </script>
+    {{ if not .PageEditorStandalone }}
     {{ template "components/admin-sidebar" . }}
+    {{ end }}
 
     <div class="admin__content">
+        {{ if not .PageEditorStandalone }}
         {{ template "components/admin-header" . }}
+        {{ end }}
 
         <div class="admin__alert" id="admin-alert" role="status" aria-live="assertive" hidden></div>
 

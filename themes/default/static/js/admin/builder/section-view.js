@@ -3091,7 +3091,24 @@
                 sectionItem.dataset.sectionId = section.id;
             }
 
-            const sectionDefinition = sectionDefinitions?.[section.type] || {};
+                const sectionDefinition = sectionDefinitions?.[section.type] || {};
+                const sectionTypeLabel = normaliseString(
+                    sectionDefinition.label
+                ).trim();
+                const sectionTitleText = normaliseString(section.title).trim();
+                const sectionVariationValue = normaliseVariationValue(
+                    sectionDefinition,
+                    section.variation
+                );
+                if (sectionTypeLabel) {
+                    sectionItem.dataset.sectionTypeLabel = sectionTypeLabel;
+                }
+                if (sectionTitleText) {
+                    sectionItem.dataset.sectionTitle = sectionTitleText;
+                }
+                if (sectionVariationValue) {
+                    sectionItem.dataset.sectionVariation = sectionVariationValue;
+                }
                 const allowElements = sectionDefinition.supportsElements !== false;
                 const isFirstSection = index === 0;
                 const isLastSection = index === totalSections - 1;
@@ -3207,9 +3224,7 @@
                       ).length
                     : 0;
                 const collapsedSummaryParts = [];
-                const sectionTypeLabel = normaliseString(sectionDefinition.label).trim();
                 collapsedSummaryParts.push(sectionTypeLabel || section.type || 'Section');
-                const sectionTitleText = normaliseString(section.title).trim();
                 if (sectionTitleText) {
                     collapsedSummaryParts.push(sectionTitleText);
                 }

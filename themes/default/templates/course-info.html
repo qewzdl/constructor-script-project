@@ -1,0 +1,101 @@
+<section class="course-info" aria-labelledby="course-info-title">
+    {{- $package := .CoursePackage -}}
+    <div class="course-info__container">
+        <nav class="course-info__breadcrumbs" aria-label="Course navigation">
+            <a class="link course-info__breadcrumb-link" href="/">Catalog</a>
+            <span class="course-info__breadcrumb-separator" aria-hidden="true">/</span>
+            <span class="course-info__breadcrumb-current">{{ default "Course" $package.Title }}</span>
+        </nav>
+
+        <header class="course-info__hero">
+            {{- if $package.ImageURL }}
+            <figure class="course-info__media">
+                <img
+                    class="course-info__image"
+                    src="{{ asset $package.ImageURL }}"
+                    alt="{{ default "Course cover" $package.Title }}"
+                    loading="lazy"
+                />
+            </figure>
+            {{- end }}
+
+            <div class="course-info__hero-content">
+                <h1 id="course-info-title" class="course-info__title">{{ default "Untitled course" $package.Title }}</h1>
+
+                {{- if .CourseInfoSummary }}
+                <div class="course-info__summary">{{ .CourseInfoSummary }}</div>
+                {{- end }}
+
+                <ul class="course-info__stats" aria-label="Course summary">
+                    {{- if gt .CourseTopicCount 0 }}
+                    <li class="course-info__stats-item">
+                        {{ .CourseTopicCount }} topic{{ if ne .CourseTopicCount 1 }}s{{ end }}
+                    </li>
+                    {{- end }}
+                    {{- if gt .CourseLessonCount 0 }}
+                    <li class="course-info__stats-item">
+                        {{ .CourseLessonCount }} lesson{{ if ne .CourseLessonCount 1 }}s{{ end }}
+                    </li>
+                    {{- end }}
+                    {{- if .CourseDurationLabel }}
+                    <li class="course-info__stats-item">{{ .CourseDurationLabel }}</li>
+                    {{- end }}
+                </ul>
+
+                {{- if .CoursePriceLabel }}
+                <div class="course-info__price-block" aria-label="Course price">
+                    <span class="course-info__price-current">{{ .CoursePriceLabel }}</span>
+                    {{- if .CourseOriginalPrice }}
+                    <span class="course-info__price-original">{{ .CourseOriginalPrice }}</span>
+                    {{- end }}
+                </div>
+                {{- end }}
+
+                <div class="course-info__actions">
+                    {{- if .CourseHasAccess }}
+                    <a class="button button--primary" href="{{ .CoursePlayerPath }}">Open course</a>
+                    <span class="course-info__hint">Access already granted for your account.</span>
+                    {{- else if not .IsAuthenticated }}
+                    <a class="button button--primary" href="{{ .CourseLoginPath }}">Sign in to buy</a>
+                    <span class="course-info__hint">Sign in to continue to checkout.</span>
+                    {{- else if .CourseCheckoutEnabled }}
+                    <a class="button button--primary" href="{{ .CourseBuyPath }}">Buy course</a>
+                    <span class="course-info__hint">You will be redirected to secure checkout.</span>
+                    {{- else }}
+                    <span class="course-info__hint">Checkout is temporarily unavailable.</span>
+                    {{- end }}
+                </div>
+            </div>
+        </header>
+
+        {{- if .CourseInfoHasDescription }}
+        <section class="course-info__section" aria-labelledby="course-info-description-title">
+            <h2 id="course-info-description-title" class="course-info__section-title">About this course</h2>
+            <div class="course-info__description">{{ .CourseInfoDescription }}</div>
+        </section>
+        {{- end }}
+
+        {{- if .CourseInfoTopics }}
+        <section class="course-info__section" aria-labelledby="course-info-topics-title">
+            <h2 id="course-info-topics-title" class="course-info__section-title">Course topics</h2>
+            <ul class="course-info__topics">
+                {{- range .CourseInfoTopics }}
+                <li class="course-info__topic">
+                    <h3 class="course-info__topic-title">{{ .Title }}</h3>
+                    {{- if or .LessonLabel .DurationLabel }}
+                    <p class="course-info__topic-meta">
+                        {{- if .LessonLabel }}{{ .LessonLabel }}{{- end }}
+                        {{- if and .LessonLabel .DurationLabel }} &middot; {{- end }}
+                        {{- if .DurationLabel }}{{ .DurationLabel }}{{- end }}
+                    </p>
+                    {{- end }}
+                    {{- if .DescriptionHTML }}
+                    <div class="course-info__topic-description">{{ .DescriptionHTML }}</div>
+                    {{- end }}
+                </li>
+                {{- end }}
+            </ul>
+        </section>
+        {{- end }}
+    </div>
+</section>

@@ -106,7 +106,6 @@
 }
 
 .admin-builder__settings-body {
-    padding: var(--size-base);
     display: grid;
     gap: var(--size-base);
     overflow-y: auto;

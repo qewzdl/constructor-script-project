@@ -4,10 +4,11 @@
     {{ template "components/document-head" (dict "Context" . "Lang" $lang) }}
 
     <body
-        class="layout layout--admin"
+        class="layout layout--admin{{ if .PageEditorStandalone }} admin-layout--page-editor-mode{{ end }}"
         data-authenticated="{{ if .IsAuthenticated }}true{{ else }}false{{ end }}"
         {{ with .CurrentUser }}data-user-role="{{ .Role }}" data-user-id="{{ .ID }}"{{ end }}
     >
+        {{ if not .PageEditorStandalone }}
         <header class="admin-layout__header" role="banner">
             <a
                 href="{{ if .Site.URL }}{{ .Site.URL }}{{ else }}/{{ end }}"
@@ -16,6 +17,7 @@
                 Back to {{ .Site.Name }}
             </a>
         </header>
+        {{ end }}
 
         <main id="main-content" class="main admin-layout__main" role="main">{{ .Content }}</main>
 

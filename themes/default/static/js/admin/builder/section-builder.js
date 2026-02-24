@@ -605,6 +605,147 @@
         };
 
         let collapseAllButton = null;
+        let sectionSearchInput = null;
+        let sectionHideDisabledButton = null;
+        let sectionFilterSummary = null;
+        let filteredSectionsEmptyState = null;
+        let sectionSearchQuery = '';
+        let hideDisabledSections = false;
+
+        const buildSectionSearchValue = (sectionNode) => {
+            if (!sectionNode) {
+                return '';
+            }
+            return [
+                utils.normaliseString(sectionNode.dataset.sectionTitle)
+                    .trim()
+                    .toLowerCase(),
+                utils.normaliseString(sectionNode.dataset.sectionTypeLabel)
+                    .trim()
+                    .toLowerCase(),
+                utils.normaliseString(sectionNode.dataset.sectionType)
+                    .trim()
+                    .toLowerCase(),
+                utils.normaliseString(sectionNode.dataset.sectionVariation)
+                    .trim()
+                    .toLowerCase(),
+            ]
+                .filter(Boolean)
+                .join(' ');
+        };
+
+        const getFilteredSectionsEmptyStateMessage = () => {
+            const hasQuery = Boolean(
+                utils.normaliseString(sectionSearchQuery).trim()
+            );
+            if (hasQuery && hideDisabledSections) {
+                return 'No sections match the current search and enabled-only filter.';
+            }
+            if (hasQuery) {
+                return 'No sections match this search.';
+            }
+            if (hideDisabledSections) {
+                return 'All sections are disabled. Use "Show disabled" to view them.';
+            }
+            return 'No sections match the current filters.';
+        };
+
+        const updateSectionFilterControls = ({
+            totalSections = 0,
+            visibleSections = 0,
+            disabledSections = 0,
+        } = {}) => {
+            if (sectionHideDisabledButton) {
+                const toggleLabel = hideDisabledSections
+                    ? disabledSections > 0
+                        ? `Show disabled (${disabledSections})`
+                        : 'Show disabled'
+                    : disabledSections > 0
+                    ? `Hide disabled (${disabledSections})`
+                    : 'Hide disabled';
+                sectionHideDisabledButton.textContent = toggleLabel;
+                sectionHideDisabledButton.setAttribute(
+                    'aria-pressed',
+                    hideDisabledSections ? 'true' : 'false'
+                );
+                sectionHideDisabledButton.disabled =
+                    totalSections === 0 ||
+                    (!hideDisabledSections && disabledSections === 0);
+            }
+
+            if (!sectionFilterSummary) {
+                return;
+            }
+            if (totalSections === 0) {
+                sectionFilterSummary.textContent = 'No sections yet';
+                return;
+            }
+            if (
+                visibleSections === totalSections &&
+                !utils.normaliseString(sectionSearchQuery).trim() &&
+                !hideDisabledSections
+            ) {
+                sectionFilterSummary.textContent =
+                    totalSections === 1
+                        ? '1 section total'
+                        : `${totalSections} sections total`;
+                return;
+            }
+            sectionFilterSummary.textContent =
+                visibleSections === 1
+                    ? 'Showing 1 section'
+                    : `Showing ${visibleSections} of ${totalSections}`;
+        };
+
+        const applySectionFilters = () => {
+            const sectionItems = Array.from(
+                sectionList.querySelectorAll('[data-section-client]')
+            );
+            const normalisedQuery = utils
+                .normaliseString(sectionSearchQuery)
+                .trim()
+                .toLowerCase();
+            let visibleSections = 0;
+            let disabledSections = 0;
+
+            sectionItems.forEach((sectionItem) => {
+                const isDisabled =
+                    utils.normaliseString(sectionItem.dataset.sectionDisabled) ===
+                    'true';
+                if (isDisabled) {
+                    disabledSections += 1;
+                }
+                const searchValue = buildSectionSearchValue(sectionItem);
+                const matchesQuery =
+                    !normalisedQuery || searchValue.includes(normalisedQuery);
+                const matchesDisabledFilter =
+                    !hideDisabledSections || !isDisabled;
+                const shouldShow = matchesQuery && matchesDisabledFilter;
+                sectionItem.hidden = !shouldShow;
+                if (shouldShow) {
+                    visibleSections += 1;
+                }
+            });
+
+            updateSectionFilterControls({
+                totalSections: sectionItems.length,
+                visibleSections,
+                disabledSections,
+            });
+
+            if (!filteredSectionsEmptyState) {
+                return;
+            }
+            const shouldShowFilteredState =
+                sectionItems.length > 0 && visibleSections === 0;
+            filteredSectionsEmptyState.hidden = !shouldShowFilteredState;
+            if (!shouldShowFilteredState) {
+                return;
+            }
+            filteredSectionsEmptyState.textContent =
+                getFilteredSectionsEmptyStateMessage();
+            sectionList.append(filteredSectionsEmptyState);
+        };
 
         const view = viewModule.createView({
             listElement: sectionList,
@@ -758,6 +899,7 @@
             syncCollapsedSections();
             view.render(state.getState());
             updateCollapseAllButton();
+            applySectionFilters();
         };
 
         const emitChange = () => {
@@ -950,6 +1092,25 @@
             );
         };
 
+        const syncSectionFilterMetadata = (sectionClientId, field, value) => {
+            const sectionClient = utils.normaliseString(sectionClientId).trim();
+            if (!sectionClient || field !== 'section-title') {
+                return;
+            }
+            const sectionNode = sectionList.querySelector(
+                `[data-section-client="${sectionClient}"]`
+            );
+            if (!sectionNode) {
+                return;
+            }
+            const nextTitle = utils.normaliseString(value).trim();
+            if (nextTitle) {
+                sectionNode.dataset.sectionTitle = nextTitle;
+                return;
+            }
+            delete sectionNode.dataset.sectionTitle;
+        };
+
         const updateElementField = (
             sectionClientId,
             elementClientId,
@@ -967,6 +1128,39 @@
         };
 
         if (addSectionButton.parentElement) {
+            const actionsContainer = addSectionButton.parentElement;
+            const filters = utils.createElement('div', {
+                className: 'section-builder__filters',
+            });
+            sectionSearchInput = utils.createElement('input', {
+                className: 'section-builder__search',
+                type: 'search',
+                placeholder: 'Search sections',
+                autocomplete: 'off',
+                attributes: {
+                    'aria-label': 'Search sections by title, type, or variation',
+                },
+            });
+            sectionHideDisabledButton = utils.createElement('button', {
+                className: 'section-builder__add section-builder__add--secondary',
+                type: 'button',
+                textContent: 'Hide disabled',
+                attributes: {
+                    'aria-pressed': 'false',
+                },
+            });
+            sectionFilterSummary = utils.createElement('span', {
+                className: 'section-builder__stats',
+                attributes: {
+                    'aria-live': 'polite',
+                },
+            });
+            filters.append(
+                sectionSearchInput,
+                sectionHideDisabledButton,
+                sectionFilterSummary
+            );
+
             collapseAllButton = utils.createElement('button', {
                 className: 'section-builder__add section-builder__add--secondary',
                 type: 'button',
@@ -978,10 +1172,23 @@
                 setAllSectionsCollapsed(shouldCollapse);
                 render();
             });
-            addSectionButton.parentElement.insertBefore(
-                collapseAllButton,
-                addSectionButton
-            );
+            filteredSectionsEmptyState = utils.createElement('li', {
+                className: 'section-builder__empty section-builder__empty--filtered',
+            });
+            filteredSectionsEmptyState.hidden = true;
+
+            sectionSearchInput.addEventListener('input', (event) => {
+                sectionSearchQuery = utils.normaliseString(event.target?.value);
+                applySectionFilters();
+            });
+            sectionHideDisabledButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                hideDisabledSections = !hideDisabledSections;
+                applySectionFilters();
+            });
+
+            builderRoot.insertBefore(filters, sectionList);
+            actionsContainer.insertBefore(collapseAllButton, addSectionButton);
         }
 
         addSectionButton.addEventListener('click', (event) => {
@@ -1012,6 +1219,9 @@
                 const needsRender = updateSectionField(sectionClientId, field, value);
                 if (needsRender) {
                     render();
+                } else {
+                    syncSectionFilterMetadata(sectionClientId, field, value);
+                    applySectionFilters();
                 }
                 emitChange();
             },

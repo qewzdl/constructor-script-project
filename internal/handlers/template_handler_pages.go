@@ -2070,6 +2070,345 @@ func (h *TemplateHandler) renderCheckoutStatusPage(c *gin.Context, page checkout
 	h.renderTemplate(c, "course-checkout-status", title, description, data)
 }
 
+type courseInfoTopicData struct {
+	Title           string
+	DescriptionHTML template.HTML
+	LessonLabel     string
+	DurationLabel   string
+}
+
+func courseIdentifier(pkg models.CoursePackage) string {
+	slug := strings.TrimSpace(pkg.Slug)
+	if slug != "" {
+		return slug
+	}
+	if pkg.ID > 0 {
+		return strconv.FormatUint(uint64(pkg.ID), 10)
+	}
+	return ""
+}
+
+func coursePlayerPath(pkg models.CoursePackage) string {
+	identifier := courseIdentifier(pkg)
+	if identifier == "" {
+		return "/courses"
+	}
+	return fmt.Sprintf("/courses/%s", identifier)
+}
+
+func courseInfoPath(pkg models.CoursePackage) string {
+	identifier := courseIdentifier(pkg)
+	if identifier == "" {
+		return "/courses"
+	}
+	return fmt.Sprintf("/courses/%s/info", identifier)
+}
+
+func courseBuyPath(pkg models.CoursePackage) string {
+	identifier := courseIdentifier(pkg)
+	if identifier == "" {
+		return "/courses"
+	}
+	return fmt.Sprintf("/courses/%s/buy", identifier)
+}
+
+func buildCourseInfoTopics(h *TemplateHandler, pkg models.CoursePackage) []courseInfoTopicData {
+	if len(pkg.Topics) == 0 {
+		return nil
+	}
+
+	topics := make([]courseInfoTopicData, 0, len(pkg.Topics))
+	for _, topic := range pkg.Topics {
+		title := strings.TrimSpace(topic.Title)
+		if title == "" {
+			title = "Untitled topic"
+		}
+
+		description := strings.TrimSpace(topic.Summary)
+		if description == "" {
+			description = strings.TrimSpace(topic.Description)
+		}
+
+		descriptionHTML := template.HTML("")
+		if description != "" && h != nil {
+			sanitized := strings.TrimSpace(h.SanitizeHTML(description))
+			if sanitized != "" {
+				descriptionHTML = template.HTML(sanitized)
+			}
+		}
+
+		topicData := courseInfoTopicData{
+			Title:           title,
+			DescriptionHTML: descriptionHTML,
+		}
+
+		if lessonCount := countTopicLessons(topic); lessonCount > 0 {
+			topicData.LessonLabel = formatLessonCount(lessonCount)
+		}
+		if duration := courseTopicDuration(topic); duration > 0 {
+			topicData.DurationLabel = formatVideoDuration(duration)
+		}
+
+		topics = append(topics, topicData)
+	}
+
+	return topics
+}
+
+func courseTopicDuration(topic models.CourseTopic) int {
+	duration := 0
+	if len(topic.Steps) > 0 {
+		seen := make(map[uint]struct{})
+		for _, step := range topic.Steps {
+			if step.StepType != models.CourseTopicStepTypeVideo || step.Video == nil {
+				continue
+			}
+
+			video := *step.Video
+			if video.ID == 0 {
+				duration += video.DurationSeconds
+				continue
+			}
+
+			if _, exists := seen[video.ID]; exists {
+				continue
+			}
+			seen[video.ID] = struct{}{}
+			duration += video.DurationSeconds
+		}
+		return duration
+	}
+
+	for _, video := range topic.Videos {
+		duration += video.DurationSeconds
+	}
+	return duration
+}
+
+func (h *TemplateHandler) RenderCourseInfo(c *gin.Context) {
+	if h.coursePackageSvc == nil {
+		h.renderError(c, http.StatusServiceUnavailable, "Courses unavailable", "Course access is not configured.")
+		return
+	}
+
+	identifier := strings.TrimSpace(c.Param("slug"))
+	if identifier == "" {
+		h.renderError(c, http.StatusNotFound, "Course not found", "Requested course could not be found.")
+		return
+	}
+
+	pkg, err := h.coursePackageSvc.GetByIdentifier(identifier)
+	if err == nil && pkg == nil {
+		err = fmt.Errorf("course package was nil without error")
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			h.renderError(c, http.StatusNotFound, "Course not found", "The requested course could not be found.")
+			return
+		case courseservice.IsValidationError(err):
+			h.renderError(c, http.StatusBadRequest, "Course unavailable", err.Error())
+			return
+		default:
+			logger.Error(err, "Failed to load course package for info page", map[string]interface{}{"course_identifier": identifier})
+			h.renderError(c, http.StatusInternalServerError, "Course unavailable", "We couldn't load this course right now.")
+			return
+		}
+	}
+
+	slug := strings.TrimSpace(pkg.Slug)
+	if _, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil && slug != "" && !strings.EqualFold(slug, identifier) {
+		c.Redirect(http.StatusMovedPermanently, courseInfoPath(*pkg))
+		return
+	}
+
+	title := strings.TrimSpace(pkg.Title)
+	if title == "" {
+		title = "Course"
+	}
+
+	summaryText := strings.TrimSpace(pkg.Summary)
+	if summaryText == "" {
+		summaryText = strings.TrimSpace(pkg.Description)
+	}
+
+	descriptionText := strings.TrimSpace(pkg.Description)
+	summaryHTML := template.HTML("")
+	if summaryText != "" {
+		sanitized := strings.TrimSpace(h.SanitizeHTML(summaryText))
+		if sanitized != "" {
+			summaryHTML = template.HTML(sanitized)
+		}
+	}
+
+	descriptionHTML := template.HTML("")
+	showDescription := false
+	if descriptionText != "" && !strings.EqualFold(descriptionText, summaryText) {
+		sanitized := strings.TrimSpace(h.SanitizeHTML(descriptionText))
+		if sanitized != "" {
+			descriptionHTML = template.HTML(sanitized)
+			showDescription = true
+		}
+	}
+
+	topicCount, lessonCount, totalDuration := coursePackageStats(*pkg)
+	durationLabel := formatVideoDuration(totalDuration)
+	priceLabel, originalPriceLabel := coursePriceLabels(*pkg)
+	infoPath := courseInfoPath(*pkg)
+	playerPath := coursePlayerPath(*pkg)
+	buyPath := courseBuyPath(*pkg)
+
+	pageTitle := strings.TrimSpace(pkg.MetaTitle)
+	if pageTitle == "" {
+		pageTitle = title
+	}
+	pageDescription := strings.TrimSpace(pkg.MetaDescription)
+	if pageDescription == "" {
+		pageDescription = summaryText
+	}
+
+	hasAccess := false
+	if user, ok := h.currentUser(c); ok {
+		owned, accessErr := h.coursePackageSvc.GetForUser(pkg.ID, user.ID)
+		if accessErr == nil && owned != nil {
+			hasAccess = true
+		} else if accessErr != nil && !errors.Is(accessErr, gorm.ErrRecordNotFound) && !courseservice.IsValidationError(accessErr) {
+			logger.Error(accessErr, "Failed to verify course access for info page", map[string]interface{}{"course_id": pkg.ID, "user_id": user.ID})
+		}
+	}
+
+	redirectTarget := c.Request.URL.RequestURI()
+	loginURL := "/login?redirect=" + url.QueryEscape(redirectTarget)
+
+	data := gin.H{
+		"CoursePackage":            pkg,
+		"CourseInfoSummary":        summaryHTML,
+		"CourseInfoDescription":    descriptionHTML,
+		"CourseInfoHasDescription": showDescription,
+		"CourseInfoTopics":         buildCourseInfoTopics(h, *pkg),
+		"CoursePriceLabel":         priceLabel,
+		"CourseOriginalPrice":      originalPriceLabel,
+		"CourseTopicCount":         topicCount,
+		"CourseLessonCount":        lessonCount,
+		"CourseDurationLabel":      durationLabel,
+		"CourseHasAccess":          hasAccess,
+		"CoursePlayerPath":         playerPath,
+		"CourseBuyPath":            buyPath,
+		"CourseLoginPath":          loginURL,
+		"CourseCheckoutEnabled":    h.courseCheckoutEnabled(),
+		"Canonical":                h.ensureAbsoluteURL(h.config.SiteURL, infoPath),
+		"Styles":                   []string{"/static/css/sections/course-info.css"},
+	}
+
+	if image := strings.TrimSpace(pkg.ImageURL); image != "" {
+		data["OGImage"] = image
+		data["OGImageAlt"] = fmt.Sprintf("%s course cover", title)
+	}
+
+	h.renderTemplate(c, "course-info", pageTitle, pageDescription, data)
+}
+
+func (h *TemplateHandler) RenderCourseBuy(c *gin.Context) {
+	user, ok := h.currentUser(c)
+	if !ok {
+		redirectTo := url.QueryEscape(c.Request.URL.RequestURI())
+		c.Redirect(http.StatusFound, "/login?redirect="+redirectTo)
+		return
+	}
+
+	if h.coursePackageSvc == nil {
+		h.renderError(c, http.StatusServiceUnavailable, "Courses unavailable", "Course access is not configured.")
+		return
+	}
+
+	identifier := strings.TrimSpace(c.Param("slug"))
+	if identifier == "" {
+		h.renderError(c, http.StatusNotFound, "Course not found", "Requested course could not be found.")
+		return
+	}
+
+	pkg, err := h.coursePackageSvc.GetByIdentifier(identifier)
+	if err == nil && pkg == nil {
+		err = fmt.Errorf("course package was nil without error")
+	}
+	if err != nil {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			h.renderError(c, http.StatusNotFound, "Course not found", "The requested course could not be found.")
+			return
+		case courseservice.IsValidationError(err):
+			h.renderError(c, http.StatusBadRequest, "Course unavailable", err.Error())
+			return
+		default:
+			logger.Error(err, "Failed to load course package for purchase", map[string]interface{}{"course_identifier": identifier, "user_id": user.ID})
+			h.renderError(c, http.StatusInternalServerError, "Course unavailable", "We couldn't load this course right now.")
+			return
+		}
+	}
+
+	slug := strings.TrimSpace(pkg.Slug)
+	if _, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil && slug != "" && !strings.EqualFold(slug, identifier) {
+		c.Redirect(http.StatusMovedPermanently, courseBuyPath(*pkg))
+		return
+	}
+
+	owned, accessErr := h.coursePackageSvc.GetForUser(pkg.ID, user.ID)
+	if accessErr == nil && owned != nil {
+		c.Redirect(http.StatusFound, coursePlayerPath(*pkg))
+		return
+	}
+	if accessErr != nil && !errors.Is(accessErr, gorm.ErrRecordNotFound) && !courseservice.IsValidationError(accessErr) {
+		logger.Error(accessErr, "Failed to verify existing course access before purchase", map[string]interface{}{"course_id": pkg.ID, "user_id": user.ID})
+		h.renderError(c, http.StatusInternalServerError, "Checkout unavailable", "We couldn't verify your access right now.")
+		return
+	}
+
+	if pkg.EffectivePriceCents() <= 0 {
+		if _, grantErr := h.coursePackageSvc.GrantToUser(pkg.ID, models.GrantCoursePackageRequest{UserID: user.ID}, 0); grantErr != nil {
+			logger.Error(grantErr, "Failed to grant free course access", map[string]interface{}{"course_id": pkg.ID, "user_id": user.ID})
+			h.renderError(c, http.StatusInternalServerError, "Course unavailable", "We couldn't grant access to this course right now.")
+			return
+		}
+
+		c.Redirect(http.StatusFound, coursePlayerPath(*pkg))
+		return
+	}
+
+	if h.courseCheckoutSvc == nil || !h.courseCheckoutSvc.Enabled() {
+		h.renderError(c, http.StatusServiceUnavailable, "Checkout unavailable", "Course checkout is currently unavailable. Please try again later.")
+		return
+	}
+
+	session, sessionErr := h.courseCheckoutSvc.CreateCheckoutSession(c.Request.Context(), models.CourseCheckoutRequest{
+		PackageID:     pkg.ID,
+		CustomerEmail: strings.TrimSpace(user.Email),
+		UserID:        user.ID,
+	})
+	if sessionErr != nil {
+		switch {
+		case errors.Is(sessionErr, courseservice.ErrCheckoutDisabled):
+			h.renderError(c, http.StatusServiceUnavailable, "Checkout unavailable", "Course checkout is currently unavailable. Please try again later.")
+		case errors.Is(sessionErr, courseservice.ErrInvalidPackagePrice):
+			h.renderError(c, http.StatusUnprocessableEntity, "Checkout unavailable", "This course cannot be purchased right now.")
+		case errors.Is(sessionErr, gorm.ErrRecordNotFound):
+			h.renderError(c, http.StatusNotFound, "Course not found", "The requested course could not be found.")
+		case courseservice.IsValidationError(sessionErr):
+			h.renderError(c, http.StatusBadRequest, "Checkout unavailable", sessionErr.Error())
+		default:
+			logger.Error(sessionErr, "Failed to create course checkout session", map[string]interface{}{"course_id": pkg.ID, "user_id": user.ID})
+			h.renderError(c, http.StatusBadGateway, "Checkout unavailable", "We couldn't start checkout right now. Please try again later.")
+		}
+		return
+	}
+
+	if session == nil || strings.TrimSpace(session.URL) == "" {
+		h.renderError(c, http.StatusBadGateway, "Checkout unavailable", "We couldn't start checkout right now. Please try again later.")
+		return
+	}
+
+	c.Redirect(http.StatusFound, strings.TrimSpace(session.URL))
+}
+
 func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 	user, ok := h.currentUser(c)
 	if !ok {
@@ -2101,6 +2440,10 @@ func (h *TemplateHandler) RenderCourse(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
+			if pkg, packageErr := h.coursePackageSvc.GetByIdentifier(identifier); packageErr == nil && pkg != nil {
+				c.Redirect(http.StatusFound, courseInfoPath(*pkg))
+				return
+			}
 			h.renderError(c, http.StatusNotFound, "Course not found", "The course is unavailable or your access has expired.")
 			return
 		case courseservice.IsValidationError(err):
@@ -2414,6 +2757,31 @@ func (h *TemplateHandler) renderArchiveFile(c *gin.Context, pathValue string) {
 }
 
 func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
+	requestedPageEditorID := strings.TrimSpace(c.Query("page_editor"))
+	if requestedPageEditorID != "" {
+		c.Redirect(
+			http.StatusFound,
+			"/admin/pages/"+url.PathEscape(requestedPageEditorID)+"/editor",
+		)
+		return
+	}
+	h.renderAdmin(c, "", false)
+}
+
+func (h *TemplateHandler) RenderAdminPageEditor(c *gin.Context) {
+	pageEditorID := strings.TrimSpace(c.Param("id"))
+	if pageEditorID == "" {
+		c.Redirect(http.StatusFound, "/admin")
+		return
+	}
+	h.renderAdmin(c, pageEditorID, true)
+}
+
+func (h *TemplateHandler) renderAdmin(
+	c *gin.Context,
+	pageEditorID string,
+	pageEditorStandalone bool,
+) {
 	user, ok := h.currentUser(c)
 	if !ok {
 		redirectTo := url.QueryEscape(c.Request.URL.RequestURI())
@@ -2508,7 +2876,14 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		adminEndpoints["ArchiveTree"] = "/api/v1/admin/archive/directories?tree=1"
 	}
 
-	h.renderTemplate(c, "admin", "Admin dashboard", "Monitor site activity, review content performance, and manage published resources in one place.", gin.H{
+	title := "Admin dashboard"
+	description := "Monitor site activity, review content performance, and manage published resources in one place."
+	if pageEditorStandalone {
+		title = "Page editor"
+		description = "Edit and preview page content in a dedicated workspace."
+	}
+
+	h.renderTemplate(c, "admin", title, description, gin.H{
 		"Layout":                 "admin_base.html",
 		"Styles":                 []string{"/static/css/admin.css", "/static/css/admin/anchor-picker.css"},
 		"Scripts":                h.builderScripts(),
@@ -2521,6 +2896,8 @@ func (h *TemplateHandler) RenderAdmin(c *gin.Context) {
 		"ForumEnabled":           forumEnabled,
 		"ArchiveEnabled":         archiveEnabled,
 		"LanguageFeatureEnabled": h.languageService != nil,
+		"PageEditorID":           pageEditorID,
+		"PageEditorStandalone":   pageEditorStandalone,
 		"NoIndex":                true,
 	})
 }

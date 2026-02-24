@@ -73,6 +73,34 @@
         if (!root) {
             return;
         }
+        const urlParams = new URLSearchParams(window.location.search || '');
+        const routePageEditorId = normaliseString(
+            root.dataset.pageEditorId
+        ).trim();
+        const queryPageEditorId = normaliseString(
+            urlParams.get('page_editor')
+        ).trim();
+        const requestedPageEditorId = routePageEditorId || queryPageEditorId;
+        const pageEditorStandalone =
+            normaliseString(root.dataset.pageEditorStandalone).trim() === 'true';
+        const pageEditorModeEnabled = Boolean(
+            requestedPageEditorId || pageEditorStandalone
+        );
+        const editorBasePath = normaliseString(
+            root.dataset.pageEditorBasePath
+        ).trim();
+        const normalisedEditorBasePath =
+            editorBasePath.replace(/\/+$/, '') || '/admin/pages';
+        let pageEditorRequestHandled = false;
+        if (document.body) {
+            document.body.classList.toggle(
+                'admin-layout--page-editor-mode',
+                pageEditorModeEnabled
+            );
+        }
+        if (pageEditorModeEnabled) {
+            root.classList.add('admin--page-editor-mode');
+        }
 
         // Tab management
         const ACTIVE_TAB_STORAGE_KEY = 'constructor.admin.activeTab';
@@ -740,13 +768,13 @@
         const courseVideoAttachmentAddButton = courseVideoForm?.querySelector(
             '[data-role="course-video-attachment-add"]'
         );
-        const courseVideoSectionsFieldset = courseVideoForm?.querySelector(
-            '.admin-form__fieldset--sections'
+        const courseVideoSectionsSection = courseVideoForm?.querySelector(
+            '.admin-form__section--sections'
         );
-        const courseVideoAttachmentsFieldset =
-            courseVideoAttachmentList?.closest('fieldset') || null;
-        const courseVideoSubtitleFieldset = courseVideoForm?.querySelector(
-            '[data-role="course-video-subtitle-fieldset"]'
+        const courseVideoAttachmentsSection =
+            courseVideoAttachmentList?.closest('.admin-courses__section') || null;
+        const courseVideoSubtitleSection = courseVideoForm?.querySelector(
+            '[data-role="course-video-subtitle-section"]'
         );
         const courseVideoSubtitleEmpty = courseVideoForm?.querySelector(
             '[data-role="course-video-subtitle-empty"]'
@@ -909,6 +937,79 @@
         const pagePreviewButton = pageForm?.querySelector(
             '[data-role="page-preview"]'
         );
+        const pageEditorWorkspace = root.querySelector(
+            '[data-role="page-editor-workspace"]'
+        );
+        const pageEditorDrawer = pageEditorWorkspace?.querySelector(
+            '.admin-page-editor__editor'
+        );
+        const pageEditorEmptyState = root.querySelector(
+            '[data-role="page-editor-empty"]'
+        );
+        const pageEditorEmptyDescription = root.querySelector(
+            '[data-role="page-editor-empty-description"]'
+        );
+        const pageEditorToolbarTitle = root.querySelector(
+            '[data-role="page-editor-toolbar-title"]'
+        );
+        const pageEditorOpenButtons = Array.from(
+            root.querySelectorAll('[data-action="page-editor-open"]')
+        );
+        const pageBuilderToggleButton = root.querySelector(
+            '[data-action="page-builder-toggle"]'
+        );
+        const pageBuilderResizeHandle = root.querySelector(
+            '[data-action="page-builder-resize-handle"]'
+        );
+        const pageEditorWidthReadouts = root.querySelector(
+            '[data-role="page-editor-width-readouts"]'
+        );
+        const pageEditorWidthConstructorReadout = root.querySelector(
+            '[data-role="page-editor-width-constructor"]'
+        );
+        const pageEditorWidthPreviewReadout = root.querySelector(
+            '[data-role="page-editor-width-preview"]'
+        );
+        const pageEditorWidthConstructorValue = root.querySelector(
+            '[data-role="page-editor-width-constructor-value"]'
+        );
+        const pageEditorWidthPreviewValue = root.querySelector(
+            '[data-role="page-editor-width-preview-value"]'
+        );
+        const pageEditorCloseButton = root.querySelector(
+            '[data-action="page-editor-close"]'
+        );
+        const pageLivePreviewPanel = root.querySelector(
+            '[data-role="page-live-preview-panel"]'
+        );
+        const pageLivePreviewFrame = pageLivePreviewPanel?.querySelector(
+            '[data-role="page-live-preview-frame"]'
+        );
+        const pageLivePreviewStatus = pageLivePreviewPanel?.querySelector(
+            '[data-role="page-live-preview-status"]'
+        );
+        const pageLivePreviewRefreshButton = pageLivePreviewPanel?.querySelector(
+            '[data-action="page-preview-refresh"]'
+        );
+        const pageLivePreviewOpenButton = pageLivePreviewPanel?.querySelector(
+            '[data-action="page-preview-open"]'
+        );
+        const pageLivePreviewEditor = pageLivePreviewPanel?.querySelector(
+            '[data-role="page-live-preview-editor"]'
+        );
+        const pageLivePreviewEditorCaption = pageLivePreviewPanel?.querySelector(
+            '[data-role="page-live-preview-editor-caption"]'
+        );
+        const pageLivePreviewSectionTitleInput = pageLivePreviewPanel?.querySelector(
+            '[data-role="page-live-preview-section-title"]'
+        );
+        const pageLivePreviewSectionDescriptionInput =
+            pageLivePreviewPanel?.querySelector(
+                '[data-role="page-live-preview-section-description"]'
+            );
+        const pageLivePreviewOpenSectionButton = pageLivePreviewPanel?.querySelector(
+            '[data-action="page-live-preview-open-section"]'
+        );
         const categoryDeleteButton = categoryForm?.querySelector(
             '[data-role="category-delete"]'
         );
@@ -942,6 +1043,14 @@
         const pageSlugInput = pageForm?.querySelector('input[name="slug"]');
         const postSectionsManager = createSectionBuilder(postForm);
         let pageSectionsManager = null;
+        let selectedPageId = '';
+        let pagePreviewLoadedId = '';
+        let pagePreviewDirty = false;
+        let pageLivePreviewSelectedSectionId = '';
+        let pageLivePreviewSelectedSectionNode = null;
+        let pageLivePreviewSelectedBuilderSectionNode = null;
+        let pageLivePreviewInteractiveDocument = null;
+        let pageLivePreviewInteractiveClickHandler = null;
         const courseTopicSlugManager = createAutoSlugManager(
             courseTopicTitleInput,
             courseTopicSlugInput
@@ -1012,6 +1121,13 @@
         pageSectionsManager = createSectionBuilder(pageForm, {
             onApplyPaddingToAllSections: applyPaddingToAllPageSections,
         });
+        if (pageSectionsManager) {
+            pageSectionsManager.onChange(() => {
+                markPageLivePreviewDirty();
+                syncPageLivePreviewEditorFromSelection();
+                syncSelectedSectionHeaderInLivePreview();
+            });
+        }
         const courseVideoSectionsManager = createSectionBuilder(courseVideoForm);
         const courseContentSectionsManager = createSectionBuilder(courseContentForm);
         const postContentField = postForm?.querySelector('[name="content"]');
@@ -1612,6 +1728,1013 @@
             }
             return '';
         };
+
+        const buildPagePreviewUrl = (pageId, { bustCache = true } = {}) => {
+            const value = normaliseString(pageId).trim();
+            if (!value) {
+                return '';
+            }
+            const encodedId = encodeURIComponent(value);
+            const baseUrl = `/api/v1/admin/pages/${encodedId}/preview`;
+            if (!bustCache) {
+                return baseUrl;
+            }
+            return `${baseUrl}?t=${Date.now()}`;
+        };
+
+        const buildPageEditorUrl = (pageId) => {
+            const value = normaliseString(pageId).trim();
+            if (!value) {
+                return '/admin';
+            }
+            return `${normalisedEditorBasePath}/${encodeURIComponent(
+                value
+            )}/editor`;
+        };
+
+        const PAGE_LIVE_PREVIEW_INTERACTION_STYLE_ID =
+            'admin-page-live-preview-interactions';
+        const PAGE_LIVE_PREVIEW_INTERACTION_STYLE = `
+html.is-admin-live-preview section[id^="section-"] {
+    cursor: pointer !important;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+    transition: outline-color 0.15s ease, box-shadow 0.15s ease;
+}
+html.is-admin-live-preview section[id^="section-"]:hover {
+    outline-color: rgba(28, 98, 255, 0.35);
+}
+html.is-admin-live-preview section[id^="section-"].is-admin-preview-selected {
+    outline-color: #1c62ff;
+    box-shadow: inset 0 0 0 2px rgba(28, 98, 255, 0.22);
+}
+`;
+
+        const setPageLivePreviewStatus = (message, tone = 'neutral') => {
+            if (!pageLivePreviewStatus) {
+                return;
+            }
+            pageLivePreviewStatus.textContent = message;
+            pageLivePreviewStatus.dataset.tone = tone;
+        };
+
+        const detachPageLivePreviewInteractions = () => {
+            if (
+                pageLivePreviewInteractiveDocument &&
+                pageLivePreviewInteractiveClickHandler
+            ) {
+                pageLivePreviewInteractiveDocument.removeEventListener(
+                    'click',
+                    pageLivePreviewInteractiveClickHandler,
+                    true
+                );
+            }
+            pageLivePreviewInteractiveDocument = null;
+            pageLivePreviewInteractiveClickHandler = null;
+        };
+
+        const clearBuilderSectionSelection = () => {
+            if (
+                pageLivePreviewSelectedBuilderSectionNode &&
+                pageLivePreviewSelectedBuilderSectionNode.classList
+            ) {
+                pageLivePreviewSelectedBuilderSectionNode.classList.remove(
+                    'admin-builder__section--preview-selected'
+                );
+            }
+            pageLivePreviewSelectedBuilderSectionNode = null;
+        };
+
+        const setBuilderSectionSelection = (sectionNode) => {
+            clearBuilderSectionSelection();
+            if (!sectionNode || !sectionNode.classList) {
+                return;
+            }
+            sectionNode.classList.add('admin-builder__section--preview-selected');
+            pageLivePreviewSelectedBuilderSectionNode = sectionNode;
+        };
+
+        const resetPageLivePreviewSelection = () => {
+            if (
+                pageLivePreviewSelectedSectionNode &&
+                pageLivePreviewSelectedSectionNode.classList
+            ) {
+                pageLivePreviewSelectedSectionNode.classList.remove(
+                    'is-admin-preview-selected'
+                );
+            }
+            clearBuilderSectionSelection();
+            pageLivePreviewSelectedSectionId = '';
+            pageLivePreviewSelectedSectionNode = null;
+        };
+
+        const updatePageLivePreviewActions = (enabled) => {
+            const nextState = Boolean(enabled);
+            if (pageLivePreviewRefreshButton) {
+                pageLivePreviewRefreshButton.disabled = !nextState;
+            }
+            if (pageLivePreviewOpenButton) {
+                pageLivePreviewOpenButton.disabled = !nextState;
+            }
+            if (pageLivePreviewOpenSectionButton) {
+                pageLivePreviewOpenSectionButton.disabled =
+                    !nextState || !pageLivePreviewSelectedSectionId;
+            }
+        };
+
+        const clearPageLivePreview = (
+            message = 'Select a page to load its preview.'
+        ) => {
+            detachPageLivePreviewInteractions();
+            if (pageLivePreviewFrame) {
+                pageLivePreviewFrame.hidden = true;
+                pageLivePreviewFrame.removeAttribute('src');
+            }
+            resetPageLivePreviewSelection();
+            if (pageLivePreviewEditor) {
+                pageLivePreviewEditor.hidden = true;
+            }
+            if (pageLivePreviewSectionTitleInput) {
+                pageLivePreviewSectionTitleInput.value = '';
+                pageLivePreviewSectionTitleInput.disabled = true;
+            }
+            if (pageLivePreviewSectionDescriptionInput) {
+                pageLivePreviewSectionDescriptionInput.value = '';
+                pageLivePreviewSectionDescriptionInput.disabled = true;
+            }
+            if (pageLivePreviewEditorCaption) {
+                pageLivePreviewEditorCaption.textContent =
+                    'Click a section inside preview to edit it.';
+            }
+            pagePreviewLoadedId = '';
+            pagePreviewDirty = false;
+            updatePageLivePreviewActions(false);
+            setPageLivePreviewStatus(message, 'neutral');
+        };
+
+        const getPageTitleById = (id) => {
+            const normalisedId = normaliseString(id).trim();
+            if (!normalisedId) {
+                return '';
+            }
+            const page = state.pages.find(
+                (entry) => String(entry.id) === normalisedId
+            );
+            return normaliseString(page?.title || page?.Title).trim();
+        };
+
+        const updatePageEditorSummary = () => {
+            const selectedTitle = getPageTitleById(selectedPageId);
+            if (pageEditorEmptyDescription) {
+                if (selectedPageId) {
+                    pageEditorEmptyDescription.textContent = selectedTitle
+                        ? `Selected page: ${selectedTitle}. Open the editor to make changes.`
+                        : 'A page is selected. Open the editor to make changes.';
+                } else {
+                    pageEditorEmptyDescription.textContent =
+                        'Select a page, then open the editor to make changes.';
+                }
+            }
+            if (pageEditorToolbarTitle) {
+                const editingId = normaliseString(pageForm?.dataset?.id).trim();
+                if (!editingId) {
+                    pageEditorToolbarTitle.textContent = 'Creating a new page';
+                    return;
+                }
+                const currentTitle = normaliseString(pageForm?.title?.value).trim();
+                const fallbackTitle = getPageTitleById(editingId);
+                const resolvedTitle = currentTitle || fallbackTitle || 'Untitled';
+                pageEditorToolbarTitle.textContent = `Editing: ${resolvedTitle}`;
+            }
+        };
+
+        const syncPageEditorOpenButtons = () => {
+            const canOpenExisting = Boolean(selectedPageId);
+            pageEditorOpenButtons.forEach((button) => {
+                button.disabled = !canOpenExisting;
+            });
+            updatePageEditorSummary();
+        };
+
+        const PAGE_EDITOR_DRAWER_WIDTH_STORAGE_KEY =
+            'constructor.admin.pageEditor.drawerWidthPx';
+        const PAGE_EDITOR_DRAWER_WIDTH_MIN = 320;
+        const PAGE_EDITOR_DRAWER_WIDTH_MAX = 1280;
+        const PAGE_EDITOR_PREVIEW_MIN_WIDTH = 360;
+        const PAGE_EDITOR_DRAWER_WIDTH_DEFAULT = 672;
+        const PAGE_EDITOR_DRAWER_WIDTH_STEP = 8;
+        const PAGE_EDITOR_WIDTH_READOUT_HIDE_DELAY_MS = 2200;
+        const PAGE_EDITOR_WIDTH_READOUT_FADE_MS = 180;
+        let pageEditorDrawerWidthPx = PAGE_EDITOR_DRAWER_WIDTH_DEFAULT;
+        let pageBuilderResizeSession = null;
+        let pageEditorWidthReadoutHideTimer = null;
+        let pageEditorWidthReadoutFadeTimer = null;
+
+        const getPageEditorDrawerMaxWidthForViewport = () => {
+            const viewportWidth = Math.round(
+                document.documentElement?.clientWidth || window.innerWidth || 0
+            );
+            if (!Number.isFinite(viewportWidth) || viewportWidth <= 0) {
+                return PAGE_EDITOR_DRAWER_WIDTH_MAX;
+            }
+            const maxByViewport = viewportWidth - PAGE_EDITOR_PREVIEW_MIN_WIDTH;
+            return Math.max(
+                PAGE_EDITOR_DRAWER_WIDTH_MIN,
+                Math.min(PAGE_EDITOR_DRAWER_WIDTH_MAX, maxByViewport)
+            );
+        };
+
+        const clampPageEditorDrawerWidth = (value) => {
+            const numeric = Number.parseInt(String(value ?? ''), 10);
+            const maxWidth = getPageEditorDrawerMaxWidthForViewport();
+            if (!Number.isFinite(numeric)) {
+                return Math.min(PAGE_EDITOR_DRAWER_WIDTH_DEFAULT, maxWidth);
+            }
+            return Math.min(
+                maxWidth,
+                Math.max(PAGE_EDITOR_DRAWER_WIDTH_MIN, numeric)
+            );
+        };
+
+        const getPageEditorDrawerVisibleWidth = () => {
+            if (!pageEditorDrawer) {
+                return pageEditorDrawerWidthPx;
+            }
+            const width = Math.round(pageEditorDrawer.getBoundingClientRect().width);
+            if (Number.isFinite(width) && width >= 0) {
+                return width;
+            }
+            return pageEditorDrawerWidthPx;
+        };
+
+        const clearPageEditorWidthReadoutTimers = () => {
+            if (pageEditorWidthReadoutHideTimer !== null) {
+                window.clearTimeout(pageEditorWidthReadoutHideTimer);
+                pageEditorWidthReadoutHideTimer = null;
+            }
+            if (pageEditorWidthReadoutFadeTimer !== null) {
+                window.clearTimeout(pageEditorWidthReadoutFadeTimer);
+                pageEditorWidthReadoutFadeTimer = null;
+            }
+        };
+
+        const hidePageEditorWidthReadout = ({ immediate = false } = {}) => {
+            if (!pageEditorWidthReadouts) {
+                return;
+            }
+            clearPageEditorWidthReadoutTimers();
+            pageEditorWidthReadouts.classList.remove('is-visible');
+            if (immediate) {
+                pageEditorWidthReadouts.hidden = true;
+                return;
+            }
+            pageEditorWidthReadoutFadeTimer = window.setTimeout(() => {
+                pageEditorWidthReadouts.hidden = true;
+                pageEditorWidthReadoutFadeTimer = null;
+            }, PAGE_EDITOR_WIDTH_READOUT_FADE_MS);
+        };
+
+        const showPageEditorWidthReadout = () => {
+            if (!pageEditorWidthReadouts) {
+                return;
+            }
+            clearPageEditorWidthReadoutTimers();
+            pageEditorWidthReadouts.hidden = false;
+            pageEditorWidthReadouts.classList.add('is-visible');
+            pageEditorWidthReadoutHideTimer = window.setTimeout(() => {
+                hidePageEditorWidthReadout();
+            }, PAGE_EDITOR_WIDTH_READOUT_HIDE_DELAY_MS);
+        };
+
+        const updatePageEditorWidthReadout = () => {
+            if (
+                !pageEditorWidthReadouts ||
+                !pageEditorWidthConstructorReadout ||
+                !pageEditorWidthPreviewReadout ||
+                !pageEditorWidthConstructorValue ||
+                !pageEditorWidthPreviewValue
+            ) {
+                return;
+            }
+            const isBuilderOpen =
+                pageEditorModeEnabled &&
+                !pageEditorWorkspace?.hidden &&
+                root.classList.contains('admin--page-editor-builder-open');
+            if (!isBuilderOpen) {
+                hidePageEditorWidthReadout({ immediate: true });
+                return;
+            }
+            const constructorWidthPx = getPageEditorDrawerVisibleWidth();
+            const viewportWidthPx = Math.round(
+                document.documentElement?.clientWidth || window.innerWidth || 0
+            );
+            const livePreviewWidthPx = Math.max(0, viewportWidthPx - constructorWidthPx);
+            const constructorWidthText = `${constructorWidthPx}px`;
+            const livePreviewWidthText = `${livePreviewWidthPx}px`;
+
+            if (pageEditorWidthConstructorValue.textContent !== constructorWidthText) {
+                pageEditorWidthConstructorValue.textContent = constructorWidthText;
+            }
+            if (pageEditorWidthPreviewValue.textContent !== livePreviewWidthText) {
+                pageEditorWidthPreviewValue.textContent = livePreviewWidthText;
+            }
+
+            const constructorSegmentWidthPx = Math.max(
+                0,
+                Math.min(viewportWidthPx, constructorWidthPx)
+            );
+            const previewSegmentWidthPx = Math.max(
+                0,
+                viewportWidthPx - constructorSegmentWidthPx
+            );
+
+            pageEditorWidthConstructorReadout.style.left = '0px';
+            pageEditorWidthConstructorReadout.style.width = `${constructorSegmentWidthPx}px`;
+            pageEditorWidthPreviewReadout.style.left = `${constructorSegmentWidthPx}px`;
+            pageEditorWidthPreviewReadout.style.width = `${previewSegmentWidthPx}px`;
+
+            pageEditorWidthConstructorReadout.setAttribute(
+                'aria-label',
+                `Constructor width ${constructorWidthText}.`
+            );
+            pageEditorWidthPreviewReadout.setAttribute(
+                'aria-label',
+                `Live preview width ${livePreviewWidthText}.`
+            );
+            showPageEditorWidthReadout();
+        };
+
+        const setPageEditorDrawerWidth = (value, options = {}) => {
+            if (!pageEditorModeEnabled) {
+                return;
+            }
+            const widthPx = clampPageEditorDrawerWidth(value);
+            pageEditorDrawerWidthPx = widthPx;
+            root.style.setProperty(
+                '--admin-page-editor-drawer-width',
+                `min(${widthPx}px, 100vw)`
+            );
+            updatePageEditorWidthReadout();
+            const { persist = false } = options;
+            if (!persist) {
+                return;
+            }
+            try {
+                const storage = window.localStorage;
+                storage?.setItem(PAGE_EDITOR_DRAWER_WIDTH_STORAGE_KEY, String(widthPx));
+            } catch (error) {
+                /* ignore storage errors */
+            }
+        };
+
+        const adjustPageEditorDrawerWidth = (deltaPx, options = {}) => {
+            if (!pageEditorModeEnabled) {
+                return;
+            }
+            const delta = Number.parseInt(String(deltaPx ?? ''), 10);
+            if (!Number.isFinite(delta)) {
+                return;
+            }
+            setPageEditorDrawerWidth(pageEditorDrawerWidthPx + delta, options);
+        };
+
+        const setPageBuilderResizeHandleDisabled = (disabled) => {
+            const nextState = Boolean(disabled);
+            if (pageBuilderResizeHandle) {
+                pageBuilderResizeHandle.disabled = nextState;
+                pageBuilderResizeHandle.tabIndex = nextState ? -1 : 0;
+            }
+        };
+
+        const initialisePageEditorDrawerWidth = () => {
+            if (!pageEditorModeEnabled) {
+                return;
+            }
+            let initialValue = PAGE_EDITOR_DRAWER_WIDTH_DEFAULT;
+            try {
+                const storage = window.localStorage;
+                const stored = storage?.getItem(PAGE_EDITOR_DRAWER_WIDTH_STORAGE_KEY);
+                if (stored) {
+                    initialValue = clampPageEditorDrawerWidth(stored);
+                }
+            } catch (error) {
+                /* ignore storage errors */
+            }
+            setPageEditorDrawerWidth(initialValue);
+        };
+
+        const isPageBuilderOpen = () =>
+            root.classList.contains('admin--page-editor-builder-open');
+
+        const finishPageBuilderResize = (options = {}) => {
+            if (!pageBuilderResizeSession) {
+                return;
+            }
+            const { pointerId } = pageBuilderResizeSession;
+            pageBuilderResizeSession = null;
+            root.classList.remove('admin--page-editor-resizing');
+            if (pageBuilderResizeHandle?.hasPointerCapture(pointerId)) {
+                pageBuilderResizeHandle.releasePointerCapture(pointerId);
+            }
+            const { persist = true } = options;
+            if (persist) {
+                setPageEditorDrawerWidth(pageEditorDrawerWidthPx, {
+                    persist: true,
+                });
+            }
+        };
+
+        const startPageBuilderResize = (event) => {
+            if (!pageEditorModeEnabled || !isPageBuilderOpen()) {
+                return;
+            }
+            if (!pageBuilderResizeHandle || pageBuilderResizeHandle.disabled) {
+                return;
+            }
+            if (event.button !== 0) {
+                return;
+            }
+            event.preventDefault();
+            pageBuilderResizeSession = {
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startWidth: pageEditorDrawerWidthPx,
+            };
+            root.classList.add('admin--page-editor-resizing');
+            updatePageEditorWidthReadout();
+            pageBuilderResizeHandle.setPointerCapture(event.pointerId);
+        };
+
+        const handlePageBuilderResizeMove = (event) => {
+            if (!pageBuilderResizeSession) {
+                return;
+            }
+            if (event.pointerId !== pageBuilderResizeSession.pointerId) {
+                return;
+            }
+            event.preventDefault();
+            const widthDelta = event.clientX - pageBuilderResizeSession.startX;
+            setPageEditorDrawerWidth(pageBuilderResizeSession.startWidth + widthDelta);
+        };
+
+        const setPageBuilderOpen = (open) => {
+            if (!pageEditorModeEnabled) {
+                return;
+            }
+            const nextState = Boolean(open);
+            root.classList.toggle('admin--page-editor-builder-open', nextState);
+            if (pageBuilderToggleButton) {
+                pageBuilderToggleButton.textContent = nextState
+                    ? 'Hide constructor'
+                    : 'Show constructor';
+                pageBuilderToggleButton.setAttribute(
+                    'aria-pressed',
+                    String(nextState)
+                );
+            }
+            setPageBuilderResizeHandleDisabled(!nextState);
+            if (!nextState) {
+                finishPageBuilderResize({ persist: true });
+            }
+            updatePageEditorWidthReadout();
+        };
+
+        const setPageEditorOpen = (open) => {
+            let nextState = Boolean(open);
+            if (pageEditorStandalone && !nextState) {
+                nextState = true;
+            }
+            if (pageEditorWorkspace) {
+                pageEditorWorkspace.hidden = !nextState;
+            }
+            if (pageEditorEmptyState) {
+                pageEditorEmptyState.hidden = pageEditorStandalone || nextState;
+            }
+            updatePageEditorWidthReadout();
+            if (!nextState) {
+                clearPageLivePreview('Open the editor to load the selected page preview.');
+            }
+            updatePageEditorSummary();
+        };
+
+        const applyPageEditorRouteSelection = () => {
+            if (!pageEditorModeEnabled || pageEditorRequestHandled) {
+                return;
+            }
+            pageEditorRequestHandled = true;
+            const page = state.pages.find(
+                (entry) => String(entry.id) === requestedPageEditorId
+            );
+            if (!page) {
+                showAlert('The requested page was not found.', 'error');
+                return;
+            }
+            selectPage(page.id);
+            if (pageForm) {
+                bringFormIntoView(pageForm);
+            }
+        };
+
+        const setSelectedPage = (id) => {
+            selectedPageId = normaliseString(id).trim();
+            highlightRow(tables.pages, selectedPageId);
+            syncPageEditorOpenButtons();
+        };
+
+        const normalisePreviewSectionId = (value) =>
+            normaliseString(value).replace(/^section-/, '').trim();
+
+        const findBuilderSectionNodeByPersistedId = (sectionId) => {
+            const normalisedId = normalisePreviewSectionId(sectionId);
+            if (!normalisedId || !pageForm) {
+                return null;
+            }
+            const sectionNodes = pageForm.querySelectorAll('[data-section-client]');
+            for (const sectionNode of sectionNodes) {
+                const persistedId = normaliseString(
+                    sectionNode.dataset.sectionId
+                ).trim();
+                if (persistedId && persistedId === normalisedId) {
+                    return sectionNode;
+                }
+            }
+            return null;
+        };
+
+        const findPreviewSectionNodeByPersistedId = (sectionId) => {
+            const normalisedId = normalisePreviewSectionId(sectionId);
+            const previewDocument = pageLivePreviewFrame?.contentDocument;
+            if (!normalisedId || !previewDocument) {
+                return null;
+            }
+            const sectionNodes = previewDocument.querySelectorAll(
+                'section[id^="section-"]'
+            );
+            for (const sectionNode of sectionNodes) {
+                const persistedId = normalisePreviewSectionId(sectionNode.id);
+                if (persistedId && persistedId === normalisedId) {
+                    return sectionNode;
+                }
+            }
+            return null;
+        };
+
+        const getBuilderSectionFields = (sectionNode) => ({
+            titleInput:
+                sectionNode?.querySelector('[data-field="section-title"]') || null,
+            descriptionInput:
+                sectionNode?.querySelector('[data-field="section-description"]') ||
+                null,
+        });
+
+        const updatePreviewSectionHeader = (
+            sectionNode,
+            { title, description } = {}
+        ) => {
+            if (!sectionNode) {
+                return;
+            }
+            const previewDocument = sectionNode.ownerDocument;
+            if (!previewDocument) {
+                return;
+            }
+
+            let container = sectionNode.querySelector('.page-view__section-container');
+            if (!container) {
+                container = sectionNode;
+            }
+            let header = container.querySelector('.page-view__section-header');
+
+            const ensureHeader = () => {
+                if (header) {
+                    return header;
+                }
+                header = previewDocument.createElement('header');
+                header.className = 'page-view__section-header';
+                if (container.firstChild) {
+                    container.insertBefore(header, container.firstChild);
+                } else {
+                    container.append(header);
+                }
+                return header;
+            };
+
+            const upsertNode = (selector, tagName, className, value) => {
+                const textValue = normaliseString(value).trim();
+                let node = container.querySelector(selector);
+                if (!textValue) {
+                    if (node) {
+                        node.remove();
+                    }
+                    return;
+                }
+                if (!node) {
+                    node = previewDocument.createElement(tagName);
+                    node.className = className;
+                    ensureHeader().append(node);
+                }
+                node.textContent = textValue;
+            };
+
+            upsertNode(
+                '.page-view__section-title',
+                'h2',
+                'page-view__section-title page-view__section-title--align-left',
+                title
+            );
+            upsertNode(
+                '.page-view__section-description',
+                'p',
+                'page-view__section-description page-view__section-description--align-left',
+                description
+            );
+
+            if (
+                header &&
+                !header.querySelector('.page-view__section-title') &&
+                !header.querySelector('.page-view__section-description')
+            ) {
+                header.remove();
+            }
+        };
+
+        const syncPageLivePreviewEditorFromSelection = () => {
+            if (!pageLivePreviewEditor) {
+                return;
+            }
+            const sectionId = normalisePreviewSectionId(
+                pageLivePreviewSelectedSectionId
+            );
+            if (!sectionId) {
+                clearBuilderSectionSelection();
+                pageLivePreviewEditor.hidden = true;
+                updatePageLivePreviewActions(Boolean(pagePreviewLoadedId));
+                return;
+            }
+
+            const builderSectionNode = findBuilderSectionNodeByPersistedId(sectionId);
+            if (!builderSectionNode) {
+                clearBuilderSectionSelection();
+                pageLivePreviewEditor.hidden = false;
+                if (pageLivePreviewEditorCaption) {
+                    pageLivePreviewEditorCaption.textContent =
+                        'This section is not editable from preview yet.';
+                }
+                if (pageLivePreviewSectionTitleInput) {
+                    pageLivePreviewSectionTitleInput.value = '';
+                    pageLivePreviewSectionTitleInput.disabled = true;
+                }
+                if (pageLivePreviewSectionDescriptionInput) {
+                    pageLivePreviewSectionDescriptionInput.value = '';
+                    pageLivePreviewSectionDescriptionInput.disabled = true;
+                }
+                updatePageLivePreviewActions(Boolean(pagePreviewLoadedId));
+                return;
+            }
+            setBuilderSectionSelection(builderSectionNode);
+
+            const { titleInput, descriptionInput } =
+                getBuilderSectionFields(builderSectionNode);
+            const sectionIndex =
+                Number.parseInt(
+                    normaliseString(builderSectionNode.dataset.sectionIndex),
+                    10
+                ) || 0;
+
+            pageLivePreviewEditor.hidden = false;
+            if (pageLivePreviewEditorCaption) {
+                pageLivePreviewEditorCaption.textContent = `Editing Section ${sectionIndex + 1}`;
+            }
+            if (pageLivePreviewSectionTitleInput) {
+                pageLivePreviewSectionTitleInput.disabled = !titleInput;
+                const nextTitle = titleInput ? normaliseString(titleInput.value) : '';
+                if (pageLivePreviewSectionTitleInput.value !== nextTitle) {
+                    pageLivePreviewSectionTitleInput.value = nextTitle;
+                }
+            }
+            if (pageLivePreviewSectionDescriptionInput) {
+                pageLivePreviewSectionDescriptionInput.disabled = !descriptionInput;
+                const nextDescription = descriptionInput
+                    ? normaliseString(descriptionInput.value)
+                    : '';
+                if (
+                    pageLivePreviewSectionDescriptionInput.value !==
+                    nextDescription
+                ) {
+                    pageLivePreviewSectionDescriptionInput.value =
+                        nextDescription;
+                }
+            }
+            updatePageLivePreviewActions(Boolean(pagePreviewLoadedId));
+        };
+
+        const setBuilderFieldValueFromLivePreview = (fieldInput, value) => {
+            if (!fieldInput) {
+                return '';
+            }
+            const nextValue = normaliseString(value);
+            if (fieldInput.value !== nextValue) {
+                fieldInput.value = nextValue;
+                fieldInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            return normaliseString(fieldInput.value);
+        };
+
+        const syncSelectedSectionHeaderInLivePreview = () => {
+            const sectionId = normalisePreviewSectionId(
+                pageLivePreviewSelectedSectionId
+            );
+            if (!sectionId) {
+                return;
+            }
+            const builderSectionNode = findBuilderSectionNodeByPersistedId(sectionId);
+            if (!builderSectionNode) {
+                return;
+            }
+            const { titleInput, descriptionInput } =
+                getBuilderSectionFields(builderSectionNode);
+            const previewSectionNode = findPreviewSectionNodeByPersistedId(sectionId);
+            updatePreviewSectionHeader(previewSectionNode, {
+                title: titleInput ? titleInput.value : '',
+                description: descriptionInput ? descriptionInput.value : '',
+            });
+        };
+
+        const applyPageLivePreviewQuickEdit = () => {
+            const sectionId = normalisePreviewSectionId(
+                pageLivePreviewSelectedSectionId
+            );
+            if (!sectionId) {
+                return;
+            }
+            const builderSectionNode = findBuilderSectionNodeByPersistedId(sectionId);
+            if (!builderSectionNode) {
+                return;
+            }
+            const { titleInput, descriptionInput } =
+                getBuilderSectionFields(builderSectionNode);
+
+            if (pageLivePreviewSectionTitleInput) {
+                setBuilderFieldValueFromLivePreview(
+                    titleInput,
+                    pageLivePreviewSectionTitleInput.value
+                );
+            }
+            if (pageLivePreviewSectionDescriptionInput) {
+                setBuilderFieldValueFromLivePreview(
+                    descriptionInput,
+                    pageLivePreviewSectionDescriptionInput.value
+                );
+            }
+            syncSelectedSectionHeaderInLivePreview();
+        };
+
+        const selectPageLivePreviewSection = (sectionId) => {
+            const normalisedId = normalisePreviewSectionId(sectionId);
+            if (!normalisedId) {
+                resetPageLivePreviewSelection();
+                syncPageLivePreviewEditorFromSelection();
+                return false;
+            }
+            const nextSectionNode = findPreviewSectionNodeByPersistedId(normalisedId);
+            if (!nextSectionNode) {
+                resetPageLivePreviewSelection();
+                syncPageLivePreviewEditorFromSelection();
+                return false;
+            }
+            if (
+                pageLivePreviewSelectedSectionNode &&
+                pageLivePreviewSelectedSectionNode.classList
+            ) {
+                pageLivePreviewSelectedSectionNode.classList.remove(
+                    'is-admin-preview-selected'
+                );
+            }
+
+            pageLivePreviewSelectedSectionId = normalisedId;
+            pageLivePreviewSelectedSectionNode = nextSectionNode;
+            pageLivePreviewSelectedSectionNode.classList.add(
+                'is-admin-preview-selected'
+            );
+            syncPageLivePreviewEditorFromSelection();
+            return true;
+        };
+
+        const focusSelectedSectionInBuilder = (options = {}) => {
+            const {
+                focusField = true,
+                openBuilder = true,
+                smoothScroll = true,
+            } = options;
+            const normalisedId = normalisePreviewSectionId(
+                pageLivePreviewSelectedSectionId
+            );
+            if (!normalisedId) {
+                return false;
+            }
+            if (openBuilder && pageEditorModeEnabled) {
+                setPageBuilderOpen(true);
+            }
+            let sectionNode = findBuilderSectionNodeByPersistedId(normalisedId);
+            if (!sectionNode) {
+                clearBuilderSectionSelection();
+                return false;
+            }
+            const isCollapsed =
+                normaliseString(sectionNode.dataset.sectionCollapsed).trim() ===
+                'true';
+            if (isCollapsed) {
+                const collapseButton = sectionNode.querySelector(
+                    '[data-action="section-collapse"]'
+                );
+                if (collapseButton && typeof collapseButton.click === 'function') {
+                    collapseButton.click();
+                    sectionNode = findBuilderSectionNodeByPersistedId(normalisedId);
+                }
+            }
+            if (!sectionNode) {
+                clearBuilderSectionSelection();
+                return false;
+            }
+            setBuilderSectionSelection(sectionNode);
+            sectionNode.scrollIntoView({
+                behavior: smoothScroll ? 'smooth' : 'auto',
+                block: 'center',
+            });
+            if (!focusField) {
+                return true;
+            }
+            const { titleInput, descriptionInput } = getBuilderSectionFields(sectionNode);
+            if (titleInput && typeof titleInput.focus === 'function') {
+                titleInput.focus();
+                return true;
+            }
+            if (descriptionInput && typeof descriptionInput.focus === 'function') {
+                descriptionInput.focus();
+                return true;
+            }
+            return true;
+        };
+
+        const bindPageLivePreviewInteractions = () => {
+            const previewDocument = pageLivePreviewFrame?.contentDocument;
+            if (!previewDocument) {
+                return;
+            }
+            detachPageLivePreviewInteractions();
+            previewDocument.documentElement?.classList.add(
+                'is-admin-live-preview'
+            );
+            if (
+                !previewDocument.getElementById(
+                    PAGE_LIVE_PREVIEW_INTERACTION_STYLE_ID
+                )
+            ) {
+                const styleNode = previewDocument.createElement('style');
+                styleNode.id = PAGE_LIVE_PREVIEW_INTERACTION_STYLE_ID;
+                styleNode.textContent = PAGE_LIVE_PREVIEW_INTERACTION_STYLE;
+                const styleParent =
+                    previewDocument.head || previewDocument.documentElement;
+                styleParent?.append(styleNode);
+            }
+
+            const handlePreviewClick = (event) => {
+                const target = event.target;
+                if (!target || target.nodeType !== 1) {
+                    return;
+                }
+                const targetElement = target;
+                if (typeof targetElement.closest !== 'function') {
+                    return;
+                }
+                const sectionNode = targetElement.closest('section[id^="section-"]');
+                if (!sectionNode) {
+                    return;
+                }
+                event.preventDefault();
+                event.stopPropagation();
+                if (selectPageLivePreviewSection(sectionNode.id)) {
+                    focusSelectedSectionInBuilder({
+                        focusField: false,
+                        openBuilder: true,
+                        smoothScroll: true,
+                    });
+                }
+            };
+
+            previewDocument.addEventListener('click', handlePreviewClick, true);
+            pageLivePreviewInteractiveDocument = previewDocument;
+            pageLivePreviewInteractiveClickHandler = handlePreviewClick;
+        };
+
+        const syncPageLivePreviewSelectionAfterLoad = () => {
+            const selectedSectionId = normalisePreviewSectionId(
+                pageLivePreviewSelectedSectionId
+            );
+            if (
+                selectedSectionId &&
+                selectPageLivePreviewSection(selectedSectionId)
+            ) {
+                return;
+            }
+            const firstSectionNode =
+                pageLivePreviewFrame?.contentDocument?.querySelector(
+                    'section[id^="section-"]'
+                ) || null;
+            if (firstSectionNode) {
+                selectPageLivePreviewSection(firstSectionNode.id);
+                return;
+            }
+            resetPageLivePreviewSelection();
+            syncPageLivePreviewEditorFromSelection();
+        };
+
+        const refreshPageLivePreview = () => {
+            if (!pageLivePreviewFrame) {
+                return;
+            }
+            const pageId = normaliseString(pageForm?.dataset?.id).trim();
+            if (!pageId) {
+                clearPageLivePreview('Save the page to start previewing it here.');
+                return;
+            }
+            const previewUrl = buildPagePreviewUrl(pageId);
+            if (!previewUrl) {
+                clearPageLivePreview('Preview is unavailable for this page.');
+                return;
+            }
+            const isSwitchingPage =
+                pagePreviewLoadedId && pagePreviewLoadedId !== pageId;
+            if (isSwitchingPage) {
+                resetPageLivePreviewSelection();
+                syncPageLivePreviewEditorFromSelection();
+            }
+            pagePreviewLoadedId = pageId;
+            pagePreviewDirty = false;
+            updatePageLivePreviewActions(true);
+            setPageLivePreviewStatus('Loading preview...', 'loading');
+            pageLivePreviewFrame.hidden = false;
+            pageLivePreviewFrame.src = previewUrl;
+        };
+
+        const markPageLivePreviewDirty = () => {
+            const pageId = normaliseString(pageForm?.dataset?.id).trim();
+            if (!pageId || !pageLivePreviewFrame || pageLivePreviewFrame.hidden) {
+                return;
+            }
+            pagePreviewDirty = true;
+            setPageLivePreviewStatus(
+                'You have unsaved changes. Save and refresh to update preview.',
+                'stale'
+            );
+        };
+
+        if (pageLivePreviewFrame) {
+            pageLivePreviewFrame.addEventListener('load', () => {
+                const pageId = normaliseString(pageForm?.dataset?.id).trim();
+                if (!pageId) {
+                    return;
+                }
+                const isCurrentPageLoaded = pagePreviewLoadedId === pageId;
+                if (!isCurrentPageLoaded) {
+                    return;
+                }
+                bindPageLivePreviewInteractions();
+                syncPageLivePreviewSelectionAfterLoad();
+                if (pagePreviewDirty) {
+                    setPageLivePreviewStatus(
+                        'Preview refreshed. You still have unsaved changes.',
+                        'stale'
+                    );
+                    return;
+                }
+                setPageLivePreviewStatus(
+                    'Showing the latest saved version.',
+                    'ready'
+                );
+            });
+            pageLivePreviewFrame.addEventListener('error', () => {
+                detachPageLivePreviewInteractions();
+                resetPageLivePreviewSelection();
+                syncPageLivePreviewEditorFromSelection();
+                setPageLivePreviewStatus(
+                    'Failed to load preview. Try refreshing.',
+                    'error'
+                );
+            });
+        }
+        if (pageLivePreviewPanel) {
+            clearPageLivePreview();
+        }
+        setPageEditorOpen(false);
+        if (pageEditorModeEnabled) {
+            initialisePageEditorDrawerWidth();
+            setPageBuilderOpen(false);
+            if (pageEditorCloseButton) {
+                pageEditorCloseButton.textContent = 'Back to admin';
+            }
+        }
+        syncPageEditorOpenButtons();
 
         const createLinkedCell = (label, path) => {
             const cell = createElement('td');
@@ -3377,6 +4500,7 @@
             visiblePages.forEach((page) => {
                 const row = createElement('tr');
                 row.dataset.id = page.id;
+                const pageId = String(page.id ?? '');
                 row.appendChild(
                     createLinkedCell(
                         page.title || page.Title || 'Untitled',
@@ -3404,10 +4528,26 @@
                 row.appendChild(
                     createElement('td', { textContent: formatDate(updated) })
                 );
-                row.addEventListener('click', () => selectPage(page.id));
+                row.addEventListener('click', () => {
+                    if (!pageId) {
+                        return;
+                    }
+                    if (!pageEditorModeEnabled) {
+                        window.location.assign(buildPageEditorUrl(pageId));
+                        return;
+                    }
+                    const editorIsOpen = Boolean(
+                        pageEditorWorkspace && !pageEditorWorkspace.hidden
+                    );
+                    if (editorIsOpen) {
+                        selectPage(pageId);
+                        return;
+                    }
+                    setSelectedPage(pageId);
+                });
                 table.appendChild(row);
             });
-            highlightRow(table, pageForm?.dataset.id);
+            highlightRow(table, selectedPageId);
         };
         registerTableRenderer('pages', renderPages);
 
@@ -6596,7 +7736,7 @@
         };
 
         const renderCourseVideoSubtitle = () => {
-            if (!courseVideoSubtitleFieldset) {
+            if (!courseVideoSubtitleSection) {
                 return;
             }
             const subtitleState = getCourseVideoSubtitleState();
@@ -7098,6 +8238,43 @@
             return !uploadUrl;
         };
 
+        const setCourseVideoSectionDisabled = (section, disabled) => {
+            if (!(section instanceof Element)) {
+                return;
+            }
+            const controls = section.querySelectorAll(
+                'input, textarea, select, button'
+            );
+            controls.forEach((control) => {
+                const isFormControl =
+                    control instanceof HTMLInputElement ||
+                    control instanceof HTMLTextAreaElement ||
+                    control instanceof HTMLSelectElement ||
+                    control instanceof HTMLButtonElement;
+                if (!isFormControl) {
+                    return;
+                }
+
+                if (disabled) {
+                    control.dataset.adminSectionDisabledBefore =
+                        control.disabled ? 'true' : 'false';
+                    control.disabled = true;
+                    return;
+                }
+
+                if (
+                    Object.prototype.hasOwnProperty.call(
+                        control.dataset,
+                        'adminSectionDisabledBefore'
+                    )
+                ) {
+                    control.disabled =
+                        control.dataset.adminSectionDisabledBefore === 'true';
+                    delete control.dataset.adminSectionDisabledBefore;
+                }
+            });
+        };
+
         const setCourseVideoDetailsAvailability = () => {
             const locked = isCourseVideoDetailsLocked();
             if (courseVideoTitleInput) {
@@ -7106,15 +8283,9 @@
             if (courseVideoDescriptionInput) {
                 courseVideoDescriptionInput.disabled = locked;
             }
-            if (courseVideoSectionsFieldset) {
-                courseVideoSectionsFieldset.disabled = locked;
-            }
-            if (courseVideoAttachmentsFieldset) {
-                courseVideoAttachmentsFieldset.disabled = locked;
-            }
-            if (courseVideoSubtitleFieldset) {
-                courseVideoSubtitleFieldset.disabled = locked;
-            }
+            setCourseVideoSectionDisabled(courseVideoSectionsSection, locked);
+            setCourseVideoSectionDisabled(courseVideoAttachmentsSection, locked);
+            setCourseVideoSectionDisabled(courseVideoSubtitleSection, locked);
             return locked;
         };
 
@@ -8929,6 +10100,14 @@
             if (!page) {
                 return;
             }
+            setSelectedPage(page.id);
+            if (pageEditorModeEnabled && window.history?.replaceState) {
+                const nextEditorUrl = buildPageEditorUrl(page.id);
+                if (nextEditorUrl !== `${window.location.pathname}${window.location.search}`) {
+                    window.history.replaceState(null, '', nextEditorUrl);
+                }
+            }
+            setPageEditorOpen(true);
             pageForm.dataset.id = page.id;
             pageForm.title.value = page.title || '';
             if (pagePathInput) {
@@ -8992,13 +10171,18 @@
                     extractSectionsFromEntry(page)
                 );
             }
-            highlightRow(tables.pages, page.id);
+            updatePageEditorSummary();
+            refreshPageLivePreview();
         };
 
-        const resetPageForm = () => {
+        const resetPageForm = (options = {}) => {
             if (!pageForm) {
                 return;
             }
+            const {
+                openEditor = true,
+                clearSelection = true,
+            } = options;
             pageForm.reset();
             delete pageForm.dataset.id;
             delete pageForm.dataset.published;
@@ -9047,8 +10231,19 @@
             if (pageSectionsManager) {
                 pageSectionsManager.reset();
             }
-            highlightRow(tables.pages);
-            bringFormIntoView(pageForm);
+            if (clearSelection) {
+                setSelectedPage('');
+            } else {
+                syncPageEditorOpenButtons();
+            }
+            if (openEditor) {
+                setPageEditorOpen(true);
+                bringFormIntoView(pageForm);
+                clearPageLivePreview('Save the page to start previewing it here.');
+            } else {
+                setPageEditorOpen(false);
+            }
+            updatePageEditorSummary();
         };
 
         const selectCategory = (id) => {
@@ -9136,7 +10331,31 @@
                 const payload = await apiRequest(endpoints.pages);
                 state.pages = payload?.pages || [];
                 state.hasLoadedPages = true;
+                const hadSelectedPage = Boolean(selectedPageId);
+                const selectedStillExists =
+                    hadSelectedPage &&
+                    state.pages.some(
+                        (entry) => String(entry.id) === selectedPageId
+                    );
                 renderPages();
+                if (hadSelectedPage && !selectedStillExists) {
+                    setSelectedPage('');
+                } else {
+                    syncPageEditorOpenButtons();
+                }
+                const editingId = normaliseString(pageForm?.dataset?.id).trim();
+                if (
+                    editingId &&
+                    !state.pages.some(
+                        (entry) => String(entry.id) === editingId
+                    )
+                ) {
+                    resetPageForm({
+                        openEditor: false,
+                        clearSelection: true,
+                    });
+                }
+                applyPageEditorRouteSelection();
             } catch (error) {
                 handleRequestError(error);
             }
@@ -13576,21 +14795,29 @@
             disableForm(pageForm, true);
             clearAlert();
             try {
+                let response = null;
                 if (id) {
-                    await apiRequest(`${endpoints.pages}/${id}`, {
+                    response = await apiRequest(`${endpoints.pages}/${id}`, {
                         method: 'PUT',
                         body: JSON.stringify(payload),
                     });
                     showAlert('Page updated successfully.', 'success');
                 } else {
-                    await apiRequest(endpoints.pages, {
+                    response = await apiRequest(endpoints.pages, {
                         method: 'POST',
                         body: JSON.stringify(payload),
                     });
                     showAlert('Page created successfully.', 'success');
                 }
+                const savedPageId = normaliseString(
+                    response?.page?.id ?? response?.page?.ID ?? id
+                ).trim();
                 await loadPages();
                 await loadStats();
+                if (savedPageId) {
+                    selectPage(savedPageId);
+                    return;
+                }
                 resetPageForm();
             } catch (error) {
                 handleRequestError(error);
@@ -13616,7 +14843,10 @@
                 showAlert('Page deleted successfully.', 'success');
                 await loadPages();
                 await loadStats();
-                resetPageForm();
+                resetPageForm({
+                    openEditor: false,
+                    clearSelection: true,
+                });
             } catch (error) {
                 handleRequestError(error);
             } finally {
@@ -13663,9 +14893,51 @@
             if (!pageForm || !pageForm.dataset.id) {
                 return;
             }
-            const id = pageForm.dataset.id;
-            const previewUrl = `/api/v1/admin/pages/${id}/preview`;
+            const previewUrl = buildPagePreviewUrl(pageForm.dataset.id, {
+                bustCache: false,
+            });
+            if (!previewUrl) {
+                showAlert('Preview is unavailable for this page.', 'error');
+                return;
+            }
             window.open(previewUrl, '_blank', 'noopener,noreferrer');
+        };
+
+        const handlePageLivePreviewInput = (event) => {
+            if (!pageForm || !pageForm.dataset.id) {
+                return;
+            }
+            const target = event?.target;
+            if (!(target instanceof Element) || !pageForm.contains(target)) {
+                return;
+            }
+            markPageLivePreviewDirty();
+
+            const selectedSectionId = normalisePreviewSectionId(
+                pageLivePreviewSelectedSectionId
+            );
+            if (!selectedSectionId) {
+                return;
+            }
+            const sectionField = normaliseString(target.dataset.field).trim();
+            if (
+                sectionField !== 'section-title' &&
+                sectionField !== 'section-description'
+            ) {
+                return;
+            }
+            const sectionNode = target.closest('[data-section-client]');
+            if (!sectionNode) {
+                return;
+            }
+            const persistedId = normalisePreviewSectionId(
+                sectionNode.dataset.sectionId
+            );
+            if (!persistedId || persistedId !== selectedSectionId) {
+                return;
+            }
+            syncPageLivePreviewEditorFromSelection();
+            syncSelectedSectionHeaderInLivePreview();
         };
 
         const handleCategorySubmit = async (event) => {
@@ -14239,6 +15511,9 @@
         };
 
         refreshNavigation();
+        if (pageEditorModeEnabled) {
+            activateTab('pages');
+        }
 
         navigationContainer?.addEventListener('click', (event) => {
             const target = event.target;
@@ -14338,6 +15613,121 @@
             'click',
             resetPageForm
         );
+        pageEditorOpenButtons.forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                const pageId = normaliseString(selectedPageId).trim();
+                if (!pageId) {
+                    return;
+                }
+                selectPage(pageId);
+                if (pageForm) {
+                    bringFormIntoView(pageForm);
+                }
+            });
+        });
+        pageBuilderToggleButton?.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (!pageEditorModeEnabled) {
+                return;
+            }
+            const isOpen = root.classList.contains(
+                'admin--page-editor-builder-open'
+            );
+            setPageBuilderOpen(!isOpen);
+        });
+        pageBuilderResizeHandle?.addEventListener(
+            'pointerdown',
+            startPageBuilderResize
+        );
+        pageBuilderResizeHandle?.addEventListener(
+            'pointermove',
+            handlePageBuilderResizeMove
+        );
+        pageBuilderResizeHandle?.addEventListener('pointerup', (event) => {
+            if (
+                !pageBuilderResizeSession ||
+                event.pointerId !== pageBuilderResizeSession.pointerId
+            ) {
+                return;
+            }
+            finishPageBuilderResize({ persist: true });
+        });
+        pageBuilderResizeHandle?.addEventListener('pointercancel', (event) => {
+            if (
+                !pageBuilderResizeSession ||
+                event.pointerId !== pageBuilderResizeSession.pointerId
+            ) {
+                return;
+            }
+            finishPageBuilderResize({ persist: true });
+        });
+        pageBuilderResizeHandle?.addEventListener('lostpointercapture', () => {
+            finishPageBuilderResize({ persist: true });
+        });
+        pageBuilderResizeHandle?.addEventListener('dblclick', (event) => {
+            event.preventDefault();
+            if (!pageEditorModeEnabled || !isPageBuilderOpen()) {
+                return;
+            }
+            setPageEditorDrawerWidth(PAGE_EDITOR_DRAWER_WIDTH_DEFAULT, {
+                persist: true,
+            });
+        });
+        pageBuilderResizeHandle?.addEventListener('keydown', (event) => {
+            if (!pageEditorModeEnabled || !isPageBuilderOpen()) {
+                return;
+            }
+            switch (event.key) {
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    adjustPageEditorDrawerWidth(-PAGE_EDITOR_DRAWER_WIDTH_STEP, {
+                        persist: true,
+                    });
+                    break;
+                case 'ArrowRight':
+                    event.preventDefault();
+                    adjustPageEditorDrawerWidth(PAGE_EDITOR_DRAWER_WIDTH_STEP, {
+                        persist: true,
+                    });
+                    break;
+                case 'Home':
+                    event.preventDefault();
+                    setPageEditorDrawerWidth(PAGE_EDITOR_DRAWER_WIDTH_MIN, {
+                        persist: true,
+                    });
+                    break;
+                case 'End':
+                    event.preventDefault();
+                    setPageEditorDrawerWidth(PAGE_EDITOR_DRAWER_WIDTH_MAX, {
+                        persist: true,
+                    });
+                    break;
+                case ' ':
+                case 'Enter':
+                    event.preventDefault();
+                    setPageEditorDrawerWidth(PAGE_EDITOR_DRAWER_WIDTH_DEFAULT, {
+                        persist: true,
+                    });
+                    break;
+                default:
+                    break;
+            }
+        });
+        window.addEventListener('resize', () => {
+            if (pageEditorModeEnabled) {
+                setPageEditorDrawerWidth(pageEditorDrawerWidthPx);
+            }
+            updatePageEditorWidthReadout();
+        });
+        pageEditorCloseButton?.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (pageEditorModeEnabled) {
+                window.location.assign('/admin');
+                return;
+            }
+            setPageEditorOpen(false);
+        });
         root.querySelector('[data-action="category-reset"]')?.addEventListener(
             'click',
             resetCategoryForm
@@ -14453,10 +15843,31 @@
 
         postForm?.addEventListener('submit', handlePostSubmit);
         postDeleteButton?.addEventListener('click', handlePostDelete);
+        pageTitleInput?.addEventListener('input', updatePageEditorSummary);
+        pageForm?.addEventListener('input', handlePageLivePreviewInput);
+        pageForm?.addEventListener('change', handlePageLivePreviewInput);
         pageForm?.addEventListener('submit', handlePageSubmit);
         pageDeleteButton?.addEventListener('click', handlePageDelete);
         pageDuplicateButton?.addEventListener('click', handlePageDuplicate);
         pagePreviewButton?.addEventListener('click', handlePagePreview);
+        pageLivePreviewRefreshButton?.addEventListener('click', (event) => {
+            event.preventDefault();
+            refreshPageLivePreview();
+        });
+        pageLivePreviewOpenButton?.addEventListener('click', (event) => {
+            event.preventDefault();
+            handlePagePreview();
+        });
+        pageLivePreviewOpenSectionButton?.addEventListener('click', (event) => {
+            event.preventDefault();
+            focusSelectedSectionInBuilder();
+        });
+        pageLivePreviewSectionTitleInput?.addEventListener('input', () => {
+            applyPageLivePreviewQuickEdit();
+        });
+        pageLivePreviewSectionDescriptionInput?.addEventListener('input', () => {
+            applyPageLivePreviewQuickEdit();
+        });
         categoryForm?.addEventListener('submit', handleCategorySubmit);
         categoryDeleteButton?.addEventListener('click', handleCategoryDelete);
         userForm?.addEventListener('submit', handleUserSubmit);
@@ -14696,3 +16107,5 @@
         initialiseAdminDashboard();
     }
 })();
+
+

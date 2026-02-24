@@ -1294,6 +1294,15 @@ func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.Cour
 		index := len(cards) + 1
 		headingID := fmt.Sprintf("%s-course-%d-title", prefix, index)
 		courseID := strconv.FormatUint(uint64(pkg.ID), 10)
+		element := "article"
+		href := ""
+		if slug := strings.TrimSpace(pkg.Slug); slug != "" {
+			element = "a"
+			href = fmt.Sprintf("/courses/%s/info", slug)
+		} else if pkg.ID > 0 {
+			element = "a"
+			href = fmt.Sprintf("/courses/%d/info", pkg.ID)
+		}
 
 		description := strings.TrimSpace(pkg.Summary)
 		if description == "" {
@@ -1363,7 +1372,8 @@ func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.Cour
 		}
 
 		card := courseCardTemplateData{
-			Element:          "article",
+			Element:          element,
+			Href:             href,
 			CardClass:        cardClass,
 			MediaClass:       mediaClass,
 			ImageClass:       imageClass,
@@ -1385,7 +1395,7 @@ func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.Cour
 			MetaItems:        metaItems,
 			Description:      descriptionHTML,
 			Topics:           topicsData,
-			Interactive:      true,
+			Interactive:      false,
 			PriceBlock:       priceBlock,
 		}
 
@@ -1394,23 +1404,6 @@ func (h *TemplateHandler) buildCourseCards(prefix string, packages []models.Cour
 				URL: strings.TrimSpace(image),
 				Alt: fmt.Sprintf("%s course preview", title),
 			}
-		}
-
-		modalTopics := buildCourseModalTopics(pkg.Topics, h)
-		if detailsJSON := buildCourseModalDetails(courseModalDetailsInput{
-			Package:            pkg,
-			Title:              title,
-			DescriptionHTML:    sanitizedDescription,
-			ImageURL:           strings.TrimSpace(pkg.ImageURL),
-			PriceLabel:         priceLabel,
-			OriginalPriceLabel: originalPriceLabel,
-			TopicLabel:         topicLabel,
-			LessonLabel:        lessonLabel,
-			DurationLabel:      durationLabel,
-			Topics:             modalTopics,
-			CourseID:           courseID,
-		}); detailsJSON != "" {
-			card.ModalDetails = template.JS(detailsJSON)
 		}
 
 		cards = append(cards, card)
@@ -2263,16 +2256,7 @@ func coursePackageStats(pkg models.CoursePackage) (topics int, lessons int, dura
 func (h *TemplateHandler) renderSpecialSection(prefix string, section models.Section, sectionType string, c *gin.Context) (string, []string) {
 	if sectionType == "courses_list" || sectionType == "catalog" {
 		html := h.renderCoursesListSection(prefix, section, c)
-
-		mode := strings.TrimSpace(strings.ToLower(section.Mode))
-		if mode == "" {
-			mode = constants.CourseListModeCatalog
-		}
-
-		scripts := []string{"/static/js/courses-modal.js"}
-		if mode != constants.CourseListModeOwned && h.courseCheckoutSvc != nil && h.courseCheckoutSvc.Enabled() {
-			scripts = append(scripts, "/static/js/courses-checkout.js")
-		}
+		scripts := []string(nil)
 
 		courseSettings := parseCourseListSettings(section)
 		if courseSettings.DisplayMode == constants.CourseListDisplayCarousel {

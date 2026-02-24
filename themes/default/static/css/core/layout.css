@@ -29,6 +29,19 @@
     grid-area: main;
 }
 
+.layout--admin.admin-layout--page-editor-mode {
+    grid-template-rows: 1fr;
+    grid-template-areas: "main";
+}
+
+.layout--admin.admin-layout--page-editor-mode .admin-layout__header {
+    display: none;
+}
+
+.layout--admin.admin-layout--page-editor-mode .main {
+    min-height: 100vh;
+}
+
 @media (min-width: 900px) {
     .layout--admin {
         height: 100vh;

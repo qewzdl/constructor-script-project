@@ -58,29 +58,21 @@ func renderCoursesList(ctx RenderContext, prefix string, elem models.SectionElem
 		mode = constants.CourseListModeCatalog
 	}
 
-	scripts := []string{"/static/js/courses-modal.js"}
-
 	services := ctx.Services()
 	if services == nil {
-		return renderCoursesEmpty(prefix), scripts
+		return renderCoursesEmpty(prefix), nil
 	}
 
 	coursePackageSvc, ok := services.CoursePackageService().(*courseservice.PackageService)
 	if !ok || coursePackageSvc == nil {
-		return renderCoursesEmpty(prefix), scripts
+		return renderCoursesEmpty(prefix), nil
 	}
 
 	if mode == constants.CourseListModeOwned {
-		return renderOwnedCourses(ctx, prefix, section), scripts
+		return renderOwnedCourses(ctx, prefix, section), nil
 	}
 
-	// Catalog mode
-	checkoutSvc, _ := services.CourseCheckoutService().(*courseservice.CheckoutService)
-	if checkoutSvc != nil {
-		scripts = append(scripts, "/static/js/courses-checkout.js")
-	}
-
-	return renderCatalogCourses(ctx, prefix, section, coursePackageSvc), scripts
+	return renderCatalogCourses(ctx, prefix, section, coursePackageSvc), nil
 }
 
 func renderCoursesEmpty(prefix string) string {

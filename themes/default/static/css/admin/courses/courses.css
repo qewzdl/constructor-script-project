@@ -34,7 +34,7 @@
     color: var(--color-secondary);
 }
 
-.admin-courses__fieldset {
+.admin-courses__section {
     display: grid;
     gap: var(--size-sm);
 }
@@ -172,4 +172,5 @@
     font-size: var(--font-size-sm);
     color: var(--color-secondary);
 }
+
 

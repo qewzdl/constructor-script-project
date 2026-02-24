@@ -3,24 +3,24 @@
     gap: var(--size-mid);
 }
 
-.admin-form__fieldset {
+.admin-form__section {
     display: grid;
     gap: var(--size-base);
     padding: var(--size-mid);
     border: 1px solid var(--color-border);
 }
 
-.admin-form__fieldset--sections {
+.admin-form__section--sections {
     gap: var(--size-base);
 }
 
-.admin-form__legend {
+.admin-form__section-title {
     font-weight: 600;
     font-size: var(--font-size-base);
     background-color: var(--color-bg-top);
 }
 
-.admin-form__legend.admin-card__title {
+.admin-form__section-title.admin-card__title {
     font-size: var(--font-size-base);
 }
 
@@ -74,4 +74,5 @@
     color: var(--color-secondary);
     line-height: 1.5;
 }
+
 

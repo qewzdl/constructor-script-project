@@ -6,6 +6,12 @@
     }
 
     const { registerPanel, registerQuickAction, init } = layout;
+    const adminRoot =
+        typeof document === 'undefined'
+            ? null
+            : document.querySelector('.admin[data-page="admin"]');
+    const pageEditorStandaloneMode =
+        adminRoot?.dataset?.pageEditorStandalone === 'true';
 
     const createElementFromMarkup = (markup) => {
         if (typeof document === 'undefined') {
@@ -20,15 +26,49 @@
         if (!definition || typeof definition.markup !== "string") {
             return;
         }
+        if (
+            pageEditorStandaloneMode &&
+            String(definition.id || '').trim() !== 'pages'
+        ) {
+            return;
+        }
         const { markup, ...rest } = definition;
         registerPanel(
             Object.assign({}, rest, {
-                create: () => createElementFromMarkup(markup),
+                create: () => {
+                    const element = createElementFromMarkup(markup);
+                    if (!element) {
+                        return null;
+                    }
+                    if (
+                        pageEditorStandaloneMode &&
+                        String(definition.id || '').trim() === 'pages'
+                    ) {
+                        const emptyState = element.querySelector(
+                            '[data-role="page-editor-empty"]'
+                        );
+                        emptyState?.remove();
+                        const workspace = element.querySelector(
+                            '[data-role="page-editor-workspace"]'
+                        );
+                        if (workspace instanceof HTMLElement) {
+                            workspace.hidden = false;
+                        }
+                    }
+                    return element;
+                },
             })
         );
     };
 
-    registerQuickAction({
+    const registerQuickActionIfAvailable = (definition) => {
+        if (pageEditorStandaloneMode) {
+            return;
+        }
+        registerQuickAction(definition);
+    };
+
+    registerQuickActionIfAvailable({
         id: 'quick-create-post',
         label: 'Create new post',
         navTarget: 'posts',
@@ -37,7 +77,7 @@
         shouldRender: (context) => Boolean(context?.blogEnabled),
     });
 
-    registerQuickAction({
+    registerQuickActionIfAvailable({
         id: 'quick-create-page',
         label: 'Create new page',
         navTarget: 'pages',
@@ -45,7 +85,7 @@
         order: 10,
     });
 
-    registerQuickAction({
+    registerQuickActionIfAvailable({
         id: 'quick-create-forum-topic',
         label: 'Start forum discussion',
         navTarget: 'forum',
@@ -54,14 +94,14 @@
         shouldRender: (context) => Boolean(context?.forumEnabled),
     });
 
-    registerQuickAction({
+    registerQuickActionIfAvailable({
         id: 'quick-update-settings',
         label: 'Update site identity',
         navTarget: 'settings',
         order: 20,
     });
 
-    registerQuickAction({
+    registerQuickActionIfAvailable({
         id: 'quick-upload-course-video',
         label: 'Upload course video',
         navTarget: 'courses',
@@ -71,7 +111,7 @@
             Boolean(context?.dataset?.endpointCoursesVideos),
     });
 
-    registerQuickAction({
+    registerQuickActionIfAvailable({
         id: 'quick-create-archive-directory',
         label: 'Create archive directory',
         navTarget: 'archive',
@@ -262,8 +302,8 @@
                 </div>
                 <div class="admin-panel__details">
                     <form id="admin-post-form" class="admin-form" novalidate>
-                        <fieldset class="admin-card admin-form__fieldset">
-                            <legend class="admin-card__title admin-form__legend">Post details</legend>
+                        <div class="admin-card admin-form__section">
+                            <p class="admin-card__title admin-form__section-title">Post details</p>
                             <label class="admin-form__label">
                                 Title
                                 <input type="text" name="title" required class="admin-form__input" />
@@ -297,8 +337,8 @@
                                 </small>
                             </label>
                             <input type="hidden" name="content" />
-                            <fieldset class="admin-card admin-form__fieldset admin-form__fieldset--sections">
-                                <legend class="admin-card__title admin-form__legend">Structured sections</legend>
+                            <div class="admin-card admin-form__section admin-form__section--sections">
+                                <p class="admin-card__title admin-form__section-title">Structured sections</p>
                                 <p class="admin-card__description admin-form__hint">
                                     Build rich layouts by combining reusable sections. Use the controls to reorder sections and
                                     adjust their content before publishing.
@@ -315,7 +355,7 @@
                                         </button>
                                     </div>
                                 </div>
-                            </fieldset>
+                            </div>
                             <label class="admin-form__label">
                                 Category
                                 <select name="category_id" class="admin-form__input" id="admin-post-category"></select>
@@ -384,7 +424,7 @@
                                     Delete post
                                 </button>
                             </div>
-                        </fieldset>
+                        </div>
                     </form>
                     <section class="admin-panel__aside admin-post-analytics" aria-labelledby="admin-post-analytics-title">
                         <header class="admin-post-analytics__header">
@@ -489,9 +529,12 @@
                         />
                     </label>
                     <button type="button" class="admin-panel__reset" data-action="page-reset">New page</button>
+                    <button type="button" class="admin-panel__reset" data-action="page-editor-open" disabled>
+                        Open editor
+                    </button>
                 </div>
             </header>
-            <div class="admin-panel__body admin-panel__body--split">
+            <div class="admin-panel__body admin-panel__body--split admin-panel__body--pages-live">
                 <div class="admin-panel__list" aria-live="polite">
                     <table class="admin-table">
                         <thead>
@@ -510,96 +553,202 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="admin-panel__details">
-                    <form id="admin-page-form" class="admin-form" novalidate>
-                        <fieldset class="admin-card admin-form__fieldset">
-                            <legend class="admin-card__title admin-form__legend">Page details</legend>
-                            <label class="admin-form__label">
-                                Title
-                                <input type="text" name="title" required class="admin-form__input" />
-                            </label>
-                            <label class="admin-form__label">
-                                Public path
-                                <input type="text" name="path" class="admin-form__input" placeholder="e.g. /about" />
-                                <small class="admin-card__description admin-form__hint">Paths should start with a forward slash. Leave blank to use the default based on the slug.</small>
-                            </label>
-                            <label class="admin-form__label">
-                                Custom slug
-                                <input type="text" name="slug" class="admin-form__input" placeholder="optional" />
-                            </label>
-                            <label class="admin-form__label">
-                                Description
-                                <textarea name="description" rows="3" class="admin-form__input"></textarea>
-                            </label>
-                            <fieldset class="admin-card admin-form__fieldset admin-form__fieldset--sections">
-                                <legend class="admin-card__title admin-form__legend">Structured sections</legend>
-                                <p class="admin-card__description admin-form__hint">
-                                    Combine headings, paragraphs, lists, and media into reusable sections. Sections render on the
-                                    published page in the order shown below.
-                                </p>
-                                <div class="section-builder" data-section-builder="page">
-                                    <ol class="section-builder__list" data-role="section-list">
-                                        <li class="section-builder__empty" data-role="section-empty">
-                                            No sections added yet.
-                                        </li>
-                                    </ol>
-                                    <div class="section-builder__actions">
-                                        <button type="button" class="section-builder__add" data-role="section-add">
-                                            Add section
+                <div class="admin-panel__details admin-page-editor">
+                    <div class="admin-page-editor__empty" data-role="page-editor-empty">
+                        <h3 class="admin-page-editor__empty-title">Page editor</h3>
+                        <p class="admin-page-editor__empty-description" data-role="page-editor-empty-description">
+                            Select a page, then open the editor to make changes.
+                        </p>
+                        <button type="button" class="admin-form__button" data-action="page-editor-open" disabled>
+                            Open selected page
+                        </button>
+                    </div>
+                    <div class="admin-page-editor__workspace" data-role="page-editor-workspace" hidden>
+                        <header class="admin-page-editor__toolbar">
+                            <p class="admin-page-editor__toolbar-title" data-role="page-editor-toolbar-title">
+                                Editing page
+                            </p>
+                            <div class="admin-page-editor__toolbar-actions">
+                                <button type="button" class="admin-form__button" data-action="page-builder-toggle">
+                                    Show constructor
+                                </button>
+                                <button type="button" class="admin-form__button" data-action="page-editor-close">
+                                    Close editor
+                                </button>
+                            </div>
+                        </header>
+                        <div class="admin-page-editor__panel-width-readouts" data-role="page-editor-width-readouts" hidden>
+                            <p
+                                class="admin-page-editor__panel-width admin-page-editor__panel-width--constructor"
+                                data-role="page-editor-width-constructor"
+                            >
+                                <span class="admin-page-editor__panel-width-chip">
+                                    <span class="admin-page-editor__panel-width-value" data-role="page-editor-width-constructor-value">
+                                        0px
+                                    </span>
+                                </span>
+                            </p>
+                            <p
+                                class="admin-page-editor__panel-width admin-page-editor__panel-width--preview"
+                                data-role="page-editor-width-preview"
+                            >
+                                <span class="admin-page-editor__panel-width-chip">
+                                    <span class="admin-page-editor__panel-width-value" data-role="page-editor-width-preview-value">
+                                        0px
+                                    </span>
+                                </span>
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            class="admin-page-editor__resize-handle"
+                            data-action="page-builder-resize-handle"
+                            aria-label="Resize constructor panel"
+                            title="Drag to resize. Double-click to reset width."
+                        ></button>
+                        <div class="admin-page-editor__editor">
+                            <form id="admin-page-form" class="admin-form" novalidate>
+                                <div class="admin-card admin-form__section">
+                                    <p class="admin-card__title admin-form__section-title">Page details</p>
+                                    <label class="admin-form__label">
+                                        Title
+                                        <input type="text" name="title" required class="admin-form__input" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Public path
+                                        <input type="text" name="path" class="admin-form__input" placeholder="e.g. /about" />
+                                        <small class="admin-card__description admin-form__hint">Paths should start with a forward slash. Leave blank to use the default based on the slug.</small>
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Custom slug
+                                        <input type="text" name="slug" class="admin-form__input" placeholder="optional" />
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Description
+                                        <textarea name="description" rows="3" class="admin-form__input"></textarea>
+                                    </label>
+                                    <div class="admin-card admin-form__section admin-form__section--sections">
+                                        <p class="admin-card__title admin-form__section-title">Structured sections</p>
+                                        <p class="admin-card__description admin-form__hint">
+                                            Combine headings, paragraphs, lists, and media into reusable sections. Sections render on the
+                                            published page in the order shown below.
+                                        </p>
+                                        <div class="section-builder" data-section-builder="page">
+                                            <ol class="section-builder__list" data-role="section-list">
+                                                <li class="section-builder__empty" data-role="section-empty">
+                                                    No sections added yet.
+                                                </li>
+                                            </ol>
+                                            <div class="section-builder__actions">
+                                                <button type="button" class="section-builder__add" data-role="section-add">
+                                                    Add section
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <label class="admin-form__label">
+                                        Display order
+                                        <input type="number" name="order" value="0" class="admin-form__input" />
+                                    </label>
+                                    <label class="admin-form__checkbox checkbox">
+                                        <input type="checkbox" name="hide_header" class="checkbox__input" />
+                                        <span class="checkbox__label">Hide page header</span>
+                                    </label>
+                                    <label class="admin-form__label">
+                                        Publish at
+                                        <input
+                                            type="datetime-local"
+                                            name="publish_at"
+                                            class="admin-form__input"
+                                            step="60"
+                                        />
+                                        <small class="admin-card__description admin-form__hint">
+                                            Leave empty to publish immediately. Future times schedule the page for automatic release.
+                                        </small>
+                                    </label>
+                                    <p class="admin-card__description admin-form__hint" data-role="page-published-at" hidden></p>
+                                    <div class="admin-form__actions">
+                                        <button
+                                            type="submit"
+                                            class="admin-form__submit"
+                                            data-role="page-submit-publish"
+                                            data-intent="publish"
+                                        >
+                                            Save &amp; publish
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            class="admin-form__submit admin-form__submit--secondary"
+                                            data-role="page-submit-draft"
+                                            data-intent="draft"
+                                        >
+                                            Save as draft
+                                        </button>
+                                        <button type="button" class="admin-form__button" data-role="page-duplicate" hidden>
+                                            Duplicate
+                                        </button>
+                                        <button type="button" class="admin-form__button" data-role="page-preview" hidden>
+                                            Preview
+                                        </button>
+                                        <button type="button" class="admin-form__delete" data-role="page-delete" hidden>
+                                            Delete page
                                         </button>
                                     </div>
                                 </div>
-                            </fieldset>
-                            <label class="admin-form__label">
-                                Display order
-                                <input type="number" name="order" value="0" class="admin-form__input" />
-                            </label>
-                            <label class="admin-form__checkbox checkbox">
-                                <input type="checkbox" name="hide_header" class="checkbox__input" />
-                                <span class="checkbox__label">Hide page header</span>
-                            </label>
-                            <label class="admin-form__label">
-                                Publish at
-                                <input
-                                    type="datetime-local"
-                                    name="publish_at"
-                                    class="admin-form__input"
-                                    step="60"
-                                />
-                                <small class="admin-card__description admin-form__hint">
-                                    Leave empty to publish immediately. Future times schedule the page for automatic release.
-                                </small>
-                            </label>
-                            <p class="admin-card__description admin-form__hint" data-role="page-published-at" hidden></p>
-                            <div class="admin-form__actions">
-                                <button
-                                    type="submit"
-                                    class="admin-form__submit"
-                                    data-role="page-submit-publish"
-                                    data-intent="publish"
-                                >
-                                    Save &amp; publish
+                            </form>
+                        </div>
+                        <aside class="admin-page-editor__preview" data-role="page-live-preview-panel">
+                            <header class="admin-page-editor__preview-header">
+                                <h3 class="admin-page-editor__preview-title">Live preview</h3>
+                                <div class="admin-page-editor__preview-actions">
+                                    <button type="button" class="admin-form__button" data-action="page-preview-refresh">
+                                        Refresh
+                                    </button>
+                                    <button type="button" class="admin-form__button" data-action="page-preview-open">
+                                        Open tab
+                                    </button>
+                                </div>
+                            </header>
+                            <p class="admin-page-editor__preview-status" data-role="page-live-preview-status">
+                                Select a page to load its preview.
+                            </p>
+                            <section class="admin-page-editor__quick-edit" data-role="page-live-preview-editor" hidden>
+                                <p class="admin-page-editor__quick-edit-caption" data-role="page-live-preview-editor-caption">
+                                    Click a section inside preview to edit it.
+                                </p>
+                                <label class="admin-form__label">
+                                    Section title
+                                    <input
+                                        type="text"
+                                        class="admin-form__input"
+                                        data-role="page-live-preview-section-title"
+                                        placeholder="Section title"
+                                    />
+                                </label>
+                                <label class="admin-form__label">
+                                    Section description
+                                    <textarea
+                                        rows="2"
+                                        class="admin-form__input"
+                                        data-role="page-live-preview-section-description"
+                                        placeholder="Section description"
+                                    ></textarea>
+                                </label>
+                                <button type="button" class="admin-form__button" data-action="page-live-preview-open-section">
+                                    Open in full editor
                                 </button>
-                                <button
-                                    type="submit"
-                                    class="admin-form__submit admin-form__submit--secondary"
-                                    data-role="page-submit-draft"
-                                    data-intent="draft"
-                                >
-                                    Save as draft
-                                </button>
-                                <button type="button" class="admin-form__button" data-role="page-duplicate" hidden>
-                                    Duplicate
-                                </button>
-                                <button type="button" class="admin-form__button" data-role="page-preview" hidden>
-                                    Preview
-                                </button>
-                                <button type="button" class="admin-form__delete" data-role="page-delete" hidden>
-                                    Delete page
-                                </button>
+                            </section>
+                            <div class="admin-page-editor__preview-frame-wrap">
+                                <iframe
+                                    class="admin-page-editor__preview-frame"
+                                    data-role="page-live-preview-frame"
+                                    title="Page preview"
+                                    loading="lazy"
+                                    hidden
+                                ></iframe>
                             </div>
-                        </fieldset>
-                    </form>
+                        </aside>
+                    </div>
                 </div>
             </div>
         </section>
@@ -665,8 +814,8 @@
                 </div>
                 <div class="admin-panel__details">
                     <form id="admin-category-form" class="admin-form" novalidate>
-                        <fieldset class="admin-card admin-form__fieldset">
-                            <legend class="admin-card__title admin-form__legend">Category details</legend>
+                        <div class="admin-card admin-form__section">
+                            <p class="admin-card__title admin-form__section-title">Category details</p>
                             <label class="admin-form__label">
                                 Name
                                 <input type="text" name="name" required class="admin-form__input" />
@@ -683,7 +832,7 @@
                                     Delete category
                                 </button>
                             </div>
-                        </fieldset>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -773,8 +922,8 @@
                             </div>
                             <div class="admin-panel__details">
                                 <form id="admin-forum-topic-form" class="admin-form" novalidate>
-                                    <fieldset class="admin-card admin-form__fieldset">
-                                        <legend class="admin-card__title admin-form__legend">Topic details</legend>
+                                    <div class="admin-card admin-form__section">
+                                        <p class="admin-card__title admin-form__section-title">Topic details</p>
                                         <p class="admin-card__description admin-form__hint" data-role="forum-topic-status" hidden></p>
                                         <label class="admin-form__label">
                                             Title
@@ -802,7 +951,7 @@
                                                 Delete topic
                                             </button>
                                         </div>
-                                    </fieldset>
+                                    </div>
                                 </form>
                                 <section
                                     class="admin-card admin-panel__aside"
@@ -906,8 +1055,8 @@
                             </div>
                             <div class="admin-panel__details">
                                 <form id="admin-forum-category-form" class="admin-form" novalidate>
-                                    <fieldset class="admin-card admin-form__fieldset">
-                                        <legend class="admin-card__title admin-form__legend">Category details</legend>
+                                    <div class="admin-card admin-form__section">
+                                        <p class="admin-card__title admin-form__section-title">Category details</p>
                                         <p class="admin-card__description admin-form__hint" data-role="forum-category-status" hidden></p>
                                         <label class="admin-form__label">
                                             Name
@@ -921,7 +1070,7 @@
                                                 Delete category
                                             </button>
                                         </div>
-                                    </fieldset>
+                                    </div>
                                 </form>
                             </div>
                         </div>
@@ -994,8 +1143,8 @@
                 </div>
                 <div class="admin-panel__details">
                     <form id="admin-user-form" class="admin-form" novalidate>
-                        <fieldset class="admin-card admin-form__fieldset">
-                            <legend class="admin-card__title admin-form__legend">Account overview</legend>
+                        <div class="admin-card admin-form__section">
+                            <p class="admin-card__title admin-form__section-title">Account overview</p>
                             <p class="admin-card__description admin-form__hint" data-role="user-hint">
                                 Select a user from the list to view their account details.
                             </p>
@@ -1031,7 +1180,7 @@
                                     Delete user
                                 </button>
                             </div>
-                        </fieldset>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -1101,8 +1250,8 @@
             </header>
             <div class="admin-panel__body">
                 <form id="admin-settings-form" class="admin-form" novalidate>
-                    <fieldset class="admin-card admin-form__fieldset">
-                        <legend class="admin-card__title admin-form__legend">Site details</legend>
+                    <div class="admin-card admin-form__section">
+                        <p class="admin-card__title admin-form__section-title">Site details</p>
                         <label class="admin-form__label">
                             Site name
                             <input type="text" name="name" required class="admin-form__input" />
@@ -1135,9 +1284,9 @@
                                 Save changes
                             </button>
                         </div>
-                    </fieldset>
-                    <fieldset class="admin-card admin-form__fieldset">
-                        <legend class="admin-card__title admin-form__legend">Brand assets</legend>
+                    </div>
+                    <div class="admin-card admin-form__section">
+                        <p class="admin-card__title admin-form__section-title">Brand assets</p>
                         <label class="admin-form__label">
                             Favicon
                             <input
@@ -1223,7 +1372,7 @@
                                 />
                             </div>
                         </label>
-                    </fieldset>
+                    </div>
                 </form>
             </div>
             </section>
@@ -1257,8 +1406,8 @@
         </header>
         <div class="admin-panel__body">
             <form id="admin-email-settings-form" class="admin-form" novalidate>
-                <fieldset class="admin-card admin-form__fieldset">
-                    <legend class="admin-card__title admin-form__legend">SMTP settings</legend>
+                <div class="admin-card admin-form__section">
+                    <p class="admin-card__title admin-form__section-title">SMTP settings</p>
                     <label class="admin-form__label">
                         SMTP host
                         <input type="text" name="host" required class="admin-form__input" placeholder="smtp.example.com" />
@@ -1298,7 +1447,7 @@
                             Test SMTP connection
                         </button>
                     </div>
-                </fieldset>
+                </div>
             </form>
         </div>
     </section>
@@ -1332,8 +1481,8 @@
         </header>
         <div class="admin-panel__body admin-panel__body--single">
             <form id="admin-payments-form" class="admin-form" novalidate>
-                <fieldset class="admin-card admin-form__fieldset">
-                    <legend class="admin-card__title admin-form__legend">Stripe configuration</legend>
+                <div class="admin-card admin-form__section">
+                    <p class="admin-card__title admin-form__section-title">Stripe configuration</p>
                     <p class="admin-card__description admin-form__hint">
                         Provide Stripe credentials and checkout preferences for paid offerings (courses or other products).
                     </p>
@@ -1392,7 +1541,7 @@
                             Save payment settings
                         </button>
                     </div>
-                </fieldset>
+                </div>
             </form>
         </div>
     </section>
@@ -1548,8 +1697,8 @@
                                 Description
                                 <textarea name="description" rows="3" class="admin-form__input"></textarea>
                             </label>
-                            <fieldset class="admin-card admin-form__fieldset admin-form__fieldset--sections">
-                                <legend class="admin-card__title admin-form__legend">Lesson content</legend>
+                            <div class="admin-card admin-form__section admin-form__section--sections">
+                                <p class="admin-card__title admin-form__section-title">Lesson content</p>
                                 <p class="admin-card__description admin-form__hint">
                                     Use the visual builder to add structured content that appears before the video. Combine
                                     text, images, and other elements to introduce each lesson.
@@ -1566,9 +1715,9 @@
                                         </button>
                                     </div>
                                 </div>
-                            </fieldset>
-                            <fieldset class="admin-form__fieldset admin-courses__fieldset">
-                                <legend class="admin-form__legend">Downloadable files</legend>
+                            </div>
+                            <div class="admin-form__section admin-courses__section">
+                                <p class="admin-form__section-title">Downloadable files</p>
                                 <p class="admin-card__description admin-form__hint">
                                     Attach supporting documents that learners can download alongside this lesson.
                                 </p>
@@ -1593,12 +1742,12 @@
                                         No files attached yet.
                                     </li>
                                 </ul>
-                            </fieldset>
-                            <fieldset
-                                class="admin-form__fieldset admin-courses__fieldset"
-                                data-role="course-video-subtitle-fieldset"
+                            </div>
+                            <div
+                                class="admin-form__section admin-courses__section"
+                                data-role="course-video-subtitle-section"
                             >
-                                <legend class="admin-form__legend">Subtitles</legend>
+                                <p class="admin-form__section-title">Subtitles</p>
                                 <p class="admin-card__description admin-form__hint">
                                     Review and edit the subtitle track attached to this lesson. Updates are saved as a WebVTT
                                     download for learners.
@@ -1654,7 +1803,7 @@
                                         hidden
                                     ></p>
                                 </div>
-                            </fieldset>
+                            </div>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="course-video-submit">
                                     Upload video
@@ -1727,8 +1876,8 @@
                                 Description <span class="admin-form__hint">Optional</span>
                                 <textarea name="description" rows="3" class="admin-form__input"></textarea>
                             </label>
-                            <fieldset class="admin-form__fieldset admin-courses__fieldset">
-                                <legend class="admin-form__legend">Lesson sections</legend>
+                            <div class="admin-form__section admin-courses__section">
+                                <p class="admin-form__section-title">Lesson sections</p>
                                 <p class="admin-card__description admin-form__hint">
                                     Build rich content with text, images, lists, and more. These sections will appear directly in
                                     the course player.
@@ -1745,7 +1894,7 @@
                                         </button>
                                     </div>
                                 </div>
-                            </fieldset>
+                            </div>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="course-content-submit">
                                     Save content
@@ -1852,8 +2001,8 @@
                                 Meta description
                                 <textarea name="meta_description" rows="2" class="admin-form__input"></textarea>
                             </label>
-                            <fieldset class="admin-form__fieldset admin-courses__fieldset">
-                                <legend class="admin-form__legend">Topic steps</legend>
+                            <div class="admin-form__section admin-courses__section">
+                                <p class="admin-form__section-title">Topic steps</p>
                                 <p class="admin-card__description admin-form__hint">
                                     Mix videos and tests to build the sequence students will follow. Reorder steps to match the
                                     desired flow.
@@ -1878,7 +2027,7 @@
                                         No steps added yet.
                                     </li>
                                 </ul>
-                            </fieldset>
+                            </div>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="course-topic-submit">
                                     Save topic
@@ -1951,8 +2100,8 @@
                                 Description <span class="admin-form__hint">Optional</span>
                                 <textarea name="description" rows="3" class="admin-form__input"></textarea>
                             </label>
-                            <fieldset class="admin-form__fieldset admin-courses__fieldset">
-                                <legend class="admin-form__legend">Questions</legend>
+                            <div class="admin-form__section admin-courses__section">
+                                <p class="admin-form__section-title">Questions</p>
                                 <p class="admin-card__description admin-form__hint">
                                     Use text answers, single-choice, or multiple-choice questions. Learners see explanations after
                                     completing the test.
@@ -1974,7 +2123,7 @@
                                 <p class="admin-course-test-questions__empty" data-role="course-test-question-empty">
                                     No questions added yet.
                                 </p>
-                            </fieldset>
+                            </div>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="course-test-submit">
                                     Save test
@@ -2140,8 +2289,8 @@
                                     Provide a preview image to feature this package in marketing pages.
                                 </small>
                             </label>
-                            <fieldset class="admin-form__fieldset admin-courses__fieldset">
-                                <legend class="admin-form__legend">Included topics</legend>
+                            <div class="admin-form__section admin-courses__section">
+                                <p class="admin-form__section-title">Included topics</p>
                                 <p class="admin-card__description admin-form__hint">
                                     Choose which topics belong to the package and adjust their order.
                                 </p>
@@ -2165,9 +2314,9 @@
                                         No topics selected yet.
                                     </li>
                                 </ul>
-                            </fieldset>
-                            <fieldset class="admin-form__fieldset admin-courses__fieldset admin-courses__grant">
-                                <legend class="admin-form__legend">Grant access</legend>
+                            </div>
+                            <div class="admin-form__section admin-courses__section admin-courses__grant">
+                                <p class="admin-form__section-title">Grant access</p>
                                 <p class="admin-card__description admin-form__hint">
                                     Issue this package to a user immediately. Search by name or email and optionally set an
                                     expiration date.
@@ -2242,7 +2391,7 @@
                                     data-role="course-package-grant-status"
                                     hidden
                                 ></p>
-                            </fieldset>
+                            </div>
                             <div class="admin-form__actions">
                                 <button type="submit" class="admin-form__submit" data-role="course-package-submit">
                                     Save package
@@ -2344,8 +2493,8 @@
                         </div>
                         <div class="admin-panel__details">
                             <form id="admin-archive-directory-form" class="admin-form" novalidate>
-                                <fieldset class="admin-card admin-form__fieldset">
-                                    <legend class="admin-card__title admin-form__legend">Directory details</legend>
+                                <div class="admin-card admin-form__section">
+                                    <p class="admin-card__title admin-form__section-title">Directory details</p>
                                     <p class="admin-card__description admin-form__hint" data-role="archive-directory-status" hidden></p>
                                     <label class="admin-form__label">
                                         Name
@@ -2375,7 +2524,7 @@
                                             Delete directory
                                         </button>
                                     </div>
-                                </fieldset>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -2433,8 +2582,8 @@
                         </div>
                         <div class="admin-panel__details">
                             <form id="admin-archive-file-form" class="admin-form" novalidate>
-                                <fieldset class="admin-card admin-form__fieldset">
-                                    <legend class="admin-card__title admin-form__legend">File details</legend>
+                                <div class="admin-card admin-form__section">
+                                    <p class="admin-card__title admin-form__section-title">File details</p>
                                     <p class="admin-card__description admin-form__hint" data-role="archive-file-status" hidden></p>
                                     <label class="admin-form__label">
                                         Name
@@ -2505,7 +2654,7 @@
                                             Delete file
                                         </button>
                                     </div>
-                                </fieldset>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -2659,8 +2808,8 @@
                     </header>
                     <div class="admin-panel__body admin-panel__body--single">
                         <form id="admin-language-form" class="admin-form" novalidate>
-                            <fieldset class="admin-card admin-form__fieldset">
-                                <legend class="admin-card__title admin-form__legend">Language configuration</legend>
+                            <div class="admin-card admin-form__section">
+                                <p class="admin-card__title admin-form__section-title">Language configuration</p>
                                 <label class="admin-form__label" for="admin-default-language">
                                     Default language
                                     <input
@@ -2716,7 +2865,7 @@
                                         Save languages
                                     </button>
                                 </div>
-                            </fieldset>
+                            </div>
                         </form>
                     </div>
                 </section>
@@ -2750,8 +2899,8 @@
                 </header>
                 <div class="admin-panel__body">
                     <form id="admin-homepage-form" class="admin-form" novalidate>
-                        <fieldset class="admin-card admin-form__fieldset">
-                            <legend class="admin-card__title admin-form__legend">Homepage selection</legend>
+                        <div class="admin-card admin-form__section">
+                            <p class="admin-card__title admin-form__section-title">Homepage selection</p>
                             <p class="admin-card__description admin-form__hint">
                                 Select a published page to use as the homepage. Leave blank to continue using the page
                                 assigned to the "/" path.
@@ -2768,7 +2917,7 @@
                                     Save homepage
                                 </button>
                             </div>
-                        </fieldset>
+                        </div>
                     </form>
                     <section class="admin-card" aria-labelledby="admin-homepage-options-title">
                         <div class="admin-card__header">
@@ -2853,8 +3002,8 @@
                             </p>
                         </div>
                         <form id="admin-backup-settings-form" class="admin-form" novalidate>
-                            <fieldset class="admin-card admin-form__fieldset">
-                                <legend class="admin-card__title admin-form__legend">Schedule</legend>
+                            <div class="admin-card admin-form__section">
+                                <p class="admin-card__title admin-form__section-title">Schedule</p>
                                 <label class="admin-form__checkbox checkbox" for="backup-auto-enabled">
                                     <input
                                         type="checkbox"
@@ -2900,7 +3049,7 @@
                                         Save backup settings
                                     </button>
                                 </div>
-                            </fieldset>
+                            </div>
                         </form>
                     </section>
                     <section
@@ -2918,8 +3067,8 @@
                             </p>
                         </div>
                         <form id="admin-backup-import-form" class="admin-form" novalidate>
-                            <fieldset class="admin-card admin-form__fieldset">
-                                <legend class="admin-card__title admin-form__legend">Backup archive</legend>
+                            <div class="admin-card admin-form__section">
+                                <p class="admin-card__title admin-form__section-title">Backup archive</p>
                                 <label class="admin-form__label">
                                     Archive file
                                     <input
@@ -2938,7 +3087,7 @@
                                         Restore backup
                                     </button>
                                 </div>
-                            </fieldset>
+                            </div>
                         </form>
                     </section>
                 </div>
@@ -2973,8 +3122,8 @@
                 </header>
                 <div class="admin-panel__body">
                     <form id="admin-ads-form" class="admin-form" novalidate>
-                        <fieldset class="admin-card admin-form__fieldset">
-                            <legend class="admin-card__title admin-form__legend">General settings</legend>
+                        <div class="admin-card admin-form__section">
+                            <p class="admin-card__title admin-form__section-title">General settings</p>
                             <label class="admin-form__checkbox checkbox">
                                 <input
                                     type="checkbox"
@@ -2991,9 +3140,9 @@
                             <small class="admin-card__description admin-form__hint">
                                 Select the advertising provider to manage. New providers can be added without changing templates.
                             </small>
-                        </fieldset>
-                        <fieldset class="admin-card admin-form__fieldset" data-role="ads-provider-fields" data-provider="google_ads">
-                            <legend class="admin-card__title admin-form__legend">Google AdSense</legend>
+                        </div>
+                        <div class="admin-card admin-form__section" data-role="ads-provider-fields" data-provider="google_ads">
+                            <p class="admin-card__title admin-form__section-title">Google AdSense</p>
                             <label class="admin-form__label">
                                 Publisher ID
                                 <input
@@ -3027,7 +3176,7 @@
                             <small class="admin-card__description admin-form__hint">
                                 Each placement maps an AdSense ad unit to a specific location such as the header, sidebar, or footer.
                             </small>
-                        </fieldset>
+                        </div>
                         <div class="admin-form__actions">
                             <button type="submit" class="admin-form__submit" data-role="ads-submit">
                                 Save changes
@@ -3074,7 +3223,7 @@
                         data-nav-child-order="1"
                     >
                         <header class="admin-card__header admin-plugins__header">
-                            <h3 id="admin-plugins-title" class="admin-card__title admin-form__legend">Installed plugins</h3>
+                            <h3 id="admin-plugins-title" class="admin-card__title admin-form__section-title">Installed plugins</h3>
                             <p class="admin-card__description admin-form__hint">
                                 Manage installed plugins. Activate a plugin to enable its features or deactivate it to disable functionality while keeping the files available.
                             </p>
@@ -3094,7 +3243,7 @@
                         data-nav-child-order="2"
                     >
                         <header class="admin-card__header admin-plugins__install-header">
-                            <h3 id="admin-plugin-install-title" class="admin-card__title admin-form__legend">Install plugin</h3>
+                            <h3 id="admin-plugin-install-title" class="admin-card__title admin-form__section-title">Install plugin</h3>
                             <p class="admin-card__description admin-form__hint">
                                 Upload a ZIP archive that contains the plugin files and a <code>plugin.json</code> manifest describing the plugin metadata.
                             </p>
@@ -3156,7 +3305,7 @@
                 <div class="admin-panel__body admin-panel__body--single">
                     <section class="admin-card admin-theme" aria-labelledby="admin-themes-title">
                         <header class="admin-card__header admin-theme__header">
-                            <h3 id="admin-themes-title" class="admin-card__title admin-form__legend">Available themes</h3>
+                            <h3 id="admin-themes-title" class="admin-card__title admin-form__section-title">Available themes</h3>
                             <p class="admin-card__description admin-form__hint">
                                 Select a theme to change the site's overall appearance. Activate a theme to apply its templates and assets immediately.
                             </p>
@@ -3200,7 +3349,7 @@
                 <div class="admin-panel__body">
                     <section class="admin-card admin-social" aria-labelledby="admin-social-title">
                         <header class="admin-card__header admin-social__header">
-                            <h3 id="admin-social-title" class="admin-card__title admin-form__legend">Social profiles</h3>
+                            <h3 id="admin-social-title" class="admin-card__title admin-form__section-title">Social profiles</h3>
                             <p class="admin-card__description admin-form__hint">
                                 Manage the social networks displayed in the site footer. Add a name, destination URL, and an optional icon for each profile.
                             </p>
@@ -3270,7 +3419,7 @@
                 <div class="admin-panel__body">
                     <section class="admin-card admin-navigation" aria-labelledby="admin-navigation-title">
                         <header class="admin-card__header admin-navigation__header">
-                            <h3 id="admin-navigation-title" class="admin-card__title admin-form__legend">Navigation menu</h3>
+                            <h3 id="admin-navigation-title" class="admin-card__title admin-form__section-title">Navigation menu</h3>
                             <p class="admin-card__description admin-form__hint">
                                 Control the navigation links shown in the site header and footer. Choose a location, add menu
                                 items with a label and destination URL, and arrange them in the preferred order.
@@ -3284,8 +3433,8 @@
                             </ul>
                             <form id="admin-menu-form" class="admin-form admin-navigation__form" novalidate>
                                 <input type="hidden" name="id" />
-                                <fieldset class="admin-form__fieldset admin-navigation__step">
-                                    <legend class="admin-form__legend admin-navigation__step-title">1. Choose menu location</legend>
+                                <div class="admin-form__section admin-navigation__step">
+                                    <p class="admin-form__section-title admin-navigation__step-title">1. Choose menu location</p>
                                     <p class="admin-navigation__step-description">
                                         Pick where this menu item should appear on your site.
                                     </p>
@@ -3308,9 +3457,9 @@
                                             Select the navigation area to update.
                                         </small>
                                     </label>
-                                </fieldset>
-                                <fieldset class="admin-form__fieldset admin-navigation__step">
-                                    <legend class="admin-form__legend admin-navigation__step-title">2. Create a footer section</legend>
+                                </div>
+                                <div class="admin-form__section admin-navigation__step">
+                                    <p class="admin-form__section-title admin-navigation__step-title">2. Create a footer section</p>
                                     <p class="admin-navigation__step-description">
                                         Need a new footer column? Choose "Create new footer section…" above and name it here.
                                     </p>
@@ -3333,9 +3482,9 @@
                                             </small>
                                         </label>
                                     </div>
-                                </fieldset>
-                                <fieldset class="admin-form__fieldset admin-navigation__step">
-                                    <legend class="admin-form__legend admin-navigation__step-title">3. Add menu item</legend>
+                                </div>
+                                <div class="admin-form__section admin-navigation__step">
+                                    <p class="admin-form__section-title admin-navigation__step-title">3. Add menu item</p>
                                     <p class="admin-navigation__step-description">
                                         Give the link a label and destination URL for the selected location.
                                     </p>
@@ -3358,7 +3507,7 @@
                                             Cancel
                                         </button>
                                     </div>
-                                </fieldset>
+                                </div>
                             </form>
                         </div>
                     </section>
@@ -3369,3 +3518,6 @@
 
     init();
 })();
+
+
+

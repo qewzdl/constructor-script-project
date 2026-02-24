@@ -50,7 +50,8 @@
     padding: var(--size-sm);
     background-color: var(--color-bg-bottom);
     border: 1px solid var(--color-border);
-    width: fit-content;
+    width: 100%;
+    min-width: 0;
 }
 
 .admin-builder__meta-summary {

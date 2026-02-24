@@ -1274,7 +1274,10 @@ func (a *Application) initRouter() error {
 	router.GET("/checkout/cancel", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/courses/checkout/cancel")
 	})
+	router.GET("/courses/:slug/info", a.templateHandler.RenderCourseInfo)
+	router.GET("/courses/:slug/buy", a.templateHandler.RenderCourseBuy)
 	router.GET("/courses/:slug", a.templateHandler.RenderCourse)
+	router.GET("/admin/pages/:id/editor", a.templateHandler.RenderAdminPageEditor)
 	router.GET("/admin", a.templateHandler.RenderAdmin)
 	router.GET("/blog/post/:slug", a.templateHandler.RenderPost)
 	router.GET("/page/:slug", a.templateHandler.RenderPage)

@@ -10,7 +10,12 @@
         typeof window.matchMedia === "function" &&
         window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-    if (!supportsFinePointer) {
+    const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (!supportsFinePointer || prefersReducedMotion) {
         return;
     }
 
@@ -52,6 +57,8 @@
         let currentOpacity = 0;
         let targetScale = 1.22;
         let currentScale = targetScale;
+        let isPointerInside = false;
+        let animationFrame = null;
         const targetLag = 0.11;
         const acceleration = 0.045;
         const velocityDamping = 0.82;
@@ -90,35 +97,17 @@
             glow.style.opacity = String(currentOpacity);
         };
 
-        const handleEnter = (event) => {
-            syncBounds();
-            syncToPointer(event);
-            targetOpacity = 1;
-            targetScale = 1;
-            currentScale = targetScale;
-            currentOpacity = Math.max(currentOpacity, 0.1);
-            renderGlow();
-        };
-
-        const handleMove = (event) => {
-            setTargetFromPointer(event);
-            targetOpacity = 1;
-            targetScale = 1;
-        };
-
-        const handleLeave = () => {
-            targetOpacity = 0;
-            targetScale = 1.22;
-        };
-
-        target.addEventListener("pointerenter", handleEnter);
-        target.addEventListener("pointermove", handleMove);
-        target.addEventListener("pointerleave", handleLeave);
-        target.addEventListener("pointercancel", handleLeave);
-        window.addEventListener("resize", syncBounds);
-        window.addEventListener("scroll", syncBounds, { passive: true });
+        const shouldKeepAnimating = () =>
+            isPointerInside ||
+            currentOpacity > 0.02 ||
+            Math.abs(targetOpacity - currentOpacity) > 0.01 ||
+            Math.abs(targetScale - currentScale) > 0.005 ||
+            Math.abs(velocityX) > 0.02 ||
+            Math.abs(velocityY) > 0.02;
 
         const animate = () => {
+            animationFrame = null;
+
             delayedTargetX += (rawTargetX - delayedTargetX) * targetLag;
             delayedTargetY += (rawTargetY - delayedTargetY) * targetLag;
 
@@ -134,12 +123,53 @@
 
             renderGlow();
 
-            if (target.isConnected) {
-                window.requestAnimationFrame(animate);
+            if (target.isConnected && shouldKeepAnimating()) {
+                animationFrame = window.requestAnimationFrame(animate);
             }
         };
 
-        window.requestAnimationFrame(animate);
+        const startAnimation = () => {
+            if (animationFrame !== null || !target.isConnected) {
+                return;
+            }
+            animationFrame = window.requestAnimationFrame(animate);
+        };
+
+        const handleEnter = (event) => {
+            syncBounds();
+            syncToPointer(event);
+            isPointerInside = true;
+            targetOpacity = 1;
+            targetScale = 1;
+            currentScale = targetScale;
+            currentOpacity = Math.max(currentOpacity, 0.1);
+            renderGlow();
+            startAnimation();
+        };
+
+        const handleMove = (event) => {
+            setTargetFromPointer(event);
+            isPointerInside = true;
+            targetOpacity = 1;
+            targetScale = 1;
+            startAnimation();
+        };
+
+        const handleLeave = () => {
+            isPointerInside = false;
+            targetOpacity = 0;
+            targetScale = 1.22;
+            startAnimation();
+        };
+
+        target.addEventListener("pointerenter", handleEnter);
+        target.addEventListener("pointermove", handleMove);
+        target.addEventListener("pointerleave", handleLeave);
+        target.addEventListener("pointercancel", handleLeave);
+        window.addEventListener("resize", syncBounds);
+        window.addEventListener("scroll", syncBounds, { passive: true });
+
+        renderGlow();
     };
 
     const init = () => {
