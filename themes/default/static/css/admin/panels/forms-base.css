@@ -10,6 +10,10 @@
     border: 1px solid var(--color-border);
 }
 
+#admin-page-form .admin-form__section {
+    border: 0;
+}
+
 .admin-form__section--sections {
     gap: var(--size-base);
 }

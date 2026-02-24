@@ -1756,7 +1756,6 @@
             'admin-page-live-preview-interactions';
         const PAGE_LIVE_PREVIEW_INTERACTION_STYLE = `
 html.is-admin-live-preview section[id^="section-"] {
-    cursor: pointer !important;
     outline: 2px solid transparent;
     outline-offset: -2px;
     transition: outline-color 0.15s ease, box-shadow 0.15s ease;
